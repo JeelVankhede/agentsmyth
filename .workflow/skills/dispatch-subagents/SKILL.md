@@ -1,0 +1,7 @@
+---
+name: dispatch-subagents
+---
+
+# dispatch-subagents
+
+Placeholder for a later phase. Do not treat this as final workflow behavior.
