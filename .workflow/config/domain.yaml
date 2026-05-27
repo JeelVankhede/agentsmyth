@@ -1,1 +1,47 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+version: 1
+kind: domain
+
+domain:
+  name: generic
+  summary: Generic single-repository workflow template.
+  regulated: false
+  glossary: []
+  preferred_terms: []
+  discouraged_terms: []
+
+constraints:
+  product:
+    - Do not introduce domain-specific behavior unless the user request or repo context requires it.
+    - Treat compatibility, source authority, verification, and release impact as implicit requirements when material.
+  safety:
+    - Do not expose secrets, credentials, private tokens, or sensitive local paths in artifacts.
+    - Do not perform destructive actions without explicit user approval.
+    - Do not claim external state without evidence.
+  provider_neutrality:
+    - Do not make any source, ticketing, hosting, CI, package, or deployment provider mandatory by default.
+    - Use configured providers only when this config, another workflow config, or the user request enables them.
+
+requirement_discovery:
+  implicit_requirement_sources:
+    - repo_profile
+    - source_of_truth
+    - verification
+    - release
+    - lifecycle_rules
+    - compatibility
+    - safety
+  assumptions:
+    require_ids: true
+    id_prefix: A
+    must_be_visible_in_brief: true
+  questions:
+    require_ids: true
+    id_prefix: Q
+    blocking_questions_go_to_orchestration_blockers: true
+
+communication:
+  default_audience: engineering
+  tone: direct
+  include_user_followups_when_blocked: true
+
+extensions: {}

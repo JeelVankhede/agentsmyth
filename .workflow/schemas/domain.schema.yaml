@@ -1,1 +1,133 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: domain.schema.yaml
+title: Domain Config
+type: object
+additionalProperties: false
+required:
+  - version
+  - kind
+  - domain
+  - constraints
+  - requirement_discovery
+  - communication
+properties:
+  version:
+    const: 1
+  kind:
+    const: domain
+  domain:
+    type: object
+    additionalProperties: false
+    required:
+      - name
+      - summary
+      - regulated
+      - glossary
+      - preferred_terms
+      - discouraged_terms
+    properties:
+      name:
+        type: string
+        minLength: 1
+      summary:
+        type: string
+      regulated:
+        type: boolean
+      glossary:
+        type: array
+        items:
+          type: string
+      preferred_terms:
+        type: array
+        items:
+          type: string
+      discouraged_terms:
+        type: array
+        items:
+          type: string
+  constraints:
+    type: object
+    additionalProperties: false
+    required:
+      - product
+      - safety
+      - provider_neutrality
+    properties:
+      product:
+        type: array
+        items:
+          type: string
+      safety:
+        type: array
+        items:
+          type: string
+      provider_neutrality:
+        type: array
+        items:
+          type: string
+  requirement_discovery:
+    type: object
+    additionalProperties: false
+    required:
+      - implicit_requirement_sources
+      - assumptions
+      - questions
+    properties:
+      implicit_requirement_sources:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          enum:
+            - repo_profile
+            - source_of_truth
+            - verification
+            - release
+            - lifecycle_rules
+            - compatibility
+            - safety
+      assumptions:
+        $ref: '#/$defs/id_policy'
+      questions:
+        allOf:
+          - $ref: '#/$defs/id_policy'
+          - type: object
+            required:
+              - blocking_questions_go_to_orchestration_blockers
+            properties:
+              blocking_questions_go_to_orchestration_blockers:
+                type: boolean
+  communication:
+    type: object
+    additionalProperties: false
+    required:
+      - default_audience
+      - tone
+      - include_user_followups_when_blocked
+    properties:
+      default_audience:
+        type: string
+      tone:
+        type: string
+      include_user_followups_when_blocked:
+        type: boolean
+  extensions:
+    type: object
+    additionalProperties: true
+$defs:
+  id_policy:
+    type: object
+    additionalProperties: false
+    required:
+      - require_ids
+      - id_prefix
+    properties:
+      require_ids:
+        type: boolean
+      id_prefix:
+        type: string
+        minLength: 1
+      must_be_visible_in_brief:
+        type: boolean
+      blocking_questions_go_to_orchestration_blockers:
+        type: boolean

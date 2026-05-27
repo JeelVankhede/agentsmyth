@@ -1,1 +1,200 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: repo-profile.schema.yaml
+title: Repo Profile Config
+type: object
+additionalProperties: false
+required:
+  - version
+  - kind
+  - repository
+  - branch_policy
+  - paths
+  - ownership
+  - commands
+  - generated_output_policy
+properties:
+  version:
+    const: 1
+  kind:
+    const: repo-profile
+  repository:
+    type: object
+    additionalProperties: false
+    required:
+      - mode
+      - root
+      - default_branch
+      - workflow_root
+      - artifacts_root
+      - learnings_sessions_root
+    properties:
+      mode:
+        const: single-target-repo
+      root:
+        type: string
+      default_branch:
+        type: string
+        minLength: 1
+      workflow_root:
+        type: string
+      artifacts_root:
+        type: string
+      learnings_sessions_root:
+        type: string
+  branch_policy:
+    type: object
+    additionalProperties: false
+    required:
+      - require_non_default_branch_for_changes
+      - default_branch_commit_requires_user_approval
+      - preserve_unrelated_changes
+      - dirty_state_policy
+      - stage_only_approved_scope
+      - branch_name_pattern
+    properties:
+      require_non_default_branch_for_changes:
+        type: boolean
+      default_branch_commit_requires_user_approval:
+        type: boolean
+      preserve_unrelated_changes:
+        type: boolean
+      dirty_state_policy:
+        type: string
+        enum:
+          - record-and-preserve
+          - block-when-dirty
+      stage_only_approved_scope:
+        type: boolean
+      branch_name_pattern:
+        type: string
+  paths:
+    type: object
+    additionalProperties: false
+    required:
+      - protected
+      - public_contracts
+      - generated_outputs
+      - test_roots
+      - docs_roots
+      - source_roots
+    properties:
+      protected:
+        type: array
+        items:
+          $ref: '#/$defs/path_rule'
+      public_contracts:
+        type: array
+        items:
+          $ref: '#/$defs/path_rule'
+      generated_outputs:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - path
+            - source
+            - regeneration_command
+          properties:
+            path:
+              type: string
+            source:
+              type: string
+            regeneration_command:
+              type:
+                - string
+                - 'null'
+            owner:
+              type: string
+            manual_edits_allowed:
+              type: boolean
+      test_roots:
+        type: array
+        items:
+          type: string
+      docs_roots:
+        type: array
+        items:
+          type: string
+      source_roots:
+        type: array
+        items:
+          type: string
+  ownership:
+    type: object
+    additionalProperties: false
+    required:
+      - default_owner
+      - codeowners_file
+      - path_owners
+    properties:
+      default_owner:
+        type: string
+      codeowners_file:
+        type:
+          - string
+          - 'null'
+      path_owners:
+        type: array
+        items:
+          $ref: '#/$defs/path_rule'
+  commands:
+    type: object
+    additionalProperties: false
+    required:
+      - discovery
+      - package_managers
+    properties:
+      discovery:
+        type: object
+        additionalProperties: false
+        required:
+          - allow_repo_inspection
+          - prefer_configured_verification_commands
+          - do_not_invent_commands
+        properties:
+          allow_repo_inspection:
+            type: boolean
+          prefer_configured_verification_commands:
+            type: boolean
+          do_not_invent_commands:
+            type: boolean
+      package_managers:
+        type: array
+        items:
+          type: string
+  generated_output_policy:
+    type: object
+    additionalProperties: false
+    required:
+      - require_source_mapping
+      - require_regeneration_or_waiver_when_source_changes
+      - manual_edits_allowed
+    properties:
+      require_source_mapping:
+        type: boolean
+      require_regeneration_or_waiver_when_source_changes:
+        type: boolean
+      manual_edits_allowed:
+        type: string
+        enum:
+          - always
+          - never
+          - only_when_configured
+  extensions:
+    type: object
+    additionalProperties: true
+$defs:
+  path_rule:
+    type: object
+    additionalProperties: false
+    required:
+      - pattern
+      - reason
+    properties:
+      pattern:
+        type: string
+      reason:
+        type: string
+      owner:
+        type: string

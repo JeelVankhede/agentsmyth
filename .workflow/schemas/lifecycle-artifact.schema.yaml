@@ -1,1 +1,229 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: lifecycle-artifact.schema.yaml
+title: Parsed Lifecycle Artifact
+description: Schema for a parsed lifecycle artifact object. A later validator can map Markdown frontmatter and headings into this shape.
+type: object
+additionalProperties: false
+required:
+  - path
+  - frontmatter
+  - body
+properties:
+  path:
+    type: string
+    minLength: 1
+  frontmatter:
+    $ref: artifact-frontmatter.schema.yaml
+  body:
+    type: object
+    additionalProperties: false
+    required:
+      - sections
+    properties:
+      title:
+        type: string
+      sections:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          minLength: 1
+      raw_markdown:
+        type: string
+      requirement_manifest_ids:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          pattern: '^R(I)?[0-9]+$'
+      recommendation:
+        type: string
+      blockers:
+        type: array
+        items:
+          type: string
+allOf:
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: brief
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Source Links
+                - contains:
+                    const: Problem
+                - contains:
+                    const: Goals
+                - contains:
+                    const: Non-Goals
+                - contains:
+                    const: Requirement Manifest
+                - contains:
+                    const: Architecture Notes
+                - contains:
+                    const: Exit Gate
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: plan
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Summary
+                - contains:
+                    const: Requirement Coverage
+                - contains:
+                    const: Repo Impact Map
+                - contains:
+                    const: Source-of-Truth Strategy
+                - contains:
+                    const: Verification Plan
+                - contains:
+                    const: Architecture Notes
+                - contains:
+                    const: Exit Gate
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: task
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Active Phase
+                - contains:
+                    const: Branch / Repo Status
+                - contains:
+                    const: Changed Files
+                - contains:
+                    const: Implementation Log
+                - contains:
+                    const: Verification Items
+                - contains:
+                    const: Command Results
+                - contains:
+                    const: Architecture Notes
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: review
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Findings
+                - contains:
+                    const: Severity Summary
+                - contains:
+                    const: Requirement Coverage
+                - contains:
+                    const: Verification Reviewed
+                - contains:
+                    const: Residual Risk
+                - contains:
+                    const: Recommendation
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: verify
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Inputs
+                - contains:
+                    const: Automated Checks
+                - contains:
+                    const: Manifest Coverage
+                - contains:
+                    const: Manual QA
+                - contains:
+                    const: Generated Output Evidence
+                - contains:
+                    const: Skipped Checks
+                - contains:
+                    const: Sign-Off
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: ship
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Ship Status
+                - contains:
+                    const: Requirement Coverage
+                - contains:
+                    const: PR / CI Readiness
+                - contains:
+                    const: Release Readiness
+                - contains:
+                    const: Source-of-Truth Status
+                - contains:
+                    const: Risk And Rollback
+                - contains:
+                    const: Exit Gate
+                - contains:
+                    const: Next Phase
+  - if:
+      properties:
+        frontmatter:
+          properties:
+            artifact:
+              const: reflect
+    then:
+      properties:
+        body:
+          properties:
+            sections:
+              allOf:
+                - contains:
+                    const: Outcome
+                - contains:
+                    const: What Worked
+                - contains:
+                    const: What Did Not Work
+                - contains:
+                    const: Manifest Coverage Retrospective
+                - contains:
+                    const: Learning Candidates
+                - contains:
+                    const: Follow-Ups
+                - contains:
+                    const: Raw Session Entry
+                - contains:
+                    const: Exit Gate
