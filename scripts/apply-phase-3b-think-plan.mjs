@@ -1,9 +1,18 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+
+const placeholder = 'Placeholder for a later phase. Do not treat this as final workflow behavior.';
 
 const write = (path, body) => {
   mkdirSync(dirname(path), { recursive: true });
+  if (existsSync(path)) {
+    const current = readFileSync(path, 'utf8');
+    if (!current.includes(placeholder)) {
+      console.log(`Skipped non-placeholder file: ${path}`);
+      return;
+    }
+  }
   writeFileSync(path, `${body.trim()}\n`, 'utf8');
 };
 
@@ -127,5 +136,5 @@ const refs = {
 
 for (const [path, body] of Object.entries(refs)) write(path, body);
 
-console.log('Phase 3B Think/Plan skill contracts generated.');
-console.log('Review, then commit generated files as one local commit.');
+console.log('Phase 3B Think/Plan scaffold pass complete.');
+console.log('Review any generated files, strengthen as needed, then commit the scoped Phase 3B changes.');
