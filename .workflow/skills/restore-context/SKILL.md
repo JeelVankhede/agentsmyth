@@ -1,7 +1,109 @@
 ---
 name: restore-context
+description: Power skill for reconstructing lifecycle state from artifacts, config, git state, blockers, and source references.
 ---
 
-# restore-context
+# Restore Context
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+## Purpose
+
+Rebuild the current lifecycle state from durable evidence instead of chat memory.
+
+This is a read-only power skill. It resolves slug/version, walks the artifact chain, reads orchestration state, checks blockers and coverage, inspects git state, summarizes external/source references, and recommends the next lifecycle action.
+
+## Invocation Context
+
+Use this skill when:
+
+- resuming a lifecycle chain
+- handling a user answer after a pause
+- the user says "continue", "where were we", or names a slug/branch/artifact/source
+- a phase needs to verify upstream state before proceeding
+- the agent suspects local memory is stale or incomplete
+
+## Context Loading
+
+Always load:
+
+1. Root `AGENTS.md`.
+2. `.workflow/router.md`.
+3. `.workflow/lifecycle.md`.
+4. `.workflow/rules.md`.
+5. This skill file.
+6. These references:
+   - `references/chain-walker.md`
+   - `references/artifact-reader.md`
+   - `references/git-walker.md`
+   - `references/source-of-truth-reader.md`
+   - `references/blocker-reader.md`
+   - `references/summary-format.md`
+   - `references/output-schema.md`
+
+Load on demand:
+
+- `.workflow/config/*.yaml` files relevant to the active chain.
+- Existing lifecycle artifacts only for candidate slug/version chains.
+- Target repo files only when artifact evidence identifies affected paths.
+- External source or PR/CI data only when configured, referenced, and available through tools.
+
+## Inputs
+
+- Slug/version, branch, artifact path, PR, issue, source item, ticket, or fuzzy feature reference.
+- User's latest message, especially answers to blockers.
+- Existing artifacts under `.workflow/artifacts/**`.
+- Current git state.
+- Source-of-truth and release references from artifacts/config.
+
+## Refusal / Stop Conditions
+
+Stop with candidate summary instead of guessing when:
+
+- no matching slug or artifact can be found
+- multiple candidate chains are equally likely
+- required upstream artifact links are broken
+- current blockers cannot be resolved from the user's latest answer
+- target repo state cannot be inspected and the next phase depends on it
+- external source or release state is required but unavailable and no blocked handoff exists
+
+## Workflow
+
+1. Resolve slug and version from explicit input, artifact paths, branch names, frontmatter, or search results.
+2. Walk artifact chain: brief, plan, task, review, verify, ship, reflect.
+3. Parse frontmatter and body status for each artifact.
+4. Extract active manifest IDs, blockers, waivers, skipped checks, deferred requirements, and user checkpoints.
+5. Compare manifest IDs across downstream artifacts to find coverage gaps.
+6. Inspect git status for the target repo and record unrelated or overlapping dirty state.
+7. Read configured source-of-truth and release references without claiming external state unless evidence exists.
+8. Identify inconsistencies: stale links, missing artifacts, mismatched next phase, missing evidence, dirty state, unresolved blockers, or blocked handoff gaps.
+9. Recommend exactly one next action: lifecycle phase, `complete`, or `blocked`.
+10. Return a concise restore summary.
+
+## Exit Gate
+
+- Slug/version resolution and confidence are explicit.
+- Artifact chain is summarized even for missing artifacts.
+- Current phase, status, next phase, blockers, and checkpoint are derived from evidence.
+- Requirement coverage gaps are named.
+- Git state is checked or marked not checked with reason.
+- External/source/release state is not claimed without evidence.
+- Recommended next action is actionable.
+- No files are edited.
+
+## Determinism Rules
+
+- Never rely on chat memory alone.
+- Prefer artifact frontmatter over filename inference.
+- Prefer current git status over assumptions.
+- Cite exact artifact paths and observed command results.
+- Do not invent tickets, PRs, releases, source updates, package versions, SHAs, or CI results.
+- Do not mutate artifacts while restoring context.
+
+## Output Contract
+
+Follow `references/output-schema.md`.
+
+Return the context header, lifecycle chain, current state, requirement coverage, blockers, repo status, external/source context, learning context, inconsistencies, and recommended next action.
+
+## Output
+
+Same as Output Contract.
