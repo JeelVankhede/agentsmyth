@@ -1,3 +1,5 @@
-# README
+# Claude Adapter
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+Use `CLAUDE.md` when this repository needs Claude-compatible local instructions.
+
+The adapter is intentionally short. It routes the tool to `.workflow/`, where the lifecycle, config, skills, templates, and evidence rules live.

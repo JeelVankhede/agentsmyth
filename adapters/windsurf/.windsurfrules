@@ -2,4 +2,8 @@
 
 Use `.workflow/` as canonical.
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+Read `.workflow/router.md` before lifecycle work. Load `.workflow/config/agent-behavior.yaml`, then use `.workflow/lifecycle.md` and the matching skill under `.workflow/skills/`.
+
+For Standard or Complex work, create or update artifacts under `.workflow/artifacts/` from `.workflow/templates/`.
+
+Do not invent commands, providers, release gates, source updates, or external status. Evidence is required for command results, PR/CI, release, deployment, and handoff claims.
