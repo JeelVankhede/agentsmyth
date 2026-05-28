@@ -1,17 +1,23 @@
 # Validators
 
-Validator scripts are reserved for the validator phase.
+Validator scripts provide lightweight contract checks using plain Node.js and repository-local files.
 
-Until validator implementations are complete:
+Run from the repository root:
 
-- Do not cite validator output as proof.
-- Use config, schemas, templates, and artifact review manually.
-- Keep validator scripts scoped to future automated checks.
+```text
+node .workflow/validators/check-config.mjs
+node .workflow/validators/check-template-contracts.mjs
+node .workflow/validators/check-lifecycle.mjs
+node .workflow/validators/check-artifacts.mjs
+node .workflow/validators/check-domain-placeholders.mjs
+```
 
-Expected validator surfaces:
+## Checks
 
-- config/schema conformance
-- artifact frontmatter and section shape
-- lifecycle transition consistency
-- template contract drift
-- disallowed domain placeholder or reference leakage
+- `check-config.mjs` checks config files against their matching schema contracts.
+- `check-template-contracts.mjs` checks template frontmatter, sections, and placeholder removal.
+- `check-lifecycle.mjs` checks lifecycle chain consistency across config, templates, and frontmatter schema enums.
+- `check-artifacts.mjs` checks any real artifacts under `.workflow/artifacts/`.
+- `check-domain-placeholders.mjs` scans tracked active files for placeholder markers and reference-specific leakage.
+
+These validators are conservative contract checks. They do not replace code tests, manual QA, source-of-truth verification, release evidence, or human review.
