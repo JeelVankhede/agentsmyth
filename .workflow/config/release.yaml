@@ -1,1 +1,80 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+version: 1
+kind: release
+
+release:
+  required: false
+  owner: user
+  default_recommendation_when_no_release_gate: ship
+
+gates:
+  branch:
+    required: true
+    evidence: git status and branch name
+  pull_request:
+    required: false
+    create_policy: user_requested_or_configured
+    evidence: pr_url_or_blocked_handoff
+  ci:
+    required: false
+    provider: none
+    checks: []
+    evidence: tool_output_or_user_provided_status
+  release:
+    required: false
+    evidence: release_url_version_or_handoff
+  deployment:
+    required: false
+    evidence: deployment_url_status_or_handoff
+  docs:
+    required: false
+    evidence: changed_docs_or_not_applicable
+  package:
+    required: false
+    evidence: artifact_version_registry_or_handoff
+  generated_output:
+    required: when_changed_or_configured
+    evidence: verification_artifact
+  source_of_truth:
+    required: when_configured
+    evidence: update_evidence_handoff_or_waiver
+  rollback:
+    required: when_release_or_external_handoff_is_in_scope
+    evidence: trigger_action_owner
+
+statuses:
+  - pass
+  - fail
+  - pending
+  - blocked
+  - not applicable
+  - waived
+
+recommendations:
+  - ship
+  - hold
+  - hold-with-waiver
+
+rollback:
+  do_not_invent_commands: true
+  required_fields:
+    - area
+    - risk
+    - rollback_trigger
+    - rollback_action
+    - owner
+    - evidence
+    - limits
+
+waivers:
+  approvers:
+    - user
+    - configured_decision_owner
+  required_fields:
+    - waived_gate_or_requirement_id
+    - reason
+    - residual_risk
+    - owner
+    - follow_up_action
+    - approval_evidence
+
+extensions: {}

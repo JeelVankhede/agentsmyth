@@ -1,1 +1,153 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: artifact-frontmatter.schema.yaml
+title: Lifecycle Artifact Frontmatter
+type: object
+additionalProperties: false
+required:
+  - slug
+  - version
+  - artifact
+  - status
+  - created
+  - updated
+  - manifest_ids
+  - upstream
+  - orchestration
+  - architecture_notes
+properties:
+  slug:
+    type: string
+    minLength: 1
+    pattern: '^[a-z0-9][a-z0-9-]*$'
+  version:
+    oneOf:
+      - type: integer
+        minimum: 1
+      - type: string
+        minLength: 1
+  artifact:
+    type: string
+    enum:
+      - brief
+      - plan
+      - task
+      - review
+      - verify
+      - ship
+      - reflect
+  status:
+    type: string
+    enum:
+      - draft
+      - in-progress
+      - blocked
+      - blocked-for-user
+      - ready-for-next-phase
+      - done
+  created:
+    type: string
+    format: date-time
+  updated:
+    type: string
+    format: date-time
+  manifest_ids:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      pattern: '^R(I)?[0-9]+$'
+  upstream:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      minLength: 1
+  orchestration:
+    type: object
+    additionalProperties: false
+    required:
+      - phase
+      - status
+      - next_phase
+      - blockers
+      - user_checkpoint
+    properties:
+      phase:
+        type: string
+        enum:
+          - think
+          - plan
+          - build
+          - review
+          - test
+          - ship
+          - reflect
+      status:
+        type: string
+        enum:
+          - draft
+          - in-progress
+          - blocked
+          - blocked-for-user
+          - ready-for-next-phase
+          - done
+      next_phase:
+        type: string
+        enum:
+          - plan
+          - build
+          - review
+          - test
+          - ship
+          - reflect
+          - done
+      blockers:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+      user_checkpoint:
+        type: string
+        minLength: 1
+  architecture_notes:
+    type: object
+    additionalProperties: false
+    required:
+      - role
+      - decisions
+      - constraints
+      - tradeoffs
+      - assumptions
+      - downstream_impact
+    properties:
+      role:
+        type: string
+        enum:
+          - Architect
+          - Principal Engineer
+          - Senior Engineer
+          - Staff Reviewer
+          - Senior QA
+          - Senior DevOps
+          - Project Manager
+      decisions:
+        type: array
+        items:
+          type: string
+      constraints:
+        type: array
+        items:
+          type: string
+      tradeoffs:
+        type: array
+        items:
+          type: string
+      assumptions:
+        type: array
+        items:
+          type: string
+      downstream_impact:
+        type: array
+        items:
+          type: string

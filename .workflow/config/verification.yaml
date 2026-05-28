@@ -1,1 +1,77 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+version: 1
+kind: verification
+
+evidence_types:
+  - command
+  - manual
+  - review
+  - generated-output
+  - source
+  - release
+  - waiver
+
+commands: []
+
+command_policy:
+  allow_discovered_commands: true
+  prefer_configured_commands: true
+  do_not_invent_commands: true
+  record_working_directory: true
+  record_not_run_as_risk: true
+  network_or_sandbox_failure_status: blocked
+
+manual_qa:
+  enabled: true
+  use_when_commands_cannot_prove_requirement: true
+  required_fields:
+    - scenario
+    - environment
+    - steps
+    - expected
+    - observed
+    - outcome
+    - evidence
+    - manifest_ids
+
+generated_output:
+  enabled_when_configured_or_changed: true
+  require_source_mapping: true
+  require_command_or_inspection_method: true
+  source_only_inspection_is_not_enough: true
+
+skipped_checks:
+  allowed_with_risk: true
+  required_fields:
+    - check
+    - why_skipped
+    - risk
+    - owner
+    - blocks_ship
+    - manifest_ids
+  ship_impact_values:
+    - yes
+    - no
+    - waiver-required
+
+outcomes:
+  command:
+    - pass
+    - fail
+    - not run
+    - blocked
+  manual:
+    - pass
+    - fail
+    - skipped
+    - blocked
+  coverage:
+    - pass
+    - fail
+    - skip
+    - waived
+  sign_off:
+    - ship
+    - hold
+    - hold-with-waiver
+
+extensions: {}

@@ -1,1 +1,52 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+version: 1
+kind: repo-profile
+
+repository:
+  mode: single-target-repo
+  root: .
+  default_branch: main
+  workflow_root: .workflow
+  artifacts_root: .workflow/artifacts
+  learnings_sessions_root: .workflow/learnings/sessions
+
+branch_policy:
+  require_non_default_branch_for_changes: true
+  default_branch_commit_requires_user_approval: true
+  preserve_unrelated_changes: true
+  dirty_state_policy: record-and-preserve
+  stage_only_approved_scope: true
+  branch_name_pattern: <slug-or-phase>
+
+paths:
+  protected:
+    - pattern: .git/**
+      reason: repository metadata
+    - pattern: .env*
+      reason: potential secrets
+    - pattern: '**/*secret*'
+      reason: potential secrets
+  public_contracts: []
+  generated_outputs: []
+  test_roots: []
+  docs_roots:
+    - docs
+  source_roots: []
+
+ownership:
+  default_owner: user
+  codeowners_file: null
+  path_owners: []
+
+commands:
+  discovery:
+    allow_repo_inspection: true
+    prefer_configured_verification_commands: true
+    do_not_invent_commands: true
+  package_managers: []
+
+generated_output_policy:
+  require_source_mapping: true
+  require_regeneration_or_waiver_when_source_changes: true
+  manual_edits_allowed: only_when_configured
+
+extensions: {}

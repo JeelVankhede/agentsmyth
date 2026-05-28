@@ -1,1 +1,41 @@
-# Placeholder for a later phase. Do not treat this as final workflow behavior.
+version: 1
+kind: source-of-truth
+
+source_of_truth:
+  mode: optional
+  default_required: false
+  providers: []
+
+read_policy:
+  read_when_user_provides_source: true
+  read_when_plan_or_release_depends_on_source: true
+  require_exact_source_reference_in_artifacts: true
+  unavailable_source_status: blocked
+
+update_policy:
+  updates_belong_to_phase: ship
+  require_update_evidence: true
+  require_user_request_or_config_for_external_write: true
+  if_update_cannot_be_performed: blocked_handoff_or_waiver
+  stale_source_blocks_ship_when_required: true
+
+handoff:
+  required_when_blocked: true
+  copy_ready: true
+  required_fields:
+    - provider_or_source_type
+    - source_item_or_lookup
+    - fields_or_sections_to_update
+    - owner
+    - exact_handoff
+    - risk
+    - affected_manifest_ids
+    - ship_impact
+
+status_values:
+  - updated
+  - not required
+  - blocked
+  - waived
+
+extensions: {}
