@@ -1,3 +1,5 @@
-# README
+# Windsurf Adapter
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+Use `.windsurfrules` when this repository needs Windsurf-compatible local rules.
+
+The adapter should stay thin and route the tool to `.workflow/`.

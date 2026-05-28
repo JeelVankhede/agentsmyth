@@ -1,3 +1,5 @@
-# README
+# Cursor Adapter
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+Use `rules/index.mdc` when this repository needs Cursor-compatible local rules.
+
+The adapter should stay thin and route the tool to `.workflow/`.

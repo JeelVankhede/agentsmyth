@@ -1,3 +1,5 @@
-# README
+# AGENTS Adapter
 
-Placeholder for a later phase. Do not treat this as final workflow behavior.
+Use `AGENTS.md` when this repository needs an AGENTS-compatible local instruction file.
+
+The adapter should stay thin and route the tool to `.workflow/`.
