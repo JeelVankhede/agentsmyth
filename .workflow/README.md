@@ -15,7 +15,7 @@
 | `templates/` | Artifact templates. |
 | `artifacts/` | Runtime lifecycle artifacts. |
 | `learnings/` | Raw sessions and curated learnings. |
-| `validators/` | Validator entry points reserved for the validator phase. |
+| `validators/` | Active contract checks for config, templates, lifecycle state, artifacts, and placeholder leakage. |
 
 ## Load Order
 

@@ -93,6 +93,7 @@ For small read-only questions, a full artifact chain may be unnecessary. When in
 
 Check that:
 
+- Repository validation commands listed in `README.md` pass or have documented skipped-check risk.
 - Artifacts cite exact evidence.
 - Skipped checks include risk, owner, and Ship impact.
 - Waivers include explicit approval evidence.

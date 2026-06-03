@@ -39,4 +39,19 @@ Each Standard or Complex change should leave a readable artifact chain under `.w
 - Do not make a provider, CI system, package manager, deployment process, or external source mandatory unless config or the user requires it.
 - Do not claim commands, external updates, releases, PRs, CI, or handoffs without evidence.
 - Treat skipped checks and waivers as visible risk.
-- Do not edit validator scripts as proof until the validator phase is implemented.
+- Treat validators as contract checks. They support review, but they do not replace code tests, manual QA, release evidence, or human judgment.
+
+## Validation
+
+Run the repository contract checks from the repository root:
+
+```text
+node scripts/validate-template.mjs
+node scripts/validate-example.mjs
+node scripts/render-adapters.mjs
+node .workflow/validators/check-config.mjs
+node .workflow/validators/check-template-contracts.mjs
+node .workflow/validators/check-lifecycle.mjs
+node .workflow/validators/check-artifacts.mjs
+node .workflow/validators/check-domain-placeholders.mjs
+```
