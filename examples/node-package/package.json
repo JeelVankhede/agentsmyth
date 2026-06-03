@@ -1,0 +1,9 @@
+{
+  "name": "example-node-package",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "node --check src/index.js",
+    "test": "node src/index.js"
+  }
+}
