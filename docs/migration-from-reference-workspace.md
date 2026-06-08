@@ -113,7 +113,7 @@ Every lifecycle phase must include reference files. Some source reference files 
 
 | Skill | Required references |
 |---|---|
-| `lifecycle-orchestrator` | `phase-routing.md`, `pause-resume-rules.md`, `blocker-policy.md`, `lifecycle-state-machine.md`, `output-contract.md` |
+| `lifecycle-orchestrator` | `phase-routing.md`, `pause-resume-rules.md`, `blocker-policy.md`, `lifecycle-state-machine.md`, `output-schema.md`, `exemplar.md` |
 | `lifecycle-think` | `role.md`, `output-schema.md`, `exemplar.md`, `requirement-discovery.md`, `assumption-policy.md`, `question-policy.md`, `architecture-notes-guide.md` |
 | `lifecycle-plan` | `role.md`, `output-schema.md`, `exemplar.md`, `repo-impact-map.md`, `dependency-ordering.md`, `risk-register.md`, `verification-planning.md`, `branch-policy.md`, `source-of-truth-planning.md` |
 | `lifecycle-build` | `role.md`, `output-schema.md`, `exemplar.md`, `phase-execution-policy.md`, `scope-control.md`, `change-safety.md`, `git-status-policy.md`, `unrelated-changes-policy.md`, `verification-recording.md` |
