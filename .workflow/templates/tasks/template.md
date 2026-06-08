@@ -14,13 +14,6 @@ orchestration:
   next_phase: review
   blockers: []
   user_checkpoint: build-complete
-architecture_notes:
-  role: Senior Engineer
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ---
 
 # <Title> - Task Artifact

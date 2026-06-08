@@ -18,18 +18,6 @@ orchestration:
   next_phase: test
   blockers: []
   user_checkpoint: review-complete
-architecture_notes:
-  role: Staff Reviewer
-  decisions:
-    - Treat manual QA as required downstream evidence.
-  constraints:
-    - Example has no command evidence.
-  tradeoffs:
-    - Pass with no findings because state ordering is explicit in task evidence.
-  assumptions:
-    - Test will verify behavior manually.
-  downstream_impact:
-    - Test must cover empty, loading, and error states.
 ---
 
 # Settings Empty State - Review

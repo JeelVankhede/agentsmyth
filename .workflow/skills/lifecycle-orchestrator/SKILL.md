@@ -25,7 +25,7 @@ Always load:
    - `references/pause-resume-rules.md`
    - `references/blocker-policy.md`
    - `references/lifecycle-state-machine.md`
-   - `references/output-contract.md`
+   - `references/output-schema.md`
 
 Load on demand:
 
@@ -110,7 +110,7 @@ Continue only when:
 6. Let the phase skill create or update its artifact and evaluate its exit gate.
 7. Pause on blockers using `references/pause-resume-rules.md` and `references/blocker-policy.md`.
 8. Advance state using `references/lifecycle-state-machine.md` only when the phase gate passes.
-9. End the response using `references/output-contract.md`.
+9. End the response using `references/output-schema.md`.
 
 ## Exit Gate
 
@@ -132,4 +132,4 @@ The orchestrator pass is complete when it ends in exactly one of these states:
 
 ## Output
 
-Follow `references/output-contract.md`.
+Follow `references/output-schema.md`.

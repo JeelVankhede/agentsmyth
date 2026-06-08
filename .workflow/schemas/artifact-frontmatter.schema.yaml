@@ -13,7 +13,6 @@ required:
   - manifest_ids
   - upstream
   - orchestration
-  - architecture_notes
 properties:
   slug:
     type: string
@@ -110,44 +109,3 @@ properties:
       user_checkpoint:
         type: string
         minLength: 1
-  architecture_notes:
-    type: object
-    additionalProperties: false
-    required:
-      - role
-      - decisions
-      - constraints
-      - tradeoffs
-      - assumptions
-      - downstream_impact
-    properties:
-      role:
-        type: string
-        enum:
-          - Architect
-          - Principal Engineer
-          - Senior Engineer
-          - Staff Reviewer
-          - Senior QA
-          - Senior DevOps
-          - Project Manager
-      decisions:
-        type: array
-        items:
-          type: string
-      constraints:
-        type: array
-        items:
-          type: string
-      tradeoffs:
-        type: array
-        items:
-          type: string
-      assumptions:
-        type: array
-        items:
-          type: string
-      downstream_impact:
-        type: array
-        items:
-          type: string

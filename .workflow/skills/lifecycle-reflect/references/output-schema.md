@@ -24,13 +24,6 @@ orchestration:
   next_phase:
   blockers:
   user_checkpoint:
-architecture_notes:
-  role: Project Manager
-  decisions:
-  constraints:
-  tradeoffs:
-  assumptions:
-  downstream_impact:
 ```
 
 Required reflect body sections:

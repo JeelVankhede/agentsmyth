@@ -20,13 +20,6 @@ orchestration:
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
-architecture_notes:
-  role: Senior DevOps
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ```
 
 Rules:

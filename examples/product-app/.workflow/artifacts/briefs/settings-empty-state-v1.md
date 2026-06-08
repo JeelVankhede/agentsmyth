@@ -16,18 +16,6 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
-architecture_notes:
-  role: Architect
-  decisions:
-    - Treat the request as a small UI content change.
-  constraints:
-    - Keep the example provider-neutral.
-  tradeoffs:
-    - Use manual QA rather than inventing a UI test framework.
-  assumptions:
-    - A1 settings page exists.
-  downstream_impact:
-    - Plan must include manual QA for the empty state.
 ---
 
 # Settings Empty State - Brief

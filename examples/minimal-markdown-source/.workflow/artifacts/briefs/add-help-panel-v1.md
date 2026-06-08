@@ -17,18 +17,6 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
-architecture_notes:
-  role: Architect
-  decisions:
-    - Treat the local Markdown requirements file as source authority for this example.
-  constraints:
-    - Keep the change docs-only unless Plan finds a runtime dependency.
-  tradeoffs:
-    - Stop at Plan in this example instead of inventing Build evidence.
-  assumptions:
-    - A1 source file content is current for the example.
-  downstream_impact:
-    - Plan must preserve source link and docs-only scope.
 ---
 
 # Add Help Panel - Brief

@@ -16,13 +16,6 @@ orchestration:
   next_phase: test
   blockers: []
   user_checkpoint: review-complete
-architecture_notes:
-  role: Staff Reviewer
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ---
 
 # <Title> - Review

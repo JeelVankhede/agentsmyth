@@ -123,7 +123,7 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 
 The task artifact must include architecture notes when implementation decisions affect later phases.
 
-Use the frontmatter `architecture_notes` block when the artifact schema supports it, and mirror longer explanation in the task body. At minimum, capture:
+Use the `## Architecture Notes` section in the task body to capture at minimum:
 
 - role: `Senior Engineer`
 - decisions made during implementation

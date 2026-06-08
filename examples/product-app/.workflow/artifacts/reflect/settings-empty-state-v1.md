@@ -21,18 +21,6 @@ orchestration:
   next_phase: done
   blockers: []
   user_checkpoint: none
-architecture_notes:
-  role: Project Manager
-  decisions:
-    - Record manual QA as acceptable for this example only.
-  constraints:
-    - No curated learning update in example.
-  tradeoffs:
-    - Candidate learning remains propose-only.
-  assumptions:
-    - Future repositories should configure real UI checks when available.
-  downstream_impact:
-    - Example can guide adoption docs and validator checks.
 ---
 
 # Settings Empty State - Reflection

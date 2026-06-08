@@ -11,10 +11,23 @@ Use this router before doing lifecycle work.
 - Current git branch and dirty state.
 - Source, verification, release, or domain config when relevant.
 
+## Task Classes
+
+Classify every request before routing. Full definitions and skip rules are in `.workflow/config/agent-behavior.yaml`.
+
+| Class | Signals | Lifecycle |
+|---|---|---|
+| Trivial | Single-location change, no architectural impact, no callers affected | Handle inline — no artifact required. |
+| Standard | Multi-file or cross-function change within a defined scope | Think → Plan → Build → Review → Ship → Reflect. Test skippable with waiver. |
+| Complex | Cross-cutting, new architectural pattern, or parallel workstreams | All phases required. No phase skippable without waiver. |
+
+When classification is unclear, default to Standard.
+
 ## Routing
 
 | Situation | Action |
 |---|---|
+| New Trivial request | Handle inline. No lifecycle phases. |
 | New Standard or Complex request | Start Think. |
 | User asks for a plan after a brief | Restore the brief, then run Plan if the Think gate passed. |
 | User asks to continue | Run `restore-context`, then continue the current blocked or next phase. |

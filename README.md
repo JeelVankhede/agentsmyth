@@ -8,6 +8,7 @@ The canonical workflow source is `.workflow/`.
 
 ## What Is Included
 
+- One-time porting skill in `setup/` — use this to configure a new target repository.
 - Lifecycle router and phase contracts in `.workflow/router.md` and `.workflow/lifecycle.md`.
 - Phase skills in `.workflow/skills/`.
 - Artifact templates in `.workflow/templates/`.
@@ -15,6 +16,8 @@ The canonical workflow source is `.workflow/`.
 - YAML schema contracts in `.workflow/schemas/`.
 - Adoption docs in `docs/`.
 - Optional tool adapters in `adapters/`.
+
+`setup/` is a one-time tool for porting. It is not copied to the target repository.
 
 ## Lifecycle
 

@@ -50,7 +50,6 @@ const frontmatterSchema = loadYaml('.workflow/schemas/artifact-frontmatter.schem
 const artifactEnum = frontmatterSchema.properties?.artifact?.enum ?? [];
 const phaseEnum = frontmatterSchema.properties?.orchestration?.properties?.phase?.enum ?? [];
 const nextPhaseEnum = frontmatterSchema.properties?.orchestration?.properties?.next_phase?.enum ?? [];
-const roleEnum = frontmatterSchema.properties?.architecture_notes?.properties?.role?.enum ?? [];
 
 for (const contract of artifactContracts) {
   if (!artifactEnum.includes(contract.artifact)) {
@@ -61,9 +60,6 @@ for (const contract of artifactContracts) {
   }
   if (!nextPhaseEnum.includes(contract.nextPhase)) {
     errors.push(`artifact-frontmatter schema missing next_phase ${contract.nextPhase}`);
-  }
-  if (!roleEnum.includes(contract.role)) {
-    errors.push(`artifact-frontmatter schema missing role ${contract.role}`);
   }
 }
 

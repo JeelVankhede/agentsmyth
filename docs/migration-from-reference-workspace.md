@@ -80,7 +80,7 @@ This file is the Phase 1 core lifecycle extraction matrix, not the final exhaust
 | `docs/knowledge-map/workspace-mental-map.md` | workflow-core + domain-specific | `docs/lifecycle-contract.md`, `.workflow/lifecycle.md`, `.workflow/rules.md` | Rewrite | Source priority, lazy loading, delivery order, verification defaults, planning rules, release expectations, reflection expectations | Workspace root, three repo roles, AI Recipes product delivery order, hardcoded commands | Convert into generic single-repo mental model. |
 | `docs/knowledge-map/ai-recipes-lifecycle-source-map.md` | migration-reference | `docs/migration-from-reference-workspace.md` | Rewrite | Kept/changed/dropped concepts, provenance of lifecycle extraction | AI Recipes-specific adaptation details except as historical notes | Conceptual base for this matrix. |
 | `docs/product/*.md` | domain-specific | `examples/*` or none | Do not migrate to core | Possible source-of-truth example shape | AI Recipes product details | Only sanitized examples if needed. |
-| `docs/briefs/template.md` | artifact-template | `.workflow/templates/briefs/template.md` | Rewrite | Brief frontmatter, source links, problem/goals/non-goals, requirements, risks, questions, Requirement Manifest, exit gate, architect notes | `docs/product`, Notion/GitHub defaults as required, old artifact path | Add `architecture_notes`. |
+| `docs/briefs/template.md` | artifact-template | `.workflow/templates/briefs/template.md` | Rewrite | Brief frontmatter, source links, problem/goals/non-goals, requirements, risks, questions, Requirement Manifest, exit gate, architect notes | `docs/product`, Notion/GitHub defaults as required, old artifact path | Architecture notes are a body section, not frontmatter. |
 | `docs/briefs/*-v*.md` | historical-artifact | none by default | Do not migrate | Real artifact examples | AI Recipes history | Optional sanitized examples only. |
 | `docs/plans/template.md` | artifact-template | `.workflow/templates/plans/template.md` | Rewrite | Summary, inputs, approach, phases, dependency order, risk register, verification plan, open questions, exit gate | Fixed multi-repo impact map, repo-specific branch table, AI Recipes release/tracking assumptions | Replace with single-repo impact map and configurable source-of-truth strategy. |
 | `docs/plans/*-v*.md` | historical-artifact | none by default | Do not migrate | Real plan examples | AI Recipes implementation history | Optional sanitized examples only. |
@@ -113,7 +113,7 @@ Every lifecycle phase must include reference files. Some source reference files 
 
 | Skill | Required references |
 |---|---|
-| `lifecycle-orchestrator` | `phase-routing.md`, `pause-resume-rules.md`, `blocker-policy.md`, `lifecycle-state-machine.md`, `output-contract.md` |
+| `lifecycle-orchestrator` | `phase-routing.md`, `pause-resume-rules.md`, `blocker-policy.md`, `lifecycle-state-machine.md`, `output-schema.md`, `exemplar.md` |
 | `lifecycle-think` | `role.md`, `output-schema.md`, `exemplar.md`, `requirement-discovery.md`, `assumption-policy.md`, `question-policy.md`, `architecture-notes-guide.md` |
 | `lifecycle-plan` | `role.md`, `output-schema.md`, `exemplar.md`, `repo-impact-map.md`, `dependency-ordering.md`, `risk-register.md`, `verification-planning.md`, `branch-policy.md`, `source-of-truth-planning.md` |
 | `lifecycle-build` | `role.md`, `output-schema.md`, `exemplar.md`, `phase-execution-policy.md`, `scope-control.md`, `change-safety.md`, `git-status-policy.md`, `unrelated-changes-policy.md`, `verification-recording.md` |

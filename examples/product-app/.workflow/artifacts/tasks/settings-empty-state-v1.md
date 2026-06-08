@@ -16,18 +16,6 @@ orchestration:
   next_phase: review
   blockers: []
   user_checkpoint: build-complete
-architecture_notes:
-  role: Senior Engineer
-  decisions:
-    - Added empty state branch after loading and error checks.
-  constraints:
-    - No generated output changed.
-  tradeoffs:
-    - Kept copy inline for the compact example.
-  assumptions:
-    - A1
-  downstream_impact:
-    - Review should inspect state ordering.
 ---
 
 # Settings Empty State - Task Artifact

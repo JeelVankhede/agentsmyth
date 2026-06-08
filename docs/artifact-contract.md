@@ -29,7 +29,6 @@ Every artifact must include:
 - `manifest_ids`
 - `upstream`
 - `orchestration`
-- `architecture_notes`
 
 The schema contract lives in `.workflow/schemas/artifact-frontmatter.schema.yaml`.
 
