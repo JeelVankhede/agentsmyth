@@ -18,6 +18,16 @@ brief -> plan -> task -> review -> verify -> ship -> reflect
 | Ship | ship | brief, plan, task, verify, review when available | ship, hold, or hold-with-waiver |
 | Reflect | reflect | full chain through ship | outcome and learning candidates |
 
+## Build Phase Sub-Versioning
+
+When a Plan splits Build into independent approved phases, task artifacts may use the `-p<P>` suffix:
+
+```text
+.workflow/artifacts/tasks/<slug>-v<N>-p<P>.md
+```
+
+Use the same `slug` and `version` as the parent plan. Each `-p<P>` artifact covers one independent workstream. The slug without `-p<P>` is the default for single-phase Build work.
+
 ## Transitions
 
 - Think sets `next_phase: plan`.

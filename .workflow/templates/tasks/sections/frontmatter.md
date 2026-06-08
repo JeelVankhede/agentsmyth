@@ -25,3 +25,4 @@ Rules:
 - Use `status: in-progress` while Build work remains, `blocked` when Build cannot continue, and `ready-for-next-phase` only when Build evidence is complete.
 - Put active Build `R` and `RI` IDs in `manifest_ids`.
 - Put unresolved Build blockers in `orchestration.blockers`.
+- For multi-phase Build splits approved in the plan, use filename `<slug>-v<N>-p<P>.md` (e.g. `-p1`, `-p2`). Single-phase work uses the default `<slug>-v<N>.md`.
