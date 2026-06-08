@@ -15,7 +15,13 @@ task_classes:
       - bump a version constant
       - reorder import statements
     required_phases: []
-    skippable_phases: [think, plan, review, test, ship, reflect]
+    skippable_phases:
+      - think
+      - plan
+      - review
+      - test
+      - ship
+      - reflect
     artifact_required: false
     note: Handle inline. No lifecycle artifact needed. Document the change in the response.
   standard:
@@ -25,8 +31,15 @@ task_classes:
       - bug fix that touches multiple files
       - refactor within a bounded module
       - test suite addition or update
-    required_phases: [think, plan, build, review, ship, reflect]
-    skippable_phases: [test]
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - ship
+      - reflect
+    skippable_phases:
+      - test
     skip_requires_waiver: true
     artifact_required: true
   complex:
@@ -36,7 +49,14 @@ task_classes:
       - schema or API contract change affecting multiple callers
       - change to authentication, authorization, or data model
       - work requiring parallel build workstreams
-    required_phases: [think, plan, build, review, test, ship, reflect]
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - test
+      - ship
+      - reflect
     skippable_phases: []
     skip_requires_waiver: true
     artifact_required: true

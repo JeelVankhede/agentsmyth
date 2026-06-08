@@ -32,6 +32,16 @@ properties:
         type: string
       rule:
         type: string
+  task_classes:
+    type: object
+    additionalProperties: false
+    properties:
+      trivial:
+        $ref: '#/$defs/task_class'
+      standard:
+        $ref: '#/$defs/task_class'
+      complex:
+        $ref: '#/$defs/task_class'
   lifecycle:
     type: object
     additionalProperties: false
@@ -150,6 +160,51 @@ properties:
     type: object
     additionalProperties: true
 $defs:
+  task_class:
+    type: object
+    additionalProperties: false
+    required:
+      - description
+      - required_phases
+      - skippable_phases
+      - artifact_required
+    properties:
+      description:
+        type: string
+      classification_signals:
+        type: array
+        items:
+          type: string
+      required_phases:
+        type: array
+        items:
+          type: string
+          enum:
+            - think
+            - plan
+            - build
+            - review
+            - test
+            - ship
+            - reflect
+      skippable_phases:
+        type: array
+        items:
+          type: string
+          enum:
+            - think
+            - plan
+            - build
+            - review
+            - test
+            - ship
+            - reflect
+      skip_requires_waiver:
+        type: boolean
+      artifact_required:
+        type: boolean
+      note:
+        type: string
   boolean_policy_object:
     type: object
     additionalProperties:
