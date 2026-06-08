@@ -14,8 +14,8 @@ These examples show how to attach `agentsmyth` to different repository shapes wi
 
 - Examples are illustrative, not canonical workflow behavior.
 - Providers, commands, package managers, release gates, and source updates are example-specific.
-- Do not copy example commands into a target repository unless that repository actually supports them.
-- Use `.workflow/config/*.yaml` in the target repository to make any example behavior real.
+- Do not copy example commands into a repository unless that repository actually supports them.
+- Use `.workflow/config/*.yaml` in the repository to make any example behavior real.
 
 ## Validate
 

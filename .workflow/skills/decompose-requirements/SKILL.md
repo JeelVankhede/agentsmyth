@@ -45,7 +45,7 @@ Load on demand:
 - `.workflow/skills/lifecycle-think/SKILL.md` and Think references when writing into a brief.
 - Existing brief artifact at `.workflow/artifacts/briefs/<slug>-v<N>.md`.
 - `.workflow/config/domain.yaml`, `.workflow/config/repo-profile.yaml`, `.workflow/config/source-of-truth.yaml`, `.workflow/config/verification.yaml`, and `.workflow/config/release.yaml` when implicit requirements may come from those contracts.
-- Target repo files only when repo truth is needed to derive implicit requirements.
+- Repository files only when repo truth is needed to derive implicit requirements.
 
 ## Inputs
 
@@ -53,7 +53,7 @@ Load on demand:
 - Slug/version when known.
 - Existing brief, if backfilling or revising.
 - Existing `R`, `RI`, `A`, and `Q` IDs.
-- Config, source-of-truth, verification, release, and target repo context when relevant.
+- Config, source-of-truth, verification, release, and repository context when relevant.
 
 ## Refusal / Stop Conditions
 

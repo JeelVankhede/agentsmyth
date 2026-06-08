@@ -31,6 +31,14 @@ const banned = [
   'Codex' + '-only',
   'Notion ' + 'required',
   'npm run check' + ':dist as default',
+  'target ' + 'repo',
+  'target ' + 'repository',
+  'target ' + 'repos',
+  'source ' + 'repo',
+  'source ' + 'repository',
+  'one ' + 'target ' + 'repository',
+  'single-' + 'target-' + 'repo',
+  'this ' + 'repository',
 ];
 const placeholder = new RegExp(
   ['Placeholder for a later ' + 'phase', 'Do not treat this as final workflow ' + 'behavior'].join('|'),

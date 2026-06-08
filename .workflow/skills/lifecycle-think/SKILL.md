@@ -9,7 +9,7 @@ role: Architect
 
 ## Purpose
 
-Create or update a lifecycle brief for one target repository. Think clarifies intent, extracts requirements, records assumptions, identifies blockers, and prepares the chain for Plan.
+Create or update a lifecycle brief for this repository. Think clarifies intent, extracts requirements, records assumptions, identifies blockers, and prepares the chain for Plan.
 
 Think is a discovery and framing phase. It must make the work understandable without deciding policy for the user or jumping into implementation.
 
@@ -71,7 +71,7 @@ Load on demand:
 
 - Existing artifacts for the active slug/version.
 - Source-of-truth items configured in `source-of-truth.yaml` or explicitly supplied by the user.
-- Target repo files only when needed to derive implicit requirements, protected paths, existing contracts, generated outputs, or verification constraints.
+- Repository files only when needed to derive implicit requirements, protected paths, existing contracts, generated outputs, or verification constraints.
 - `.workflow/skills/decompose-requirements/SKILL.md` when the manifest needs creation or repair.
 - `.workflow/skills/dispatch-subagents/SKILL.md` only when explicitly authorized exploration can be split into independent read-only topics.
 
@@ -91,7 +91,7 @@ Stop and ask, or return a blocked brief, when any of these apply:
 - The user request conflicts with configured repo/domain constraints and no waiver is provided.
 - A material decision would require inventing product policy, external tracking state, release status, commands, or ownership.
 - Existing manifest IDs would need renumbering to continue in the same version.
-- The request is actually orchestration across multiple target repositories. Record it as out of v1 scope unless the user explicitly narrows it to one target repo.
+- The request is actually orchestration across multiple repositories. Record it as out of scope unless the user explicitly narrows it to this repository.
 
 ## Workflow
 

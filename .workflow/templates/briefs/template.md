@@ -31,7 +31,7 @@ architecture_notes:
 - Source-of-truth:
 - GitHub / issue / ticket:
 - Prior lifecycle chain:
-- Target repo evidence:
+- Repository evidence:
 
 ## Problem
 

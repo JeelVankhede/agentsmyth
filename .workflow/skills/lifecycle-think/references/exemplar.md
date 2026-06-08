@@ -7,17 +7,17 @@ A good Think artifact has this shape:
 
 ### Explicit (R)
 
-- **R1** - Add a configurable setup guide for the target repo.
+- **R1** - Add a configurable setup guide for the repository.
   - Acceptance: The guide names required config files and explains how an agent should load them.
 
 ### Implicit (RI)
 
-- **RI1** - Keep the workflow single-repo.
+- **RI1** - Keep the workflow scoped to this repository.
   - Acceptance: No instructions require secondary repositories or an external control-plane repository.
 
 ### Assumptions (A)
 
-- **A1** - The target repo can store workflow artifacts under `.workflow/artifacts/`.
+- **A1** - The repository can store workflow artifacts under `.workflow/artifacts/`.
 
 ### Open Questions (Q)
 

@@ -40,7 +40,7 @@ Copy-ready handoff is not completion unless the user accepts a waiver.
 
 ## Provider Neutrality
 
-No provider is mandatory by default. Add provider entries only when the target repository actually uses them.
+No provider is mandatory by default. Add provider entries only when the repository actually uses them.
 
 Each provider entry should make clear:
 

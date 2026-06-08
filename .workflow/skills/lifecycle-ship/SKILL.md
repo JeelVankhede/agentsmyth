@@ -85,7 +85,7 @@ Always load:
 Load on demand:
 
 - Existing ship artifact for the active slug/version.
-- Target repo status, branch, release notes, package metadata, CI configuration, deployment config, docs, or handoff files named by release config or the Plan.
+- Repository status, branch, release notes, package metadata, CI configuration, deployment config, docs, or handoff files named by release config or the Plan.
 - External source or PR/CI state only through available tools and only when configured or explicitly requested.
 
 ## Inputs
@@ -105,7 +105,7 @@ Stop and write a `hold` ship artifact when any of these apply:
 - Verify recommendation is `hold` and no user-accepted waiver exists.
 - Review has unresolved `P0` or `P1` findings.
 - Any active `R` is missing coverage without documented deferral or waiver.
-- Required target repo status, branch, PR, CI, release, source-of-truth, or rollback evidence cannot be inspected.
+- Required repository status, branch, PR, CI, release, source-of-truth, or rollback evidence cannot be inspected.
 - Config requires a source-of-truth update but the target or authority is unknown.
 - Required external action cannot be performed and no blocked handoff or waiver is recorded.
 - A changed repo is on a disallowed branch for shipping and no user-approved exception exists.
@@ -116,7 +116,7 @@ Stop and write a `hold` ship artifact when any of these apply:
 1. Create or update `.workflow/artifacts/ship/<slug>-v<N>.md`.
 2. Read upstream artifacts and collect active `R`/`RI` coverage, skipped checks, review findings, waivers, blockers, and residual risk.
 3. Read release config and identify required gates: PR, CI, release, deployment, docs, package, rollback, source handoff, or none.
-4. Inspect target repo readiness for configured branch, PR, CI, release, or deployment gates.
+4. Inspect repository readiness for configured branch, PR, CI, release, or deployment gates.
 5. Verify source-of-truth handoff: updated, not required, blocked with copy-ready handoff, or waived.
 6. Map every active `R` and `RI` to shipped, deferred, blocked, or waived.
 7. Record rollback trigger, rollback action, owner, and evidence required to execute rollback.

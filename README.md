@@ -1,8 +1,8 @@
 # agentsmyth
 
-Generic single-repo AI lifecycle workflow template.
+Generic AI lifecycle workflow for a targeted repository.
 
-`agentsmyth` gives AI agents a durable engineering workflow for one target repository. It turns requests into lifecycle artifacts, keeps decisions inspectable, and makes verification, release, handoff, and reflection evidence explicit.
+`agentsmyth` gives AI agents a durable engineering workflow for a single repository. It turns requests into lifecycle artifacts, keeps decisions inspectable, and makes verification, release, handoff, and reflection evidence explicit.
 
 The canonical workflow source is `.workflow/`.
 
@@ -27,7 +27,7 @@ Each Standard or Complex change should leave a readable artifact chain under `.w
 ## Setup
 
 1. Read `docs/setup-guide.md`.
-2. Fill `.workflow/config/*.yaml` for the target repository.
+2. Fill `.workflow/config/*.yaml` for the repository.
 3. Use `docs/agent-setup-interview.md` to collect missing repo, verification, source, and release facts.
 4. Attach domain-specific policy through `docs/domain-attachment-guide.md`.
 5. Use `docs/lifecycle-contract.md` and `docs/artifact-contract.md` as review references.
@@ -35,7 +35,6 @@ Each Standard or Complex change should leave a readable artifact chain under `.w
 ## Guardrails
 
 - Keep `.workflow/` canonical.
-- Keep v1 scoped to one target repository.
 - Do not make a provider, CI system, package manager, deployment process, or external source mandatory unless config or the user requires it.
 - Do not claim commands, external updates, releases, PRs, CI, or handoffs without evidence.
 - Treat skipped checks and waivers as visible risk.

@@ -42,7 +42,7 @@ Load on demand:
 
 - Active lifecycle artifact for the current phase.
 - Approved brief, plan, task, review, verify, or ship artifacts when delegation depends on manifest IDs, file ownership, or phase gates.
-- Target repo files only when needed to check independence.
+- Repository files only when needed to check independence.
 
 ## Inputs
 

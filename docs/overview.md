@@ -1,6 +1,6 @@
 # Overview
 
-`agentsmyth` is a repository-local workflow contract for AI-assisted engineering. It is meant to be copied into one target repository, configured for that repository, and used by agents to produce durable artifacts instead of relying on chat memory.
+`agentsmyth` is a repository-local workflow contract for AI-assisted engineering. It is meant to be copied into a targeted repository, configured for that repository, and used by agents to produce durable artifacts instead of relying on chat memory.
 
 ## Mental Model
 

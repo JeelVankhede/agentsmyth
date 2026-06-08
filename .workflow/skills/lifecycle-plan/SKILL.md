@@ -1,6 +1,6 @@
 ---
 name: lifecycle-plan
-description: Principal Engineer phase that turns an approved brief into a requirement-mapped execution plan for one target repository.
+description: Principal Engineer phase that turns an approved brief into a requirement-mapped execution plan for this repository.
 phase: plan
 role: Principal Engineer
 ---
@@ -11,7 +11,7 @@ role: Principal Engineer
 
 Convert an approved brief into an implementation plan that maps every R/RI to phases, risks, verification evidence, branch strategy, and source-of-truth handling.
 
-Plan is a decision-complete execution design for one target repository. It must be specific enough for Build, Review, Test, Ship, and Reflect to proceed without re-discovering requirements or inventing policy.
+Plan is a decision-complete execution design for this repository. It must be specific enough for Build, Review, Test, Ship, and Reflect to proceed without re-discovering requirements or inventing policy.
 
 ## Role
 
@@ -78,7 +78,7 @@ Always load:
 Load on demand:
 
 - Existing plan/task/review/verify/ship/reflect artifacts for the same slug/version when revising.
-- Target repo files required to identify affected surfaces, public contracts, generated output, protected paths, dependencies, or available commands.
+- Repository files required to identify affected surfaces, public contracts, generated output, protected paths, dependencies, or available commands.
 - `.workflow/skills/dispatch-subagents/SKILL.md` only when explicitly authorized exploration can be split into independent read-only topics.
 
 ## Inputs
@@ -97,7 +97,7 @@ Stop and ask, or return a blocked plan, when any of these apply:
 - Any active `R` or `RI` cannot be mapped to a plan phase.
 - Required source-of-truth update location, branch policy, release policy, protected path policy, or verification command is unknown.
 - Repo inspection is insufficient to name affected surfaces, commands, generated outputs, or public contracts.
-- The plan would require orchestration across multiple target repositories instead of one target repo.
+- The plan would require orchestration across multiple repositories instead of a single repository.
 - A risk has no mitigation and no explicit user waiver.
 
 ## Workflow
@@ -105,10 +105,10 @@ Stop and ask, or return a blocked plan, when any of these apply:
 1. Verify the brief exists and is approved or explicitly waived.
 2. Parse active `R`, `RI`, `A`, and `Q` IDs without renumbering.
 3. Inspect repo/config/source context before naming touches, commands, branch strategy, generated output, or release impact.
-4. Build the single-repo impact map.
+4. Build the repository impact map.
 5. Map every active `R` and `RI` to one or more plan phases and exactly one owning phase for completion.
 6. Order phases by dependency, risk, contract boundaries, generated output, verification needs, docs/source updates, and release/handoff.
-7. Define branch and commit strategy for the single target repo.
+7. Define branch and commit strategy for the repository.
 8. Write a source-of-truth strategy: read source, update target, blocked handoff, or explicit waiver.
 9. Build a verification plan from `.workflow/config/verification.yaml`; every `R`/`RI` must have evidence or a waiver.
 10. Record risks with likelihood, impact, mitigation, owner, and affected manifest IDs.
@@ -148,7 +148,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Do not hide requirements inside phase prose; cite manifest IDs.
 - Do not create phases with no manifest IDs.
 - Do not use vague verification such as "test it"; name command, manual QA, generated-output check, source-of-truth check, review evidence, or waiver.
-- Keep the plan single-repo. Cross-repository orchestration is out of scope for v1.
+- Keep the plan scoped to this repository.
 - Do not put Ship-owned work such as PR readiness, CI status, release, or source-of-truth publication into Build unless the user explicitly approved that lifecycle exception.
 
 ## Output

@@ -1,6 +1,6 @@
 # Role
 
-Review acts as Staff Reviewer for one target repository.
+Review acts as Staff Reviewer for this repository.
 
 Responsibilities:
 

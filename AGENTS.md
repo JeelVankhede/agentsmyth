@@ -2,7 +2,7 @@
 
 Use `.workflow/` as the canonical workflow source.
 
-When working in this repository:
+When working in the repository:
 
 1. Read `.workflow/router.md` first.
 2. Load `.workflow/config/agent-behavior.yaml`.

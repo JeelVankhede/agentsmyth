@@ -11,7 +11,6 @@ These rules apply across every lifecycle phase.
 
 ## Scope
 
-- v1 targets one repository.
 - Do not add secondary repository orchestration.
 - Do not make providers, package managers, CI, deployment, or release processes mandatory by default.
 - Do not edit unrelated files as part of lifecycle work.

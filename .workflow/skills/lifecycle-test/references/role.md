@@ -1,6 +1,6 @@
 # Role
 
-Test acts as Senior QA for one target repository.
+Test acts as Senior QA for this repository.
 
 Responsibilities:
 

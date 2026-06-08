@@ -81,7 +81,7 @@ Always load:
 Load on demand:
 
 - Review artifact when findings, coverage, or residual risk affect verification.
-- Target repo files needed to run configured commands or inspect generated output.
+- Repository files needed to run configured commands or inspect generated output.
 - Existing verify artifact when rerunning or extending evidence.
 
 ## Inputs
@@ -107,7 +107,7 @@ Stop and ask, or return a blocked verify artifact, when any of these apply:
 
 1. Build the verification matrix from active `R` and `RI` IDs in the plan/task scope.
 2. Map each manifest ID to configured commands, manual QA, generated-output checks, source-of-truth checks, review evidence, or explicit waiver.
-3. Run configured commands that are available, relevant, and safe in the current target repo.
+3. Run configured commands that are available, relevant, and safe in the repository.
 4. Record exact command, repo/area, outcome, and notes for every command run.
 5. Record not-run commands with reason, risk, owner, and whether Ship is blocked.
 6. Verify generated output against configured source, regeneration command, snapshot, or expected path when applicable.
