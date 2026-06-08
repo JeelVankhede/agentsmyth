@@ -120,14 +120,14 @@ Complex: generated-output contracts, public docs, release behavior, package publ
 
 | # | Gap | Severity | Status | File(s) Affected |
 |---|---|---|---|---|
-| 1 | No setup/port skill (`setup/` dir, excluded from copy) | Critical | To do | New: `setup/` |
-| 2 | No knowledge-map template (repo-mental-map only) | Critical | To do | New: `docs/knowledge-map/repo-mental-map.md` |
+| 1 | No setup/port skill (`setup/` dir, excluded from copy) | Critical | Done | `setup/SKILL.md`, `setup/references/`, `README.md` |
+| 2 | No knowledge-map template (repo-mental-map only) | Critical | Done | `docs/knowledge-map/repo-mental-map.md` |
 | 3 | No `product` artifact template | ~~Moderate~~ | Dropped | — |
-| 4 | `lifecycle-orchestrator` missing exemplar + rename | Moderate | To do | `.workflow/skills/lifecycle-orchestrator/references/` |
-| 5 | No task class (Trivial/Standard/Complex) defined | Moderate | To do | `router.md` or `agent-behavior.yaml` |
-| 6 | Remove `ticket` + move `architecture_notes` to body | Moderate | To do | Schema, templates, validators, examples |
+| 4 | `lifecycle-orchestrator` missing exemplar + rename | Moderate | Done | `.workflow/skills/lifecycle-orchestrator/references/` |
+| 5 | No task class (Trivial/Standard/Complex) defined | Moderate | Done | `.workflow/router.md`, `.workflow/config/agent-behavior.yaml` |
+| 6 | Remove `ticket` + move `architecture_notes` to body | Moderate | Done | Schema, templates, validators, examples |
 | 7 | No source priority / lazy-load order in AGENTS.md | Minor | Deferred | `AGENTS.md` |
-| 8 | Build sub-versioning (`-p<P>`) not documented | Minor | To do | `lifecycle.md`, task frontmatter section |
+| 8 | Build sub-versioning (`-p<P>`) not documented | Minor | Done | `.workflow/lifecycle.md`, task frontmatter section |
 
 ---
 
