@@ -100,7 +100,9 @@ Complex: generated-output contracts, public docs, release behavior, package publ
 
 ## GAP 7 (Minor) — No Source Priority / Context Loading Order in AGENTS.md
 
-**Decision:** Defer to a later pass — minimal touch only in this round.
+**What was needed:** A deterministic conflict-resolution order and a lazy-load order so agents do not re-derive both each session.
+
+**What was done:** Added a **Source Priority** section (user request → `.workflow/` → configured external sources → `repo-mental-map.md` → repo code/active-slug artifacts) and a **Context Loading Order** section (always-load vs load-on-demand) to `AGENTS.md`.
 
 ---
 
@@ -126,7 +128,7 @@ Complex: generated-output contracts, public docs, release behavior, package publ
 | 4 | `lifecycle-orchestrator` missing exemplar + rename | Moderate | Done | `.workflow/skills/lifecycle-orchestrator/references/` |
 | 5 | No task class (Trivial/Standard/Complex) defined | Moderate | Done | `.workflow/router.md`, `.workflow/config/agent-behavior.yaml` |
 | 6 | Remove `ticket` + move `architecture_notes` to body | Moderate | Done | Schema, templates, validators, examples |
-| 7 | No source priority / lazy-load order in AGENTS.md | Minor | Deferred | `AGENTS.md` |
+| 7 | No source priority / lazy-load order in AGENTS.md | Minor | Done | `AGENTS.md` |
 | 8 | Build sub-versioning (`-p<P>`) not documented | Minor | Done | `.workflow/lifecycle.md`, task frontmatter section |
 
 ---
