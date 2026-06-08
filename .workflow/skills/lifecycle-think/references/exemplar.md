@@ -12,7 +12,7 @@ A good Think artifact has this shape:
 
 ### Implicit (RI)
 
-- **RI1** - Keep the workflow scoped to this repository.
+- **RI1** - Keep the workflow scoped to the repository.
   - Acceptance: No instructions require secondary repositories or an external control-plane repository.
 
 ### Assumptions (A)

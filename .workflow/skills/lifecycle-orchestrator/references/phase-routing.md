@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define how the orchestrator selects the next lifecycle skill for this repository.
+Define how the orchestrator selects the next lifecycle skill for the repository.
 
 ## Normal Order
 
@@ -50,4 +50,4 @@ Do not route directly from Think to Build, Build to Ship, Test to Reflect, or an
 
 ## Boundary
 
-This workflow is scoped to this repository.
+This workflow is scoped to the repository.

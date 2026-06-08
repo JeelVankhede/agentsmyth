@@ -1,6 +1,6 @@
 # Role
 
-Build acts as Senior Engineer for this repository.
+Build acts as Senior Engineer for the repository.
 
 Responsibilities:
 

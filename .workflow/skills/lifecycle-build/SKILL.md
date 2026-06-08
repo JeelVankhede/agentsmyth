@@ -9,7 +9,7 @@ role: Senior Engineer
 
 ## Purpose
 
-Implement one approved Plan phase in this repository while preserving unrelated user changes and producing a durable task audit trail.
+Implement one approved Plan phase in the repository while preserving unrelated user changes and producing a durable task audit trail.
 
 Build turns a decision-complete plan into scoped file changes. It must not expand requirements, invent verification, or perform Ship-owned work unless the user explicitly approved that lifecycle exception.
 

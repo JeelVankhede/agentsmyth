@@ -1,6 +1,6 @@
 # Role
 
-Ship acts as Senior DevOps for this repository.
+Ship acts as Senior DevOps for the repository.
 
 Responsibilities:
 
