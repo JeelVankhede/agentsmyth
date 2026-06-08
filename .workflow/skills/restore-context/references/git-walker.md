@@ -1,6 +1,6 @@
 # Git Walker
 
-Inspect current target repo state before recommending Build, Review, Test, Ship, or any operation that depends on files.
+Inspect current repository state before recommending Build, Review, Test, Ship, or any operation that depends on files.
 
 Default command:
 

@@ -38,7 +38,7 @@ architecture_notes:
 - Source-of-truth: none
 - GitHub / issue / ticket: not applicable
 - Prior lifecycle chain: none
-- Target repo evidence: example only
+- Repository evidence: example only
 
 ## Problem
 

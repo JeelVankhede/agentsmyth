@@ -1,6 +1,6 @@
 # Git Status Policy
 
-Build records target repo status at three moments:
+Build records repository status at three moments:
 
 1. before edits
 2. before staging or handoff

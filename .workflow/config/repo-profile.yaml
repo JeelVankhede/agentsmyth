@@ -2,7 +2,7 @@ version: 1
 kind: repo-profile
 
 repository:
-  mode: single-target-repo
+  mode: single-repository
   root: .
   default_branch: main
   workflow_root: .workflow

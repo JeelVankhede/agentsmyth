@@ -66,7 +66,7 @@ architecture_notes:
 
 | Command | Area | Outcome | Notes | Manifest IDs |
 |---|---|---|---|---|
-| `<command>` | target repo | pass / fail / not run / blocked | <summary> | R1 |
+| `<command>` | repository | pass / fail / not run / blocked | <summary> | R1 |
 
 ## Dispatch Log
 

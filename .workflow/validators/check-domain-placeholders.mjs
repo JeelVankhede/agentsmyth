@@ -39,6 +39,14 @@ const leakagePatterns = [
   term('docs/', 'reflect'),
   term('child ', 'repo'),
   term('multi', '-repo'),
+  term('target ', 'repo'),
+  term('target ', 'repository'),
+  term('target ', 'repos'),
+  term('source ', 'repo'),
+  term('source ', 'repository'),
+  term('one ', 'target ', 'repository'),
+  term('single-', 'target-', 'repo'),
+  term('this ', 'repository'),
 ];
 
 function isExcluded(file) {

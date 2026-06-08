@@ -2,7 +2,7 @@
 
 Ask fewer, better questions.
 
-Before asking, inspect the available request, config, source-of-truth, existing artifacts, and target repo context. A question is valid when the answer materially affects:
+Before asking, inspect the available request, config, source-of-truth, existing artifacts, and repository context. A question is valid when the answer materially affects:
 
 - scope, non-goals, or acceptance criteria
 - source-of-truth selection or update behavior

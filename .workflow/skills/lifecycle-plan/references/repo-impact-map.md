@@ -1,6 +1,6 @@
 # Repo Impact Map
 
-The impact map identifies how the single target repo will change.
+The impact map identifies how the repository will change.
 
 Required columns or fields:
 

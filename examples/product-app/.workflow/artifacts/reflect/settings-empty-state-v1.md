@@ -95,7 +95,7 @@ architecture_notes:
 
 | Action | Owner | Suggested Artifact Or Ticket | Status | Manifest IDs |
 |---|---|---|---|---|
-| Add real UI command when adopting in a target repo. | repo owner | `configure-ui-verification` | open | RI1 |
+| Add real UI command when adopting the workflow. | repo owner | `configure-ui-verification` | open | RI1 |
 
 ## Raw Session Entry
 
@@ -112,7 +112,7 @@ architecture_notes:
 - Tradeoffs:
   - Example does not create external follow-up tickets.
 - Assumptions:
-  - Target repos will configure real checks when available.
+  - Repositories will configure real checks when available.
 - Downstream impact:
   - Future examples should stay evidence-based.
 

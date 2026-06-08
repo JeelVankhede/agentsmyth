@@ -29,7 +29,7 @@ properties:
       - learnings_sessions_root
     properties:
       mode:
-        const: single-target-repo
+        const: single-repository
       root:
         type: string
       default_branch:

@@ -1,13 +1,12 @@
 ---
 name: lifecycle-orchestrator
-description: Primary lifecycle router for a single target repository. Use to turn a user request into a gated Think, Plan, Build, Review, Test, Ship, and Reflect workflow with pause/resume support.
+description: Primary lifecycle router for this repository. Use to turn a user request into a gated Think, Plan, Build, Review, Test, Ship, and Reflect workflow with pause/resume support.
 ---
 
 # Lifecycle Orchestrator
 
 ## Purpose
 
-Drive the full `agentsmyth` lifecycle for one target repository without losing context, skipping gates, or inventing progress.
 
 The orchestrator is a router and state manager. It does not own phase-specific reasoning. It loads the right phase skill, enforces lifecycle order, writes or updates phase artifacts through those skills, and pauses when user input, evidence, or external action is required.
 
@@ -38,7 +37,7 @@ Load on demand:
 - `.workflow/skills/restore-context/SKILL.md` before resuming an existing slug, recovering after interruption, or processing a user answer to a blocker.
 - Phase skill files only when entering that phase.
 - Existing lifecycle artifacts only for the active slug/version.
-- Target repo files only when the current phase requires implementation, review, verification, or source inspection.
+- Repository files only when the current phase requires implementation, review, verification, or source inspection.
 
 ## Inputs
 
@@ -86,7 +85,7 @@ Stop and ask the user when any condition from `references/blocker-policy.md` app
 - A phase exit gate fails.
 - Required repo, source, tool, branch, PR, release, or verification evidence is unavailable.
 - Required external updates cannot be performed and no accepted handoff or waiver exists.
-- The target repo has unrelated changes overlapping the planned work.
+- The repository has unrelated changes overlapping the planned work.
 - The user changes scope, asks to pause, or rejects the current direction.
 
 When stopping, update the active artifact first when an artifact exists. The user-facing response must include slug, phase, blocker IDs, exact question/action needed, and next phase after resolution.
@@ -129,7 +128,7 @@ The orchestrator pass is complete when it ends in exactly one of these states:
 - Do not infer implementation correctness from planning text alone.
 - Do not continue from stale memory; use `restore-context` for existing chains.
 - Do not modify product files in Think, Plan, Review, Test, Ship, or Reflect unless that phase explicitly allows the requested change and the user asked for it.
-- Keep this workflow single-repo. Multi-repo orchestration is out of scope for v1.
+- Keep this workflow scoped to this repository. Do not make assumptions about external systems or processes beyond what is explicitly documented in the loaded context.
 
 ## Output
 

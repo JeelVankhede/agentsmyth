@@ -34,7 +34,7 @@ Add domain details when they affect:
 Do not add:
 
 - reference-project names or legacy product language
-- provider requirements that are not real for the target repository
+- provider requirements that are not real for the repository
 - hardcoded commands that belong in verification config
 - release rules that belong in release config
 - personal preference that does not affect acceptance or risk
@@ -55,7 +55,7 @@ If a domain rule does not affect acceptance, evidence, risk, or handoff, do not 
 ## Review Checklist
 
 - Domain rules are in config, not hidden in chat.
-- Terms are generic unless the target repository requires them.
+- Terms are generic unless the repository requires them.
 - Safety constraints are actionable.
 - Source, release, and verification rules remain in their own config files.
 - Unknown domain facts become questions or blockers.

@@ -18,4 +18,4 @@ Rules:
 - Do not claim CI state without tool output or user-provided evidence.
 - Pending or failed required CI produces `hold` unless waived.
 - Missing PR for a configured PR gate produces `hold`.
-- Use one PR for the target repo unless the Plan explicitly says otherwise.
+- Use one PR for the repository unless the Plan explicitly says otherwise.

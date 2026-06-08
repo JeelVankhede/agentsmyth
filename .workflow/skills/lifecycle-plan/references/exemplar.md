@@ -8,7 +8,7 @@ A good Plan phase entry is specific without becoming implementation code:
 - Manifest IDs: R1, RI1
 - Touches: `.workflow/skills/lifecycle-think/SKILL.md`, `.workflow/skills/lifecycle-think/references/output-schema.md`
 - Why first: These files define the upstream contract consumed by later phases.
-- Work: Replace placeholder instructions with the approved generic single-repo contract.
+- Work: Replace placeholder instructions with the approved repository contract.
 - Exit gate: The Think skill includes role, inputs, stop conditions, workflow, architecture notes, deterministic output, and no domain leakage.
 ```
 

@@ -9,7 +9,7 @@ role: Senior Engineer
 
 ## Purpose
 
-Implement one approved Plan phase in one target repository while preserving unrelated user changes and producing a durable task audit trail.
+Implement one approved Plan phase in this repository while preserving unrelated user changes and producing a durable task audit trail.
 
 Build turns a decision-complete plan into scoped file changes. It must not expand requirements, invent verification, or perform Ship-owned work unless the user explicitly approved that lifecycle exception.
 
@@ -78,7 +78,7 @@ Always load:
 Load on demand:
 
 - Existing task artifact for the active slug/version.
-- Target repo files listed in the active phase touches.
+- Repository files listed in the active phase touches.
 - Adjacent repo files needed to understand imports, contracts, generated output, or tests.
 - `.workflow/skills/dispatch-subagents/SKILL.md` only when the plan and user explicitly authorize independent implementation workstreams.
 
@@ -86,7 +86,7 @@ Load on demand:
 
 - Approved plan artifact with `orchestration.next_phase: build`.
 - Active phase number, manifest IDs, touches, exit gate, and verification rows.
-- Current target repo status and branch.
+- Current repository status and branch.
 - Existing task artifact when resuming.
 - User answers resolving Build blockers.
 
@@ -98,7 +98,7 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 - The active plan phase has no manifest IDs, no touches, or no binary exit gate.
 - A previous phase is incomplete and the plan does not explicitly allow parallel Build.
 - Required repo status or branch state cannot be inspected.
-- The target repo is on the default branch when the plan requires a working branch and safe switching is not possible.
+- The repository is on the default branch when the plan requires a working branch and safe switching is not possible.
 - Required files are outside active phase scope.
 - Implementation reveals a new requirement, changed acceptance criteria, or source-of-truth conflict.
 - The phase attempts push, PR, CI waiting, release, deployment, or external source publication without an explicit approved Build exception.
@@ -106,7 +106,7 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 ## Workflow
 
 1. Verify upstream brief, plan, active phase, manifest IDs, and approval state.
-2. Run and record `git status --short --branch` for the target repo before edits.
+2. Run and record `git status --short --branch` for the repository before edits.
 3. Compare current branch and dirty state against the plan branch strategy.
 4. Create or update `.workflow/artifacts/tasks/<slug>-v<N>.md`.
 5. Record active phase scope, touched areas, planned checks, and any pre-existing unrelated changes.

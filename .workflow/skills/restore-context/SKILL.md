@@ -43,7 +43,7 @@ Load on demand:
 
 - `.workflow/config/*.yaml` files relevant to the active chain.
 - Existing lifecycle artifacts only for candidate slug/version chains.
-- Target repo files only when artifact evidence identifies affected paths.
+- Repository files only when artifact evidence identifies affected paths.
 - External source or PR/CI data only when configured, referenced, and available through tools.
 
 ## Inputs
@@ -62,7 +62,7 @@ Stop with candidate summary instead of guessing when:
 - multiple candidate chains are equally likely
 - required upstream artifact links are broken
 - current blockers cannot be resolved from the user's latest answer
-- target repo state cannot be inspected and the next phase depends on it
+- repository state cannot be inspected and the next phase depends on it
 - external source or release state is required but unavailable and no blocked handoff exists
 
 ## Workflow
@@ -72,7 +72,7 @@ Stop with candidate summary instead of guessing when:
 3. Parse frontmatter and body status for each artifact.
 4. Extract active manifest IDs, blockers, waivers, skipped checks, deferred requirements, and user checkpoints.
 5. Compare manifest IDs across downstream artifacts to find coverage gaps.
-6. Inspect git status for the target repo and record unrelated or overlapping dirty state.
+6. Inspect git status for the repository and record unrelated or overlapping dirty state.
 7. Read configured source-of-truth and release references without claiming external state unless evidence exists.
 8. Identify inconsistencies: stale links, missing artifacts, mismatched next phase, missing evidence, dirty state, unresolved blockers, or blocked handoff gaps.
 9. Recommend exactly one next action: lifecycle phase, `complete`, or `blocked`.

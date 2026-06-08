@@ -39,7 +39,7 @@ architecture_notes:
 - Source-of-truth: `examples/minimal-markdown-source/source/requirements.md`
 - GitHub / issue / ticket: not applicable
 - Prior lifecycle chain: none
-- Target repo evidence: example only
+- Repository evidence: example only
 
 ## Problem
 

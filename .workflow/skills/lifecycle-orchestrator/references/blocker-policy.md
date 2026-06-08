@@ -16,7 +16,7 @@ Stop when any of these are true:
 - Phase exit gate failed.
 - Required tool, repo, branch, PR, CI, release, or source update cannot be verified.
 - External source updates are required but cannot be performed safely.
-- Target repo has unrelated changes that overlap planned edits.
+- The repository has unrelated changes that overlap planned edits.
 - Requirement IDs are missing, partial, or inconsistent across artifacts.
 - A user correction changes approved scope.
 

@@ -3,7 +3,7 @@ kind: domain
 
 domain:
   name: generic
-  summary: Generic single-repository workflow template.
+  summary: Generic workflow template for a repository.
   regulated: false
   glossary: []
   preferred_terms: []
