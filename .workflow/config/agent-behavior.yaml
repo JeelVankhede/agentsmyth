@@ -6,6 +6,41 @@ canonical_source:
   instructions_root: AGENTS.md
   rule: .workflow is the canonical workflow source.
 
+task_classes:
+  trivial:
+    description: Single-location change with no architectural impact and no risk to other callers.
+    classification_signals:
+      - rename a variable or string literal in one file
+      - fix a typo or comment
+      - bump a version constant
+      - reorder import statements
+    required_phases: []
+    skippable_phases: [think, plan, review, test, ship, reflect]
+    artifact_required: false
+    note: Handle inline. No lifecycle artifact needed. Document the change in the response.
+  standard:
+    description: Multi-file or cross-function change with defined scope and no architectural decisions pending.
+    classification_signals:
+      - new feature or endpoint within an existing pattern
+      - bug fix that touches multiple files
+      - refactor within a bounded module
+      - test suite addition or update
+    required_phases: [think, plan, build, review, ship, reflect]
+    skippable_phases: [test]
+    skip_requires_waiver: true
+    artifact_required: true
+  complex:
+    description: Cross-cutting change, new architectural pattern, or work requiring multiple independent workstreams.
+    classification_signals:
+      - new layer, service, or integration
+      - schema or API contract change affecting multiple callers
+      - change to authentication, authorization, or data model
+      - work requiring parallel build workstreams
+    required_phases: [think, plan, build, review, test, ship, reflect]
+    skippable_phases: []
+    skip_requires_waiver: true
+    artifact_required: true
+
 lifecycle:
   default_mode: standard
   require_artifacts_for_standard_and_complex_work: true
