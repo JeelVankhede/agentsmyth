@@ -48,10 +48,6 @@ for (const contract of artifactContracts) {
   if (frontmatter.orchestration?.next_phase !== contract.nextPhase) {
     errors.push(`${contract.template} next_phase expected ${contract.nextPhase}, got ${frontmatter.orchestration?.next_phase}`);
   }
-  if (frontmatter.architecture_notes?.role !== contract.role) {
-    errors.push(`${contract.template} role expected ${contract.role}, got ${frontmatter.architecture_notes?.role}`);
-  }
-
   for (const section of contract.requiredSections) {
     if (!bodyHeadings.includes(section)) {
       errors.push(`${contract.template} missing section "${section}"`);

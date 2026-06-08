@@ -20,18 +20,6 @@ orchestration:
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
-architecture_notes:
-  role: Senior DevOps
-  decisions:
-    - Mark release gates not applicable for the local example.
-  constraints:
-    - No PR, CI, deployment, or source update is configured.
-  tradeoffs:
-    - Ship local example state without external claims.
-  assumptions:
-    - Example does not represent a deployed release.
-  downstream_impact:
-    - Reflect should record no external release.
 ---
 
 # Settings Empty State - Ship

@@ -14,13 +14,6 @@ orchestration:
   next_phase: build
   blockers: []
   user_checkpoint: plan-review
-architecture_notes:
-  role: Principal Engineer
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ---
 
 # <Title> - Plan

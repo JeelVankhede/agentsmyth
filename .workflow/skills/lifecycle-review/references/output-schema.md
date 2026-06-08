@@ -23,13 +23,6 @@ orchestration:
   next_phase:
   blockers:
   user_checkpoint:
-architecture_notes:
-  role: Staff Reviewer
-  decisions:
-  constraints:
-  tradeoffs:
-  assumptions:
-  downstream_impact:
 ```
 
 Required body sections:

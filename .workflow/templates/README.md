@@ -14,6 +14,6 @@ Rules:
 - Preserve `slug` and `version` across the artifact chain.
 - Keep `manifest_ids` aligned with active `R` and `RI` IDs.
 - Mirror blocking `Q` IDs and failed gates in `orchestration.blockers`.
-- Use `architecture_notes` to preserve role decisions, constraints, tradeoffs, assumptions, and downstream impact.
+- Use the `## Architecture Notes` body section to preserve role decisions, constraints, tradeoffs, assumptions, and downstream impact.
 - Do not claim commands, PRs, CI, releases, source updates, or external handoffs without evidence.
 - Treat skipped checks and waivers as risk, not success.

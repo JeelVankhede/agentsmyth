@@ -19,18 +19,6 @@ orchestration:
   next_phase: ship
   blockers: []
   user_checkpoint: verification-review
-architecture_notes:
-  role: Senior QA
-  decisions:
-    - Use manual QA for the UI state example.
-  constraints:
-    - No automated command is configured.
-  tradeoffs:
-    - Record command absence as not applicable, not success.
-  assumptions:
-    - Example environment can simulate three states.
-  downstream_impact:
-    - Ship can proceed without release gate.
 ---
 
 # Settings Empty State - Verification

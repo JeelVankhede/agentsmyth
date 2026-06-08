@@ -111,7 +111,7 @@ Stop and ask, or return a blocked brief, when any of these apply:
 
 The brief must include architecture notes when any decision, constraint, tradeoff, assumption, or downstream impact affects Plan or later phases.
 
-Use the frontmatter `architecture_notes` block when the artifact schema supports it, and mirror any longer explanation in the brief body. At minimum, capture:
+Use the `## Architecture Notes` section in the brief body to capture at minimum:
 
 - role: `Architect`
 - decisions made during scoping

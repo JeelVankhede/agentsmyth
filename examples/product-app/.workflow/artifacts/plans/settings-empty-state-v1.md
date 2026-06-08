@@ -16,18 +16,6 @@ orchestration:
   next_phase: build
   blockers: []
   user_checkpoint: plan-review
-architecture_notes:
-  role: Principal Engineer
-  decisions:
-    - Use one implementation phase because the change is small.
-  constraints:
-    - Manual QA covers state distinction.
-  tradeoffs:
-    - Do not add a test framework in the example.
-  assumptions:
-    - A1
-  downstream_impact:
-    - Review and Test must inspect empty/loading/error state handling.
 ---
 
 # Settings Empty State - Plan

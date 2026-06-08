@@ -130,10 +130,6 @@ for (const file of artifactFiles) {
   if (parsed.frontmatter.orchestration?.next_phase !== contract.nextPhase) {
     errors.push(`${file} next_phase expected ${contract.nextPhase}`);
   }
-  if (parsed.frontmatter.architecture_notes?.role !== contract.role) {
-    errors.push(`${file} role expected ${contract.role}`);
-  }
-
   const bodyHeadings = headings(parsed.body);
   for (const section of contract.requiredSections) {
     if (!bodyHeadings.includes(section)) {

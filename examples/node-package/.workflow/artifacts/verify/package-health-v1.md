@@ -18,18 +18,6 @@ orchestration:
   next_phase: ship
   blockers: []
   user_checkpoint: verification-review
-architecture_notes:
-  role: Senior QA
-  decisions:
-    - Use configured Node commands because this example package defines them.
-  constraints:
-    - Commands are example-specific and not universal defaults.
-  tradeoffs:
-    - Manual QA is not used because command evidence covers the example requirement.
-  assumptions:
-    - No generated output exists in this example.
-  downstream_impact:
-    - Ship can treat verification as local command evidence only.
 ---
 
 # Package Health - Verification

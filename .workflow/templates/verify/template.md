@@ -17,13 +17,6 @@ orchestration:
   next_phase: ship
   blockers: []
   user_checkpoint: verification-review
-architecture_notes:
-  role: Senior QA
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ---
 
 # <Title> - Verification

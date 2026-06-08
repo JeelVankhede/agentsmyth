@@ -14,13 +14,6 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
-architecture_notes:
-  role: Architect
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ---
 
 # <Title> - Brief

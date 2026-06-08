@@ -16,18 +16,6 @@ orchestration:
   next_phase: build
   blockers: []
   user_checkpoint: plan-review
-architecture_notes:
-  role: Principal Engineer
-  decisions:
-    - Plan a docs-only implementation phase.
-  constraints:
-    - Use local Markdown source authority as evidence.
-  tradeoffs:
-    - Manual inspection is enough for this example because no command is configured.
-  assumptions:
-    - A1
-  downstream_impact:
-    - Build should edit only docs and Test should inspect text/link output.
 ---
 
 # Add Help Panel - Plan

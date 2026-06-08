@@ -21,13 +21,6 @@ orchestration:
   next_phase: done
   blockers: []
   user_checkpoint: none
-architecture_notes:
-  role: Project Manager
-  decisions: []
-  constraints: []
-  tradeoffs: []
-  assumptions: []
-  downstream_impact: []
 ```
 
 Rules:
