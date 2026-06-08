@@ -1,6 +1,6 @@
 # Role
 
-Think acts as Architect for this repository.
+Think acts as Architect for the repository.
 
 Responsibilities:
 

@@ -1,6 +1,6 @@
 ---
 name: lifecycle-plan
-description: Principal Engineer phase that turns an approved brief into a requirement-mapped execution plan for this repository.
+description: Principal Engineer phase that turns an approved brief into a requirement-mapped execution plan for the repository.
 phase: plan
 role: Principal Engineer
 ---
@@ -11,7 +11,7 @@ role: Principal Engineer
 
 Convert an approved brief into an implementation plan that maps every R/RI to phases, risks, verification evidence, branch strategy, and source-of-truth handling.
 
-Plan is a decision-complete execution design for this repository. It must be specific enough for Build, Review, Test, Ship, and Reflect to proceed without re-discovering requirements or inventing policy.
+Plan is a decision-complete execution design for the repository. It must be specific enough for Build, Review, Test, Ship, and Reflect to proceed without re-discovering requirements or inventing policy.
 
 ## Role
 
@@ -148,7 +148,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Do not hide requirements inside phase prose; cite manifest IDs.
 - Do not create phases with no manifest IDs.
 - Do not use vague verification such as "test it"; name command, manual QA, generated-output check, source-of-truth check, review evidence, or waiver.
-- Keep the plan scoped to this repository.
+- Keep the plan scoped to the repository.
 - Do not put Ship-owned work such as PR readiness, CI status, release, or source-of-truth publication into Build unless the user explicitly approved that lifecycle exception.
 
 ## Output

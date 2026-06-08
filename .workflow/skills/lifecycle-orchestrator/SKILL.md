@@ -1,6 +1,6 @@
 ---
 name: lifecycle-orchestrator
-description: Primary lifecycle router for this repository. Use to turn a user request into a gated Think, Plan, Build, Review, Test, Ship, and Reflect workflow with pause/resume support.
+description: Primary lifecycle router for the repository. Use to turn a user request into a gated Think, Plan, Build, Review, Test, Ship, and Reflect workflow with pause/resume support.
 ---
 
 # Lifecycle Orchestrator
@@ -128,7 +128,7 @@ The orchestrator pass is complete when it ends in exactly one of these states:
 - Do not infer implementation correctness from planning text alone.
 - Do not continue from stale memory; use `restore-context` for existing chains.
 - Do not modify product files in Think, Plan, Review, Test, Ship, or Reflect unless that phase explicitly allows the requested change and the user asked for it.
-- Keep this workflow scoped to this repository. Do not make assumptions about external systems or processes beyond what is explicitly documented in the loaded context.
+- Keep this workflow scoped to the repository. Do not make assumptions about external systems or processes beyond what is explicitly documented in the loaded context.
 
 ## Output
 
