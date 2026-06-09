@@ -50,42 +50,39 @@ Preferred:
 
 Reflect may proceed when Ship is `ship` or user-accepted `hold-with-waiver`. If Ship is `hold`, Reflect must stop unless the user explicitly asks for a blocked retrospective.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-- `.workflow/config/agent-behavior.yaml`
-- `.workflow/config/repo-profile.yaml`
-- `.workflow/config/source-of-truth.yaml`
-- `.workflow/config/verification.yaml`
-- `.workflow/config/release.yaml`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load `.workflow/config/domain.yaml` when domain constraints affect learning candidates or follow-ups.
+**Before starting work**:
+- `references/role.md`
+- Full upstream lifecycle chain for the active slug (brief through ship)
 
-## Context Loading
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/coverage-retrospective.md` — when building the manifest coverage retrospective
+- `references/learning-capture.md` — when proposing learning candidates
+- `references/raw-session-format.md` — when writing the raw learning session
+- `references/follow-up-policy.md` — when identifying and structuring follow-up actions
 
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. Full upstream lifecycle chain for the slug.
-7. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/coverage-retrospective.md`
-   - `references/learning-capture.md`
-   - `references/raw-session-format.md`
-   - `references/follow-up-policy.md`
-
-Load on demand:
-
-- External PR, CI, release, deployment, source-of-truth, or user feedback evidence referenced by Ship.
-- Existing raw learning session only to avoid filename collision; do not rewrite prior session history.
-- Curated learnings only when the user explicitly asks for curation.
+**On demand**:
+- `.workflow/config/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
+- `.workflow/config/repo-profile.yaml` — when release or source handling affects outcome
+- `.workflow/config/source-of-truth.yaml` — when source-of-truth outcome needs explicit status
+- `.workflow/config/verification.yaml` — when verification evidence or skip risk affects learning candidates
+- `.workflow/config/release.yaml` — when release or rollback outcome is part of the retrospective
+- `.workflow/config/domain.yaml` — when domain constraints affect learning candidates or follow-ups
+- External PR, CI, release, deployment, or user feedback evidence — when referenced by the Ship artifact
+- Existing raw learning session — only to avoid filename collision; do not rewrite prior session history
+- Curated learnings — only when the user explicitly requests a curation pass
 
 ## Inputs
 

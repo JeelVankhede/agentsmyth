@@ -44,44 +44,42 @@ Required:
 
 Review may proceed on a blocked Build only when the review target is clear and the artifact records which blockers limit confidence.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-- `.workflow/config/agent-behavior.yaml`
-- `.workflow/config/repo-profile.yaml`
-- `.workflow/config/verification.yaml`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load `.workflow/config/domain.yaml` when domain constraints affect findings. Load `.workflow/config/source-of-truth.yaml` when requirements or changed files depend on external source authority. Load `.workflow/config/release.yaml` when changed surfaces affect PR, CI, deployment, publishing, rollback, or handoff risk.
+**Before starting work**:
+- `references/role.md`
+- Upstream brief, plan, and task artifacts
+- Current repository diff target or changed-file list
 
-## Context Loading
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/severity-model.md` — when classifying finding severity
+- `references/requirement-coverage.md` — when mapping requirements to evidence
+- `references/review-risk-categories.md` — when categorizing findings by risk type
+- `references/generated-output-review.md` — when reviewing generated-output changes
+- `references/source-of-truth-review.md` — when reviewing source-of-truth handling
+- `references/verification-review.md` — when reviewing verification evidence
 
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. Upstream brief, plan, and task artifacts.
-7. Current repo status and diff target.
-8. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/severity-model.md`
-   - `references/requirement-coverage.md`
-   - `references/review-risk-categories.md`
-   - `references/generated-output-review.md`
-   - `references/source-of-truth-review.md`
-   - `references/verification-review.md`
-
-Load on demand:
-
-- Generated-output evidence and source files referenced by the task artifact.
-- Verification command output or logs referenced by Build.
-- Release/source-of-truth context when the diff touches release-sensitive or externally tracked behavior.
-- `.workflow/skills/dispatch-subagents/SKILL.md` only when the user explicitly authorizes independent read-only review workstreams.
+**On demand**:
+- `.workflow/config/agent-behavior.yaml` — when evidence policy or waiver rules affect findings
+- `.workflow/config/repo-profile.yaml` — when protected paths or contract expectations affect findings
+- `.workflow/config/domain.yaml` — when domain constraints affect findings
+- `.workflow/config/source-of-truth.yaml` — when requirements or changed files depend on external source authority
+- `.workflow/config/verification.yaml` — when evaluating the adequacy of verification evidence
+- `.workflow/config/release.yaml` — when changed surfaces affect PR, CI, deployment, or rollback risk
+- Generated-output evidence and source files referenced by the task artifact
+- Verification command output or logs referenced by Build
+- `.workflow/skills/dispatch-subagents/SKILL.md` — only when the user explicitly authorizes independent read-only review workstreams
 
 ## Inputs
 

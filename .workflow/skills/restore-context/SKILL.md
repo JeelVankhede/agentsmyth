@@ -20,31 +20,35 @@ Use this skill when:
 - the user says "continue", "where were we", or names a slug/branch/artifact/source
 - a phase needs to verify upstream state before proceeding
 - the agent suspects local memory is stale or incomplete
+- another skill invokes restore-context to verify an upstream artifact chain before proceeding
 
-## Context Loading
+## What To Load
 
-Always load:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. These references:
-   - `references/chain-walker.md`
-   - `references/artifact-reader.md`
-   - `references/git-walker.md`
-   - `references/source-of-truth-reader.md`
-   - `references/blocker-reader.md`
-   - `references/summary-format.md`
-   - `references/output-schema.md`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load on demand:
+**Before starting work**:
+- `references/chain-walker.md` — to know how to walk the artifact chain
 
-- `.workflow/config/*.yaml` files relevant to the active chain.
-- Existing lifecycle artifacts only for candidate slug/version chains.
-- Repository files only when artifact evidence identifies affected paths.
-- External source or PR/CI data only when configured, referenced, and available through tools.
+**Load when the step requires it**:
+- `references/artifact-reader.md` — when reading individual lifecycle artifacts
+- `references/git-walker.md` — when inspecting repository git state
+- `references/source-of-truth-reader.md` — when the active chain references source-of-truth config
+- `references/blocker-reader.md` — when extracting blockers from artifact frontmatter
+- `references/summary-format.md` — when writing the restore summary
+
+**On demand**:
+- `.workflow/config/*.yaml` files — only those referenced by the active chain being restored
+- Existing lifecycle artifacts — only for candidate slug/version chains
+- Repository files — only when artifact evidence identifies affected paths
+- External source or PR/CI data — only when configured, referenced, and available through tools
 
 ## Inputs
 

@@ -48,45 +48,42 @@ Preferred:
 
 Ship must hold when Test recommends `hold`, when Review has unresolved blocking findings, or when active requirement coverage is missing without a documented waiver.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-- `.workflow/config/agent-behavior.yaml`
-- `.workflow/config/repo-profile.yaml`
-- `.workflow/config/source-of-truth.yaml`
-- `.workflow/config/verification.yaml`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
+
+**Before starting work**:
+- `references/role.md`
+- Upstream brief, plan, task, and verify artifacts
 - `.workflow/config/release.yaml`
+- `.workflow/config/source-of-truth.yaml`
+- Review artifact when present
 
-Load `.workflow/config/domain.yaml` when domain constraints affect release, rollback, handoff, or communication.
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/release-gates.md` — when evaluating configured release gates
+- `references/source-of-truth-handoff.md` — when source-of-truth update or handoff is required
+- `references/waiver-policy.md` — when accepting residual risk requires a waiver
+- `references/rollback-policy.md` — when defining rollback trigger and action
+- `references/pr-ci-policy.md` — when PR or CI state is required by release config
+- `references/blocked-handoff-format.md` — when an external action cannot be performed
 
-## Context Loading
-
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. Upstream brief, plan, task, verify, and review artifacts when present.
-7. Release and source-of-truth config.
-8. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/release-gates.md`
-   - `references/source-of-truth-handoff.md`
-   - `references/waiver-policy.md`
-   - `references/rollback-policy.md`
-   - `references/pr-ci-policy.md`
-   - `references/blocked-handoff-format.md`
-
-Load on demand:
-
-- Existing ship artifact for the active slug/version.
-- Repository status, branch, release notes, package metadata, CI configuration, deployment config, docs, or handoff files named by release config or the Plan.
-- External source or PR/CI state only through available tools and only when configured or explicitly requested.
+**On demand**:
+- `.workflow/config/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
+- `.workflow/config/repo-profile.yaml` — when branch state affects ship readiness
+- `.workflow/config/domain.yaml` — when domain constraints affect release, rollback, or communication
+- `.workflow/config/verification.yaml` — when re-checking verification gate adequacy
+- Existing ship artifact — when resuming or revising
+- Repository status, branch, release notes, package metadata, CI configuration, deployment config, or handoff files named by release config or the plan
+- External source or PR/CI state — only through available tools and only when configured or explicitly requested
 
 ## Inputs
 

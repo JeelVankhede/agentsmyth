@@ -21,28 +21,31 @@ Use this skill only when:
 
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
-## Context Loading
+## What To Load
 
-Always load:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. These references:
-   - `references/decision-tree-by-phase.md`
-   - `references/independence-rules.md`
-   - `references/phase-caps.md`
-   - `references/worker-ownership-format.md`
-   - `references/logging-format.md`
-   - `references/output-schema.md`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load on demand:
+**Before starting work**:
+- `references/decision-tree-by-phase.md` — to determine whether dispatch is permitted for the active phase
+- `references/phase-caps.md` — to determine the hard cap for the active phase
 
-- Active lifecycle artifact for the current phase.
-- Approved brief, plan, task, review, verify, or ship artifacts when delegation depends on manifest IDs, file ownership, or phase gates.
-- Repository files only when needed to check independence.
+**Load when the step requires it**:
+- `references/independence-rules.md` — when evaluating whether candidate work items are truly independent
+- `references/worker-ownership-format.md` — when defining delegations and ownership boundaries
+- `references/logging-format.md` — when writing the dispatch log entry in the active artifact
+
+**On demand**:
+- Active lifecycle artifact for the current phase — when logging dispatch or refusal
+- Approved brief, plan, task, review, verify, or ship artifacts — when delegation depends on manifest IDs, file ownership, or phase gates
+- Repository files — only when needed to verify independence between candidate work items
 
 ## Inputs
 

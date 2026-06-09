@@ -43,44 +43,43 @@ Required:
 
 For resumed Build work, load the existing task artifact before editing. Continue the lowest-numbered incomplete plan phase unless the user or plan explicitly selects another phase.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
+
+**Before starting work**:
+- `references/role.md`
+- The approved brief artifact
+- The approved plan artifact
 - `.workflow/config/agent-behavior.yaml`
 - `.workflow/config/repo-profile.yaml`
-- `.workflow/config/verification.yaml`
 
-Load `.workflow/config/domain.yaml` when domain rules affect implementation. Load `.workflow/config/source-of-truth.yaml` when Build touches source-backed docs, generated output, or handoff content. Load `.workflow/config/release.yaml` when the plan includes release-sensitive files, generated package output, deployment behavior, or PR/CI constraints.
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/phase-execution-policy.md` — when selecting or confirming the active phase
+- `references/scope-control.md` — when a change reaches outside planned phase scope
+- `references/change-safety.md` — before editing any file
+- `references/git-status-policy.md` — before running git status or staging files
+- `references/unrelated-changes-policy.md` — when unrelated dirty files are present
+- `references/verification-recording.md` — when recording command evidence or not-run risk
+- `.workflow/config/verification.yaml` — when running or recording verification checks
 
-## Context Loading
-
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. The approved brief artifact.
-7. The approved plan artifact.
-8. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/phase-execution-policy.md`
-   - `references/scope-control.md`
-   - `references/change-safety.md`
-   - `references/git-status-policy.md`
-   - `references/unrelated-changes-policy.md`
-   - `references/verification-recording.md`
-
-Load on demand:
-
-- Existing task artifact for the active slug/version.
-- Repository files listed in the active phase touches.
-- Adjacent repo files needed to understand imports, contracts, generated output, or tests.
-- `.workflow/skills/dispatch-subagents/SKILL.md` only when the plan and user explicitly authorize independent implementation workstreams.
+**On demand**:
+- `.workflow/config/domain.yaml` — when domain rules affect implementation choices
+- `.workflow/config/source-of-truth.yaml` — when touching source-backed docs, generated output, or handoff content
+- `.workflow/config/release.yaml` — when the plan includes release-sensitive files, package output, or deployment behavior
+- Existing task artifact — when resuming Build work
+- Repository files listed in active phase touches
+- Adjacent repository files — when understanding imports, contracts, generated output, or tests
+- `.workflow/skills/dispatch-subagents/SKILL.md` — only when the plan and user explicitly authorize independent implementation workstreams
 
 ## Inputs
 

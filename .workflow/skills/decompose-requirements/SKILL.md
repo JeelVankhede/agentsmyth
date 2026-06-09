@@ -23,29 +23,36 @@ Use this skill when:
 
 Do not invoke it for Trivial work unless the user explicitly requests a manifest.
 
-## Context Loading
+## What To Load
 
-Always load:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. These references:
-   - `references/decision-tree.md`
-   - `references/explicit-requirements.md`
-   - `references/implicit-requirements-library.md`
-   - `references/assumptions-and-questions.md`
-   - `references/manifest-format.md`
-   - `references/output-schema.md`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load on demand:
+**Before starting work**:
+- `references/decision-tree.md` — to determine the mode (create, backfill, update, or no-op)
+- Existing brief artifact when backfilling or revising
 
-- `.workflow/skills/lifecycle-think/SKILL.md` and Think references when writing into a brief.
-- Existing brief artifact at `.workflow/artifacts/briefs/<slug>-v<N>.md`.
-- `.workflow/config/domain.yaml`, `.workflow/config/repo-profile.yaml`, `.workflow/config/source-of-truth.yaml`, `.workflow/config/verification.yaml`, and `.workflow/config/release.yaml` when implicit requirements may come from those contracts.
-- Repository files only when repo truth is needed to derive implicit requirements.
+**Load when the step requires it**:
+- `references/explicit-requirements.md` — when extracting `R` IDs from user input
+- `references/implicit-requirements-library.md` — when deriving `RI` IDs from repo or config sources
+- `references/assumptions-and-questions.md` — when recording `A` or `Q` IDs
+- `references/manifest-format.md` — when formatting or validating the manifest structure
+
+**On demand**:
+- `.workflow/skills/lifecycle-think/SKILL.md` — when writing results directly into a brief
+- `.workflow/config/domain.yaml` — when domain constraints affect implicit requirements
+- `.workflow/config/repo-profile.yaml` — when protected paths, generated outputs, or public contracts affect requirements
+- `.workflow/config/source-of-truth.yaml` — when source authority affects implicit requirements
+- `.workflow/config/verification.yaml` — when verification expectations produce implicit requirements
+- `.workflow/config/release.yaml` — when release gates produce implicit requirements
+- Repository files — when repo state is needed to derive implicit requirements
 
 ## Inputs
 
@@ -71,7 +78,7 @@ Stop or return a proposed manifest instead of editing when:
 1. Determine mode: create, backfill, merge, update answered questions, or no-op.
 2. Preserve all existing IDs and downstream references.
 3. Extract explicit user requirements as `R` IDs.
-4. Derive implicit requirements as `RI` IDs from repo, domain, source-of-truth, verification, release, compatibility, generated-output, safety, and lifecycle context.
+4. Derive implicit requirements as `RI` IDs from repo, domain, source-of-truth, verification, release, compatibility, generated-output, and safety sources.
 5. Add acceptance criteria to every active `R` and `RI`.
 6. Record assumptions as `A` IDs only when proceeding is safe.
 7. Record open questions as `Q` IDs when user/source/owner authority is needed.
@@ -98,12 +105,8 @@ Stop or return a proposed manifest instead of editing when:
 - Do not invent external links, ticket IDs, releases, PRs, commands, or source updates.
 - Do not proceed to Plan with blocking `Q` IDs unless the user accepts a waiver recorded by the caller.
 
-## Output Contract
+## Output
 
 Follow `references/output-schema.md`.
 
 Return the mode, brief path or proposed target, added/updated/stable IDs, blockers, assumptions needing confirmation, manifest patch, frontmatter blocker patch when needed, and concise summary.
-
-## Output
-
-Same as Output Contract.

@@ -38,42 +38,38 @@ For a new request, no upstream lifecycle artifact is required.
 
 For resumed or revised work, load the current slug chain first through `restore-context` and preserve existing manifest IDs. Create a new version when the request materially changes scope, acceptance criteria, source-of-truth handling, release behavior, or verification expectations.
 
-## Required Config Files
+## What To Load
 
-Always consider:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-- `.workflow/config/agent-behavior.yaml`
-- `.workflow/config/domain.yaml`
-- `.workflow/config/repo-profile.yaml`
-- `.workflow/config/source-of-truth.yaml`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 
-Load `.workflow/config/verification.yaml` when acceptance criteria or expected evidence are unclear. Load `.workflow/config/release.yaml` when the request might affect deployment, publishing, rollout, external handoff, or release notes.
+**Before starting work**:
+- `references/role.md`
 
-## Context Loading
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/requirement-discovery.md` — when deriving `RI` IDs from repo or config sources
+- `references/assumption-policy.md` — when recording `A` IDs
+- `references/question-policy.md` — when formulating blocking or non-blocking `Q` IDs
+- `references/architecture-notes-guide.md` — when writing architecture notes
 
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/requirement-discovery.md`
-   - `references/assumption-policy.md`
-   - `references/question-policy.md`
-   - `references/architecture-notes-guide.md`
-
-Load on demand:
-
-- Existing artifacts for the active slug/version.
-- Source-of-truth items configured in `source-of-truth.yaml` or explicitly supplied by the user.
-- Repository files only when needed to derive implicit requirements, protected paths, existing contracts, generated outputs, or verification constraints.
-- `.workflow/skills/decompose-requirements/SKILL.md` when the manifest needs creation or repair.
-- `.workflow/skills/dispatch-subagents/SKILL.md` only when explicitly authorized exploration can be split into independent read-only topics.
+**On demand**:
+- `.workflow/config/domain.yaml` — when domain terminology, constraints, or non-goals affect scope
+- `.workflow/config/repo-profile.yaml` — when protected paths, generated outputs, or public contracts affect requirements
+- `.workflow/config/source-of-truth.yaml` — when source authority or handoff scope is unclear
+- `.workflow/config/verification.yaml` — when acceptance criteria or verification expectations are unclear
+- `.workflow/config/release.yaml` — when the request may affect deployment, publishing, rollout, or release
+- Existing brief artifact — when revising a chain or resuming prior work
+- Repository files — when needed to derive implicit requirements, contracts, protected paths, or verification constraints
+- `.workflow/skills/decompose-requirements/SKILL.md` — when the manifest needs creation or repair
+- `.workflow/skills/dispatch-subagents/SKILL.md` — only when explicitly authorized exploration splits into independent read-only topics
 
 ## Inputs
 

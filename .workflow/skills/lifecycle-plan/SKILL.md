@@ -42,44 +42,41 @@ Required:
 
 Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, lacks acceptance criteria for active `R`/`RI` IDs, or would require renumbering existing manifest IDs.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
+
+**Before starting work**:
+- `references/role.md`
+- The approved brief artifact
 - `.workflow/config/agent-behavior.yaml`
 - `.workflow/config/repo-profile.yaml`
-- `.workflow/config/source-of-truth.yaml`
-- `.workflow/config/verification.yaml`
 
-Load `.workflow/config/domain.yaml` when domain terminology, constraints, or risks affect implementation. Load `.workflow/config/release.yaml` whenever deployment, publishing, rollout, external handoff, release notes, or PR/CI gates might be relevant.
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/repo-impact-map.md` — when mapping affected repository surfaces
+- `references/dependency-ordering.md` — when sequencing implementation phases
+- `references/risk-register.md` — when recording risks
+- `references/verification-planning.md` — when building the verification plan
+- `references/branch-policy.md` — when defining branch and commit strategy
+- `references/source-of-truth-planning.md` — when source-of-truth handling is required
+- `.workflow/config/verification.yaml` — when building the verification plan
+- `.workflow/config/source-of-truth.yaml` — when source authority or handoff affects planning
 
-## Context Loading
-
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. `.workflow/skills/lifecycle-orchestrator/references/phase-routing.md`.
-6. This skill file.
-7. The approved brief artifact.
-8. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/repo-impact-map.md`
-   - `references/dependency-ordering.md`
-   - `references/risk-register.md`
-   - `references/verification-planning.md`
-   - `references/branch-policy.md`
-   - `references/source-of-truth-planning.md`
-
-Load on demand:
-
-- Existing plan/task/review/verify/ship/reflect artifacts for the same slug/version when revising.
-- Repository files required to identify affected surfaces, public contracts, generated output, protected paths, dependencies, or available commands.
-- `.workflow/skills/dispatch-subagents/SKILL.md` only when explicitly authorized exploration can be split into independent read-only topics.
+**On demand**:
+- `.workflow/config/domain.yaml` — when domain terminology, constraints, or risks affect implementation
+- `.workflow/config/release.yaml` — when deployment, publishing, rollout, external handoff, PR, or CI gates are in scope
+- Repository files — when needed to identify affected surfaces, contracts, generated output, protected paths, dependencies, or available commands
+- Existing plan/task/review/verify/ship/reflect artifacts — when revising an existing chain
+- `.workflow/skills/dispatch-subagents/SKILL.md` — only when explicitly authorized parallel exploration of independent topics
 
 ## Inputs
 
@@ -104,7 +101,7 @@ Stop and ask, or return a blocked plan, when any of these apply:
 
 1. Verify the brief exists and is approved or explicitly waived.
 2. Parse active `R`, `RI`, `A`, and `Q` IDs without renumbering.
-3. Inspect repo/config/source context before naming touches, commands, branch strategy, generated output, or release impact.
+3. Inspect repository state, config files, and source-of-truth items before naming touches, commands, branch strategy, generated output, or release impact.
 4. Build the repository impact map.
 5. Map every active `R` and `RI` to one or more plan phases and exactly one owning phase for completion.
 6. Order phases by dependency, risk, contract boundaries, generated output, verification needs, docs/source updates, and release/handoff.

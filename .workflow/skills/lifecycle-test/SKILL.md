@@ -47,42 +47,40 @@ Preferred:
 
 If Review is missing or blocked, Test may proceed only when the artifact records the missing review as risk and the orchestrator/user allows the lifecycle exception.
 
-## Required Config Files
+## What To Load
 
-Always load or inspect:
+**Foundation** (confirm in context; load if not already present):
+- Root `AGENTS.md`
+- `.workflow/router.md`
+- `.workflow/lifecycle.md`
+- `.workflow/rules.md`
 
-- `.workflow/config/agent-behavior.yaml`
-- `.workflow/config/repo-profile.yaml`
+**Minimum for invocation**:
+- This file
+- `references/output-schema.md`
 - `.workflow/config/verification.yaml`
 
-Load `.workflow/config/domain.yaml` when domain rules affect QA scenarios. Load `.workflow/config/source-of-truth.yaml` when verification depends on external source updates or handoff. Load `.workflow/config/release.yaml` when verification affects Ship gates, deployment, publishing, rollback, or PR/CI readiness.
+**Before starting work**:
+- `references/role.md`
+- Upstream brief, plan, and task artifacts
 
-## Context Loading
+**Load when the step requires it**:
+- `references/exemplar.md` — before finalizing output, to validate quality
+- `references/verification-matrix.md` — when building the manifest coverage table
+- `references/command-evidence-policy.md` — before running or recording any command
+- `references/manual-qa-policy.md` — when recording manual QA scenarios
+- `references/skipped-check-policy.md` — when a check cannot be run
+- `references/generated-output-verification.md` — when verifying generated output
 
-Always load:
-
-1. Root `AGENTS.md`.
-2. `.workflow/router.md`.
-3. `.workflow/lifecycle.md`.
-4. `.workflow/rules.md`.
-5. This skill file.
-6. Upstream brief, plan, and task artifacts.
-7. Verification config.
-8. These references:
-   - `references/role.md`
-   - `references/output-schema.md`
-   - `references/exemplar.md`
-   - `references/verification-matrix.md`
-   - `references/command-evidence-policy.md`
-   - `references/manual-qa-policy.md`
-   - `references/skipped-check-policy.md`
-   - `references/generated-output-verification.md`
-
-Load on demand:
-
-- Review artifact when findings, coverage, or residual risk affect verification.
-- Repository files needed to run configured commands or inspect generated output.
-- Existing verify artifact when rerunning or extending evidence.
+**On demand**:
+- `.workflow/config/agent-behavior.yaml` — when evidence policy or waiver rules affect verification
+- `.workflow/config/repo-profile.yaml` — when generated output paths or public contracts affect verification scope
+- `.workflow/config/domain.yaml` — when domain rules affect QA scenarios
+- `.workflow/config/source-of-truth.yaml` — when verification depends on external source updates or handoff
+- `.workflow/config/release.yaml` — when verification affects Ship gates, deployment, or PR/CI readiness
+- Review artifact — when review findings or residual risk affect verification coverage
+- Repository files — when needed to run configured commands or inspect generated output
+- Existing verify artifact — when rerunning or extending evidence
 
 ## Inputs
 
