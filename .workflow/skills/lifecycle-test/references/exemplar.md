@@ -1,5 +1,7 @@
 # Exemplar
 
+## Good Example
+
 A good verification row is evidence-driven:
 
 ```markdown
@@ -26,3 +28,24 @@ Avoid:
 - "looks good" as evidence
 - pass results for commands that did not run
 - empty manual QA or generated-output sections
+
+## Bad Example
+
+```markdown
+## Manifest Coverage
+
+| Manifest ID | How Verified | Evidence | Result | Notes |
+|---|---|---|---|---|
+| R1 | manual | looks good | pass | - |
+| RI2 | command | `git diff --check` | pass | - |
+
+## Skipped Checks
+
+none
+```
+
+## Why The Bad Is Bad
+
+- "Looks good" is an opinion, not evidence — it names no file, no output, no inspection path. It cannot be reproduced by a future restore-context invocation or audited by Ship.
+- `pass` for `RI2` via `git diff --check` without confirmation the command ran is an invented result — if the command was recalled from memory or assumed from context, the result is fabricated. Pass claims must include actual output excerpt or a reproduction path.
+- "none" in Skipped Checks when checks were skipped hides risk from Ship's waiver decisions. Every check that did not run must appear in the table with a reason, a risk level, and an owner. "none" transfers unrecorded risk to Ship where it cannot be waived because it was never named.
