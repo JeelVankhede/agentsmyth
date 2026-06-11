@@ -18,10 +18,10 @@ These rules apply across every lifecycle phase.
 ## Evidence
 
 - Record exact commands, paths, artifacts, source links, or user-provided proof.
-- Do not claim command success without evidence.
-- Do not claim external state without evidence.
-- Treat skipped checks as risk.
-- Treat waivers as visible residual risk.
+- Do not claim command success without current-turn output or a cited artifact that contains the output.
+- Do not claim external state (PR merge, CI status, deployment, source update) without tool output, artifact evidence, or user-provided proof.
+- Treat skipped checks as risk; record them with reason, risk level, and owner.
+- Treat waivers as visible residual risk, not success.
 
 ## Git Safety
 
