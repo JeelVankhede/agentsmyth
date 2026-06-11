@@ -30,7 +30,7 @@ Primary artifact:
 .workflow/artifacts/plans/<slug>-v<N>.md
 ```
 
-Use `.workflow/templates/plans/template.md` when creating or validating the plan. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new plan artifact.
 
 ## Required Upstream Artifacts
 

@@ -55,3 +55,91 @@ Schema acceptance criteria:
 - Verification Items and Command Results record evidence or explicit not-run risk.
 - Dispatch Log exists and records every authorized dispatch, or states none.
 - Phase Completion Log has one entry per completed active phase.
+
+## Starter Block
+
+Copy this block to create a new task artifact. Replace every `<placeholder>`.
+
+```markdown
+---
+slug: <slug>
+version: 1
+artifact: task
+status: in-progress
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+manifest_ids: []
+upstream:
+  brief: .workflow/artifacts/briefs/<slug>-v<N>.md
+  plan: .workflow/artifacts/plans/<slug>-v<N>.md
+orchestration:
+  phase: build
+  status: in-progress
+  next_phase: review
+  blockers: []
+  user_checkpoint: none
+---
+
+# <Title> - Task
+
+## Active Phase
+
+- Phase:
+- Manifest IDs:
+- Exit gate:
+
+## Plan Phases Overview
+
+| Phase | Status | Manifest IDs |
+|---|---|---|
+| Phase 1 - <name> | active | R1, RI1 |
+
+## Branch / Repo Status
+
+| Moment | Branch | Status | Notes |
+|---|---|---|---|
+| Before edits | `<branch>` | <git status output> | <unrelated files noted> |
+| At handoff | `<branch>` | <git status output> | <scope confirmed> |
+
+## Scope
+
+- In scope:
+- Out of scope:
+
+## Changed Files
+
+- `<path>` — <what changed> — IDs: <R/RI IDs>
+
+## Implementation Log
+
+## Verification Items
+
+| Manifest ID | Verification target | Expected result |
+|---|---|---|
+
+## Command Results
+
+| Command | Area | Outcome | Notes |
+|---|---|---|---|
+
+## Dispatch Log
+
+none
+
+## Architecture Notes
+
+- role: Senior Engineer
+- decision:
+- constraint:
+- tradeoff:
+- downstream:
+
+## Blockers
+
+none
+
+## Phase Completion Log
+
+| Phase | Status | Completed | Notes |
+|---|---|---|---|
+```

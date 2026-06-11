@@ -31,7 +31,7 @@ Primary artifact:
 .workflow/artifacts/tasks/<slug>-v<N>.md
 ```
 
-Use `.workflow/templates/tasks/template.md` when creating or validating the task artifact. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new task artifact.
 
 ## Required Upstream Artifacts
 

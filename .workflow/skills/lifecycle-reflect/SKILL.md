@@ -32,7 +32,7 @@ Primary artifacts:
 .workflow/learnings/sessions/<YYYY-MM-DD>-<slug>.md
 ```
 
-Use `.workflow/templates/reflect/template.md` when creating or validating the reflect artifact. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new reflect artifact.
 
 ## Required Upstream Artifacts
 
