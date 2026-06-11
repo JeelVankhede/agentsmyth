@@ -30,7 +30,7 @@ Primary artifact:
 .workflow/artifacts/briefs/<slug>-v<N>.md
 ```
 
-Use `.workflow/templates/briefs/template.md` when creating or validating the brief. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new brief artifact.
 
 ## Required Upstream Artifacts
 

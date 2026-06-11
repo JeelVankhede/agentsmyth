@@ -47,6 +47,10 @@ Use the same `slug` and `version` as the parent plan. Each `-p<P>` artifact cove
 - `ready-for-next-phase`: phase gate passed.
 - `done`: Reflect is complete.
 
+## Resume Rule
+
+When resuming a paused chain, a new conversation, or when local memory may be stale, invoke `restore-context` before continuing any phase. Do not rely on chat memory alone to determine current phase, status, or blockers.
+
 ## Universal Exit Rule
 
 A phase can move forward only when its artifact records:

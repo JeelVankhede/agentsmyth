@@ -31,7 +31,7 @@ Primary artifact:
 .workflow/artifacts/verify/<slug>-v<N>.md
 ```
 
-Use `.workflow/templates/verify/template.md` when creating or validating the verify artifact. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new verify artifact.
 
 ## Required Upstream Artifacts
 

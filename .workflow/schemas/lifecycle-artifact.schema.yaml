@@ -64,7 +64,21 @@ allOf:
                 - contains:
                     const: Non-Goals
                 - contains:
+                    const: User Impact
+                - contains:
+                    const: Success Metrics
+                - contains:
+                    const: Requirements
+                - contains:
+                    const: Constraints
+                - contains:
+                    const: Risks
+                - contains:
+                    const: Open Questions
+                - contains:
                     const: Requirement Manifest
+                - contains:
+                    const: Questions For User
                 - contains:
                     const: Architecture Notes
                 - contains:
@@ -110,7 +124,11 @@ allOf:
                 - contains:
                     const: Active Phase
                 - contains:
+                    const: Plan Phases Overview
+                - contains:
                     const: Branch / Repo Status
+                - contains:
+                    const: Scope
                 - contains:
                     const: Changed Files
                 - contains:
@@ -120,7 +138,13 @@ allOf:
                 - contains:
                     const: Command Results
                 - contains:
+                    const: Dispatch Log
+                - contains:
                     const: Architecture Notes
+                - contains:
+                    const: Blockers
+                - contains:
+                    const: Phase Completion Log
   - if:
       properties:
         frontmatter:
@@ -212,18 +236,28 @@ allOf:
             sections:
               allOf:
                 - contains:
+                    const: Inputs
+                - contains:
                     const: Outcome
                 - contains:
                     const: What Worked
                 - contains:
                     const: What Did Not Work
                 - contains:
+                    const: Surprises
+                - contains:
                     const: Manifest Coverage Retrospective
+                - contains:
+                    const: Deferred
+                - contains:
+                    const: Source-of-Truth Outcome
                 - contains:
                     const: Learning Candidates
                 - contains:
                     const: Follow-Ups
                 - contains:
                     const: Raw Session Entry
+                - contains:
+                    const: Architecture Notes
                 - contains:
                     const: Exit Gate

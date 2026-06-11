@@ -50,3 +50,89 @@ Schema acceptance criteria:
 - Rollback names trigger, action, and owner.
 - No external action is claimed without evidence.
 - Next Phase is Reflect only for `ship` or accepted `hold-with-waiver`.
+
+## Starter Block
+
+Copy this block to create a new ship artifact. Replace every `<placeholder>`.
+
+```markdown
+---
+slug: <slug>
+version: 1
+artifact: ship
+status: draft
+created: <YYYY-MM-DD>
+updated: <YYYY-MM-DD>
+manifest_ids: []
+upstream:
+  brief: .workflow/artifacts/briefs/<slug>-v<N>.md
+  plan: .workflow/artifacts/plans/<slug>-v<N>.md
+  task: .workflow/artifacts/tasks/<slug>-v<N>.md
+  review: .workflow/artifacts/reviews/<slug>-v<N>.md
+  verify: .workflow/artifacts/verify/<slug>-v<N>.md
+orchestration:
+  phase: ship
+  status: blocked-for-user
+  next_phase: reflect
+  blockers: []
+  user_checkpoint: ship-review
+---
+
+# <Title> - Ship
+
+## Inputs
+
+## Ship Status
+
+- Recommendation:
+- Review result:
+- Verification recommendation:
+- PR / CI:
+- Source-of-truth:
+- Release:
+
+## Requirement Coverage
+
+| Manifest ID | Status | Evidence | Notes |
+|---|---|---|---|
+| R1 | shipped / deferred / blocked / waived | | |
+
+## PR / CI Readiness
+
+not applicable / <evidence>
+
+## Release Readiness
+
+## Source-of-Truth Status
+
+not applicable / <status>
+
+## Risk And Rollback
+
+- Residual risk:
+- Rollback trigger:
+- Rollback action:
+- Rollback owner:
+
+## Blocked Handoff
+
+none
+
+## Architecture Notes
+
+- role: Senior DevOps
+- decision:
+- constraint:
+- downstream:
+
+## Exit Gate
+
+- [ ] Recommendation is ship / hold / hold-with-waiver.
+- [ ] Every R and RI has a coverage row.
+- [ ] Rollback trigger and action defined.
+- [ ] All configured gates checked or marked not applicable with config reference.
+
+## Next Phase
+
+<Reflect / blocked>
+```

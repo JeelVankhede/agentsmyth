@@ -17,5 +17,5 @@ Stop when:
 
 - unrelated changes overlap planned files
 - the working tree cannot be safely preserved
-- generated files appear stale but the source of truth is unclear
+- generated files appear stale but the source file and regeneration path are unclear
 - a command would require unavailable network/tooling and no waiver exists

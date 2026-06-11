@@ -30,7 +30,7 @@ Primary artifact:
 .workflow/artifacts/plans/<slug>-v<N>.md
 ```
 
-Use `.workflow/templates/plans/template.md` when creating or validating the plan. Do not finalize or redesign the template in this phase.
+Use the Starter Block in `references/output-schema.md` to create a new plan artifact.
 
 ## Required Upstream Artifacts
 
@@ -144,6 +144,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Do not invent commands, releases, PRs, tickets, CI state, or external updates.
 - Do not hide requirements inside phase prose; cite manifest IDs.
 - Do not create phases with no manifest IDs.
+- Do not write a phase exit gate that is subjective or un-falsifiable — every gate must be an observable binary condition that passes or does not.
 - Do not use vague verification such as "test it"; name command, manual QA, generated-output check, source-of-truth check, review evidence, or waiver.
 - Keep the plan scoped to the repository.
 - Do not put Ship-owned work such as PR readiness, CI status, release, or source-of-truth publication into Build unless the user explicitly approved that lifecycle exception.

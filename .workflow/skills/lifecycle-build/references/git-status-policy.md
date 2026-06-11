@@ -2,9 +2,11 @@
 
 Build records repository status at three moments:
 
-1. before edits
-2. before staging or handoff
-3. after implementation or blocker
+1. before edits — establishes the baseline; unrelated dirty files must be noted here
+2. before staging or handoff — confirms only in-scope files are modified
+3. after implementation completes or when a blocker is encountered
+
+Every Branch / Repo Status table in the task artifact must include at minimum a row for moment 1 (before edits) and a row for the final moment (handoff or blocker). Intermediate moments are added as rows when the status changes materially mid-phase.
 
 Required command shape:
 
