@@ -45,17 +45,18 @@ Use this structure for dispatch decisions:
 
 ## Refusal Summary
 
-- Reason:
-- Local execution path:
-- Artifact log needed: yes / no
+- Reason: <why dispatch was refused — authorization missing / cap zero / independence failed / phase not allowed>
+- Local execution path: <how the parent agent will handle the work instead>
+- Artifact log needed: yes / no — log only when refusal affects the active artifact's scope or timeline
 ```
 
 Acceptance criteria:
 
-- explicit authorization state is recorded
-- phase cap is respected
-- Build delegations pass independence rules
-- Review delegations are read-only unless explicitly switched to Build
-- Test, Ship, and Reflect do not spawn
-- parent owns merge and validation
+- explicit authorization state is recorded in every decision
+- phase cap is checked against `agent-behavior.yaml` `dispatch.max_parallel_workstreams`
+- Build delegations pass the independence checklist in `references/independence-rules.md`
+- Review delegations are read-only; any fix recommendation switches the candidate back to Build scope
+- Test, Ship, and Reflect do not spawn under any condition
+- parent owns merge, validation, and final evidence claims
 - every actual dispatch has an artifact log entry
+- every material refusal is recorded when it affects scope or timeline
