@@ -43,3 +43,10 @@ Required body sections:
 14. Exit Gate
 
 `manifest_ids` should include active `R` and `RI` IDs covered by the brief. Blocking `Q` IDs must also appear in `orchestration.blockers`.
+
+Requirement Manifest sub-section requirements:
+
+- **Explicit (R)**: every `R` ID must have at least one `Acceptance:` criterion.
+- **Implicit (RI)**: every `RI` ID must have at least one `Acceptance:` criterion.
+- **Assumptions (A)**: present even when empty; must not contain user-authority decisions — those belong as `Q` IDs.
+- **Open Questions (Q)**: every `Q` ID must include `Owner:` and `Blocking: yes / no`; blocking `Q` IDs must mirror in `orchestration.blockers`.

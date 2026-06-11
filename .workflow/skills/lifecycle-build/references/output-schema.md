@@ -28,16 +28,23 @@ orchestration:
 Required body sections:
 
 1. Active Phase
-2. Branch / Repo Status
-3. Scope
-4. Changed Files
-5. Implementation Log
-6. Verification Items
-7. Command Results
-8. Dispatch Log
-9. Architecture Notes
-10. Blockers
-11. Phase Completion Log
+2. Plan Phases Overview
+3. Branch / Repo Status
+4. Scope
+5. Changed Files
+6. Implementation Log
+7. Verification Items
+8. Command Results
+9. Dispatch Log
+10. Architecture Notes
+11. Blockers
+12. Phase Completion Log
+
+Plan Phases Overview requirements:
+
+- One row per plan phase listing phase name, status (`complete` / `active` / `pending`), and the manifest IDs it covers.
+- Present from the first task artifact; updated at the start of each new Build phase.
+- Allows Review to see overall Build progress without reading the plan artifact.
 
 Schema acceptance criteria:
 
