@@ -76,6 +76,8 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 
 Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<TODO: describe X>` instead.
 
+Note: `.workflow/config/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
+
 ### Phase 4 — Confirm
 
 Show the user a summary of what was written. List any `<TODO>` placeholders that still need their input. Ask the user to review one config file at a time if they want to verify.

@@ -12,10 +12,9 @@
 | `config/` | Machine-readable repository policy. |
 | `schemas/` | YAML schema contracts. |
 | `skills/` | Phase and power-skill playbooks. |
-| `templates/` | Artifact templates. |
 | `artifacts/` | Runtime lifecycle artifacts. |
 | `learnings/` | Raw sessions and curated learnings. |
-| `validators/` | Active contract checks for config, templates, lifecycle state, artifacts, and placeholder leakage. |
+| `validators/` | Active contract checks for config, Starter Blocks, lifecycle state, artifacts, and placeholder leakage. |
 
 ## Load Order
 
