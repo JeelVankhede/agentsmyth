@@ -7,7 +7,7 @@ Adapters are thin instruction shims for agent tools. They must point agents back
 - Keep `.workflow/` canonical.
 - Tell the tool to read `.workflow/router.md` first.
 - Tell the tool to load `.workflow/config/agent-behavior.yaml`.
-- Tell the tool to use lifecycle skills and templates for Standard or Complex work.
+- Tell the tool to use lifecycle skills and Starter Blocks (in each skill's `references/output-schema.md`) for Standard or Complex work.
 - Preserve unrelated user changes.
 - Require evidence for commands, source updates, PR/CI, release, deployment, and handoff claims.
 - Keep provider-specific behavior optional unless config or the user enables it.
