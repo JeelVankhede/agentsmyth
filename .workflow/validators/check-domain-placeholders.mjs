@@ -5,9 +5,8 @@ const errors = [];
 const term = (...parts) => parts.join('');
 
 const excluded = [
-  /^docs\/migration-from-reference-workspace\.md$/,
+  /^docs\/archive\//,
   /^docs\/gap-analysis-[^/]+\.md$/,
-  /^docs\/phase-[^/]+\.md$/,
   /^examples\//,
   /^scripts\//,
   /^\.workflow\/validators\/.*\.mjs$/,

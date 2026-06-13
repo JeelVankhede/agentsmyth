@@ -32,7 +32,7 @@ orchestration:
 - Verify recommendation: `ship` (`.workflow/artifacts/verify/domain-yaml-loader-v1.md`)
 - Review recommendation: `pass-with-risk` (`.workflow/artifacts/reviews/domain-yaml-loader-v1.md`)
 - P2 finding on RI1: resolved — explicit absent-file condition confirmed by Test grep.
-- Release config: `.workflow/config/release.yaml` — no PR or CI gate configured; this repository uses direct merge.
+- Release config: `.workflow/config/release.yaml` — no PR or CI gate configured; release config specifies direct merge.
 - Source-of-truth config: `.workflow/config/source-of-truth.yaml` — no external tracking configured.
 
 ## Ship Status
@@ -40,7 +40,7 @@ orchestration:
 - Recommendation: ship
 - Review result: pass-with-risk (P2 resolved before Test sign-off), `.workflow/artifacts/reviews/domain-yaml-loader-v1.md`
 - Verification recommendation: ship, `.workflow/artifacts/verify/domain-yaml-loader-v1.md`
-- PR / CI: not applicable — release config does not require a PR or CI gate for this repository.
+- PR / CI: not applicable — release config does not require a PR or CI gate.
 - Source-of-truth: not applicable — no external tracking configured.
 - Release: ready — documentation-only change; no package version, deployment artifact, or binary affected.
 
@@ -55,7 +55,7 @@ orchestration:
 
 ## PR / CI Readiness
 
-Not applicable — release config (`release.yaml`) specifies direct merge for this repository; no PR or CI gate required or configured.
+Not applicable — release config (`release.yaml`) specifies direct merge; no PR or CI gate required or configured.
 
 ## Release Readiness
 

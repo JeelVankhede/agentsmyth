@@ -57,7 +57,7 @@ Not applicable — changes are skill and schema files with no runtime behavior t
 
 ## Generated Output Evidence
 
-Not applicable — no generated output configured for this repository.
+Not applicable — no generated output configured.
 
 ## Findings
 

@@ -28,7 +28,7 @@ Example:
 
 ## Rules
 
-- Copy from `.workflow/templates/<kind>/template.md`.
+- Use the Starter Block from the matching skill's `references/output-schema.md` to create a new artifact.
 - Preserve `slug` and `version` across the chain.
 - Keep `manifest_ids` aligned with active `R` and `RI` IDs.
 - Link upstream artifacts in frontmatter.
