@@ -9,6 +9,6 @@ Before doing lifecycle work:
 3. Use `.workflow/lifecycle.md` to select the current phase.
 4. Follow the matching skill in `.workflow/skills/`.
 
-For Standard or Complex work, write durable artifacts under `.workflow/artifacts/` using `.workflow/templates/`.
+For Standard or Complex work, write durable artifacts under `.workflow/artifacts/` using the Starter Block in the matching skill's `references/output-schema.md`.
 
 Preserve unrelated changes. Do not claim command results, source updates, PR/CI, release, deployment, or handoff completion without evidence.

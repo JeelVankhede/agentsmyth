@@ -13,7 +13,7 @@ export const artifactContracts = [
     phase: 'think',
     nextPhase: 'plan',
     role: 'Architect',
-    template: '.workflow/templates/briefs/template.md',
+    starterBlock: '.workflow/skills/lifecycle-think/references/output-schema.md',
     requiredSections: [
       'Source Links',
       'Problem',
@@ -30,7 +30,7 @@ export const artifactContracts = [
     phase: 'plan',
     nextPhase: 'build',
     role: 'Principal Engineer',
-    template: '.workflow/templates/plans/template.md',
+    starterBlock: '.workflow/skills/lifecycle-plan/references/output-schema.md',
     requiredSections: [
       'Summary',
       'Requirement Coverage',
@@ -47,7 +47,7 @@ export const artifactContracts = [
     phase: 'build',
     nextPhase: 'review',
     role: 'Senior Engineer',
-    template: '.workflow/templates/tasks/template.md',
+    starterBlock: '.workflow/skills/lifecycle-build/references/output-schema.md',
     requiredSections: [
       'Active Phase',
       'Branch / Repo Status',
@@ -64,7 +64,7 @@ export const artifactContracts = [
     phase: 'review',
     nextPhase: 'test',
     role: 'Staff Reviewer',
-    template: '.workflow/templates/reviews/template.md',
+    starterBlock: '.workflow/skills/lifecycle-review/references/output-schema.md',
     requiredSections: [
       'Findings',
       'Severity Summary',
@@ -81,7 +81,7 @@ export const artifactContracts = [
     phase: 'test',
     nextPhase: 'ship',
     role: 'Senior QA',
-    template: '.workflow/templates/verify/template.md',
+    starterBlock: '.workflow/skills/lifecycle-test/references/output-schema.md',
     requiredSections: [
       'Inputs',
       'Automated Checks',
@@ -99,7 +99,7 @@ export const artifactContracts = [
     phase: 'ship',
     nextPhase: 'reflect',
     role: 'Senior DevOps',
-    template: '.workflow/templates/ship/template.md',
+    starterBlock: '.workflow/skills/lifecycle-ship/references/output-schema.md',
     requiredSections: [
       'Ship Status',
       'Requirement Coverage',
@@ -118,7 +118,7 @@ export const artifactContracts = [
     phase: 'reflect',
     nextPhase: 'done',
     role: 'Project Manager',
-    template: '.workflow/templates/reflect/template.md',
+    starterBlock: '.workflow/skills/lifecycle-reflect/references/output-schema.md',
     requiredSections: [
       'Outcome',
       'What Worked',

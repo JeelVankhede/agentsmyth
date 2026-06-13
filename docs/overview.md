@@ -18,7 +18,7 @@ The skill tells the agent what phase it is in. Reference files define the detail
 | `.workflow/lifecycle.md` | Phase order, gate expectations, and transitions. |
 | `.workflow/rules.md` | Cross-phase rules that always apply. |
 | `.workflow/skills/` | Phase and power-skill playbooks. |
-| `.workflow/templates/` | Markdown artifact templates and reusable sections. |
+| `.workflow/skills/*/references/output-schema.md` | Starter Blocks for creating new lifecycle artifacts. |
 | `.workflow/config/` | Machine-readable defaults and adoption settings. |
 | `.workflow/schemas/` | YAML schema contracts for configs and artifacts. |
 | `.workflow/artifacts/` | Runtime artifact output. |

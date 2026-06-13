@@ -3,8 +3,6 @@ import {
   artifactContracts,
   finish,
   loadYaml,
-  parseFrontmatter,
-  readText,
 } from './lib.mjs';
 
 const errors = [];
@@ -34,16 +32,6 @@ artifactContracts.forEach((contract, index) => {
     errors.push(`artifact_chain[${index}].path expected ${expectedPath}, got ${item.path}`);
   }
 
-  const parsed = parseFrontmatter(readText(contract.template), contract.template);
-  if (parsed.frontmatter.artifact !== item.artifact) {
-    errors.push(`${contract.template} artifact does not match artifact_chain`);
-  }
-  if (parsed.frontmatter.orchestration?.phase !== item.phase) {
-    errors.push(`${contract.template} phase does not match artifact_chain`);
-  }
-  if (parsed.frontmatter.orchestration?.next_phase !== item.next_phase) {
-    errors.push(`${contract.template} next_phase does not match artifact_chain`);
-  }
 });
 
 const frontmatterSchema = loadYaml('.workflow/schemas/artifact-frontmatter.schema.yaml');
@@ -64,7 +52,6 @@ for (const contract of artifactContracts) {
 }
 
 details.push('checked agent-behavior artifact chain');
-details.push('checked template frontmatter against lifecycle chain');
 details.push('checked artifact-frontmatter schema enums');
 
 finish('check-lifecycle', errors, details);

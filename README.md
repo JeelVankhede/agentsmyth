@@ -11,7 +11,7 @@ The canonical workflow source is `.workflow/`.
 - One-time porting skill in `setup/` — use this to configure a new target repository.
 - Lifecycle router and phase contracts in `.workflow/router.md` and `.workflow/lifecycle.md`.
 - Phase skills in `.workflow/skills/`.
-- Artifact templates in `.workflow/templates/`.
+- Artifact Starter Blocks in each skill's `references/output-schema.md`.
 - Config defaults in `.workflow/config/`.
 - YAML schema contracts in `.workflow/schemas/`.
 - Adoption docs in `docs/`.
@@ -48,11 +48,8 @@ Each Standard or Complex change should leave a readable artifact chain under `.w
 Run the repository contract checks from the repository root:
 
 ```text
-node scripts/validate-template.mjs
-node scripts/validate-example.mjs
-node scripts/render-adapters.mjs
 node .workflow/validators/check-config.mjs
-node .workflow/validators/check-template-contracts.mjs
+node .workflow/validators/check-starter-blocks.mjs
 node .workflow/validators/check-lifecycle.mjs
 node .workflow/validators/check-artifacts.mjs
 node .workflow/validators/check-domain-placeholders.mjs

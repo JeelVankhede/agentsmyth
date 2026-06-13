@@ -14,7 +14,7 @@ Artifacts are the durable state of the lifecycle. They must be complete enough f
 .workflow/artifacts/reflect/<slug>-v<N>.md
 ```
 
-Use the templates in `.workflow/templates/`. Preserve section order unless a later schema revision changes it.
+Use the Starter Block in the matching skill's `references/output-schema.md`. Preserve section order unless a later schema revision changes it.
 
 ## Frontmatter
 
