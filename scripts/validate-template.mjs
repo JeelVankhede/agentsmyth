@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 
 const commands = [
-  ['node', ['.workflow/validators/check-template-contracts.mjs']],
+  ['node', ['.workflow/validators/check-starter-blocks.mjs']],
   ['node', ['.workflow/validators/check-lifecycle.mjs']],
 ];
 

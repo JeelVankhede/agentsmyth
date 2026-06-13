@@ -92,7 +92,7 @@ Complex: generated-output contracts, public docs, release behavior, package publ
 - All 7 `sections/frontmatter.md` files — remove `architecture_notes:` block from YAML example.
 - All skill `output-schema.md` files — update to reference the doc-body section, not frontmatter.
 - Skill `SKILL.md` files referencing frontmatter `architecture_notes` — update to reference doc body.
-- Validators (`check-artifacts.mjs`, `check-template-contracts.mjs`, `check-lifecycle.mjs`) — remove frontmatter role checks; add body-section presence check instead.
+- Validators (`check-artifacts.mjs`, `check-starter-blocks.mjs`, `check-lifecycle.mjs`) — remove frontmatter role checks; add body-section presence check instead.
 - All example artifacts — remove `architecture_notes:` from frontmatter.
 - `docs/artifact-contract.md` — update frontmatter spec.
 
