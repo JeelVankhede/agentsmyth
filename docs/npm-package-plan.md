@@ -17,8 +17,11 @@ The package ships compiled bundles — not source. Source structure, reference f
 ## Consumer Experience (target)
 
 ```bash
-# in their repo
-npx agentsmyth@latest init
+# in their repo — local tarball (shared directly)
+npx file:/path/to/jeelvankhede-agentsmyth-0.1.0.tgz init
+
+# once published to a registry
+npx @jeelvankhede/agentsmyth@latest init
 
 # then, to their AI agent:
 "run the agentsmyth setup"
@@ -39,7 +42,8 @@ Nothing else required from the consumer.
 | Access control | Consumer needs a GitHub token scoped to the org — you issue it per consumer |
 | Versioning | Semantic versioning; `@latest` always resolves to the most recent stable |
 | Package name | `@jeelvankhede/agentsmyth` (scoped, GitHub Packages) |
-| Install modes | `npx @jeelvankhede/agentsmyth init` (one-off) or `npm install --save-dev @jeelvankhede/agentsmyth` (pinned) |
+| Install modes (local) | `npx file:/path/to/jeelvankhede-agentsmyth-0.1.0.tgz init` |
+| Install modes (registry) | `npx @jeelvankhede/agentsmyth init` (one-off) or `npm install --save-dev @jeelvankhede/agentsmyth` (pinned) |
 
 ---
 

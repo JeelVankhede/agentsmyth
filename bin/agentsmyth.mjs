@@ -83,9 +83,9 @@ if (existsSync(gitignorePath)) {
 console.log('');
 console.log('agentsmyth init complete.');
 console.log('');
-console.log('Next step:');
-console.log('  Open your AI agent and say: "run the agentsmyth setup"');
+console.log('Next step: open your AI agent and say:');
+console.log('  "run the agentsmyth setup"');
 console.log('');
-console.log('The agent will inspect this repo, interview you, fill the workflow');
-console.log('configs, and clean up .agentsmyth/ when done.');
+console.log('The agent will inspect this repo, interview you, fill the');
+console.log('workflow configs, and remove .agentsmyth/ when done.');
 console.log('');
