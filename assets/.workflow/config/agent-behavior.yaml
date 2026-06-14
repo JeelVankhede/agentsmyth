@@ -1,0 +1,141 @@
+version: 1
+kind: agent-behavior
+
+canonical_source:
+  workflow_root: .workflow
+  instructions_root: AGENTS.md
+  rule: .workflow is the canonical workflow source.
+
+task_classes:
+  trivial:
+    description: Single-location change with no architectural impact and no risk to other callers.
+    classification_signals:
+      - rename a variable or string literal in one file
+      - fix a typo or comment
+      - bump a version constant
+      - reorder import statements
+    required_phases: []
+    skippable_phases:
+      - think
+      - plan
+      - review
+      - test
+      - ship
+      - reflect
+    artifact_required: false
+    note: Handle inline. No lifecycle artifact needed. Document the change in the response.
+  standard:
+    description: Multi-file or cross-function change with defined scope and no architectural decisions pending.
+    classification_signals:
+      - new feature or endpoint within an existing pattern
+      - bug fix that touches multiple files
+      - refactor within a bounded module
+      - test suite addition or update
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - ship
+      - reflect
+    skippable_phases:
+      - test
+    skip_requires_waiver: true
+    artifact_required: true
+  complex:
+    description: Cross-cutting change, new architectural pattern, or work requiring multiple independent workstreams.
+    classification_signals:
+      - new layer, service, or integration
+      - schema or API contract change affecting multiple callers
+      - change to authentication, authorization, or data model
+      - work requiring parallel build workstreams
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - test
+      - ship
+      - reflect
+    skippable_phases: []
+    skip_requires_waiver: true
+    artifact_required: true
+
+lifecycle:
+  default_mode: standard
+  require_artifacts_for_standard_and_complex_work: true
+  allow_skipped_phase_with_waiver: true
+  artifact_chain:
+    - artifact: brief
+      phase: think
+      path: .workflow/artifacts/briefs/<slug>-v<N>.md
+      next_phase: plan
+    - artifact: plan
+      phase: plan
+      path: .workflow/artifacts/plans/<slug>-v<N>.md
+      next_phase: build
+    - artifact: task
+      phase: build
+      path: .workflow/artifacts/tasks/<slug>-v<N>.md
+      next_phase: review
+    - artifact: review
+      phase: review
+      path: .workflow/artifacts/reviews/<slug>-v<N>.md
+      next_phase: test
+    - artifact: verify
+      phase: test
+      path: .workflow/artifacts/verify/<slug>-v<N>.md
+      next_phase: ship
+    - artifact: ship
+      phase: ship
+      path: .workflow/artifacts/ship/<slug>-v<N>.md
+      next_phase: reflect
+    - artifact: reflect
+      phase: reflect
+      path: .workflow/artifacts/reflect/<slug>-v<N>.md
+      next_phase: done
+
+pause_resume:
+  restore_from_artifacts_first: true
+  never_continue_from_chat_memory_only: true
+  unresolved_blockers_pause: true
+  user_checkpoint_required_for:
+    - brief-review
+    - plan-review
+    - ship-review
+
+evidence_policy:
+  no_external_claim_without_evidence: true
+  command_success_requires_current_output_or_cited_artifact: true
+  skipped_checks_are_risk: true
+  blocked_or_not_run_checks_require_owner: true
+  generated_output_requires_source_or_regeneration_evidence: true
+
+change_policy:
+  preserve_unrelated_changes: true
+  stage_only_approved_scope: true
+  default_branch_commit_requires_user_approval: true
+  destructive_action_requires_user_approval: true
+  external_write_requires_user_request_or_config: true
+
+waivers:
+  approvers:
+    - user
+    - configured_decision_owner
+  required_fields:
+    - waived_gate_or_requirement_id
+    - reason
+    - residual_risk
+    - owner
+    - follow_up_action
+    - approval_evidence
+  cannot_waive_false_evidence: true
+
+dispatch:
+  enabled: optional
+  max_parallel_workstreams: 3
+  require_independent_file_ownership: true
+  require_dispatch_log: true
+  merge_owner: primary_agent
+
+extensions: {}

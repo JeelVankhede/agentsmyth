@@ -1,0 +1,9 @@
+# Cursor Adapter
+
+Use `.workflow/` as canonical.
+
+Read `.workflow/router.md` before lifecycle work. Load `.workflow/config/agent-behavior.yaml`, then use `.workflow/lifecycle.md` and the matching skill under `.workflow/skills/`.
+
+For Standard or Complex work, create or update artifacts under `.workflow/artifacts/` using the Starter Block in the matching skill's `references/output-schema.md`.
+
+Preserve unrelated changes. Evidence is required for command results, source updates, PR/CI, release, deployment, and handoff claims. Skipped checks and waivers remain visible risk.

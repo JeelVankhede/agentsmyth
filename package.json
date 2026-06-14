@@ -1,0 +1,34 @@
+{
+  "name": "@jeelvankhede/agentsmyth",
+  "version": "0.1.0",
+  "description": "Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.",
+  "type": "module",
+  "bin": {
+    "agentsmyth": "./bin/agentsmyth.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "assets/",
+    "validators/"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "workflow",
+    "lifecycle",
+    "claude",
+    "codex",
+    "copilot"
+  ],
+  "author": "Jeel Vankhede",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "node scripts/build-bundle.mjs",
+    "pack:local": "npm run build && npm pack",
+    "validate": "node scripts/validate-template.mjs && node scripts/validate-example.mjs && node scripts/render-adapters.mjs"
+  }
+}
