@@ -60,6 +60,9 @@ Interview topic order:
 6. Branch and release policy: how does code reach production? Any release gating?
 7. Domain: industry, regulated environment, key glossary terms.
 8. Risks and non-goals: what must the AI agent never do in this repo?
+9. Agent tool: which AI agent tool will be used in this repo day-to-day?
+   Options: Claude Code, Codex (AGENTS.md), Copilot, Cursor, Windsurf, Other.
+   Record the answer — it determines where the adapter gets placed in Phase 5.
 
 ### Phase 3 — Write Configs
 
@@ -114,6 +117,21 @@ For each item in `.agentsmyth/assets/`, apply the collision rule:
 | `adapters/<tool>/` exists | Copy only missing subdirs. Skip what is already there. |
 | `docs/knowledge-map/` does not exist | Create it and write `repo-mental-map.md` (already written in Phase 3) |
 | `docs/knowledge-map/repo-mental-map.md` exists | Confirm with user before overwriting |
+
+#### Step 5a.1 — Place adapter at tool-native path
+
+Based on the agent tool recorded in Phase 2 interview question 9, place the adapter at the path the tool reads automatically:
+
+| Agent tool | Source adapter | Target path in repo | Notes |
+|---|---|---|---|
+| Claude Code | `adapters/claude/CLAUDE.md` | `.claude/CLAUDE.md` | Create `.claude/` if missing. If `.claude/CLAUDE.md` exists, append agentsmyth gate under a `## agentsmyth` heading. |
+| Codex | `adapters/codex/AGENTS.md` | `AGENTS.md` (root) | Handled by Step 5a above — AGENTS.md placement already covers this. |
+| Copilot | `adapters/copilot/copilot-instructions.md` | `.github/copilot-instructions.md` | Create `.github/` if missing. Append if file exists. |
+| Cursor | `adapters/cursor/rules/index.mdc` | `.cursor/rules/agentsmyth.mdc` | Create `.cursor/rules/` if missing. |
+| Windsurf | `adapters/windsurf/.windsurfrules` | `.windsurfrules` (root) | Append if file exists. |
+| Other / Unknown | `adapters/claude/CLAUDE.md` | Ask user where their agent reads instructions from, then place it there. |
+
+This step is what enforces the workflow gate. Without the adapter at the tool-native path, the agent will not load the mandatory gate instructions on session start.
 
 #### Step 5b — Expand workflow bundle
 

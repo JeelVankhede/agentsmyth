@@ -1,30 +1,22 @@
-# Agent Router
+# Agentsmyth Workflow Gate (MANDATORY)
 
-This repository uses the agentsmyth lifecycle workflow.
+Before any implementation work — no exceptions:
 
-## Setup (if `.agentsmyth/` exists)
+1. **Check for `.agentsmyth/`** — if it exists, read `.agentsmyth/setup-bundle.md` and run the setup skill. Do not proceed to step 2 until setup is complete and `.agentsmyth/` is removed.
 
-Read `.agentsmyth/setup-bundle.md` and run the setup skill.
-Do not begin lifecycle work until setup is complete and `.agentsmyth/` has been removed.
+2. **Read `.workflow/router.md`** — this is the canonical entry point for all lifecycle work.
 
-## Lifecycle Work
+3. **Load `.workflow/config/agent-behavior.yaml`** — classify the request:
+   - `trivial` → handle inline, no artifact required
+   - `standard` → full lifecycle required: think → plan → build → review → ship → reflect
+   - `complex` → all phases required including test; no phases may be skipped
 
-When `.agentsmyth/` does not exist, the workflow is ready. Follow this order:
+4. **Route using `.workflow/lifecycle.md`** — select the current phase. If resuming, use the `restore-context` skill first. Never resume from chat memory alone.
 
-1. Read `.workflow/router.md`.
-2. Load `.workflow/config/agent-behavior.yaml`.
-3. Select the lifecycle phase from `.workflow/lifecycle.md`.
-4. Use the matching skill under `.workflow/skills/`.
-5. Write durable artifacts under `.workflow/artifacts/` for Standard or Complex work.
+5. **Write a brief artifact before any implementation** — for Standard or Complex work, create `.workflow/artifacts/briefs/<slug>-v1.md` using the Starter Block in `.workflow/skills/lifecycle-think/references/output-schema.md`. Do not write code before the brief is complete and the user has approved it.
 
-Do not treat adapter files, generated summaries, or chat history as a competing source of workflow truth.
+6. **Gate every phase transition on artifact status** — do not proceed to the next phase unless the current artifact has `status: ready-for-next-phase`. Missing artifacts or wrong status are blockers, not warnings.
 
-## Source Priority
+7. **Require evidence for every claim** — command results, test output, and source references must appear in the artifact. Do not claim a check passed without showing output.
 
-When sources conflict, resolve in this order:
-
-1. The current user request and any answer the user gives to a blocker.
-2. `.workflow/` — canonical workflow rules, lifecycle order, phase contracts, and config.
-3. Configured external sources in `.workflow/config/source-of-truth.yaml` — when a provider is configured and the request depends on it.
-4. `docs/knowledge-map/repo-mental-map.md` — repo orientation: purpose, key paths, protected paths, verification defaults.
-5. The repository code and existing lifecycle artifacts for the active slug.
+**Bypass is not permitted.** If you cannot follow a phase (missing info, blocker, uncertainty), pause and surface the blocker. Do not skip ahead or work inline on Standard/Complex tasks.
