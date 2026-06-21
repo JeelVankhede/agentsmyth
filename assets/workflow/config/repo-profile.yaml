@@ -5,9 +5,9 @@ repository:
   mode: single-repository
   root: .
   default_branch: <PLACEHOLDER>
-  workflow_root: .workflow
-  artifacts_root: .workflow/artifacts
-  learnings_sessions_root: .workflow/learnings/sessions
+  workflow_root: workflow
+  artifacts_root: workflow/artifacts
+  learnings_sessions_root: workflow/learnings/sessions
 
 branch_policy:
   require_non_default_branch_for_changes: true

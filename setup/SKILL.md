@@ -18,8 +18,9 @@ Load only:
 1. This file.
 2. `setup/references/inspection-checklist.md`
 3. `setup/references/config-map.md`
+4. `setup/references/token-map.md`
 
-Do not load any `.workflow/` skill files. Those belong to the target repo after setup is complete.
+Do not load any `workflow/` skill files. Those belong to the target repo after setup is complete.
 
 ## When To Run
 
@@ -27,7 +28,7 @@ Run this skill when:
 
 - A new repository is being set up for the first time.
 - The user says "set up this repo" or "port the workflow to this repo."
-- The `.workflow/config/` files contain only placeholder values from the template.
+- The `workflow/config/` files contain only placeholder values from the template.
 
 Do not run this skill on a repo that already has a populated `docs/knowledge-map/repo-mental-map.md` and non-placeholder config files — inspect first and confirm with the user.
 
@@ -70,16 +71,56 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 
 | File | What it controls |
 |---|---|
-| `.workflow/config/domain.yaml` | Domain name, summary, glossary, constraints |
-| `.workflow/config/repo-profile.yaml` | Repo structure, branch policy, key paths |
-| `.workflow/config/source-of-truth.yaml` | Requirement and decision tracking locations |
-| `.workflow/config/verification.yaml` | Verification commands, evidence requirements |
-| `.workflow/config/release.yaml` | Release process, deployment, rollback policy |
+| `workflow/config/domain.yaml` | Domain name, summary, glossary, constraints |
+| `workflow/config/repo-profile.yaml` | Repo structure, branch policy, key paths |
+| `workflow/config/source-of-truth.yaml` | Requirement and decision tracking locations |
+| `workflow/config/verification.yaml` | Verification commands, evidence requirements |
+| `workflow/config/release.yaml` | Release process, deployment, rollback policy |
 | `docs/knowledge-map/repo-mental-map.md` | Human-readable orientation map |
 
-Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<TODO: describe X>` instead.
+Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<USER-TODO: describe X>` instead.
 
-Note: `.workflow/config/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
+Note: `workflow/config/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
+
+#### Step 3.x — Write pending-setup.yaml
+
+After all configs are written, collect every field that was left as `<USER-TODO:...>`.
+For each one, add an entry to `workflow/config/pending-setup.yaml`:
+
+- `id`: `PS-1`, `PS-2`, ... — increment sequentially, never reuse or renumber
+- `config`: the filename of the config this field belongs to (e.g. `verification.yaml`)
+- `field`: dot-notation path to the field (e.g. `commands[0].run`)
+- `question`: the question that would resolve this item
+- `hint`: where the agent might find the answer via repo inspection (check `package.json`
+  scripts for test/build commands; check `.github/workflows/` for CI and deploy targets;
+  check `Makefile` for task commands; check `README.md` for documentation paths)
+- `status`: `open`
+
+If no fields were left as `<USER-TODO:...>`, skip this step entirely — do not create the file.
+
+Example:
+
+```yaml
+version: 1
+kind: pending-setup
+items:
+  - id: PS-1
+    config: verification.yaml
+    field: commands[0].run
+    question: "What command runs the test suite?"
+    hint: "Check package.json scripts.test or .github/workflows/ for test job steps"
+    status: open
+    resolved_by: ~
+    resolution: ~
+  - id: PS-2
+    config: source-of-truth.yaml
+    field: providers[0].read_url
+    question: "Where are requirements tracked — URL or file path?"
+    hint: "Check README.md, CONTRIBUTING.md, or any linked project management tool"
+    status: open
+    resolved_by: ~
+    resolution: ~
+```
 
 ### Phase 4 — Verify
 
@@ -110,7 +151,7 @@ For each item in `.agentsmyth/assets/`, apply the collision rule:
 
 | Target path | Rule |
 |---|---|
-| `.workflow/config/` (no existing populated configs) | Copy placeholder YAMLs — agent already filled them in Phase 3, so this is a no-op (configs were written directly to `.workflow/config/`) |
+| `workflow/config/` (no existing populated configs) | Copy placeholder YAMLs — agent already filled them in Phase 3, so this is a no-op (configs were written directly to `workflow/config/`) |
 | `AGENTS.md` does not exist | Copy `.agentsmyth/assets/AGENTS.md` to repo root |
 | `AGENTS.md` exists | Read the existing file. Append the agentsmyth section from `.agentsmyth/assets/AGENTS.md` under a `## agentsmyth Workflow` heading. Never overwrite. |
 | `adapters/` does not exist | Copy `.agentsmyth/assets/adapters/` to repo root |
@@ -133,31 +174,50 @@ Based on the agent tool recorded in Phase 2 interview question 9, place the adap
 
 This step is what enforces the workflow gate. Without the adapter at the tool-native path, the agent will not load the mandatory gate instructions on session start.
 
+##### Token substitution
+
+Before writing the adapter to its target path, render all `{{TOKEN}}` values:
+
+1. Load `workflow/config/domain.yaml`, `workflow/config/repo-profile.yaml`,
+   `workflow/config/verification.yaml`.
+2. Substitute each `{{TOKEN}}` using the token map in `setup/references/token-map.md`.
+3. List tokens (`{{PROTECTED_PATHS}}`, `{{VERIFICATION_CMDS}}`, `{{CONSTRAINTS}}`):
+   render each array item as a `- ` markdown bullet on its own line. If the list is
+   empty: render as `- (none defined)`.
+4. `{{BRANCH_POLICY}}`: if `require_non_default_branch_for_changes: true`, render as
+   "All changes via non-default branch required."; if `false`, render as
+   "Direct commits to `{{DEFAULT_BRANCH}}` permitted."
+5. Any token whose source field is absent, `<USER-TODO:...>`, or maps to an open entry
+   in `pending-setup.yaml`: substitute with `<!-- TODO: see pending-setup.yaml -->`.
+   Do not remove the section line itself — the consumer must see what is missing.
+
+Write the **rendered output** — not the raw template — to the tool-native path.
+
 #### Step 5b — Expand workflow bundle
 
 Read `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content to that path relative to the repo root. Create parent directories as needed.
 
-Do not expand files under `.workflow/config/` — those were already written by the agent in Phase 3.
+Do not expand files under `workflow/config/` — those were already written by the agent in Phase 3.
 
 After expansion, the following must exist in the repo:
 
-- `.workflow/router.md`
-- `.workflow/lifecycle.md`
-- `.workflow/rules.md`
-- `.workflow/glossary.md`
-- `.workflow/skills/` (full skill tree)
-- `.workflow/validators/` (all validator scripts)
-- `.workflow/schemas/` (all schema files)
-- `.workflow/artifacts/` (empty phase dirs)
-- `.workflow/learnings/` (README and sessions dir)
+- `workflow/router.md`
+- `workflow/lifecycle.md`
+- `workflow/rules.md`
+- `workflow/glossary.md`
+- `workflow/skills/` (full skill tree)
+- `workflow/validators/` (all validator scripts)
+- `workflow/schemas/` (all schema files)
+- `workflow/artifacts/` (empty phase dirs)
+- `workflow/learnings/` (README and sessions dir)
 
 #### Step 5c — Produce copy-log
 
 Before removing `.agentsmyth/`, output a one-line summary for each file written or skipped:
 
 ```
-copied   .workflow/router.md
-copied   .workflow/lifecycle.md
+copied   workflow/router.md
+copied   workflow/lifecycle.md
 ...
 skipped  AGENTS.md (exists — appended agentsmyth section instead)
 ```

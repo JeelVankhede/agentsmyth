@@ -1,0 +1,44 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "pending-setup"
+title: "Pending Setup Items"
+type: object
+kind: pending-setup
+description: "Tracks config fields unresolvable during the setup interview. The router attempts to resolve open items at each session start via repo inspection or a batched user prompt. Never blocks task progress."
+required: [version, kind, items]
+properties:
+  version:
+    type: integer
+    enum: [1]
+  kind:
+    type: string
+    enum: [pending-setup]
+  items:
+    type: array
+    items:
+      type: object
+      required: [id, config, field, question, status]
+      properties:
+        id:
+          type: string
+          description: "Format: PS-N. Never renumbered."
+        config:
+          type: string
+          description: "Config filename, e.g. verification.yaml"
+        field:
+          type: string
+          description: "Dot-notation path, e.g. commands[0].run"
+        question:
+          type: string
+          description: "Question surfaced to the user if inspection fails"
+        hint:
+          type: string
+          description: "Where the agent might find this via repo inspection"
+        status:
+          type: string
+          enum: [open, resolved, waived]
+        resolved_by:
+          type: string
+          enum: [inspect, user, lifecycle-plan, lifecycle-build]
+        resolution:
+          type: string
+          description: "The value filled in — recorded for audit"

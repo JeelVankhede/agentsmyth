@@ -1,10 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, relative, resolve } from 'node:path';
 
-const validatorDir = dirname(fileURLToPath(import.meta.url));
-export const repoRoot = resolve(validatorDir, '../..');
+export const repoRoot = process.cwd();
+
+// Detect workflow root: consumer repos use workflow/, dev source uses the dotted variant.
+// Constructed without a literal dot+workflow string so the consumer-facing copy stays clean.
+const _wf = existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join('');
 
 export const artifactContracts = [
   {
@@ -13,7 +15,7 @@ export const artifactContracts = [
     phase: 'think',
     nextPhase: 'plan',
     role: 'Architect',
-    starterBlock: '.workflow/skills/lifecycle-think/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-think/references/output-schema.md`,
     requiredSections: [
       'Source Links',
       'Problem',
@@ -30,7 +32,7 @@ export const artifactContracts = [
     phase: 'plan',
     nextPhase: 'build',
     role: 'Principal Engineer',
-    starterBlock: '.workflow/skills/lifecycle-plan/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-plan/references/output-schema.md`,
     requiredSections: [
       'Summary',
       'Requirement Coverage',
@@ -47,7 +49,7 @@ export const artifactContracts = [
     phase: 'build',
     nextPhase: 'review',
     role: 'Senior Engineer',
-    starterBlock: '.workflow/skills/lifecycle-build/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-build/references/output-schema.md`,
     requiredSections: [
       'Active Phase',
       'Branch / Repo Status',
@@ -64,7 +66,7 @@ export const artifactContracts = [
     phase: 'review',
     nextPhase: 'test',
     role: 'Staff Reviewer',
-    starterBlock: '.workflow/skills/lifecycle-review/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-review/references/output-schema.md`,
     requiredSections: [
       'Findings',
       'Severity Summary',
@@ -81,7 +83,7 @@ export const artifactContracts = [
     phase: 'test',
     nextPhase: 'ship',
     role: 'Senior QA',
-    starterBlock: '.workflow/skills/lifecycle-test/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-test/references/output-schema.md`,
     requiredSections: [
       'Inputs',
       'Automated Checks',
@@ -99,7 +101,7 @@ export const artifactContracts = [
     phase: 'ship',
     nextPhase: 'reflect',
     role: 'Senior DevOps',
-    starterBlock: '.workflow/skills/lifecycle-ship/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-ship/references/output-schema.md`,
     requiredSections: [
       'Ship Status',
       'Requirement Coverage',
@@ -118,7 +120,7 @@ export const artifactContracts = [
     phase: 'reflect',
     nextPhase: 'done',
     role: 'Project Manager',
-    starterBlock: '.workflow/skills/lifecycle-reflect/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-reflect/references/output-schema.md`,
     requiredSections: [
       'Outcome',
       'What Worked',
@@ -511,7 +513,7 @@ function isPlainObject(value) {
 
 export function schemaRegistry() {
   const registry = {};
-  for (const file of listFiles('.workflow/schemas').filter((file) => file.endsWith('.yaml'))) {
+  for (const file of listFiles(`${_wf}/schemas`).filter((file) => file.endsWith('.yaml'))) {
     const schema = loadYaml(file);
     if (schema.$id) {
       registry[schema.$id] = schema;

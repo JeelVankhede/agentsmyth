@@ -9,14 +9,14 @@ import {
   readText,
   schemaRegistry,
   validateSchema,
-} from '../.workflow/validators/lib.mjs';
+} from '../validators/lib.mjs';
 
 const errors = [];
 const details = [];
 const schemas = schemaRegistry();
 const contractsByArtifact = new Map(artifactContracts.map((contract) => [contract.artifact, contract]));
 const contractsByDir = new Map(artifactContracts.map((contract) => [contract.dir, contract]));
-const frontmatterSchema = loadYaml('.workflow/schemas/artifact-frontmatter.schema.yaml');
+const frontmatterSchema = schemas['artifact-frontmatter.schema.yaml'];
 const examples = ['minimal-markdown-source', 'node-package', 'product-app'];
 const banned = [
   'AI ' + 'Recipes',
@@ -64,20 +64,24 @@ for (const file of listFiles('examples')) {
   }
 }
 
-for (const configPath of listFiles('examples').filter((file) => file.includes('/.workflow/config/') && file.endsWith('.yaml'))) {
+for (const configPath of listFiles('examples').filter((file) => file.includes('/workflow/config/') && file.endsWith('.yaml'))) {
   const config = loadYaml(configPath);
   if (!config.kind) {
     errors.push(`${configPath} missing kind`);
     continue;
   }
-  const schemaPath = `.workflow/schemas/${config.kind}.schema.yaml`;
-  const schema = loadYaml(schemaPath);
+  const schemaId = `${config.kind}.schema.yaml`;
+  const schema = schemas[schemaId];
+  if (!schema) {
+    errors.push(`${configPath} has no matching schema ${schemaId}`);
+    continue;
+  }
   validateSchema(config, schema, configPath, errors, schemas, schema);
   details.push(`checked ${configPath}`);
 }
 
 const artifactFiles = listFiles('examples').filter((file) => {
-  return file.includes('/.workflow/artifacts/') && file.endsWith('.md') && !file.endsWith('/README.md');
+  return file.includes('/workflow/artifacts/') && file.endsWith('.md') && !file.endsWith('/README.md');
 });
 
 for (const file of artifactFiles) {
@@ -97,7 +101,7 @@ for (const file of artifactFiles) {
     continue;
   }
 
-  const match = file.match(/\/\.workflow\/artifacts\/([^/]+)\/([^/]+)$/);
+  const match = file.match(/\/workflow\/artifacts\/([^/]+)\/([^/]+)$/);
   if (!match) {
     errors.push(`${file} is not under an example artifact directory`);
     continue;

@@ -11,16 +11,30 @@ const adapters = [
 
 const errors = [];
 
-for (const adapter of adapters) {
-  const text = readFileSync(adapter, 'utf8');
-  if (!text.includes('.workflow/')) {
-    errors.push(`${adapter} must route to .workflow/`);
+const adapterTexts = adapters.map(p => [p, readFileSync(p, 'utf8')]);
+
+for (const [adapter, text] of adapterTexts) {
+  if (!text.includes('workflow/')) {
+    errors.push(`${adapter} must route to workflow/`);
   }
-  if (!text.includes('.workflow/router.md')) {
-    errors.push(`${adapter} must mention .workflow/router.md`);
+  if (!text.includes('workflow/router.md')) {
+    errors.push(`${adapter} must mention workflow/router.md`);
   }
-  if (!text.includes('.workflow/config/agent-behavior.yaml')) {
-    errors.push(`${adapter} must mention .workflow/config/agent-behavior.yaml`);
+  if (!text.includes('workflow/config/agent-behavior.yaml')) {
+    errors.push(`${adapter} must mention workflow/config/agent-behavior.yaml`);
+  }
+}
+
+const knownTokens = new Set([
+  'REPO_NAME', 'REPO_PURPOSE', 'DOMAIN_NAME', 'DEFAULT_BRANCH',
+  'BRANCH_POLICY', 'PROTECTED_PATHS', 'VERIFICATION_CMDS', 'CONSTRAINTS',
+]);
+
+for (const [adapterPath, text] of adapterTexts) {
+  for (const [, token] of text.matchAll(/\{\{([A-Z_]+)\}\}/g)) {
+    if (!knownTokens.has(token)) {
+      errors.push(`${adapterPath}: unknown token {{${token}}} — add to token-map.md if intentional`);
+    }
   }
 }
 

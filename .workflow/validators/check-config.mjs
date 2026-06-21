@@ -8,11 +8,14 @@ import {
   validateSchema,
 } from './lib.mjs';
 
+const repoRoot = process.cwd();
+const workflowRoot = 'workflow';
+
 const errors = [];
 const details = [];
 const schemas = schemaRegistry();
 
-for (const schemaPath of listFiles('.workflow/schemas').filter((file) => file.endsWith('.yaml'))) {
+for (const schemaPath of listFiles(`${workflowRoot}/schemas`).filter((file) => file.endsWith('.yaml'))) {
   const schema = loadYaml(schemaPath);
   if (!schema.$schema) errors.push(`${schemaPath} missing $schema`);
   if (!schema.$id) errors.push(`${schemaPath} missing $id`);
@@ -23,14 +26,14 @@ for (const schemaPath of listFiles('.workflow/schemas').filter((file) => file.en
   }
 }
 
-for (const configPath of listFiles('.workflow/config').filter((file) => file.endsWith('.yaml'))) {
+for (const configPath of listFiles(`${workflowRoot}/config`).filter((file) => file.endsWith('.yaml'))) {
   const config = loadYaml(configPath);
   if (!config.kind) {
     errors.push(`${configPath} missing kind`);
     continue;
   }
 
-  const schemaPath = `.workflow/schemas/${config.kind}.schema.yaml`;
+  const schemaPath = `${workflowRoot}/schemas/${config.kind}.schema.yaml`;
   if (!pathExists(schemaPath)) {
     errors.push(`${configPath} has no matching schema ${schemaPath}`);
     continue;
