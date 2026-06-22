@@ -225,8 +225,99 @@ export function headings(markdown) {
     .map((match) => match[1]);
 }
 
+// Converts block scalars (> and |) to escaped double-quoted strings before the main parser
+// runs. This keeps the line-based parser intact — block content is collapsed inline.
+function preprocessBlockScalars(text) {
+  const rawLines = text.split('\n');
+  const out = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+    // Match: <indent><key>: > or | with optional chomp indicator (- or +)
+    const m = line.match(/^( *)([\w$-]+):\s*(>[-+]?|\|[-+]?)\s*$/);
+
+    if (!m) {
+      out.push(line);
+      i++;
+      continue;
+    }
+
+    const [, keyIndent, key, indicator] = m;
+    const isFolded = indicator[0] === '>';
+    const chomp = indicator.slice(1); // '' (clip), '-' (strip), or '+' (keep)
+
+    i++;
+
+    // Collect body lines; detect block indent from first non-empty line
+    let blockIndent = -1;
+    const collected = []; // { empty: bool, text: string }
+
+    while (i < rawLines.length) {
+      const raw = rawLines[i];
+      const stripped = raw.trimEnd();
+
+      if (stripped === '') {
+        collected.push({ empty: true, text: '' });
+        i++;
+        continue;
+      }
+
+      const lineIndent = raw.match(/^ */)[0].length;
+      if (blockIndent === -1) blockIndent = lineIndent;
+
+      // Stop when a non-empty line is at or before the key's indent level
+      if (lineIndent <= keyIndent.length) break;
+
+      collected.push({ empty: false, text: raw.slice(blockIndent) });
+      i++;
+    }
+
+    // Apply chomping: strip trailing empty entries unless keep (+)
+    if (chomp !== '+') {
+      while (collected.length > 0 && collected[collected.length - 1].empty) collected.pop();
+      if (chomp === '') collected.push({ empty: true, text: '' }); // clip: one trailing newline
+    }
+
+    let joined;
+    if (isFolded) {
+      // Folded (>): lines within a paragraph join with a space; blank lines become paragraph breaks
+      const parts = [];
+      let group = [];
+      for (const c of collected) {
+        if (c.empty) {
+          if (group.length > 0) parts.push(group.join(' '));
+          parts.push('');
+          group = [];
+        } else {
+          group.push(c.text.trimEnd());
+        }
+      }
+      if (group.length > 0) parts.push(group.join(' '));
+      // Remove lone trailing empty string left by clip
+      while (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
+      joined = parts.join('\n');
+    } else {
+      // Literal (|): preserve exact line content and newlines
+      joined = collected.map(c => c.text).join('\n');
+      if (chomp !== '+') joined = joined.trimEnd();
+    }
+
+    // Escape for a double-quoted YAML scalar (backslash must go first)
+    const escaped = joined
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+
+    out.push(`${keyIndent}${key}: "${escaped}"`);
+  }
+
+  return out.join('\n');
+}
+
 export function parseYaml(text, pathForError = '<yaml>') {
-  const lines = text
+  const lines = preprocessBlockScalars(text)
     .replace(/\r\n/g, '\n')
     .split('\n')
     .map((raw, index) => ({
@@ -361,11 +452,15 @@ function parseScalar(value) {
   if (value === 'false') return false;
   if (value === 'null' || value === '~') return null;
   if (/^-?[0-9]+$/.test(value)) return Number(value);
-  if (
-    (value.startsWith("'") && value.endsWith("'")) ||
-    (value.startsWith('"') && value.endsWith('"'))
-  ) {
+  if (value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
+  }
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1).replace(/\\(["\\nt])/g, (_, c) => {
+      if (c === 'n') return '\n';
+      if (c === 't') return '\t';
+      return c; // " or \
+    });
   }
   return value;
 }
