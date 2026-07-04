@@ -2,18 +2,42 @@
 
 Use this router before doing lifecycle work.
 
+## Pending Setup Resolution
+
+Run this check at the start of every session — takes under 30 seconds and never blocks
+the task.
+
+1. If `workflow/config/pending-setup.yaml` does not exist: skip this section entirely.
+2. Load the file. Filter `items` where `status: open`.
+3. If no open items: skip this section.
+4. **Inspect-based resolution** — for each open item, read the `hint` field and inspect
+   the repo:
+   - `package.json` scripts → resolves test/build/lint command questions
+   - `.github/workflows/*.yml` → resolves CI, deploy target, environment questions
+   - `Makefile` → resolves task command questions
+   - `README.md`, `CONTRIBUTING.md` → resolves documentation path questions
+   - If the answer is determinable: update the target config field with the found value,
+     set `resolved_by: inspect`, `status: resolved`, record the value in `resolution`.
+5. **User prompt** — for items still open after inspection: surface them as a single
+   batched block before proceeding with the task. One question per item.
+   If the user answers: apply the value to the config, set `resolved_by: user`,
+   `status: resolved`, record in `resolution`. Update `pending-setup.yaml`.
+6. `waived` items: never surface. Never block on them.
+7. Items still open after steps 4–5: proceed with the task. Note them in the session
+   summary. Do not hard-stop.
+
 ## Inputs To Inspect
 
 - User request.
 - Existing slug/version or artifact path, if provided.
-- `.workflow/config/agent-behavior.yaml`.
-- Existing artifacts under `.workflow/artifacts/**`.
+- `workflow/config/agent-behavior.yaml`.
+- Existing artifacts under `workflow/artifacts/**`.
 - Current git branch and dirty state.
 - Source, verification, release, or domain config when relevant.
 
 ## Task Classes
 
-Classify every request before routing. Full definitions and skip rules are in `.workflow/config/agent-behavior.yaml`.
+Classify every request before routing. Full definitions and skip rules are in `workflow/config/agent-behavior.yaml`.
 
 | Class | Signals | Lifecycle |
 |---|---|---|

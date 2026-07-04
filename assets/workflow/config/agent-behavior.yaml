@@ -2,9 +2,9 @@ version: 1
 kind: agent-behavior
 
 canonical_source:
-  workflow_root: .workflow
+  workflow_root: workflow
   instructions_root: AGENTS.md
-  rule: .workflow is the canonical workflow source.
+  rule: workflow/ is the canonical workflow source.
 
 task_classes:
   trivial:
@@ -68,31 +68,31 @@ lifecycle:
   artifact_chain:
     - artifact: brief
       phase: think
-      path: .workflow/artifacts/briefs/<slug>-v<N>.md
+      path: workflow/artifacts/briefs/<slug>-v<N>.md
       next_phase: plan
     - artifact: plan
       phase: plan
-      path: .workflow/artifacts/plans/<slug>-v<N>.md
+      path: workflow/artifacts/plans/<slug>-v<N>.md
       next_phase: build
     - artifact: task
       phase: build
-      path: .workflow/artifacts/tasks/<slug>-v<N>.md
+      path: workflow/artifacts/tasks/<slug>-v<N>.md
       next_phase: review
     - artifact: review
       phase: review
-      path: .workflow/artifacts/reviews/<slug>-v<N>.md
+      path: workflow/artifacts/reviews/<slug>-v<N>.md
       next_phase: test
     - artifact: verify
       phase: test
-      path: .workflow/artifacts/verify/<slug>-v<N>.md
+      path: workflow/artifacts/verify/<slug>-v<N>.md
       next_phase: ship
     - artifact: ship
       phase: ship
-      path: .workflow/artifacts/ship/<slug>-v<N>.md
+      path: workflow/artifacts/ship/<slug>-v<N>.md
       next_phase: reflect
     - artifact: reflect
       phase: reflect
-      path: .workflow/artifacts/reflect/<slug>-v<N>.md
+      path: workflow/artifacts/reflect/<slug>-v<N>.md
       next_phase: done
 
 pause_resume:

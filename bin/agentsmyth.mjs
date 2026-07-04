@@ -56,18 +56,6 @@ copyRecursive(join(pkgRoot, 'validators'), join(targetDir, 'validators'));
 // Copy static assets (configs, adapters, AGENTS.md)
 copyRecursive(join(pkgRoot, 'assets'), join(targetDir, 'assets'));
 
-// Ensure .workflow/config/ and artifact dirs exist in the target repo
-// (agent will write configs there during Phase 3)
-const workflowConfigDir = join(cwd, '.workflow', 'config');
-if (!existsSync(workflowConfigDir)) {
-  mkdirSync(workflowConfigDir, { recursive: true });
-  // Seed with placeholder configs so the agent has a starting point
-  const assetConfigDir = join(pkgRoot, 'assets', '.workflow', 'config');
-  for (const name of readdirSync(assetConfigDir)) {
-    copyFileSync(join(assetConfigDir, name), join(workflowConfigDir, name));
-  }
-}
-
 // Add .agentsmyth to .gitignore
 const gitignorePath = join(cwd, '.gitignore');
 const gitignoreEntry = '.agentsmyth\n';

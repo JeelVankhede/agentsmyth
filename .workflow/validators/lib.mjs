@@ -1,10 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, relative, resolve } from 'node:path';
 
-const validatorDir = dirname(fileURLToPath(import.meta.url));
-export const repoRoot = resolve(validatorDir, '../..');
+export const repoRoot = process.cwd();
+
+// Detect workflow root: consumer repos use workflow/, dev source uses the dotted variant.
+// Constructed without a literal dot+workflow string so the consumer-facing copy stays clean.
+const _wf = existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join('');
 
 export const artifactContracts = [
   {
@@ -13,7 +15,7 @@ export const artifactContracts = [
     phase: 'think',
     nextPhase: 'plan',
     role: 'Architect',
-    starterBlock: '.workflow/skills/lifecycle-think/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-think/references/output-schema.md`,
     requiredSections: [
       'Source Links',
       'Problem',
@@ -30,7 +32,7 @@ export const artifactContracts = [
     phase: 'plan',
     nextPhase: 'build',
     role: 'Principal Engineer',
-    starterBlock: '.workflow/skills/lifecycle-plan/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-plan/references/output-schema.md`,
     requiredSections: [
       'Summary',
       'Requirement Coverage',
@@ -47,7 +49,7 @@ export const artifactContracts = [
     phase: 'build',
     nextPhase: 'review',
     role: 'Senior Engineer',
-    starterBlock: '.workflow/skills/lifecycle-build/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-build/references/output-schema.md`,
     requiredSections: [
       'Active Phase',
       'Branch / Repo Status',
@@ -64,7 +66,7 @@ export const artifactContracts = [
     phase: 'review',
     nextPhase: 'test',
     role: 'Staff Reviewer',
-    starterBlock: '.workflow/skills/lifecycle-review/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-review/references/output-schema.md`,
     requiredSections: [
       'Findings',
       'Severity Summary',
@@ -81,7 +83,7 @@ export const artifactContracts = [
     phase: 'test',
     nextPhase: 'ship',
     role: 'Senior QA',
-    starterBlock: '.workflow/skills/lifecycle-test/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-test/references/output-schema.md`,
     requiredSections: [
       'Inputs',
       'Automated Checks',
@@ -99,7 +101,7 @@ export const artifactContracts = [
     phase: 'ship',
     nextPhase: 'reflect',
     role: 'Senior DevOps',
-    starterBlock: '.workflow/skills/lifecycle-ship/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-ship/references/output-schema.md`,
     requiredSections: [
       'Ship Status',
       'Requirement Coverage',
@@ -118,7 +120,7 @@ export const artifactContracts = [
     phase: 'reflect',
     nextPhase: 'done',
     role: 'Project Manager',
-    starterBlock: '.workflow/skills/lifecycle-reflect/references/output-schema.md',
+    starterBlock: `${_wf}/skills/lifecycle-reflect/references/output-schema.md`,
     requiredSections: [
       'Outcome',
       'What Worked',
@@ -223,8 +225,99 @@ export function headings(markdown) {
     .map((match) => match[1]);
 }
 
+// Converts block scalars (> and |) to escaped double-quoted strings before the main parser
+// runs. This keeps the line-based parser intact — block content is collapsed inline.
+function preprocessBlockScalars(text) {
+  const rawLines = text.split('\n');
+  const out = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+    // Match: <indent><key>: > or | with optional chomp indicator (- or +)
+    const m = line.match(/^( *)([\w$-]+):\s*(>[-+]?|\|[-+]?)\s*$/);
+
+    if (!m) {
+      out.push(line);
+      i++;
+      continue;
+    }
+
+    const [, keyIndent, key, indicator] = m;
+    const isFolded = indicator[0] === '>';
+    const chomp = indicator.slice(1); // '' (clip), '-' (strip), or '+' (keep)
+
+    i++;
+
+    // Collect body lines; detect block indent from first non-empty line
+    let blockIndent = -1;
+    const collected = []; // { empty: bool, text: string }
+
+    while (i < rawLines.length) {
+      const raw = rawLines[i];
+      const stripped = raw.trimEnd();
+
+      if (stripped === '') {
+        collected.push({ empty: true, text: '' });
+        i++;
+        continue;
+      }
+
+      const lineIndent = raw.match(/^ */)[0].length;
+      if (blockIndent === -1) blockIndent = lineIndent;
+
+      // Stop when a non-empty line is at or before the key's indent level
+      if (lineIndent <= keyIndent.length) break;
+
+      collected.push({ empty: false, text: raw.slice(blockIndent) });
+      i++;
+    }
+
+    // Apply chomping: strip trailing empty entries unless keep (+)
+    if (chomp !== '+') {
+      while (collected.length > 0 && collected[collected.length - 1].empty) collected.pop();
+      if (chomp === '') collected.push({ empty: true, text: '' }); // clip: one trailing newline
+    }
+
+    let joined;
+    if (isFolded) {
+      // Folded (>): lines within a paragraph join with a space; blank lines become paragraph breaks
+      const parts = [];
+      let group = [];
+      for (const c of collected) {
+        if (c.empty) {
+          if (group.length > 0) parts.push(group.join(' '));
+          parts.push('');
+          group = [];
+        } else {
+          group.push(c.text.trimEnd());
+        }
+      }
+      if (group.length > 0) parts.push(group.join(' '));
+      // Remove lone trailing empty string left by clip
+      while (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
+      joined = parts.join('\n');
+    } else {
+      // Literal (|): preserve exact line content and newlines
+      joined = collected.map(c => c.text).join('\n');
+      if (chomp !== '+') joined = joined.trimEnd();
+    }
+
+    // Escape for a double-quoted YAML scalar (backslash must go first)
+    const escaped = joined
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+
+    out.push(`${keyIndent}${key}: "${escaped}"`);
+  }
+
+  return out.join('\n');
+}
+
 export function parseYaml(text, pathForError = '<yaml>') {
-  const lines = text
+  const lines = preprocessBlockScalars(text)
     .replace(/\r\n/g, '\n')
     .split('\n')
     .map((raw, index) => ({
@@ -359,11 +452,15 @@ function parseScalar(value) {
   if (value === 'false') return false;
   if (value === 'null' || value === '~') return null;
   if (/^-?[0-9]+$/.test(value)) return Number(value);
-  if (
-    (value.startsWith("'") && value.endsWith("'")) ||
-    (value.startsWith('"') && value.endsWith('"'))
-  ) {
+  if (value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
+  }
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1).replace(/\\(["\\nt])/g, (_, c) => {
+      if (c === 'n') return '\n';
+      if (c === 't') return '\t';
+      return c; // " or \
+    });
   }
   return value;
 }
@@ -511,7 +608,7 @@ function isPlainObject(value) {
 
 export function schemaRegistry() {
   const registry = {};
-  for (const file of listFiles('.workflow/schemas').filter((file) => file.endsWith('.yaml'))) {
+  for (const file of listFiles(`${_wf}/schemas`).filter((file) => file.endsWith('.yaml'))) {
     const schema = loadYaml(file);
     if (schema.$id) {
       registry[schema.$id] = schema;

@@ -4,7 +4,7 @@ Adapters are optional tool-specific instruction files. They should be copied or 
 
 ## Rule
 
-Adapters route agents to `.workflow/`; they do not define independent workflow behavior.
+Adapters route agents to `workflow/`; they do not define independent workflow behavior.
 
 ## Included Paths
 
