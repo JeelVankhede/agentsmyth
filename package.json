@@ -1,6 +1,6 @@
 {
   "name": "@jeelvankhede/agentsmyth",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.",
   "type": "module",
   "bin": {
