@@ -1,8 +1,13 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump type
+        required: true
+        type: choice
+        options: [patch, minor, major]
 
 jobs:
   release:
@@ -19,37 +24,33 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Read version from package.json
+      - name: Bump version
         id: version
-        run: echo "value=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Check if tag already exists
-        id: tag_check
         run: |
-          if git ls-remote --tags origin "${{ steps.version.outputs.value }}" | grep -q .; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          npm version ${{ inputs.bump }} --no-git-tag-version
+          echo "value=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Build bundles
-        if: steps.tag_check.outputs.exists == 'false'
         run: node scripts/build-bundle.mjs
 
       - name: Validate templates
-        if: steps.tag_check.outputs.exists == 'false'
         run: node scripts/validate-template.mjs
 
       - name: Validate examples
-        if: steps.tag_check.outputs.exists == 'false'
         run: node scripts/validate-example.mjs
 
       - name: Pack tarball
-        if: steps.tag_check.outputs.exists == 'false'
         run: npm pack
 
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore(release): bump version to ${{ steps.version.outputs.value }}"
+          git push origin main
+
       - name: Create tag and GitHub Release
-        if: steps.tag_check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.value }}
