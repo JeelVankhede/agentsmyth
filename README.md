@@ -1,6 +1,6 @@
 # agentsmyth
 
-Generic AI lifecycle workflow for a targeted repository.
+Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.
 
 `agentsmyth` gives AI agents a durable engineering workflow for a single repository. It turns requests into lifecycle artifacts, keeps decisions inspectable, and makes verification, release, handoff, and reflection evidence explicit.
 
@@ -26,44 +26,90 @@ brief -> plan -> task -> review -> verify -> ship -> reflect
 
 Each Standard or Complex change leaves a readable artifact chain under `workflow/artifacts/`. The artifacts preserve requirement IDs, blockers, architecture notes, command evidence, skipped-check risk, release status, and follow-up decisions.
 
-## Using This Package (Local / Pre-Release)
+## Project Knowledge
 
-The package is not yet published to npm. Share it as a local tarball.
+### Lifecycle Phases
 
-### Step 1 — Build and pack
+agentsmyth enforces a 7-phase artifact chain. Each Standard or Complex task produces one artifact per phase under `workflow/artifacts/<slug>/`:
+
+| Phase | What happens |
+|---|---|
+| `brief` | Requirements captured, scope and complexity classified |
+| `plan` | Architecture decisions, implementation plan, verification criteria |
+| `task` | Active implementation tracked against the plan |
+| `review` | Code review against the plan's manifest and requirements |
+| `verify` | Commands run, evidence recorded against the verification plan |
+| `ship` | Release checklist, risk sign-off, deployment evidence |
+| `reflect` | Post-ship learnings, open follow-ups |
+
+Trivial changes (typo fixes, small config edits) are exempt from the full chain. The router (`workflow/router.md`) classifies each request on arrival.
+
+### Adapters
+
+agentsmyth supports five AI tools out of the box. During setup, the agent places the correct adapter at the tool's native path:
+
+| Tool | Adapter path |
+|---|---|
+| Claude Code | `.claude/CLAUDE.md` |
+| Codex | `AGENTS.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Cursor | `.cursor/rules/index.mdc` |
+| Windsurf | `.windsurfrules` |
+
+### Config Files
+
+Six YAML files in `workflow/config/` capture repo-specific context written by the agent during setup:
+
+| File | Purpose |
+|---|---|
+| `domain.yaml` | Project domain, tech stack, key terminology |
+| `repo-profile.yaml` | Repo shape, primary language, monorepo/single-repo |
+| `source-of-truth.yaml` | Authoritative sources for requirements and decisions |
+| `agent-behavior.yaml` | Enforcement rules, compliance stance, waiver policy |
+| `release.yaml` | Release process, environments, deployment targets |
+| `verification.yaml` | Testing strategy, coverage expectations, CI commands |
+
+## Setup
+
+### Option A — Run directly from GitHub (no install)
+
+```bash
+npx github:JeelVankhede/agentsmyth init
+```
+
+This fetches the latest package from the repo and runs `init` without installing anything permanently.
+
+### Option B — Install from a GitHub Release tarball
+
+Download the `.tgz` from the [Releases](../../releases) page, then:
+
+```bash
+npm install --save-dev file:./jeelvankhede-agentsmyth-<version>.tgz
+npx agentsmyth init
+```
+
+### Option C — Local development build
 
 From this repo root:
 
 ```bash
-npm run pack:local
-# Produces: jeelvankhede-agentsmyth-0.1.0.tgz (or similar)
+npm run build       # rebuild dist/ bundles
+npm pack            # produces jeelvankhede-agentsmyth-<version>.tgz
 ```
 
-Share the `.tgz` file with the person setting up a new repo.
+Then install in a target repo as in Option B.
 
-### Step 2 — Install in the target repo
+### What `init` does
 
-The recipient runs this in their repo root, replacing the path with wherever they saved the tarball:
+`npx agentsmyth init` creates `.agentsmyth/` in the target repo root containing:
+- `setup-bundle.md` — the setup skill the agent reads to drive onboarding
+- `workflow-bundle.md` — the full workflow (router, lifecycle, all skills) the agent expands
+- `validators/` — health-check scripts
+- `assets/` — adapter shims and default config files
 
-```bash
-npm install --save-dev /path/to/jeelvankhede-agentsmyth-0.1.0.tgz
-```
+`.agentsmyth/` is added to `.gitignore` automatically. It is temporary — the agent removes it after setup.
 
-Or if they copy the tarball into their repo root:
-
-```bash
-npm install --save-dev file:./jeelvankhede-agentsmyth-0.1.0.tgz
-```
-
-### Step 3 — Initialise
-
-```bash
-npx agentsmyth init
-```
-
-This creates `.agentsmyth/` in the target repo root containing the setup bundle, workflow bundle, validators, and static assets. `.agentsmyth/` is added to `.gitignore` automatically.
-
-### Step 4 — Run the setup skill
+### Running setup
 
 Open your AI agent in the target repo and say:
 
@@ -71,7 +117,7 @@ Open your AI agent in the target repo and say:
 run the agentsmyth setup
 ```
 
-The agent reads `.agentsmyth/setup-bundle.md`, inspects the repo, interviews you, writes `workflow/config/*.yaml`, places the adapter at your tool's native path, expands the full workflow tree under `workflow/`, and removes `.agentsmyth/` when done.
+The agent reads `setup-bundle.md`, inspects the repo, interviews you about domain and config, writes `workflow/config/*.yaml`, places the adapter at your tool's native path, expands the workflow tree under `workflow/`, and removes `.agentsmyth/` when done.
 
 ### What ends up in the target repo
 
@@ -98,7 +144,7 @@ After setup, verify the installation from the target repo root:
 ```bash
 node workflow/validators/check-setup-complete.mjs
 node workflow/validators/check-config.mjs
-node workflow/validators/check-pending-setup.mjs   # optional: shows open items
+node workflow/validators/check-pending-setup.mjs   # shows any open items
 ```
 
 ## Development (this repo)

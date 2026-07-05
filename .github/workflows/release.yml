@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build bundles
+        run: node scripts/build-bundle.mjs
+
+      - name: Validate templates
+        run: node scripts/validate-template.mjs
+
+      - name: Validate examples
+        run: node scripts/validate-example.mjs
+
+      - name: Pack tarball
+        run: npm pack
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.tgz
+            dist/setup-bundle.md
+            dist/workflow-bundle.md
+          generate_release_notes: true
