@@ -16,4 +16,4 @@ Adapters route agents to `workflow/`; they do not define independent workflow be
 | Cursor | `adapters/cursor/rules/index.mdc` |
 | Windsurf | `adapters/windsurf/.windsurfrules` |
 
-See `docs/adapter-guide.md` before adding or changing adapters.
+All five adapters must carry identical mandatory-gate content. Change one, change all. See `setup/SKILL.md` §5a.1 for placement rules.

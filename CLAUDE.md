@@ -80,7 +80,7 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 | `bin/agentsmyth.mjs` | The `init` CLI |
 | `adapters/` | Five tool gate shims (source of truth for gates) |
 | `examples/` | Three worked repos, checked by `validate-example.mjs` |
-| `docs/`, `docs/archive/` | Human docs; archive holds planning history |
+| `docs/` | `overview.md` + `knowledge-map/` — living orientation only |
 
 ---
 

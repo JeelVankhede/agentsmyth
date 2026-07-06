@@ -30,7 +30,7 @@ Higher overrides lower. When a higher source is silent, fall to the next — nev
 5. Repository code and existing lifecycle artifacts for the active slug.
 
 There is no external issue tracker configured; requirements arrive via user request and the
-planning history archived under `docs/archive/`.
+planning history is not retained in the repo.
 
 ---
 
@@ -53,7 +53,7 @@ planning history archived under `docs/archive/`.
 | `assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
 | `dist/`, `validators/` (root) | **Generated** build output (gitignored) |
 | `examples/` | Three worked consumer repos, verified by `validate-example.mjs` |
-| `docs/`, `docs/archive/` | Human docs; archive holds superseded planning history |
+| `docs/` | `overview.md` + `knowledge-map/` — living orientation only |
 
 ---
 
