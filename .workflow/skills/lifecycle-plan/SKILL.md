@@ -89,6 +89,7 @@ Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, la
 
 Stop and ask, or return a blocked plan, when any of these apply:
 
+- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase plan --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - The upstream brief is missing, unapproved, or has no Requirement Manifest.
 - Any active `R` or `RI` lacks acceptance criteria.
 - Any active `R` or `RI` cannot be mapped to a plan phase.

@@ -98,6 +98,7 @@ Ship must hold when Test recommends `hold`, when Review has unresolved blocking 
 
 Stop and write a `hold` ship artifact when any of these apply:
 
+- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase ship --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - Verify artifact is missing.
 - Verify recommendation is `hold` and no user-accepted waiver exists.
 - Review has unresolved `P0` or `P1` findings.
