@@ -21,33 +21,40 @@ validator, and all validators are hand-written Node ESM. Keep it that way (see R
 
 ---
 
-## The one model you must hold: source vs. shipped
+## The one model you must hold: source vs. workspace
 
 Everything hinges on a two-world split. Get this wrong and you will edit the wrong file.
 
-| | **Source (this repo)** | **Shipped (consumer repo)** |
-|---|---|---|
-| Workflow dir | `.workflow/` (dotted) | `workflow/` (undotted) |
-| Authored by | Hand, in this repo | Generated, expanded by the agent |
-| Adapters | `adapters/` | placed at tool-native path (`.claude/CLAUDE.md`, etc.) |
-| Configs | `.workflow/config/` (this repo's own) | `workflow/config/` (consumer's, agent-filled) |
+| | **Source (`src/`)** | **Dev workspace (`workflow/`)** | **Shipped (consumer repo)** |
+|---|---|---|---|
+| Workflow skills/schemas/validators | `src/workflow/` | — | `workflow/` (expanded from bundle) |
+| Adapters | `src/adapters/` | — | placed at tool-native path |
+| Static assets | `src/assets/` | — | `.agentsmyth/assets/` |
+| Setup skill | `src/setup/` | — | `.agentsmyth/` (then deleted) |
+| Behavior config | `src/workflow/config/agent-behavior.yaml` | — | `workflow/config/` |
+| Per-repo config | — | `workflow/config/` (domain, repo-profile…) | `workflow/config/` (agent-filled) |
+| Artifacts | — | `workflow/artifacts/` | `workflow/artifacts/` |
+| Learnings | — | `workflow/learnings/` | — |
 
-- `scripts/build-bundle.mjs` compiles `.workflow/` → `dist/workflow-bundle.md` (FILE-marker
-  blocks the agent expands) and `setup/` → `dist/setup-bundle.md`.
-- `bin/agentsmyth.mjs` copies `dist/` + `assets/` + `validators/` into the consumer's
-  `.agentsmyth/`, then the **agent** does all real setup work (see `setup/SKILL.md`).
-- `validators/lib.mjs:9` auto-detects which world it runs in. The dotted string is
+- `scripts/build-bundle.mjs` compiles `src/workflow/` → `dist/workflow-bundle.md` (FILE-marker
+  blocks the agent expands) and `src/setup/` → `dist/setup-bundle.md`. Also syncs
+  `src/workflow/schemas/` → `workflow/schemas/` so dev-workspace validators can find them.
+- `bin/agentsmyth.mjs` copies `dist/` + `src/assets/` + `validators/` into the consumer's
+  `.agentsmyth/`, then the **agent** does all real setup work (see `src/setup/SKILL.md`).
+- `src/workflow/validators/lib.mjs` auto-detects which world it runs in. The dotted string is
   *constructed* (`['.','workflow'].join('')`) so the consumer copy never contains a literal
   `.workflow` reference. Preserve that trick if you touch it.
+- Build scripts pass `AGENTSMYTH_WF=src/workflow` when running source-level validators so they
+  check `src/workflow/` instead of the dev workspace `workflow/`.
 
 ---
 
 ## Golden rules (also see `docs/knowledge-map/repo-mental-map.md` → Planning Rules)
 
-1. **Edit source, never generated output.** `dist/`, `validators/` (root), and
-   `assets/adapters/` are build products. Edit `.workflow/`, `setup/`, `adapters/`,
+1. **Edit source, never generated output.** `dist/`, `validators/` (root), `src/assets/adapters/`,
+   and `workflow/schemas/` are build products. Edit `src/workflow/`, `src/setup/`, `src/adapters/`,
    `scripts/` — then rebuild.
-2. **Rebuild after any `.workflow/`, `setup/`, or `adapters/` change:** `npm run build`.
+2. **Rebuild after any `src/workflow/`, `src/setup/`, or `src/adapters/` change:** `npm run build`.
    A change to source without a rebuild ships stale bundles.
 3. **Keep adapters in sync.** All five adapters (`claude`, `codex`, `copilot`, `cursor`,
    `windsurf`) must carry the same mandatory-gate content. Change one → change all.
@@ -56,8 +63,8 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 5. **Validators are contract checks, not tests.** Run `npm run validate` before shipping.
    They check structure/schema, not behavior — they do not replace manual verification.
 6. **Dogfood the lifecycle.** This repo uses its own workflow. For Standard/Complex work,
-   go through `AGENTS.md` → `.workflow/router.md` and write artifacts under
-   `.workflow/artifacts/`. Trivial changes (typo, single-location) skip the chain.
+   go through `AGENTS.md` → `src/workflow/router.md` and write artifacts under
+   `workflow/artifacts/`. Trivial changes (typo, single-location) skip the chain.
 7. **Evidence over claims.** Never claim a command passed, a release shipped, or CI is green
    without current tool output or a cited artifact. Treat skipped checks as visible risk.
 8. **Branch, don't push to main.** Use a non-default branch for planned changes unless the
@@ -69,27 +76,30 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 
 | Path | Role |
 |---|---|
-| `.workflow/router.md`, `lifecycle.md`, `rules.md` | Orchestration core |
-| `.workflow/skills/lifecycle-*/` | 7 phase skills (SKILL.md + references/) |
-| `.workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
-| `.workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, chain, evidence, waivers |
-| `.workflow/schemas/` | YAML-schema contracts |
-| `.workflow/validators/` | Source validators (`lib.mjs` = parser + schema engine) |
-| `setup/SKILL.md` | The one-time porting skill the agent runs in a consumer repo |
+| `src/workflow/router.md`, `lifecycle.md`, `rules.md` | Orchestration core |
+| `src/workflow/skills/lifecycle-*/` | 7 phase skills (SKILL.md + references/) |
+| `src/workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
+| `src/workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, chain, evidence, waivers |
+| `src/workflow/schemas/` | YAML-schema contracts (source of truth) |
+| `src/workflow/validators/` | Source validators (`lib.mjs` = parser + schema engine) |
+| `src/setup/SKILL.md` | The one-time porting skill the agent runs in a consumer repo |
 | `scripts/build-bundle.mjs` | Source → `dist/` compiler |
 | `bin/agentsmyth.mjs` | The `init` CLI |
-| `adapters/` | Five tool gate shims (source of truth for gates) |
+| `src/adapters/` | Five tool gate shims (source of truth for gates) |
 | `examples/` | Three worked repos, checked by `validate-example.mjs` |
 | `docs/` | `overview.md` + `knowledge-map/` — living orientation only |
+| `workflow/config/` | This repo's own per-repo lifecycle config (not shipped) |
+| `workflow/artifacts/` | This repo's dogfood lifecycle artifacts (not shipped) |
+| `workflow/schemas/` | Build-synced copy for dev validator use (gitignored) |
 
 ---
 
 ## Before you finish any change
 
-- [ ] Edited **source**, not generated output.
-- [ ] Ran `npm run build` if `.workflow/`, `setup/`, or `adapters/` changed.
+- [ ] Edited **source** (`src/`), not generated output.
+- [ ] Ran `npm run build` if `src/workflow/`, `src/setup/`, or `src/adapters/` changed.
 - [ ] Ran `npm run validate` and it passed.
 - [ ] Ran `npm run violations:test` and it passed (all 4 fixtures rejected).
 - [ ] Adapters still in sync if a gate changed.
 - [ ] No new runtime dependency introduced.
-- [ ] Standard/Complex work has its artifact chain under `.workflow/artifacts/`.
+- [ ] Standard/Complex work has its artifact chain under `workflow/artifacts/`.

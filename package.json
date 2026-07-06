@@ -9,7 +9,7 @@
   "files": [
     "bin/",
     "dist/",
-    "assets/",
+    "src/assets/",
     "validators/"
   ],
   "engines": {

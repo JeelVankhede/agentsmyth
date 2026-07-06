@@ -4,19 +4,17 @@ Portable AI lifecycle workflow — drop into any repo and let your agent drive s
 
 `agentsmyth` gives AI agents a durable engineering workflow for a single repository. It turns requests into lifecycle artifacts, keeps decisions inspectable, and makes verification, release, handoff, and reflection evidence explicit.
 
-The canonical workflow source is `.workflow/`. Consumer repos receive it as `workflow/` after setup.
-
 ## What Is Included
 
-- One-time porting skill in `setup/` — use this to configure a new target repository.
-- Lifecycle router and phase contracts in `.workflow/router.md` and `.workflow/lifecycle.md`.
-- Phase skills in `.workflow/skills/`.
+- Setup skill in `src/setup/` — one-time porting that configures a new target repo.
+- Lifecycle router and phase contracts in `src/workflow/router.md` and `src/workflow/lifecycle.md`.
+- Phase skills in `src/workflow/skills/`.
 - Artifact Starter Blocks in each skill's `references/output-schema.md`.
-- Config defaults in `.workflow/config/`.
-- YAML schema contracts in `.workflow/schemas/`.
-- Optional tool adapters in `adapters/` — one per supported AI tool.
+- Behavior config in `src/workflow/config/agent-behavior.yaml`.
+- YAML schema contracts in `src/workflow/schemas/`.
+- Optional tool adapters in `src/adapters/` — one per supported AI tool.
 
-`setup/` is a one-time tool for porting. It is not copied to the target repository.
+The `src/` tree is compiled into `dist/` bundles by `npm run build`. Consumers receive `workflow/` (the compiled, expanded install) — not the raw `src/`.
 
 ## Lifecycle
 
@@ -152,22 +150,23 @@ node workflow/validators/check-pending-setup.mjs   # shows any open items
 Build bundles and run all checks:
 
 ```bash
-npm run build       # rebuild dist/ bundles and assets/
+npm run build       # rebuild dist/ bundles and sync generated assets
 npm run validate    # validate-template + validate-example + render-adapters
+npm run violations:test  # confirm all violation fixtures are rejected
 ```
 
-Run individual dev validators:
+Run individual dev validators (source-level validators need `AGENTSMYTH_WF=src/workflow`):
 
 ```bash
-node .workflow/validators/check-starter-blocks.mjs
-node .workflow/validators/check-lifecycle.mjs
-node .workflow/validators/check-artifacts.mjs
-node .workflow/validators/check-domain-placeholders.mjs
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-starter-blocks.mjs
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-lifecycle.mjs
+node src/workflow/validators/check-artifacts.mjs
+node src/workflow/validators/check-domain-placeholders.mjs
 ```
 
 ## Guardrails
 
-- Keep `.workflow/` canonical in this dev repo. Consumer repos get the compiled output.
+- Source lives in `src/`; dev workspace is `workflow/` at repo root. Never confuse them.
 - Do not make a provider, CI system, package manager, deployment process, or external source mandatory unless config or the user requires it.
 - Do not claim commands, external updates, releases, PRs, CI, or handoffs without evidence.
 - Treat skipped checks and waivers as visible risk.

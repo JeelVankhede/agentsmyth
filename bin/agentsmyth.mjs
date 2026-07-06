@@ -54,7 +54,7 @@ copyFileSync(join(pkgRoot, 'dist', 'workflow-bundle.md'), join(targetDir, 'workf
 copyRecursive(join(pkgRoot, 'validators'), join(targetDir, 'validators'));
 
 // Copy static assets (configs, adapters, AGENTS.md)
-copyRecursive(join(pkgRoot, 'assets'), join(targetDir, 'assets'));
+copyRecursive(join(pkgRoot, 'src', 'assets'), join(targetDir, 'assets'));
 
 // Add .agentsmyth to .gitignore
 const gitignorePath = join(cwd, '.gitignore');
