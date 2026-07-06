@@ -89,6 +89,7 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 - [ ] Edited **source**, not generated output.
 - [ ] Ran `npm run build` if `.workflow/`, `setup/`, or `adapters/` changed.
 - [ ] Ran `npm run validate` and it passed.
+- [ ] Ran `npm run violations:test` and it passed (all 4 fixtures rejected).
 - [ ] Adapters still in sync if a gate changed.
 - [ ] No new runtime dependency introduced.
 - [ ] Standard/Complex work has its artifact chain under `.workflow/artifacts/`.

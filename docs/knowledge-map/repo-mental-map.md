@@ -77,10 +77,13 @@ npm run build
 # full validation (template + examples + adapter render check)
 npm run validate
 
+# negative test suite — each fixture must be rejected by check-artifacts
+npm run violations:test
+
 # individual dev validators
 node .workflow/validators/check-starter-blocks.mjs
-node .workflow/validators/check-lifecycle.mjs
-node .workflow/validators/check-artifacts.mjs
+node .workflow/validators/check-lifecycle.mjs           # add --phase <name> --slug <slug> for gate check
+node .workflow/validators/check-artifacts.mjs           # add --dir <path> to scan a custom artifacts dir
 node .workflow/validators/check-domain-placeholders.mjs
 ```
 
