@@ -69,9 +69,15 @@ for (const name of refFiles) {
 write('dist/setup-bundle.md', setupSections.join('\n') + '\n');
 
 // ─── workflow-bundle.md ────────────────────────────────────────────────────
-// src/workflow/ is pure source — no runtime-only subdirs to exclude.
+// src/workflow/config/ is excluded from the bundle — agent-behavior.yaml ships via
+// src/assets/ (static copy below), and per-consumer configs are written by the setup skill.
 
-const workflowFiles = walkFiles('src/workflow').filter(rel => !rel.endsWith('.gitkeep'));
+const WORKFLOW_EXCLUDES = new Set(['src/workflow/config']);
+const workflowFiles = walkFiles('src/workflow').filter(rel =>
+  !rel.endsWith('.gitkeep') &&
+  !WORKFLOW_EXCLUDES.has(rel) &&
+  ![...WORKFLOW_EXCLUDES].some(exc => rel.startsWith(exc + '/'))
+);
 
 const bundleLines = [
   '<!-- compiled from src/workflow/ sources — agent expands FILE blocks into consumer repo as workflow/ -->',
@@ -88,6 +94,12 @@ for (const rel of workflowFiles) {
 }
 
 write('dist/workflow-bundle.md', bundleLines.join('\n') + '\n');
+
+// ─── src/assets/workflow/config/agent-behavior.yaml ──────────────────────
+// Sync the shipped invariant from src/workflow/config/ to src/assets/ so consumers
+// receive it as a static file (config/ is excluded from the workflow bundle above).
+
+copyFile('src/workflow/config/agent-behavior.yaml', 'src/assets/workflow/config/agent-behavior.yaml');
 
 // ─── src/assets/adapters/ ─────────────────────────────────────────────────
 
