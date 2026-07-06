@@ -1,0 +1,50 @@
+#!/bin/sh
+# agentsmyth lifecycle gate — consumer repo pre-commit hook.
+#
+# Detects staged lifecycle artifact files, infers the entering phase from their
+# directory, and verifies the required upstream artifact is ready before the
+# commit lands. Trivial commits (no artifact files staged) are skipped entirely.
+#
+# Install:  git config core.hooksPath workflow/validators/hooks
+# Bypass (document the reason in your commit message):  git commit --no-verify
+
+set -e
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+# Skip if no lifecycle artifact files are staged (Trivial task — no gate needed)
+ARTIFACT_FILES=$(printf '%s\n' "$STAGED" | grep -E '^workflow/artifacts/[^/]+/.+-v[0-9]+\.md$' || true)
+[ -z "$ARTIFACT_FILES" ] && exit 0
+
+echo "agentsmyth: verifying lifecycle phase gate..."
+
+# Map artifact directory to the phase being entered
+phase_for_dir() {
+  case "$1" in
+    briefs)   echo "plan"    ;;
+    plans)    echo "build"   ;;
+    tasks)    echo "review"  ;;
+    reviews)  echo "test"    ;;
+    verify)   echo "ship"    ;;
+    ship)     echo "reflect" ;;
+    reflect)  echo ""        ;;  # reflect has no downstream gate
+    *)        echo ""        ;;
+  esac
+}
+
+FAILED=0
+IFS='
+'
+for file in $ARTIFACT_FILES; do
+  dir=$(printf '%s' "$file" | cut -d/ -f3)
+  base=$(basename "$file" .md)
+  slug=$(printf '%s' "$base" | sed 's/-v[0-9][0-9]*$//')
+  phase=$(phase_for_dir "$dir")
+  [ -z "$phase" ] && continue
+
+  if ! node workflow/validators/check-lifecycle.mjs --phase "$phase" --slug "$slug"; then
+    FAILED=1
+  fi
+done
+
+exit "$FAILED"

@@ -30,6 +30,7 @@
     "build": "node scripts/build-bundle.mjs",
     "pack:local": "npm run build && npm pack",
     "validate": "node scripts/validate-template.mjs && node scripts/validate-example.mjs && node scripts/render-adapters.mjs",
-    "hooks:install": "git config core.hooksPath .githooks && echo \"pre-commit hook enabled (bypass with --no-verify)\""
+    "hooks:install": "git config core.hooksPath .githooks && echo \"pre-commit hook enabled (bypass with --no-verify)\"",
+    "violations:test": "node test/run-violation-tests.mjs"
   }
 }

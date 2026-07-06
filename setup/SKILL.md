@@ -226,11 +226,31 @@ Show the log to the user and wait for acknowledgement before proceeding.
 
 #### Step 5d — Remove isolated directory
 
-Delete `.agentsmyth/` in its entirety. This is the final step.
+Delete `.agentsmyth/` in its entirety.
 
 ```bash
 rm -rf .agentsmyth
 ```
+
+#### Step 5e — Offer lifecycle pre-commit gate (opt-in)
+
+After `.agentsmyth/` is removed, ask the user once:
+
+> "Would you like to enable the agentsmyth lifecycle gate? It adds a pre-commit hook that
+> blocks commits where the upstream lifecycle artifact is not ready (e.g. committing a Build
+> artifact without a ready Plan). Trivial commits are skipped automatically.
+> You can bypass it at any time with `git commit --no-verify`."
+
+If the user says yes:
+
+```bash
+chmod +x workflow/validators/hooks/pre-commit
+git config core.hooksPath workflow/validators/hooks
+```
+
+If the user says no, skip without comment. Do not install the hook silently.
+
+This is the final step.
 
 ## Stop Conditions
 

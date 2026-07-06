@@ -7,9 +7,19 @@ import {
   loadYaml,
   parseFrontmatter,
   readText,
+  repoRoot,
   schemaRegistry,
   validateSchema,
 } from './lib.mjs';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+const args = process.argv.slice(2);
+const dirArgIdx = args.indexOf('--dir');
+const wf = existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join('');
+
+// --dir <path> overrides the default artifacts root (used for fixture testing)
+const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];
 const details = [];
@@ -20,10 +30,15 @@ const frontmatterSchema = loadYaml('.workflow/schemas/artifact-frontmatter.schem
 const placeholderPattern = new RegExp(
   ['Placeholder for a later ' + 'phase', 'Do not treat this as final workflow ' + 'behavior'].join('|'),
 );
+// Matches <artifactsDir>/<subdir>/<file> — built dynamically so --dir works
+const artifactPathRe = new RegExp(`^${artifactsDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^/]+)/([^/]+)$`);
 
-const artifactFiles = listFiles('.workflow/artifacts').filter((file) => {
-  return file.endsWith('.md') && !file.endsWith('/README.md') && file !== '.workflow/artifacts/README.md';
+const artifactFiles = listFiles(artifactsDir).filter((file) => {
+  return file.endsWith('.md') && !file.endsWith('/README.md') && file !== `${artifactsDir}/README.md`;
 });
+
+// ── Per-artifact checks ────────────────────────────────────────────────────
+const parsedByFile = new Map();
 
 for (const file of artifactFiles) {
   const text = readText(file);
@@ -47,7 +62,7 @@ for (const file of artifactFiles) {
     continue;
   }
 
-  const [, dir, filename] = file.match(/^\.workflow\/artifacts\/([^/]+)\/([^/]+)$/) ?? [];
+  const [, dir, filename] = file.match(artifactPathRe) ?? [];
   const dirContract = contractsByDir.get(dir);
   if (!dirContract) {
     errors.push(`${file} is in unknown artifact directory ${dir}`);
@@ -78,6 +93,16 @@ for (const file of artifactFiles) {
   ) {
     errors.push(`${file} unblocked next_phase expected ${contract.nextPhase}`);
   }
+
+  // Ready-for-next-phase must not have unresolved blockers
+  if (
+    parsed.frontmatter.orchestration?.status === 'ready-for-next-phase' &&
+    (parsed.frontmatter.orchestration?.blockers ?? []).length > 0
+  ) {
+    const blockers = parsed.frontmatter.orchestration.blockers.join(', ');
+    errors.push(`${file} claims ready-for-next-phase but has unresolved blockers: ${blockers}`);
+  }
+
   const bodyHeadings = headings(parsed.body);
   for (const section of contract.requiredSections) {
     if (!bodyHeadings.includes(section)) {
@@ -86,10 +111,43 @@ for (const file of artifactFiles) {
   }
 
   details.push(`checked ${file}`);
+  parsedByFile.set(file, { parsed, dir, filename });
+}
+
+// ── Cross-artifact checks ──────────────────────────────────────────────────
+// Build brief manifest ID map: slug → Set<string> of declared IDs (e.g. R1, RI2)
+const briefManifestIds = new Map();
+for (const [file, { parsed, dir }] of parsedByFile) {
+  if (dir !== 'briefs') continue;
+  const slug = parsed.frontmatter.slug;
+  const manifestSection = parsed.body.match(/## Requirement Manifest[\s\S]*?(?=\n## |\n---|\s*$)/)?.[0] ?? '';
+  const ids = new Set();
+  for (const m of manifestSection.matchAll(/\*\*(R(?:I)?[0-9]+)\*\*/g)) ids.add(m[1]);
+  // Keep the latest-version brief per slug
+  const existing = briefManifestIds.get(slug);
+  if (!existing || (parsed.frontmatter.version ?? 0) > (existing.version ?? 0)) {
+    briefManifestIds.set(slug, { ids, version: parsed.frontmatter.version });
+  }
+}
+
+// Check task artifacts: every manifest_id must appear in the upstream brief
+for (const [file, { parsed, dir }] of parsedByFile) {
+  if (dir !== 'tasks') continue;
+  const slug = parsed.frontmatter.slug;
+  const briefEntry = briefManifestIds.get(slug);
+  if (!briefEntry) {
+    errors.push(`${file} has no corresponding brief in ${artifactsDir}/briefs/ — cannot validate manifest IDs`);
+    continue;
+  }
+  for (const id of (parsed.frontmatter.manifest_ids ?? [])) {
+    if (!briefEntry.ids.has(id)) {
+      errors.push(`${file} manifest_id ${id} is not declared in the upstream brief for slug "${slug}"`);
+    }
+  }
 }
 
 if (artifactFiles.length === 0) {
-  details.push('no lifecycle artifact files found under .workflow/artifacts');
+  details.push(`no lifecycle artifact files found under ${artifactsDir}`);
 }
 
 finish('check-artifacts', errors, details);

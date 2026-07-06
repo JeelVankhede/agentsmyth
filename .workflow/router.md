@@ -62,6 +62,22 @@ When classification is unclear, default to Standard.
 | Work completed or merged | Use Reflect if Ship allows it. |
 | Small read-only answer | Answer directly when no durable lifecycle state is needed. |
 
+## Pre-Action Gate
+
+Before any Build-, Review-, Test-, or Ship-owned file write, the agent must:
+
+1. **State phase and cite artifact path.** Name the current phase and the exact backing artifact path (e.g. `workflow/artifacts/plans/foo-v1.md`). Do not proceed without this.
+2. **Stop if the upstream is not ready.** If no artifact exists for the active slug, or the upstream artifact's `orchestration.status` is not `ready-for-next-phase`, stop and report the missing path. No proceeding with a caveat, no inference from earlier in the conversation.
+3. **Reject chat-only waivers.** If a waiver was stated in conversation but is not written into the artifact's `waivers` block with all required fields (`waived_gate_or_requirement_id`, `reason`, `residual_risk`, `owner`, `follow_up_action`, `approval_evidence`), the waiver does not exist. Do not act on it.
+
+Run the phase gate validator when workflow validators are available:
+
+```bash
+node workflow/validators/check-lifecycle.mjs --phase <current-phase> --slug <active-slug>
+```
+
+A non-zero exit is an unconditional stop — not a warning.
+
 ## Pause Conditions
 
 Pause or write a blocked artifact when:
