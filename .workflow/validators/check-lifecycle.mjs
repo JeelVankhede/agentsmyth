@@ -10,6 +10,7 @@ import {
   parseFrontmatter,
   readText,
   repoRoot,
+  trackedFiles,
 } from './lib.mjs';
 
 const args = process.argv.slice(2);
@@ -178,5 +179,35 @@ for (const contract of artifactContracts) {
 
 details.push('checked agent-behavior artifact chain');
 details.push('checked artifact-frontmatter schema enums');
+
+// ── RI1 — Artifact-location guard ─────────────────────────────────────────
+// Flags artifact-shaped files (*-v<N>.md with lifecycle frontmatter) that
+// have landed outside the expected workflow/artifacts/ tree.
+const artifactsRoot = `${wf}/artifacts`;
+const artifactSlugRe = /-v[0-9]+\.md$/;
+const strayFiles = trackedFiles().filter(f => {
+  if (!artifactSlugRe.test(f)) return false;
+  if (f.startsWith(artifactsRoot + '/')) return false;
+  // examples/ are worked consumer repos — they have their own workflow/artifacts/
+  if (f.startsWith('examples/')) return false;
+  // test fixtures are exempt
+  if (f.startsWith('test/fixtures/')) return false;
+  return true;
+});
+
+for (const f of strayFiles) {
+  // Only flag files that actually contain lifecycle artifact frontmatter
+  try {
+    const text = readText(f);
+    const parsed = parseFrontmatter(text, f);
+    if (parsed.frontmatter.artifact) {
+      errors.push(`RI1: artifact-shaped file outside ${artifactsRoot}/: ${f}`);
+    }
+  } catch { /* not parseable as frontmatter — not an artifact */ }
+}
+
+if (strayFiles.length === 0) {
+  details.push('RI1: no stray artifact files found outside artifacts tree');
+}
 
 finish('check-lifecycle', errors, details);
