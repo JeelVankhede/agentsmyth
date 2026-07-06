@@ -1,17 +1,139 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   artifactContracts,
   finish,
+  listFiles,
   loadYaml,
+  parseFrontmatter,
+  readText,
   repoRoot,
 } from './lib.mjs';
 
+const args = process.argv.slice(2);
+const phaseArgIdx = args.indexOf('--phase');
+const slugArgIdx = args.indexOf('--slug');
+const targetPhase = phaseArgIdx !== -1 ? args[phaseArgIdx + 1] : null;
+const targetSlug = slugArgIdx !== -1 ? args[slugArgIdx + 1] : null;
+
+const wf = existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join('');
+
+// ── Phase gate check (--phase mode) ───────────────────────────────────────
+// Checks that the required upstream artifact exists and is ready before the
+// named phase begins. Used by the consumer pre-commit hook.
+if (args.includes('--phase')) {
+  const errors = [];
+  const details = [];
+
+  // phase → { upstream artifact dir, accepted statuses }
+  const UPSTREAM = {
+    plan:    { dir: 'briefs',   ready: ['ready-for-next-phase'] },
+    build:   { dir: 'plans',    ready: ['ready-for-next-phase'] },
+    review:  { dir: 'tasks',    ready: ['ready-for-next-phase'] },
+    test:    { dir: 'reviews',  ready: ['ready-for-next-phase'] },
+    ship:    { dir: 'verify',   ready: ['ready-for-next-phase'] },
+    reflect: { dir: 'ship',     ready: ['ship', 'hold-with-waiver'] },
+  };
+
+  const validPhases = ['think', ...Object.keys(UPSTREAM)];
+
+  if (!validPhases.includes(targetPhase)) {
+    console.error(`check-lifecycle: unknown phase "${targetPhase}". Valid: ${validPhases.join(', ')}`);
+    process.exit(1);
+  }
+
+  // think has no upstream — always passes
+  if (targetPhase === 'think') {
+    finish('check-lifecycle --phase think', [], ['think: no upstream required']);
+    process.exit(0);
+  }
+
+  const upstream = UPSTREAM[targetPhase];
+
+  // Resolve slug — from arg or detected from staged artifact files
+  let slug = targetSlug;
+  if (!slug) {
+    let staged = [];
+    try {
+      staged = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACM'], {
+        cwd: repoRoot, encoding: 'utf8',
+      }).split('\n').filter(Boolean);
+    } catch { /* not in a git repo or no staged files */ }
+
+    const artifactRe = new RegExp(`^${wf}/artifacts/[^/]+/(.+)-v[0-9]+\\.md$`);
+    const slugsFound = new Set(
+      staged.flatMap(f => { const m = f.match(artifactRe); return m ? [m[1]] : []; })
+    );
+
+    if (slugsFound.size === 0) {
+      // No artifact files staged — Trivial commit, skip the gate
+      console.log('check-lifecycle: no lifecycle artifacts staged — skipping phase gate (trivial commit)');
+      process.exit(0);
+    }
+
+    if (slugsFound.size > 1) {
+      errors.push(`multiple slugs in staged artifacts: ${[...slugsFound].join(', ')} — use --slug <slug> to specify`);
+      finish(`check-lifecycle --phase ${targetPhase}`, errors, details);
+      process.exit(1);
+    }
+
+    slug = [...slugsFound][0];
+  }
+
+  const label = `check-lifecycle --phase ${targetPhase} --slug ${slug}`;
+
+  // Find the latest upstream artifact for this slug
+  const upstreamDir = `${wf}/artifacts/${upstream.dir}`;
+  const candidates = listFiles(upstreamDir)
+    .filter(f => new RegExp(`/${slug}-v[0-9]+\\.md$`).test(f))
+    .sort((a, b) => {
+      const va = parseInt(a.match(/-v([0-9]+)\.md$/)?.[1] ?? '0');
+      const vb = parseInt(b.match(/-v([0-9]+)\.md$/)?.[1] ?? '0');
+      return vb - va;
+    });
+
+  if (candidates.length === 0) {
+    errors.push(`${targetPhase}: no "${upstream.dir}" artifact found for slug "${slug}" — the upstream phase must complete before ${targetPhase} can begin`);
+    finish(label, errors, details);
+    process.exit(1);
+  }
+
+  const latestFile = candidates[0];
+
+  let parsed;
+  try {
+    parsed = parseFrontmatter(readText(latestFile), latestFile);
+  } catch (e) {
+    errors.push(`${latestFile}: ${e.message}`);
+    finish(label, errors, details);
+    process.exit(1);
+  }
+
+  const status = parsed.frontmatter.orchestration?.status ?? parsed.frontmatter.status;
+
+  if (!upstream.ready.includes(status)) {
+    const blockers = parsed.frontmatter.orchestration?.blockers ?? [];
+    const blockerNote = blockers.length > 0 ? ` — blockers: ${blockers.join(', ')}` : '';
+    errors.push(
+      `${targetPhase}: upstream ${latestFile} has status "${status}"${blockerNote}` +
+      ` (need ${upstream.ready.join(' or ')} before ${targetPhase} can proceed)`
+    );
+  } else {
+    details.push(`${targetPhase}: ${latestFile} → ${status} ✓`);
+  }
+
+  finish(label, errors, details);
+  process.exit(0);
+}
+
+// ── Static contract check (original behavior) ─────────────────────────────
+// Validates that agent-behavior.yaml artifact chain matches lib.mjs contracts
+// and that the artifact-frontmatter schema enums are consistent.
 const errors = [];
 const details = [];
 
-const wf = existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join('');
 const behavior = loadYaml(`${wf}/config/agent-behavior.yaml`);
 const chain = behavior.lifecycle?.artifact_chain ?? [];
 
@@ -35,7 +157,6 @@ artifactContracts.forEach((contract, index) => {
   if (item.path !== expectedPath) {
     errors.push(`artifact_chain[${index}].path expected ${expectedPath}, got ${item.path}`);
   }
-
 });
 
 const frontmatterSchema = loadYaml(`${wf}/schemas/artifact-frontmatter.schema.yaml`);

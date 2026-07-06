@@ -29,6 +29,7 @@ Always load:
 
 Load on demand:
 
+- `references/exemplar.md` — before finalizing output, to validate paused/advanced/complete state format.
 - `.workflow/config/domain.yaml` when domain rules, terminology, risks, or constraints affect the request.
 - `.workflow/config/repo-profile.yaml` when repo structure, branch policy, public contracts, generated output, or protected paths matter.
 - `.workflow/config/source-of-truth.yaml` when requirements, external tracking, release handoff, or source updates are involved.
