@@ -2,11 +2,11 @@
 import { readFileSync } from 'node:fs';
 
 const adapters = [
-  'adapters/claude/CLAUDE.md',
-  'adapters/codex/AGENTS.md',
-  'adapters/copilot/copilot-instructions.md',
-  'adapters/cursor/rules/index.mdc',
-  'adapters/windsurf/.windsurfrules',
+  'src/adapters/claude/CLAUDE.md',
+  'src/adapters/codex/AGENTS.md',
+  'src/adapters/copilot/copilot-instructions.md',
+  'src/adapters/cursor/rules/index.mdc',
+  'src/adapters/windsurf/.windsurfrules',
 ];
 
 const errors = [];

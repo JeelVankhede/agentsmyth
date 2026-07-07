@@ -24,7 +24,7 @@ and the engineers who direct them.
 Higher overrides lower. When a higher source is silent, fall to the next — never invent state.
 
 1. The current user request and any answer the user gives to a blocker.
-2. `.workflow/` — canonical workflow rules, lifecycle order, phase contracts, config.
+2. `src/workflow/` — canonical workflow rules, lifecycle order, phase contracts, config.
 3. `AGENTS.md` — the agent router for this repo (source priority + context-load order).
 4. This file (`docs/knowledge-map/repo-mental-map.md`) — repo orientation.
 5. Repository code and existing lifecycle artifacts for the active slug.
@@ -38,20 +38,24 @@ planning history is not retained in the repo.
 
 | Path | What lives here |
 |---|---|
-| `.workflow/` | **Source** workflow tree (dotted). Compiled into the shipped bundle. |
-| `.workflow/router.md` / `lifecycle.md` / `rules.md` / `glossary.md` | Orchestration core |
-| `.workflow/skills/lifecycle-*/` | 7 phase skills — `SKILL.md` + granular `references/*.md` |
-| `.workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
-| `.workflow/config/` | This repo's own config (agent-behavior is a shipped invariant) |
-| `.workflow/schemas/` | YAML-schema contracts for configs and artifacts |
-| `.workflow/validators/` | Source validators; `lib.mjs` holds the YAML parser + schema engine |
-| `.workflow/artifacts/` | This repo's own lifecycle artifacts (dogfooding) |
-| `setup/` | One-time porting skill run in the consumer repo; **not** shipped to it as a phase |
-| `scripts/build-bundle.mjs` | Compiles `.workflow/` + `setup/` → `dist/` bundles |
+| `src/workflow/` | **Source** workflow tree — compiled into the shipped bundle |
+| `src/workflow/router.md` / `lifecycle.md` / `rules.md` / `glossary.md` | Orchestration core |
+| `src/workflow/skills/lifecycle-*/` | 7 phase skills — `SKILL.md` + granular `references/*.md` |
+| `src/workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
+| `src/workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, artifact chain, evidence policy, waivers |
+| `src/workflow/schemas/` | YAML-schema contracts for configs and artifacts (source of truth) |
+| `src/workflow/validators/` | Source validators; `lib.mjs` holds the YAML parser + schema engine |
+| `src/setup/` | One-time porting skill run in the consumer repo; not a phase itself |
+| `src/adapters/` | Five tool gate shims (source of truth for the mandatory gate) |
+| `src/assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
+| `scripts/build-bundle.mjs` | Compiles `src/workflow/` + `src/setup/` → `dist/` bundles |
 | `bin/agentsmyth.mjs` | The `init` CLI — copies payload into `.agentsmyth/`, nothing more |
-| `adapters/` | Five tool gate shims (source of truth for the mandatory gate) |
-| `assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
+| `workflow/config/` | This repo's own per-repo lifecycle config (not shipped) |
+| `workflow/artifacts/` | This repo's dogfood lifecycle artifacts (not shipped) |
+| `workflow/learnings/` | Curated retros and session notes (not shipped) |
+| `workflow/schemas/` | Build-synced schema copy for dev validator use (gitignored) |
 | `dist/`, `validators/` (root) | **Generated** build output (gitignored) |
+| `src/assets/adapters/` | **Generated** adapter copy (gitignored) — source is `src/adapters/` |
 | `examples/` | Three worked consumer repos, verified by `validate-example.mjs` |
 | `docs/` | `overview.md` + `knowledge-map/` — living orientation only |
 
@@ -59,12 +63,12 @@ planning history is not retained in the repo.
 
 ## Protected Paths
 
-- `.workflow/config/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
+- `src/workflow/config/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
   chain, evidence policy, waiver schema). Changing it changes every consumer's contract.
   Requires explicit discussion.
-- `validators/lib.mjs:9` — the source/shipped world-detection line. The dotted string is
-  deliberately constructed so consumer copies stay clean. Do not hardcode `.workflow`.
-- `.workflow/schemas/` — schema contracts. Editing one can invalidate existing artifacts.
+- `src/workflow/validators/lib.mjs` — the source/shipped world-detection line. The dotted
+  string is deliberately constructed so consumer copies stay clean. Do not hardcode `.workflow`.
+- `src/workflow/schemas/` — schema contracts. Editing one can invalidate existing artifacts.
 
 ---
 
@@ -77,11 +81,15 @@ npm run build
 # full validation (template + examples + adapter render check)
 npm run validate
 
-# individual dev validators
-node .workflow/validators/check-starter-blocks.mjs
-node .workflow/validators/check-lifecycle.mjs
-node .workflow/validators/check-artifacts.mjs
-node .workflow/validators/check-domain-placeholders.mjs
+# negative test suite — each fixture must be rejected by check-artifacts
+npm run violations:test
+
+# individual dev validators (AGENTSMYTH_WF=src/workflow points them at source)
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-starter-blocks.mjs
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-lifecycle.mjs   # --phase <name> --slug <slug> for gate check
+node src/workflow/validators/check-artifacts.mjs                               # checks workflow/artifacts/ by default
+node src/workflow/validators/check-artifacts.mjs --dir <path>                  # custom artifacts dir (fixture testing)
+node src/workflow/validators/check-domain-placeholders.mjs
 ```
 
 There is no unit-test suite; validators are the automated contract layer. Behavioral
@@ -91,14 +99,15 @@ confidence comes from the smoke test (`npx . init` in a clean temp repo) and man
 
 ## Planning Rules
 
-- **Never edit generated output.** `dist/`, root `validators/`, and `assets/adapters/` are
-  build products. Edit source (`.workflow/`, `setup/`, `adapters/`, `scripts/`), then rebuild.
-- **Rebuild after source changes.** Any `.workflow/`, `setup/`, or `adapters/` edit must be
-  followed by `npm run build` or the shipped bundle drifts from source.
+- **Never edit generated output.** `dist/`, root `validators/`, `src/assets/adapters/`, and
+  `workflow/schemas/` are build products. Edit source (`src/workflow/`, `src/setup/`,
+  `src/adapters/`, `scripts/`), then rebuild.
+- **Rebuild after source changes.** Any `src/workflow/`, `src/setup/`, or `src/adapters/`
+  edit must be followed by `npm run build` or the shipped bundle drifts from source.
 - **Keep all five adapters in sync.** The mandatory-gate content is identical across them.
 - **Branch for planned changes.** Do not commit to `main` without approval. Push only when asked.
 - **Dogfood the lifecycle.** Standard/Complex work goes through `AGENTS.md` →
-  `.workflow/router.md` with artifacts under `.workflow/artifacts/`.
+  `src/workflow/router.md` with artifacts under `workflow/artifacts/`.
 
 ---
 
@@ -112,5 +121,6 @@ confidence comes from the smoke test (`npx . init` in a clean temp repo) and man
   do not assume the gate is unskippable today.
 - **Not a scaffolder (yet).** agentsmyth installs a workflow into an existing repo. Public
   starter bootstrapping (fare/bare) is a deferred roadmap item, not current behavior.
-- **Source vs. shipped confusion is the top failure mode.** Always confirm whether you are in
-  the dotted (`.workflow/`) source world or the undotted (`workflow/`) consumer world.
+- **Source vs. workspace confusion is the top failure mode.** Source lives in `src/`; dev
+  workspace lives in `workflow/` at repo root. Never write workflow phase artifacts into
+  `src/workflow/` — that would ship them to consumers.

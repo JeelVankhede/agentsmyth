@@ -24,3 +24,6 @@ jobs:
 
       - name: Validate examples
         run: node scripts/validate-example.mjs
+
+      - name: Run violation tests
+        run: npm run violations:test

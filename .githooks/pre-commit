@@ -1,16 +1,16 @@
 #!/bin/sh
 # agentsmyth dev pre-commit gate.
 # Runs the read-only contract validators before every commit so drift between
-# source (.workflow/) and the shipped contract is caught at commit time, not in CI.
+# source (src/) and the shipped contract is caught at commit time, not in CI.
 #
 # Enable with:  npm run hooks:install
 # Bypass once:  git commit --no-verify   (use only when you know why)
 
 set -e
 
-# Only gate commits that touch workflow source, setup, adapters, scripts, or schemas.
+# Only gate commits that touch workflow source, setup, adapters, scripts, or examples.
 CHANGED=$(git diff --cached --name-only --diff-filter=ACM)
-if ! printf '%s\n' "$CHANGED" | grep -qE '^(\.workflow/|setup/|adapters/|scripts/|examples/)'; then
+if ! printf '%s\n' "$CHANGED" | grep -qE '^(src/|scripts/|examples/)'; then
   exit 0
 fi
 
@@ -18,5 +18,5 @@ echo "agentsmyth pre-commit: validating workflow contract..."
 node scripts/validate-template.mjs
 node scripts/validate-example.mjs
 
-echo "agentsmyth pre-commit: reminder — if you changed .workflow/, setup/, or adapters/,"
-echo "run 'npm run build' so dist/ and assets/ stay in sync before pushing."
+echo "agentsmyth pre-commit: reminder — if you changed src/workflow/, src/setup/, or src/adapters/,"
+echo "run 'npm run build' so dist/ and generated assets stay in sync before pushing."
