@@ -41,6 +41,9 @@ properties:
         type: string
       learnings_sessions_root:
         type: string
+      definitions_root:
+        type: string
+        description: Absolute path to the global agentsmyth definitions tree (e.g. ~/.agentsmyth/workflow). When present, skills/schemas/validators are loaded from here instead of the repo-local workflow/ directory.
   branch_policy:
     type: object
     additionalProperties: false

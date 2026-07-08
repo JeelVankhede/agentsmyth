@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 
 export const repoRoot = process.cwd();
 
@@ -10,6 +11,42 @@ export const repoRoot = process.cwd();
 const _wf = process.env.AGENTSMYTH_WF
   || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 
+// ── Two-root resolver ──────────────────────────────────────────────────────
+// Reads definitions_root from repo-profile.yaml using a simple regex — no YAML
+// parser dependency here since the parser is defined later in this file.
+function _readDefinitionsRoot() {
+  const p = join(repoRoot, 'workflow', 'config', 'repo-profile.yaml');
+  if (!existsSync(p)) return null;
+  try {
+    const m = readFileSync(p, 'utf8').match(/^\s*definitions_root:\s*(.+)$/m);
+    return m ? m[1].trim() : null;
+  } catch { return null; }
+}
+
+function _expandTilde(p) {
+  if (typeof p === 'string' && p.startsWith('~/')) return join(homedir(), p.slice(2));
+  return p ?? null;
+}
+
+// defsRoot: where skills, schemas, validators, and agent-behavior.yaml live.
+// dataRoot: where config (user-filled), artifacts, and learnings live (always repo-local).
+// Backward-compat theorem: no definitions_root + no AGENTSMYTH_HOME → defsRoot === dataRoot.
+const _defsRoot = _expandTilde(_readDefinitionsRoot())
+  ?? (process.env.AGENTSMYTH_HOME ? _expandTilde(process.env.AGENTSMYTH_HOME) : null)
+  ?? join(repoRoot, _wf);
+const _dataRoot = join(repoRoot, _wf);
+
+// Guard: if a non-default definitions root was explicitly requested but does not exist,
+// exit cleanly rather than producing an opaque ENOENT stack trace (satisfies RI1).
+if (_defsRoot !== join(repoRoot, _wf) && !existsSync(_defsRoot)) {
+  console.error(`agentsmyth: global definitions root not found: ${_defsRoot}`);
+  console.error('Run "agentsmyth init --system" to install the global definitions.');
+  process.exit(1);
+}
+
+export function defsPath(...parts) { return join(_defsRoot, ...parts); }
+export function dataPath(...parts) { return join(_dataRoot, ...parts); }
+
 export const artifactContracts = [
   {
     artifact: 'brief',
@@ -17,7 +54,7 @@ export const artifactContracts = [
     phase: 'think',
     nextPhase: 'plan',
     role: 'Architect',
-    starterBlock: `${_wf}/skills/lifecycle-think/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-think', 'references', 'output-schema.md'),
     requiredSections: [
       'Source Links',
       'Problem',
@@ -34,7 +71,7 @@ export const artifactContracts = [
     phase: 'plan',
     nextPhase: 'build',
     role: 'Principal Engineer',
-    starterBlock: `${_wf}/skills/lifecycle-plan/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-plan', 'references', 'output-schema.md'),
     requiredSections: [
       'Summary',
       'Requirement Coverage',
@@ -51,7 +88,7 @@ export const artifactContracts = [
     phase: 'build',
     nextPhase: 'review',
     role: 'Senior Engineer',
-    starterBlock: `${_wf}/skills/lifecycle-build/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-build', 'references', 'output-schema.md'),
     requiredSections: [
       'Active Phase',
       'Branch / Repo Status',
@@ -68,7 +105,7 @@ export const artifactContracts = [
     phase: 'review',
     nextPhase: 'test',
     role: 'Staff Reviewer',
-    starterBlock: `${_wf}/skills/lifecycle-review/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-review', 'references', 'output-schema.md'),
     requiredSections: [
       'Findings',
       'Severity Summary',
@@ -85,7 +122,7 @@ export const artifactContracts = [
     phase: 'test',
     nextPhase: 'ship',
     role: 'Senior QA',
-    starterBlock: `${_wf}/skills/lifecycle-test/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-test', 'references', 'output-schema.md'),
     requiredSections: [
       'Inputs',
       'Automated Checks',
@@ -103,7 +140,7 @@ export const artifactContracts = [
     phase: 'ship',
     nextPhase: 'reflect',
     role: 'Senior DevOps',
-    starterBlock: `${_wf}/skills/lifecycle-ship/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-ship', 'references', 'output-schema.md'),
     requiredSections: [
       'Ship Status',
       'Requirement Coverage',
@@ -122,7 +159,7 @@ export const artifactContracts = [
     phase: 'reflect',
     nextPhase: 'done',
     role: 'Project Manager',
-    starterBlock: `${_wf}/skills/lifecycle-reflect/references/output-schema.md`,
+    starterBlock: defsPath('skills', 'lifecycle-reflect', 'references', 'output-schema.md'),
     requiredSections: [
       'Outcome',
       'What Worked',
@@ -142,11 +179,13 @@ export function repoPath(...parts) {
 }
 
 export function readText(pathFromRoot) {
-  return readFileSync(repoPath(pathFromRoot), 'utf8');
+  const abs = isAbsolute(pathFromRoot) ? pathFromRoot : repoPath(pathFromRoot);
+  return readFileSync(abs, 'utf8');
 }
 
 export function pathExists(pathFromRoot) {
-  return existsSync(repoPath(pathFromRoot));
+  const abs = isAbsolute(pathFromRoot) ? pathFromRoot : repoPath(pathFromRoot);
+  return existsSync(abs);
 }
 
 export function relPath(absPath) {
@@ -154,7 +193,7 @@ export function relPath(absPath) {
 }
 
 export function listFiles(pathFromRoot) {
-  const root = repoPath(pathFromRoot);
+  const root = isAbsolute(pathFromRoot) ? pathFromRoot : repoPath(pathFromRoot);
   if (!existsSync(root)) return [];
   const out = [];
 
@@ -610,7 +649,7 @@ function isPlainObject(value) {
 
 export function schemaRegistry() {
   const registry = {};
-  for (const file of listFiles(`${_wf}/schemas`).filter((file) => file.endsWith('.yaml'))) {
+  for (const file of listFiles(defsPath('schemas')).filter((file) => file.endsWith('.yaml'))) {
     const schema = loadYaml(file);
     if (schema.$id) {
       registry[schema.$id] = schema;

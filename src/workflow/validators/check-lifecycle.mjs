@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   artifactContracts,
+  defsPath,
   finish,
   listFiles,
   loadYaml,
@@ -136,7 +137,7 @@ if (args.includes('--phase')) {
 const errors = [];
 const details = [];
 
-const behavior = loadYaml(`${wf}/agent-behavior.yaml`);
+const behavior = loadYaml(defsPath('agent-behavior.yaml'));
 const chain = behavior.lifecycle?.artifact_chain ?? [];
 
 if (chain.length !== artifactContracts.length) {
@@ -163,7 +164,7 @@ artifactContracts.forEach((contract, index) => {
   }
 });
 
-const frontmatterSchema = loadYaml(`${wf}/schemas/artifact-frontmatter.schema.yaml`);
+const frontmatterSchema = loadYaml(defsPath('schemas', 'artifact-frontmatter.schema.yaml'));
 const artifactEnum = frontmatterSchema.properties?.artifact?.enum ?? [];
 const phaseEnum = frontmatterSchema.properties?.orchestration?.properties?.phase?.enum ?? [];
 const nextPhaseEnum = frontmatterSchema.properties?.orchestration?.properties?.next_phase?.enum ?? [];

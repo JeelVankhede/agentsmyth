@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {
   artifactContracts,
+  defsPath,
   finish,
   headings,
   listFiles,
@@ -27,7 +28,7 @@ const details = [];
 const contractsByArtifact = new Map(artifactContracts.map((contract) => [contract.artifact, contract]));
 const contractsByDir = new Map(artifactContracts.map((contract) => [contract.dir, contract]));
 const schemas = schemaRegistry();
-const frontmatterSchema = loadYaml(`${wf}/schemas/artifact-frontmatter.schema.yaml`);
+const frontmatterSchema = loadYaml(defsPath('schemas', 'artifact-frontmatter.schema.yaml'));
 const placeholderPattern = new RegExp(
   ['Placeholder for a later ' + 'phase', 'Do not treat this as final workflow ' + 'behavior'].join('|'),
 );
