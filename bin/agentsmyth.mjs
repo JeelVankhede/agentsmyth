@@ -25,6 +25,21 @@ if (!command || command === 'help') {
 // binary is not on PATH (common when installed via npm without global linking).
 
 if (command === 'check') {
+  // Headless bootstrap: if workflow/config/repo-profile.yaml is absent, write stub configs
+  // and a pending-setup.yaml listing what the agent needs to fill in.
+  const profilePath = join(cwd, 'workflow', 'config', 'repo-profile.yaml');
+  if (!existsSync(profilePath)) {
+    const branch = headlessBootstrap(cwd, pkgRoot);
+    console.log('');
+    console.log('agentsmyth: workflow/config/ was absent — bootstrapped stub configs.');
+    if (branch !== '<USER-TODO>') console.log(`  inferred default_branch: ${branch}`);
+    console.log('  remaining gaps → workflow/config/pending-setup.yaml');
+    console.log('');
+    console.log('Run the agentsmyth setup skill to fill in the details, then re-run check.');
+    console.log('');
+    process.exit(0);
+  }
+
   // Resolve the validator path via the installed package's lib.mjs resolver
   const validatorsDir = join(pkgRoot, 'src', 'workflow', 'validators');
   const validatorPath = join(validatorsDir, 'check-lifecycle.mjs');
@@ -57,6 +72,66 @@ if (command !== 'init') {
 }
 
 // ─── shared helpers ────────────────────────────────────────────────────────
+
+// Writes stub config files + pending-setup.yaml when workflow/config/ is absent.
+// Infers what it can (default branch); marks the rest <USER-TODO> in pending-setup.yaml.
+// Never overwrites existing files. Returns the inferred default branch string.
+function headlessBootstrap(repoDir, pkgRootDir) {
+  const configDir = join(repoDir, 'workflow', 'config');
+  mkdirSync(configDir, { recursive: true });
+
+  let defaultBranch = '<USER-TODO>';
+  try {
+    const ref = execFileSync('git', ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    defaultBranch = ref.replace(/^origin\//, '') || defaultBranch;
+  } catch {
+    try {
+      const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+        cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+      if (branch && branch !== 'HEAD') defaultBranch = branch;
+    } catch { /* leave as USER-TODO */ }
+  }
+
+  const templateDir = join(pkgRootDir, 'src', 'assets', 'workflow', 'config');
+  for (const name of ['domain.yaml', 'release.yaml', 'repo-profile.yaml', 'source-of-truth.yaml', 'verification.yaml']) {
+    const dest = join(configDir, name);
+    if (existsSync(dest)) continue;
+    let content = readFileSync(join(templateDir, name), 'utf8');
+    if (name === 'repo-profile.yaml') {
+      content = content.replace('default_branch: <PLACEHOLDER>', `default_branch: ${defaultBranch}`);
+    }
+    writeFileSync(dest, content);
+  }
+
+  const pendingPath = join(configDir, 'pending-setup.yaml');
+  if (!existsSync(pendingPath)) {
+    const branchItem = defaultBranch === '<USER-TODO>' ? [
+      `  - id: PS-4`,
+      `    config: repo-profile.yaml`,
+      `    field: "repository.default_branch"`,
+      `    question: "What is the default branch name for this repo (e.g. main, master)?"`,
+      `    hint: "Run: git symbolic-ref refs/remotes/origin/HEAD"`,
+      `    status: open`,
+    ].join('\n') : null;
+    const items = [
+      [`  - id: PS-1`, `    config: domain.yaml`, `    field: "domain.name"`, `    question: "What is the name of the domain or product this repo serves?"`, `    hint: "Check README.md or package.json description"`, `    status: open`].join('\n'),
+      [`  - id: PS-2`, `    config: domain.yaml`, `    field: "domain.summary"`, `    question: "Describe the domain in one sentence for lifecycle artifacts."`, `    hint: "Check README.md"`, `    status: open`].join('\n'),
+      [`  - id: PS-3`, `    config: verification.yaml`, `    field: "commands[0].run"`, `    question: "What command confirms the repo is healthy (build, test, lint)?"`, `    hint: "Check Makefile, package.json scripts, or CI config"`, `    status: open`].join('\n'),
+      ...(branchItem ? [branchItem] : []),
+    ];
+    writeFileSync(pendingPath,
+      `version: 1\nkind: pending-setup\n\n` +
+      `# Written by agentsmyth headless bootstrap.\n` +
+      `# Run the agentsmyth setup skill to resolve these items.\n` +
+      `items:\n${items.join('\n')}\n`
+    );
+  }
+
+  return defaultBranch;
+}
 
 function copyRecursive(src, dest) {
   mkdirSync(dest, { recursive: true });
