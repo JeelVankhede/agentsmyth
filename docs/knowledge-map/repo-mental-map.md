@@ -86,7 +86,7 @@ npm run violations:test
 
 # individual dev validators (AGENTSMYTH_WF=src/workflow points them at source)
 AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-starter-blocks.mjs
-AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-lifecycle.mjs   # --phase <name> --slug <slug> for gate check
+AGENTSMYTH_WF=src/workflow agentsmyth check --phase <name> --slug <slug>      # lifecycle phase gate (resolves via two-root resolver)
 node src/workflow/validators/check-artifacts.mjs                               # checks workflow/artifacts/ by default
 node src/workflow/validators/check-artifacts.mjs --dir <path>                  # custom artifacts dir (fixture testing)
 node src/workflow/validators/check-domain-placeholders.mjs

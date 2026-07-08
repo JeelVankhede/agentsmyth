@@ -73,7 +73,7 @@ Before any Build-, Review-, Test-, or Ship-owned file write, the agent must:
 Run the phase gate validator when workflow validators are available:
 
 ```bash
-node workflow/validators/check-lifecycle.mjs --phase <current-phase> --slug <active-slug>
+agentsmyth check --phase <current-phase> --slug <active-slug>
 ```
 
 A non-zero exit is an unconditional stop — not a warning.

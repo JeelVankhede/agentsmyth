@@ -94,7 +94,7 @@ If Review is missing or blocked, Test may proceed only when the artifact records
 
 Stop and ask, or return a blocked verify artifact, when any of these apply:
 
-- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase test --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
+- Phase gate check exits non-zero: run `agentsmyth check --phase test --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - Brief, plan, or task artifact is missing.
 - No completed or explicitly blocked Build phase exists to verify.
 - The plan verification rows are empty, vague, or not mapped to active manifest IDs.

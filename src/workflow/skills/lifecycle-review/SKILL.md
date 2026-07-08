@@ -92,7 +92,7 @@ Review may proceed on a blocked Build only when the review target is clear and t
 
 Stop and ask, or return a blocked review artifact, when any of these apply:
 
-- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase review --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
+- Phase gate check exits non-zero: run `agentsmyth check --phase review --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - Requirement scope cannot be reconstructed from brief, plan, or task artifacts.
 - There is no diff, changed-file list, commit range, branch, PR, or task evidence to review.
 - The user asks for a pass/merge recommendation without evidence.

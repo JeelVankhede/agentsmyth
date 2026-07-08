@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +12,40 @@ if (!command || command === 'help') {
   console.log('Usage: agentsmyth <command>');
   console.log('');
   console.log('Commands:');
-  console.log('  init    Set up the agentsmyth workflow in the current repository');
+  console.log('  init     Set up the agentsmyth workflow in the current repository');
+  console.log('  check    Run the lifecycle phase gate validator');
+  console.log('  doctor   Diagnose agentsmyth installation (not yet implemented)');
+  process.exit(0);
+}
+
+// ─── check ─────────────────────────────────────────────────────────────────
+// Resolves the check-lifecycle validator via the two-root resolver in lib.mjs,
+// forwarding all args and propagating the exit code. Falls back to npx if the
+// binary is not on PATH (common when installed via npm without global linking).
+
+if (command === 'check') {
+  // Resolve the validator path via the installed package's lib.mjs resolver
+  const validatorsDir = join(pkgRoot, 'src', 'workflow', 'validators');
+  const validatorPath = join(validatorsDir, 'check-lifecycle.mjs');
+
+  // If running from a global install, the validator lives at pkgRoot; fall back
+  // to the local workflow/validators/ if check-lifecycle.mjs was placed there.
+  const localValidator = join(cwd, 'workflow', 'validators', 'check-lifecycle.mjs');
+  const resolvedValidator = existsSync(validatorPath) ? validatorPath : localValidator;
+
+  const args = process.argv.slice(3);
+  try {
+    execFileSync(process.execPath, [resolvedValidator, ...args], { stdio: 'inherit', cwd });
+  } catch (e) {
+    process.exit(e.status ?? 1);
+  }
+  process.exit(0);
+}
+
+// ─── doctor ────────────────────────────────────────────────────────────────
+
+if (command === 'doctor') {
+  console.log('agentsmyth doctor: not yet implemented');
   process.exit(0);
 }
 

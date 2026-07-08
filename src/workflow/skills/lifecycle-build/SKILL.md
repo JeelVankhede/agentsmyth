@@ -93,7 +93,7 @@ For resumed Build work, load the existing task artifact before editing. Continue
 
 Stop and ask, or return a blocked task artifact, when any of these apply:
 
-- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase build --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
+- Phase gate check exits non-zero: run `agentsmyth check --phase build --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - The brief or plan is missing, unapproved, or has unresolved blocking `Q` IDs.
 - The active plan phase has no manifest IDs, no touches, or no binary exit gate.
 - A previous phase is incomplete and the plan does not explicitly allow parallel Build.
