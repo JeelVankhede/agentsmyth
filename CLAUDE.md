@@ -21,27 +21,32 @@ validator, and all validators are hand-written Node ESM. Keep it that way (see R
 
 ---
 
-## The one model you must hold: source vs. workspace
+## The one model you must hold: source vs. workspace vs. global
 
-Everything hinges on a two-world split. Get this wrong and you will edit the wrong file.
+Everything hinges on a three-world split. Get this wrong and you will edit the wrong file.
 
-| | **Source (`src/`)** | **Dev workspace (`workflow/`)** | **Shipped (consumer repo)** |
-|---|---|---|---|
-| Workflow skills/schemas/validators | `src/workflow/` | — | `workflow/` (expanded from bundle) |
-| Adapters | `src/adapters/` | — | placed at tool-native path |
-| Static assets | `src/assets/` | — | `.agentsmyth/assets/` |
-| Setup skill | `src/setup/` | — | `.agentsmyth/` (then deleted) |
-| Behavior config | `src/workflow/agent-behavior.yaml` | — | `workflow/agent-behavior.yaml` |
-| Per-repo config | — | `workflow/config/` (domain, repo-profile…) | `workflow/config/` (agent-filled) |
-| Artifacts | — | `workflow/artifacts/` | `workflow/artifacts/` |
-| Learnings | — | `workflow/learnings/` | — |
+| | **Source (`src/`)** | **Dev workspace (`workflow/`)** | **Shipped (consumer repo)** | **Global install (`~/.agentsmyth/`)** |
+|---|---|---|---|---|
+| Workflow skills/schemas/validators | `src/workflow/` | — | `workflow/` (expanded from bundle) | `~/.agentsmyth/workflow/` (same bundle, expanded by `--system`) |
+| Adapters (per-repo) | `src/adapters/` | — | placed at tool-native path | — |
+| Adapters (global gate) | `src/adapters/*/global-gate.md` | — | — | installed to tool-native global path by `--system` |
+| Static assets | `src/assets/` | — | `.agentsmyth/assets/` | — |
+| Setup skill | `src/setup/` | — | `.agentsmyth/` (then deleted) | — |
+| Behavior config | `src/workflow/agent-behavior.yaml` | — | `workflow/agent-behavior.yaml` | `~/.agentsmyth/workflow/agent-behavior.yaml` |
+| Per-repo config | — | `workflow/config/` (domain, repo-profile…) | `workflow/config/` (agent-filled) | — (always repo-local) |
+| Artifacts | — | `workflow/artifacts/` | `workflow/artifacts/` | — |
+| Learnings | — | `workflow/learnings/` | — | — |
 
 - `scripts/build-bundle.mjs` compiles `src/workflow/` → `dist/workflow-bundle.md` (FILE-marker
   blocks the agent expands) and `src/setup/` → `dist/setup-bundle.md`. Also syncs
   `src/workflow/schemas/` → `workflow/schemas/` so dev-workspace validators can find them.
 - `bin/agentsmyth.mjs` copies `dist/` + `src/assets/` + `validators/` into the consumer's
   `.agentsmyth/`, then the **agent** does all real setup work (see `src/setup/SKILL.md`).
-- `src/workflow/validators/lib.mjs` auto-detects which world it runs in. The dotted string is
+  With `--system`, it expands `dist/workflow-bundle.md` → `~/.agentsmyth/workflow/`, installs
+  global gate files into each AI tool's global config, and writes `definitions_root` into
+  `workflow/config/repo-profile.yaml`.
+- `src/workflow/validators/lib.mjs` uses a two-root resolver: `definitions_root` in
+  `repo-profile.yaml` → `AGENTSMYTH_HOME` env → repo-local fallback. The dotted string is
   *constructed* (`['.','workflow'].join('')`) so the consumer copy never contains a literal
   `.workflow` reference. Preserve that trick if you touch it.
 - Build scripts pass `AGENTSMYTH_WF=src/workflow` when running source-level validators so they

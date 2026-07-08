@@ -252,6 +252,19 @@ If the user says no, skip without comment. Do not install the hook silently.
 
 This is the final step.
 
+## System-Level Install Note
+
+`agentsmyth init --system` is a separate machine-wide install that a developer runs once
+(not per-repo). It expands the workflow definitions to `~/.agentsmyth/workflow/` and
+installs global gate files into each AI tool's global config path. When a repo's
+`workflow/config/repo-profile.yaml` contains `definitions_root: ~/.agentsmyth/workflow`,
+validators resolve skills and schemas from the global location instead of the per-repo
+`workflow/` directory.
+
+This skill (per-repo setup) is independent of the system install. You do not need to run
+`init --system` as part of setup, and you do not need to set `definitions_root` unless the
+user specifically asks for the system-level install flow.
+
 ## Stop Conditions
 
 Stop and ask when:
