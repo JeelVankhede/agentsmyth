@@ -8,7 +8,7 @@ alwaysApply: true
 
 > **Domain:** {{DOMAIN_NAME}} | {{REPO_PURPOSE}}
 
-Read `workflow/router.md` before any task. Load `workflow/config/agent-behavior.yaml`.
+Read `workflow/router.md` before any task. Load `workflow/agent-behavior.yaml`.
 
 Default branch: `{{DEFAULT_BRANCH}}` | {{BRANCH_POLICY}}
 

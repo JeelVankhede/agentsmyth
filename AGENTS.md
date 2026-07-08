@@ -7,7 +7,7 @@ repos receive a compiled `workflow/` install from the bundle — they do not hav
 When working in this repository:
 
 1. Read `src/workflow/router.md` first.
-2. Load `src/workflow/config/agent-behavior.yaml`.
+2. Load `src/workflow/agent-behavior.yaml`.
 3. Select the lifecycle phase from `src/workflow/lifecycle.md`.
 4. Use the matching skill under `src/workflow/skills/`.
 5. Write durable artifacts under `workflow/artifacts/` for Standard or Complex work.
@@ -34,7 +34,7 @@ Always load before lifecycle work:
 
 1. This file (`AGENTS.md`).
 2. `src/workflow/router.md`.
-3. `src/workflow/config/agent-behavior.yaml`.
+3. `src/workflow/agent-behavior.yaml`.
 
 Load on demand:
 

@@ -30,14 +30,14 @@ the task.
 
 - User request.
 - Existing slug/version or artifact path, if provided.
-- `workflow/config/agent-behavior.yaml`.
+- `workflow/agent-behavior.yaml`.
 - Existing artifacts under `workflow/artifacts/**`.
 - Current git branch and dirty state.
 - Source, verification, release, or domain config when relevant.
 
 ## Task Classes
 
-Classify every request before routing. Full definitions and skip rules are in `workflow/config/agent-behavior.yaml`.
+Classify every request before routing. Full definitions and skip rules are in `workflow/agent-behavior.yaml`.
 
 | Class | Signals | Lifecycle |
 |---|---|---|

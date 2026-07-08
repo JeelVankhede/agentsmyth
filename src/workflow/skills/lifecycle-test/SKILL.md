@@ -73,7 +73,7 @@ If Review is missing or blocked, Test may proceed only when the artifact records
 - `references/generated-output-verification.md` — when verifying generated output
 
 **On demand**:
-- `workflow/config/agent-behavior.yaml` — when evidence policy or waiver rules affect verification
+- `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect verification
 - `workflow/config/repo-profile.yaml` — when generated output paths or public contracts affect verification scope
 - `workflow/config/domain.yaml` — when domain rules affect QA scenarios
 - `workflow/config/source-of-truth.yaml` — when verification depends on external source updates or handoff

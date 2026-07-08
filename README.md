@@ -10,7 +10,7 @@ Portable AI lifecycle workflow — drop into any repo and let your agent drive s
 - Lifecycle router and phase contracts in `src/workflow/router.md` and `src/workflow/lifecycle.md`.
 - Phase skills in `src/workflow/skills/`.
 - Artifact Starter Blocks in each skill's `references/output-schema.md`.
-- Behavior config in `src/workflow/config/agent-behavior.yaml`.
+- Behavior config in `src/workflow/agent-behavior.yaml`.
 - YAML schema contracts in `src/workflow/schemas/`.
 - Optional tool adapters in `src/adapters/` — one per supported AI tool.
 

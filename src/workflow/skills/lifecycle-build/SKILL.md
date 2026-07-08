@@ -59,7 +59,7 @@ For resumed Build work, load the existing task artifact before editing. Continue
 - `references/role.md`
 - The approved brief artifact
 - The approved plan artifact
-- `workflow/config/agent-behavior.yaml`
+- `workflow/agent-behavior.yaml`
 - `workflow/config/repo-profile.yaml`
 
 **Load when the step requires it**:

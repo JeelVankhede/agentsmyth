@@ -20,8 +20,8 @@ for (const [adapter, text] of adapterTexts) {
   if (!text.includes('workflow/router.md')) {
     errors.push(`${adapter} must mention workflow/router.md`);
   }
-  if (!text.includes('workflow/config/agent-behavior.yaml')) {
-    errors.push(`${adapter} must mention workflow/config/agent-behavior.yaml`);
+  if (!text.includes('workflow/agent-behavior.yaml')) {
+    errors.push(`${adapter} must mention workflow/agent-behavior.yaml`);
   }
 }
 

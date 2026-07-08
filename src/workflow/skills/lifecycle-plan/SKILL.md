@@ -57,7 +57,7 @@ Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, la
 **Before starting work**:
 - `references/role.md`
 - The approved brief artifact
-- `workflow/config/agent-behavior.yaml`
+- `workflow/agent-behavior.yaml`
 - `workflow/config/repo-profile.yaml`
 
 **Load when the step requires it**:

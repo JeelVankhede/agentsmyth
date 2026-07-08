@@ -80,7 +80,7 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 
 Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<USER-TODO: describe X>` instead.
 
-Note: `workflow/config/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
+Note: `workflow/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
 
 #### Step 3.x — Write pending-setup.yaml
 

@@ -71,7 +71,7 @@ Review may proceed on a blocked Build only when the review target is clear and t
 - `references/verification-review.md` — when reviewing verification evidence
 
 **On demand**:
-- `workflow/config/agent-behavior.yaml` — when evidence policy or waiver rules affect findings
+- `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect findings
 - `workflow/config/repo-profile.yaml` — when protected paths or contract expectations affect findings
 - `workflow/config/domain.yaml` — when domain constraints affect findings
 - `workflow/config/source-of-truth.yaml` — when requirements or changed files depend on external source authority

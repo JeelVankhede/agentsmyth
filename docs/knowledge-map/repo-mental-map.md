@@ -42,7 +42,7 @@ planning history is not retained in the repo.
 | `src/workflow/router.md` / `lifecycle.md` / `rules.md` / `glossary.md` | Orchestration core |
 | `src/workflow/skills/lifecycle-*/` | 7 phase skills — `SKILL.md` + granular `references/*.md` |
 | `src/workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
-| `src/workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, artifact chain, evidence policy, waivers |
+| `src/workflow/agent-behavior.yaml` | Shipped invariant: task classes, artifact chain, evidence policy, waivers |
 | `src/workflow/schemas/` | YAML-schema contracts for configs and artifacts (source of truth) |
 | `src/workflow/validators/` | Source validators; `lib.mjs` holds the YAML parser + schema engine |
 | `src/setup/` | One-time porting skill run in the consumer repo; not a phase itself |
@@ -63,7 +63,7 @@ planning history is not retained in the repo.
 
 ## Protected Paths
 
-- `src/workflow/config/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
+- `src/workflow/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
   chain, evidence policy, waiver schema). Changing it changes every consumer's contract.
   Requires explicit discussion.
 - `src/workflow/validators/lib.mjs` — the source/shipped world-detection line. The dotted

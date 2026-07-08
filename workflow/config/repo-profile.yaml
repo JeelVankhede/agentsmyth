@@ -5,7 +5,7 @@ repository:
   mode: single-repository
   root: .
   default_branch: main
-  workflow_root: .workflow
+  workflow_root: workflow
   artifacts_root: workflow/artifacts
   learnings_sessions_root: workflow/learnings/sessions
 

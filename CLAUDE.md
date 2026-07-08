@@ -31,7 +31,7 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 | Adapters | `src/adapters/` | — | placed at tool-native path |
 | Static assets | `src/assets/` | — | `.agentsmyth/assets/` |
 | Setup skill | `src/setup/` | — | `.agentsmyth/` (then deleted) |
-| Behavior config | `src/workflow/config/agent-behavior.yaml` | — | `workflow/config/` |
+| Behavior config | `src/workflow/agent-behavior.yaml` | — | `workflow/agent-behavior.yaml` |
 | Per-repo config | — | `workflow/config/` (domain, repo-profile…) | `workflow/config/` (agent-filled) |
 | Artifacts | — | `workflow/artifacts/` | `workflow/artifacts/` |
 | Learnings | — | `workflow/learnings/` | — |
@@ -79,7 +79,7 @@ Everything hinges on a two-world split. Get this wrong and you will edit the wro
 | `src/workflow/router.md`, `lifecycle.md`, `rules.md` | Orchestration core |
 | `src/workflow/skills/lifecycle-*/` | 7 phase skills (SKILL.md + references/) |
 | `src/workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
-| `src/workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, chain, evidence, waivers |
+| `src/workflow/agent-behavior.yaml` | Shipped invariant: task classes, chain, evidence, waivers |
 | `src/workflow/schemas/` | YAML-schema contracts (source of truth) |
 | `src/workflow/validators/` | Source validators (`lib.mjs` = parser + schema engine) |
 | `src/setup/SKILL.md` | The one-time porting skill the agent runs in a consumer repo |

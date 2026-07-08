@@ -1,7 +1,7 @@
 agentsmyth workflow gate — {{REPO_NAME}}
 Domain: {{DOMAIN_NAME}} — {{REPO_PURPOSE}}
 
-Before any task: read workflow/router.md and workflow/config/agent-behavior.yaml.
+Before any task: read workflow/router.md and workflow/agent-behavior.yaml.
 
 Default branch: {{DEFAULT_BRANCH}}
 Branch policy: {{BRANCH_POLICY}}

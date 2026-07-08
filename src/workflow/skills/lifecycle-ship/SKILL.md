@@ -77,7 +77,7 @@ Ship must hold when Test recommends `hold`, when Review has unresolved blocking 
 - `references/blocked-handoff-format.md` — when an external action cannot be performed
 
 **On demand**:
-- `workflow/config/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
+- `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
 - `workflow/config/repo-profile.yaml` — when branch state affects ship readiness
 - `workflow/config/domain.yaml` — when domain constraints affect release, rollback, or communication
 - `workflow/config/verification.yaml` — when re-checking verification gate adequacy

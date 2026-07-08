@@ -136,7 +136,7 @@ if (args.includes('--phase')) {
 const errors = [];
 const details = [];
 
-const behavior = loadYaml(`${wf}/config/agent-behavior.yaml`);
+const behavior = loadYaml(`${wf}/agent-behavior.yaml`);
 const chain = behavior.lifecycle?.artifact_chain ?? [];
 
 if (chain.length !== artifactContracts.length) {

@@ -74,7 +74,7 @@ Reflect may proceed when Ship is `ship` or user-accepted `hold-with-waiver`. If 
 - `references/follow-up-policy.md` — when identifying and structuring follow-up actions
 
 **On demand**:
-- `workflow/config/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
+- `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
 - `workflow/config/repo-profile.yaml` — when release or source handling affects outcome
 - `workflow/config/source-of-truth.yaml` — when source-of-truth outcome needs explicit status
 - `workflow/config/verification.yaml` — when verification evidence or skip risk affects learning candidates

@@ -5,7 +5,7 @@
 ## Mandatory — read before any task
 
 1. `workflow/router.md` — routes all tasks through the lifecycle.
-2. `workflow/config/agent-behavior.yaml` — behavior invariants, task classes, evidence rules.
+2. `workflow/agent-behavior.yaml` — behavior invariants, task classes, evidence rules.
 
 Never skip this gate. Never mark a phase complete without evidence.
 
