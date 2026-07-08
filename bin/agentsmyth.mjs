@@ -40,6 +40,19 @@ if (command === 'check') {
     process.exit(0);
   }
 
+  // Version-skew check (R6): warn if agentsmyth_version in repo-profile doesn't match the CLI.
+  const currentPkgVersion = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).version;
+  try {
+    const profileContent = readFileSync(profilePath, 'utf8');
+    const versionMatch = profileContent.match(/^agentsmyth_version:\s*(\S+)/m);
+    const profileVersion = versionMatch ? versionMatch[1] : null;
+    if (profileVersion && profileVersion !== currentPkgVersion) {
+      console.warn(`agentsmyth: version skew detected — repo-profile.yaml was written by v${profileVersion}, CLI is v${currentPkgVersion}`);
+      console.warn('  Run "agentsmyth init --system" to update the global definitions and re-stamp repo-profile.yaml.');
+      console.warn('');
+    }
+  } catch { /* non-fatal */ }
+
   // Resolve the validator path via the installed package's lib.mjs resolver
   const validatorsDir = join(pkgRoot, 'src', 'workflow', 'validators');
   const validatorPath = join(validatorsDir, 'check-lifecycle.mjs');
@@ -95,6 +108,7 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     } catch { /* leave as USER-TODO */ }
   }
 
+  const pkgVersion = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
   const templateDir = join(pkgRootDir, 'src', 'assets', 'workflow', 'config');
   for (const name of ['domain.yaml', 'release.yaml', 'repo-profile.yaml', 'source-of-truth.yaml', 'verification.yaml']) {
     const dest = join(configDir, name);
@@ -102,6 +116,8 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     let content = readFileSync(join(templateDir, name), 'utf8');
     if (name === 'repo-profile.yaml') {
       content = content.replace('default_branch: <PLACEHOLDER>', `default_branch: ${defaultBranch}`);
+      // Stamp the package version so `agentsmyth check` can detect skew
+      content = `agentsmyth_version: ${pkgVersion}\n` + content;
     }
     writeFileSync(dest, content);
   }
@@ -175,8 +191,8 @@ function installGateSection(filePath, gateContent, beginMarker, endMarker) {
   }
 }
 
-// Adds or updates definitions_root in workflow/config/repo-profile.yaml.
-function writeDefinitionsRoot(repoDir, defsRootValue) {
+// Adds or updates definitions_root (and agentsmyth_version) in workflow/config/repo-profile.yaml.
+function writeDefinitionsRoot(repoDir, defsRootValue, pkgVersion) {
   const profilePath = join(repoDir, 'workflow', 'config', 'repo-profile.yaml');
   mkdirSync(dirname(profilePath), { recursive: true });
 
@@ -184,12 +200,19 @@ function writeDefinitionsRoot(repoDir, defsRootValue) {
     writeFileSync(profilePath,
       `# Created by agentsmyth init --system\n` +
       `# Run the agentsmyth setup skill to fill remaining fields.\n` +
-      `version: 1\nkind: repo-profile\n\nrepository:\n  definitions_root: ${defsRootValue}\n`
+      `agentsmyth_version: ${pkgVersion}\nversion: 1\nkind: repo-profile\n\nrepository:\n  definitions_root: ${defsRootValue}\n`
     );
     return;
   }
 
   let content = readFileSync(profilePath, 'utf8');
+  // Update or add agentsmyth_version stamp
+  if (/^agentsmyth_version:/m.test(content)) {
+    content = content.replace(/^agentsmyth_version:.*$/m, `agentsmyth_version: ${pkgVersion}`);
+  } else {
+    content = `agentsmyth_version: ${pkgVersion}\n` + content;
+  }
+  // Update or add definitions_root
   if (/^\s*definitions_root:/m.test(content)) {
     content = content.replace(/^(\s*)definitions_root:.*$/m, `$1definitions_root: ${defsRootValue}`);
   } else if (/^\s*learnings_sessions_root:/m.test(content)) {
@@ -283,10 +306,10 @@ if (isSystem) {
     '──────────────────────────────────────────────────────────',
   ].join('\n');
 
-  // Write definitions_root to this repo's repo-profile.yaml
+  // Write definitions_root + agentsmyth_version to this repo's repo-profile.yaml
   const defsRootValue = join(homedir(), '.agentsmyth', 'workflow');
-  writeDefinitionsRoot(cwd, defsRootValue);
-  console.log(`  ✓ definitions_root written to workflow/config/repo-profile.yaml`);
+  writeDefinitionsRoot(cwd, defsRootValue, version);
+  console.log(`  ✓ definitions_root + agentsmyth_version written to workflow/config/repo-profile.yaml`);
 
   console.log('');
   console.log('Global gates installed:');
