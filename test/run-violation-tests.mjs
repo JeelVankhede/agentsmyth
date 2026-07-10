@@ -1,34 +1,113 @@
 #!/usr/bin/env node
-// R4 negative test suite — each fixture must be rejected (non-zero exit) by check-artifacts.
-// Confirmed validator gaps are reported; any gap here is a contract regression.
+// R4 + WP-R4 Wave 1 negative test suite — each fixture must be rejected (non-zero exit) by its
+// named validator. Confirmed validator gaps are reported; any gap here is a contract regression.
+//
+// FIX (2026-07-10, discovered while wiring WP-R4 Wave 1 fixtures): the validator path below was
+// `.workflow/validators/check-artifacts.mjs` — a path that has not existed since the src/
+// restructure (commit 5c6d3fe). Every prior "[PASS]" from this suite was actually Node's
+// MODULE_NOT_FOUND error (a non-zero exit for an unrelated reason) being misread as a correct
+// rejection — the suite was not actually testing anything. Corrected to the real path,
+// src/workflow/validators/<name>.mjs, below.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
-const validator = join(repoRoot, '.workflow', 'validators', 'check-artifacts.mjs');
+
+// AGENTSMYTH_HOME points definitions reads (agent-behavior.yaml, schemas) at src/workflow — the
+// canonical source in this repo — while artifact/data reads stay on the --dir override below.
+// Required by check-waivers.mjs and check-skill-triggers.mjs; harmless for the others.
+const env = { ...process.env, AGENTSMYTH_HOME: 'src/workflow' };
+
+function validatorPath(name) {
+  return join(repoRoot, 'src', 'workflow', 'validators', name);
+}
 
 const fixtures = [
   {
     id: 'a',
     dir: 'test/fixtures/lifecycle-violations/a-plan-missing-section',
     description: 'Plan missing required Verification Plan section',
+    validator: validatorPath('check-artifacts.mjs'),
   },
   {
     id: 'b',
     dir: 'test/fixtures/lifecycle-violations/b-manifest-gap',
     description: 'Task manifest_ids reference R99 absent from upstream brief',
+    validator: validatorPath('check-artifacts.mjs'),
+  },
+  {
+    id: 'b2',
+    dir: 'test/fixtures/lifecycle-violations/b-manifest-gap',
+    description: '(extended, R6) Review does not declare R99 though task touches it — check-manifest-coverage',
+    validator: validatorPath('check-manifest-coverage.mjs'),
   },
   {
     id: 'c',
     dir: 'test/fixtures/lifecycle-violations/c-ready-with-blocker',
     description: 'Ship claims ready-for-next-phase with unresolved blocker Q1',
+    validator: validatorPath('check-artifacts.mjs'),
+  },
+  {
+    id: 'c2',
+    dir: 'test/fixtures/lifecycle-violations/c-ready-with-blocker',
+    description: '(extended, R6) Ship Status declares no ship/hold/hold-with-waiver — check-release-readiness',
+    validator: validatorPath('check-release-readiness.mjs'),
   },
   {
     id: 'd',
     dir: 'test/fixtures/lifecycle-violations/d-phase-mismatch',
     description: 'Task artifact has orchestration.phase: review (mismatch — lives in tasks/)',
+    validator: validatorPath('check-artifacts.mjs'),
+  },
+  {
+    id: 'e',
+    dir: 'test/fixtures/lifecycle-violations/e-waiver-missing-field',
+    description: '(R6) Waivers row missing residual_risk — check-waivers',
+    validator: validatorPath('check-waivers.mjs'),
+  },
+  {
+    id: 'f',
+    dir: 'test/fixtures/lifecycle-violations/f-coverage-dropped-no-waiver',
+    description: '(R6) Coverage row marked dropped with no Waivers entry — check-coverage-ledger',
+    validator: validatorPath('check-coverage-ledger.mjs'),
+  },
+  {
+    id: 'g',
+    dir: 'test/fixtures/lifecycle-violations/g-claim-without-evidence',
+    description: '(R6) Automated Checks row with an empty cell — check-evidence-citations',
+    validator: validatorPath('check-evidence-citations.mjs'),
+  },
+  {
+    id: 'j',
+    dir: 'test/fixtures/lifecycle-violations/j-file-outside-scope',
+    description: '(R6) Changed file outside plan Touches — check-scope-fence',
+    validator: validatorPath('check-scope-fence.mjs'),
+  },
+  {
+    id: 'l',
+    dir: 'test/fixtures/lifecycle-violations/l-skipped-check-no-risk',
+    description: '(R6) Skipped Checks row missing risk field — check-skipped-accounting',
+    validator: validatorPath('check-skipped-accounting.mjs'),
+  },
+  {
+    id: 'n',
+    dir: 'test/fixtures/lifecycle-violations/n-triggered-skill-unlogged',
+    description: '(R6) skill_trigger_log entry missing reason — check-skill-triggers',
+    validator: validatorPath('check-skill-triggers.mjs'),
+  },
+  {
+    id: 'o',
+    dir: 'test/fixtures/lifecycle-violations/o-ship-with-open-p1',
+    description: '(R6, post-review fix) Ship declares ship with an open P1 in a real Severity Summary table — check-release-readiness',
+    validator: validatorPath('check-release-readiness.mjs'),
+  },
+  {
+    id: 'p',
+    dir: 'test/fixtures/lifecycle-violations/p-unstructured-waiver-claim',
+    description: '(R6, P2 strengthening) Waiver claimed in prose, never moved into the Waivers table — check-waivers',
+    validator: validatorPath('check-waivers.mjs'),
   },
 ];
 
@@ -38,8 +117,8 @@ let gaps = 0;
 for (const fixture of fixtures) {
   const result = spawnSync(
     process.execPath,
-    [validator, '--dir', fixture.dir],
-    { cwd: repoRoot, encoding: 'utf8' }
+    [fixture.validator, '--dir', fixture.dir],
+    { cwd: repoRoot, encoding: 'utf8', env }
   );
 
   const detected = result.status !== 0;
