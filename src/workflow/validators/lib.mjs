@@ -489,6 +489,17 @@ function splitKeyValue(text, pathForError, lineNumber) {
 function parseScalar(value) {
   if (value === '[]') return [];
   if (value === '{}') return {};
+  // Flow-style array: [a, b, c]. Only scalar elements are supported — this codebase's schemas
+  // use flow style solely for short enum/required lists, never nested arrays or objects. Found
+  // via dogfooding check-open-items.mjs: pending-setup.schema.yaml has used this same flow-style
+  // `required: [...]` syntax since it was written, but nothing had ever run it through
+  // validateSchema (check-pending-setup.mjs hand-rolls its own checks instead), so the gap was
+  // never exercised until open-items.schema.yaml's identical syntax hit the real schema engine.
+  if (value.startsWith('[') && value.endsWith(']')) {
+    const inner = value.slice(1, -1).trim();
+    if (inner.length === 0) return [];
+    return inner.split(',').map((part) => parseScalar(part.trim()));
+  }
   if (value === 'true') return true;
   if (value === 'false') return false;
   if (value === 'null' || value === '~') return null;

@@ -18,6 +18,11 @@ node workflow/validators/check-manifest-coverage.mjs
 node workflow/validators/check-skipped-accounting.mjs
 node workflow/validators/check-release-readiness.mjs
 node workflow/validators/check-skill-triggers.mjs
+node workflow/validators/check-phase-map.mjs
+node workflow/validators/check-assumptions.mjs
+node workflow/validators/check-verify-matrix.mjs
+node workflow/validators/check-followups.mjs
+node workflow/validators/check-open-items.mjs
 ```
 
 The WP-R4 Wave 1 checks above all accept a `--dir <path>` override (matching `check-artifacts.mjs`)
@@ -41,5 +46,10 @@ the CLI can resolve the validator from either the repo-local or global definitio
 - `check-skipped-accounting.mjs` checks Skipped Checks rows are complete and cross-references not-run/blocked Automated Checks against them.
 - `check-release-readiness.mjs` checks a ship artifact's Ship Status declares one of ship/hold/hold-with-waiver consistently with blockers and review severity.
 - `check-skill-triggers.mjs` checks `skill_trigger_log` frontmatter entries are complete (skill, decision, reason).
+- `check-phase-map.mjs` checks every active `R`/`RI` in a plan's `manifest_ids` is covered by exactly one `### Phase N` block's stated Manifest IDs (directly or via a hyphenated sub-label), and that every phase declaring manifest IDs has exit-gate content.
+- `check-assumptions.mjs` checks every brief-declared `A` ID has a corresponding `## Assumptions Verified` row in the downstream plan, with a non-empty evidence-backed or raised-as-question status.
+- `check-verify-matrix.mjs` checks a verify artifact's `## Manifest Coverage` has a row with a named method for every active manifest ID, and no `pass` row with empty evidence.
+- `check-followups.mjs` checks every row in a reflect artifact's `## Follow-Ups` table has a non-empty, non-`TBD` owner.
+- `check-open-items.mjs` checks `workflow/artifacts/open-items.yaml` against its schema when present; exits 0 with an informative message when absent.
 
 These validators are conservative contract checks. They do not replace code tests, manual QA, source-of-truth verification, release evidence, or human review.

@@ -27,6 +27,11 @@ const artifactCommands = [
   ['node', ['src/workflow/validators/check-skipped-accounting.mjs']],
   ['node', ['src/workflow/validators/check-release-readiness.mjs']],
   ['node', ['src/workflow/validators/check-skill-triggers.mjs']],
+  ['node', ['src/workflow/validators/check-phase-map.mjs']],
+  ['node', ['src/workflow/validators/check-assumptions.mjs']],
+  ['node', ['src/workflow/validators/check-verify-matrix.mjs']],
+  ['node', ['src/workflow/validators/check-followups.mjs']],
+  ['node', ['src/workflow/validators/check-open-items.mjs']],
 ];
 
 for (const [cmd, args] of sourceCommands) {
