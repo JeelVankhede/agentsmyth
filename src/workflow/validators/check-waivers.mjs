@@ -46,6 +46,14 @@ function waiversSection(body) {
   return match ? match[1] : null;
 }
 
+// Extracts the ## Skipped Checks section body — a verify artifact's own structured location for
+// a waiver-adjacent disclosure (its "Blocks Ship" column's `waiver-required` value is a legitimate
+// enum from verification.yaml, not unstructured prose).
+function skippedChecksSection(body) {
+  const match = body.match(/## Skipped Checks\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/);
+  return match ? match[1] : null;
+}
+
 // Parses a markdown table into an array of row-cell arrays, skipping the header/divider rows.
 function parseTableRows(tableText) {
   const lines = tableText.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
@@ -56,15 +64,31 @@ function parseTableRows(tableText) {
   );
 }
 
-// Flags lines outside the ## Waivers section that look like an unstructured waiver claim.
+// Flags lines outside the ## Waivers/## Skipped Checks sections that look like an unstructured
+// waiver claim. If the document already has at least one real row in either structured table,
+// further prose mentions elsewhere in the same document are treated as legitimate cross-references
+// to that already-recorded entry, not a hidden, never-structured claim — the P2 scenario this
+// check exists to catch is a waiver mentioned in prose with ZERO structured rows anywhere in the
+// document, not every incidental mention once a real row already exists. Found via dogfooding:
+// a real verify artifact's own "Skipped Checks" row (Blocks Ship: waiver-required) plus two
+// Architecture Notes lines discussing that same, already-structured entry were all false-flagged
+// before this fix (workflow/artifacts/verify/power-skills-wave2-v1.md).
 function unstructuredWaiverMentions(body) {
-  const withoutWaiversSection = body.replace(/## Waivers\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '');
+  const withoutStructuredSections = body
+    .replace(/## Waivers\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '')
+    .replace(/## Skipped Checks\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '');
+
+  const hasStructuredRow =
+    parseTableRows(waiversSection(body) ?? '').length > 0 ||
+    parseTableRows(skippedChecksSection(body) ?? '').length > 0;
+
   const flagged = [];
-  for (const rawLine of withoutWaiversSection.split('\n')) {
+  for (const rawLine of withoutStructuredSections.split('\n')) {
     const line = rawLine.replace(/hold-with-waiver/gi, ''); // legitimate enum value, not a claim
     if (!/\bwaiv(?:er|ed|ing)\b/i.test(line)) continue;
     if (/\bno\b.{0,15}\bwaiv|\bwithout\b.{0,10}\bwaiv|\bnot\b.{0,10}\bwaiv|waiver-completeness-check|check-waivers/i.test(line)) continue;
     if (!/\b(R|RI)\d+\b|\bgate\b/i.test(line)) continue;
+    if (hasStructuredRow) continue; // already recorded elsewhere in this same document
     flagged.push(rawLine.trim());
   }
   return flagged;
