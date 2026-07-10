@@ -109,6 +109,36 @@ const fixtures = [
     description: '(R6, P2 strengthening) Waiver claimed in prose, never moved into the Waivers table — check-waivers',
     validator: validatorPath('check-waivers.mjs'),
   },
+  {
+    id: 'q',
+    dir: 'test/fixtures/lifecycle-violations/q-phase-map-orphan',
+    description: '(Wave 2, B1) Active manifest ID never covered by any phase — check-phase-map',
+    validator: validatorPath('check-phase-map.mjs'),
+  },
+  {
+    id: 'r',
+    dir: 'test/fixtures/lifecycle-violations/r-assumptions-missing',
+    description: '(Wave 2, B2) Plan has no Assumptions Verified section though brief declares assumptions — check-assumptions',
+    validator: validatorPath('check-assumptions.mjs'),
+  },
+  {
+    id: 's',
+    dir: 'test/fixtures/lifecycle-violations/s-verify-matrix-no-evidence',
+    description: '(Wave 2, B6) Manifest Coverage row claims pass with empty evidence — check-verify-matrix',
+    validator: validatorPath('check-verify-matrix.mjs'),
+  },
+  {
+    id: 't',
+    dir: 'test/fixtures/lifecycle-violations/t-followup-tbd-owner',
+    description: '(Wave 2, B9) Follow-Ups row has owner TBD — check-followups',
+    validator: validatorPath('check-followups.mjs'),
+  },
+  {
+    id: 'u',
+    dir: 'test/fixtures/lifecycle-violations/u-open-items-malformed',
+    description: '(Wave 2, E2) open-items.yaml item missing required owner field — check-open-items',
+    validator: validatorPath('check-open-items.mjs'),
+  },
 ];
 
 let passed = 0;

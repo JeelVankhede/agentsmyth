@@ -1,0 +1,8 @@
+version: 1
+kind: open-items
+items:
+  - id: OI-1
+    source: follow-up
+    next_action: "Missing the required owner field"
+    status: open
+    first_seen_run: fixture-v1
