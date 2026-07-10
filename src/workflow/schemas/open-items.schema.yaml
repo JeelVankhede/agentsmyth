@@ -1,0 +1,45 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "open-items"
+title: "Open Items Ledger"
+type: object
+kind: open-items
+description: "Durable, cross-run ledger of follow-ups that need an owner and a next action, written by the follow-up-owner-assigner power skill at the end of each Reflect phase. Not a lifecycle artifact — a single persistent file, same shape as pending-setup.yaml."
+required: [version, kind, items]
+properties:
+  version:
+    type: integer
+    enum: [1]
+  kind:
+    type: string
+    enum: [open-items]
+  items:
+    type: array
+    items:
+      type: object
+      required: [id, source, owner, next_action, status, first_seen_run]
+      properties:
+        id:
+          type: string
+          description: "Format: OI-N. Never renumbered."
+        source:
+          type: string
+          enum: [requirement, follow-up]
+          description: "requirement: an active R/RI that was deferred, waived, or dropped. follow-up: a Reflect-recorded follow-up action."
+        owner:
+          type: string
+          description: "Named person or configured decision owner — never TBD."
+        next_action:
+          type: string
+          description: "The concrete next step that resolves this item."
+        status:
+          type: string
+          enum: [open, done, blocked, deferred]
+        first_seen_run:
+          type: string
+          description: "The slug-vN of the lifecycle chain whose Reflect phase created this entry."
+        manifest_ids:
+          type: array
+          items:
+            type: string
+            pattern: '^R(I)?[0-9]+$'
+          description: "Affected requirement IDs, when source is requirement."
