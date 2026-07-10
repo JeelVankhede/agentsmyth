@@ -109,3 +109,27 @@ properties:
       user_checkpoint:
         type: string
         minLength: 1
+  skill_trigger_log:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - skill
+        - decision
+        - reason
+      properties:
+        skill:
+          type: string
+          minLength: 1
+        signals:
+          type: object
+          additionalProperties: true
+        decision:
+          type: string
+          enum:
+            - ran
+            - skipped
+        reason:
+          type: string
+          minLength: 1

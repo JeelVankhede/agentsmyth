@@ -138,4 +138,58 @@ dispatch:
   require_dispatch_log: true
   merge_owner: primary_agent
 
+# skill_scoring backs passive/scored power skills (WP-R4). There is no runtime that computes
+# these values mechanically: the agent reads a requirement/diff, applies this rubric itself, and
+# records the ran/skipped decision in the artifact's skill_trigger_log (see
+# artifact-frontmatter.schema.yaml). A validator can only audit that a decision was recorded and
+# justified for every skill whose trigger predicate evaluates true against the recorded signals —
+# it cannot re-derive or verify the score itself.
+#
+# triggers is intentionally empty in this revision: every power skill shipped so far
+# (decompose-requirements, restore-context, dispatch-subagents, lifecycle-orchestrator, and the
+# WP-R4 Wave 1 invariant-spine skills — waiver-completeness-check, coverage-tracer,
+# evidence-auditor, scope-fence, verify-manifest-coverage, skipped-check-accountant,
+# release-readiness-gate) is either Active or Gate-bound, not Passive/scored. Entries are added
+# here only when a Passive/scored skill ships alongside a real consumer.
+skill_scoring:
+  version: 1
+  signals:
+    files_touched:
+      source: diff
+      type: int
+    ri_count:
+      source: manifest
+      type: int
+    touches_protected:
+      source: repo-profile.paths.protected
+      type: bool
+    touches_contract:
+      source: repo-profile.paths.public_contracts
+      type: bool
+    touches_generated:
+      source: repo-profile.paths.generated_outputs
+      type: bool
+    new_surface:
+      source: diff
+      type: bool
+    task_class:
+      source: classification
+      type: string
+  complexity_score:
+    weights:
+      files_touched:
+        per_unit: 3
+        cap: 30
+      ri_count:
+        per_unit: 4
+        cap: 24
+      touches_protected: 15
+      touches_contract: 15
+      new_surface: 10
+      task_class:
+        trivial: 0
+        standard: 6
+        complex: 6
+  triggers: {}
+
 extensions: {}
