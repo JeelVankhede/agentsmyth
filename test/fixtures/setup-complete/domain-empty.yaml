@@ -1,0 +1,10 @@
+version: 1
+kind: domain
+
+domain:
+  name:
+  summary:
+  regulated: false
+  glossary: []
+  preferred_terms: []
+  discouraged_terms: []

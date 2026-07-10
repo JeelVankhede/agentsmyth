@@ -27,6 +27,11 @@ const artifactCommands = [
   ['node', ['src/workflow/validators/check-skipped-accounting.mjs']],
   ['node', ['src/workflow/validators/check-release-readiness.mjs']],
   ['node', ['src/workflow/validators/check-skill-triggers.mjs']],
+  // Previously documented but never actually invoked by any script, CI job, or test runner
+  // (found via audit-validator-fixture-gaps) — both check real dev-workspace/repo state directly,
+  // no env override needed.
+  ['node', ['src/workflow/validators/check-config.mjs']],
+  ['node', ['src/workflow/validators/check-domain-placeholders.mjs']],
 ];
 
 for (const [cmd, args] of sourceCommands) {
