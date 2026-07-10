@@ -74,6 +74,7 @@ If Review is missing or blocked, Test may proceed only when the artifact records
 - `workflow/skills/waiver-completeness-check/SKILL.md` — when the verify artifact records any waiver, to confirm it carries all 6 required fields
 - `workflow/skills/evidence-auditor/SKILL.md` — when confirming every verification claim cites resolvable evidence
 - `workflow/skills/skipped-check-accountant/SKILL.md` — before finalizing Sign-Off, to confirm every skipped or unevidenced check has a complete risk entry
+- `workflow/skills/verification-matrix-builder/SKILL.md` — when building Manifest Coverage, to confirm every active R/RI has a named verification method
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect verification
@@ -144,6 +145,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `test`, `orchestration.status` is accurate, and `next_phase` is `ship` when unblocked.
 - `skipped-check-accountant` confirms every check is run-with-evidence or has a complete risk entry with owner.
 - Every claim tagged as verified in the verify artifact passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
+- `verification-matrix-builder` confirms no active R/RI has a method-less or evidence-less Manifest Coverage row.
 
 ## Determinism Rules
 

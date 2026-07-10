@@ -70,6 +70,8 @@ Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, la
 - `references/source-of-truth-planning.md` — when source-of-truth handling is required
 - `workflow/skills/waiver-completeness-check/SKILL.md` — when the plan records any waiver, to confirm it carries all 6 required fields
 - `workflow/skills/coverage-tracer/SKILL.md` — when building Requirement Coverage, to establish the covered/deferred/waived/dropped ledger
+- `workflow/skills/requirement-phase-mapper/SKILL.md` — before finalizing `## Phases`, to confirm every active R/RI maps to exactly one phase with a binary exit gate
+- `workflow/skills/plan-assumption-verifier/SKILL.md` — when processing the brief's A IDs, to cross-verify each against repo evidence or raise it as a Q ID
 - `workflow/config/verification.yaml` — when building the verification plan
 - `workflow/config/source-of-truth.yaml` — when source authority or handoff affects planning
 
@@ -142,6 +144,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `plan`, `orchestration.status` is accurate, and `next_phase` is `build` when unblocked.
 - Requirement Coverage is established as a `coverage-tracer` ledger with a row and citation per active R/RI.
 - Any waiver recorded in the plan passes `waiver-completeness-check`.
+- `requirement-phase-mapper` confirms no active R/RI is unmapped or unexplained-multiply-mapped, and every phase has a binary exit gate.
+- `plan-assumption-verifier` confirms every A ID is either evidence-backed or converted to a raised Q ID.
 
 ## Determinism Rules
 

@@ -74,6 +74,7 @@ Reflect may proceed when Ship is `ship` or user-accepted `hold-with-waiver`. If 
 - `references/follow-up-policy.md` — when identifying and structuring follow-up actions
 - `workflow/skills/coverage-tracer/SKILL.md` — when building the Manifest Coverage Retrospective
 - `workflow/skills/evidence-auditor/SKILL.md` — when confirming outcome claims cite resolvable evidence
+- `workflow/skills/follow-up-owner-assigner/SKILL.md` — before finalizing Follow-Ups, to confirm every entry has an owner and is persisted to the open-items ledger
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
@@ -145,6 +146,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `reflect`, `status` is `done`, and `next_phase` is `done` when complete.
 - Manifest Coverage Retrospective is built via `coverage-tracer` with a row and citation per active R/RI.
 - Outcome claims tagged as verified pass `evidence-auditor`.
+- `follow-up-owner-assigner` confirms no follow-up lacks an owner, and every follow-up plus every deferred/waived R/RI is persisted to `workflow/artifacts/open-items.yaml`.
 
 ## Determinism Rules
 

@@ -28,6 +28,10 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `verify-manifest-coverage` | Cross-check Review's declared manifest_ids against actual diff scope. |
 | `skipped-check-accountant` | Force every skipped/unevidenced check into a risk entry with an owner. |
 | `release-readiness-gate` | Aggregate verify/review/coverage/waiver state into one go/hold/blocked recommendation. |
+| `requirement-phase-mapper` | Map every active R/RI to exactly one build phase with a binary exit gate. |
+| `plan-assumption-verifier` | Cross-verify planning assumptions against repo evidence, raising blocking questions when unresolved. |
+| `verification-matrix-builder` | Build the R/RI to method to evidence to status verification matrix. |
+| `follow-up-owner-assigner` | Ensure every follow-up has an owner and persist it to the durable open-items ledger. |
 
 ## Rules
 
