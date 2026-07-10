@@ -70,6 +70,8 @@ For resumed Build work, load the existing task artifact before editing. Continue
 - `references/git-status-policy.md` — before running git status or staging files
 - `references/unrelated-changes-policy.md` — when unrelated dirty files are present
 - `references/verification-recording.md` — when recording command evidence or not-run risk
+- `workflow/skills/scope-fence/SKILL.md` — before marking a Build phase complete, to confirm the actual diff is a subset of its declared touches
+- `workflow/skills/waiver-completeness-check/SKILL.md` — when the task records any waiver, to confirm it carries all 6 required fields
 - `workflow/config/verification.yaml` — when running or recording verification checks
 
 **On demand**:
@@ -142,6 +144,8 @@ Use the `## Architecture Notes` section in the task body to capture at minimum:
 - No unrelated user changes were overwritten or silently staged.
 - No default-branch commit is made unless explicitly approved in the plan.
 - `orchestration.phase` is `build`, `orchestration.status` is accurate, and `next_phase` is `review` when unblocked.
+- `scope-fence` confirms every changed file maps to the active phase's declared scope, or to an approved waiver.
+- Any waiver recorded in the task passes `waiver-completeness-check`.
 
 ## Determinism Rules
 

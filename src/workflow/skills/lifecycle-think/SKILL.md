@@ -59,6 +59,7 @@ For resumed or revised work, load the current slug chain first through `restore-
 - `references/assumption-policy.md` — when recording `A` IDs
 - `references/question-policy.md` — when formulating blocking or non-blocking `Q` IDs
 - `references/architecture-notes-guide.md` — when writing architecture notes
+- `workflow/skills/waiver-completeness-check/SKILL.md` — when the brief records any waiver, to confirm it carries all 6 required fields
 
 **On demand**:
 - `workflow/config/domain.yaml` — when domain terminology, constraints, or non-goals affect scope
@@ -125,6 +126,7 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - Architecture notes capture decisions and downstream impact.
 - `orchestration.phase` is `think`, `orchestration.status` is accurate, and `next_phase` is `plan` when unblocked.
 - The user has approved the brief or the artifact records an explicit waiver before Plan begins.
+- Any waiver recorded in the brief passes `waiver-completeness-check` (all 6 required fields present).
 
 ## Determinism Rules
 
