@@ -18,7 +18,7 @@ Always load:
 2. `workflow/router.md`.
 3. `workflow/lifecycle.md`.
 4. `workflow/rules.md`.
-5. `workflow/config/agent-behavior.yaml`.
+5. `workflow/agent-behavior.yaml`.
 6. This skill file.
 7. These references:
    - `references/phase-routing.md`

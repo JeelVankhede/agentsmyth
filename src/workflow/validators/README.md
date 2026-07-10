@@ -7,10 +7,13 @@ Run from the repository root:
 ```text
 node workflow/validators/check-config.mjs
 node workflow/validators/check-starter-blocks.mjs
-node workflow/validators/check-lifecycle.mjs
+agentsmyth check --phase <phase> --slug <slug>
 node workflow/validators/check-artifacts.mjs
 node workflow/validators/check-domain-placeholders.mjs
 ```
+
+The lifecycle phase gate (`check-lifecycle.mjs`) is invoked via `agentsmyth check` so that
+the CLI can resolve the validator from either the repo-local or global definitions root.
 
 ## Checks
 

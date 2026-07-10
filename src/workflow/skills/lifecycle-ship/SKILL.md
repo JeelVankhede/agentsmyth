@@ -77,7 +77,7 @@ Ship must hold when Test recommends `hold`, when Review has unresolved blocking 
 - `references/blocked-handoff-format.md` — when an external action cannot be performed
 
 **On demand**:
-- `workflow/config/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
+- `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
 - `workflow/config/repo-profile.yaml` — when branch state affects ship readiness
 - `workflow/config/domain.yaml` — when domain constraints affect release, rollback, or communication
 - `workflow/config/verification.yaml` — when re-checking verification gate adequacy
@@ -98,7 +98,7 @@ Ship must hold when Test recommends `hold`, when Review has unresolved blocking 
 
 Stop and write a `hold` ship artifact when any of these apply:
 
-- Phase gate check exits non-zero: run `node workflow/validators/check-lifecycle.mjs --phase ship --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
+- Phase gate check exits non-zero: run `agentsmyth check --phase ship --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - Verify artifact is missing.
 - Verify recommendation is `hold` and no user-accepted waiver exists.
 - Review has unresolved `P0` or `P1` findings.

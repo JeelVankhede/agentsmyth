@@ -2,7 +2,7 @@
 
 Caps are hard maximums. Do not exceed them.
 
-The global maximum is set by `dispatch.max_parallel_workstreams` in `workflow/config/agent-behavior.yaml`. No phase cap may exceed this value. Read `agent-behavior.yaml` to get the current cap before dispatching.
+The global maximum is set by `dispatch.max_parallel_workstreams` in `workflow/agent-behavior.yaml`. No phase cap may exceed this value. Read `agent-behavior.yaml` to get the current cap before dispatching.
 
 | Phase | Role | Allowed work |
 |---|---|---|

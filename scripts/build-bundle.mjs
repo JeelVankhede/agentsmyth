@@ -69,14 +69,11 @@ for (const name of refFiles) {
 write('dist/setup-bundle.md', setupSections.join('\n') + '\n');
 
 // ─── workflow-bundle.md ────────────────────────────────────────────────────
-// src/workflow/config/ is excluded from the bundle — agent-behavior.yaml ships via
-// src/assets/ (static copy below), and per-consumer configs are written by the setup skill.
+// src/workflow/config/ contains per-consumer config templates (written by setup skill).
+// agent-behavior.yaml is now at src/workflow/agent-behavior.yaml and bundles normally.
 
-const WORKFLOW_EXCLUDES = new Set(['src/workflow/config']);
 const workflowFiles = walkFiles('src/workflow').filter(rel =>
-  !rel.endsWith('.gitkeep') &&
-  !WORKFLOW_EXCLUDES.has(rel) &&
-  ![...WORKFLOW_EXCLUDES].some(exc => rel.startsWith(exc + '/'))
+  !rel.endsWith('.gitkeep')
 );
 
 const bundleLines = [
@@ -94,12 +91,6 @@ for (const rel of workflowFiles) {
 }
 
 write('dist/workflow-bundle.md', bundleLines.join('\n') + '\n');
-
-// ─── src/assets/workflow/config/agent-behavior.yaml ──────────────────────
-// Sync the shipped invariant from src/workflow/config/ to src/assets/ so consumers
-// receive it as a static file (config/ is excluded from the workflow bundle above).
-
-copyFile('src/workflow/config/agent-behavior.yaml', 'src/assets/workflow/config/agent-behavior.yaml');
 
 // ─── src/assets/adapters/ ─────────────────────────────────────────────────
 

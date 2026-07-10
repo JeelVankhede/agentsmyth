@@ -6,7 +6,7 @@ Before any implementation work — no exceptions:
 
 2. **Read `workflow/router.md`** — this is the canonical entry point for all lifecycle work.
 
-3. **Load `workflow/config/agent-behavior.yaml`** — classify the request:
+3. **Load `workflow/agent-behavior.yaml`** — classify the request:
    - `trivial` → handle inline, no artifact required
    - `standard` → full lifecycle required: think → plan → build → review → ship → reflect
    - `complex` → all phases required including test; no phases may be skipped

@@ -20,7 +20,7 @@
 
 1. Root `AGENTS.md`.
 2. `workflow/router.md`.
-3. `workflow/config/agent-behavior.yaml`.
+3. `workflow/agent-behavior.yaml`.
 4. Relevant config files under `workflow/config/`.
 5. Current lifecycle artifact chain, if any.
 6. The selected skill under `workflow/skills/`.

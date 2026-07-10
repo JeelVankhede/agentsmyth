@@ -42,14 +42,15 @@ planning history is not retained in the repo.
 | `src/workflow/router.md` / `lifecycle.md` / `rules.md` / `glossary.md` | Orchestration core |
 | `src/workflow/skills/lifecycle-*/` | 7 phase skills — `SKILL.md` + granular `references/*.md` |
 | `src/workflow/skills/{decompose-requirements,dispatch-subagents,restore-context,lifecycle-orchestrator}/` | 4 power skills |
-| `src/workflow/config/agent-behavior.yaml` | Shipped invariant: task classes, artifact chain, evidence policy, waivers |
+| `src/workflow/agent-behavior.yaml` | Shipped invariant: task classes, artifact chain, evidence policy, waivers |
 | `src/workflow/schemas/` | YAML-schema contracts for configs and artifacts (source of truth) |
 | `src/workflow/validators/` | Source validators; `lib.mjs` holds the YAML parser + schema engine |
 | `src/setup/` | One-time porting skill run in the consumer repo; not a phase itself |
 | `src/adapters/` | Five tool gate shims (source of truth for the mandatory gate) |
 | `src/assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
 | `scripts/build-bundle.mjs` | Compiles `src/workflow/` + `src/setup/` → `dist/` bundles |
-| `bin/agentsmyth.mjs` | The `init` CLI — copies payload into `.agentsmyth/`, nothing more |
+| `bin/agentsmyth.mjs` | The `init` CLI — copies payload into `.agentsmyth/`; `--system` expands the bundle to `~/.agentsmyth/` |
+| `src/adapters/*/global-gate.md` | Token-free global gate templates installed by `init --system` to tool-native global paths |
 | `workflow/config/` | This repo's own per-repo lifecycle config (not shipped) |
 | `workflow/artifacts/` | This repo's dogfood lifecycle artifacts (not shipped) |
 | `workflow/learnings/` | Curated retros and session notes (not shipped) |
@@ -63,7 +64,7 @@ planning history is not retained in the repo.
 
 ## Protected Paths
 
-- `src/workflow/config/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
+- `src/workflow/agent-behavior.yaml` — a shipped **invariant** (task classes, artifact
   chain, evidence policy, waiver schema). Changing it changes every consumer's contract.
   Requires explicit discussion.
 - `src/workflow/validators/lib.mjs` — the source/shipped world-detection line. The dotted
@@ -86,7 +87,7 @@ npm run violations:test
 
 # individual dev validators (AGENTSMYTH_WF=src/workflow points them at source)
 AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-starter-blocks.mjs
-AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-lifecycle.mjs   # --phase <name> --slug <slug> for gate check
+AGENTSMYTH_WF=src/workflow agentsmyth check --phase <name> --slug <slug>      # lifecycle phase gate (resolves via two-root resolver)
 node src/workflow/validators/check-artifacts.mjs                               # checks workflow/artifacts/ by default
 node src/workflow/validators/check-artifacts.mjs --dir <path>                  # custom artifacts dir (fixture testing)
 node src/workflow/validators/check-domain-placeholders.mjs
@@ -108,6 +109,36 @@ confidence comes from the smoke test (`npx . init` in a clean temp repo) and man
 - **Branch for planned changes.** Do not commit to `main` without approval. Push only when asked.
 - **Dogfood the lifecycle.** Standard/Complex work goes through `AGENTS.md` →
   `src/workflow/router.md` with artifacts under `workflow/artifacts/`.
+
+---
+
+## Two-Root Resolver (WP-R2)
+
+`src/workflow/validators/lib.mjs` resolves two roots at module load time:
+
+- **`defsRoot`** — where skills, schemas, validators, and `agent-behavior.yaml` live.
+  Resolution order: `definitions_root` in `workflow/config/repo-profile.yaml` →
+  `AGENTSMYTH_HOME` environment variable → repo-local `workflow/` (backward-compat default).
+- **`dataRoot`** — always `join(repoRoot, 'workflow')` — per-repo config, artifacts, learnings.
+
+When `defsRoot === dataRoot` (default), behavior is byte-identical to pre-WP-R2. This is the
+backward-compat theorem: no config + no env = no change.
+
+`AGENTSMYTH_HOME` overrides both `repo-profile.yaml` and the default — useful for CI or for
+pointing a repo at a non-default global install path. Setting `AGENTSMYTH_HOME` to a path that
+doesn't exist triggers the RI1 guard: a clean human-readable error and `exit 1`.
+
+**Global tree** (`~/.agentsmyth/` by default):
+```
+~/.agentsmyth/
+  workflow/           ← defsRoot when definitions_root: ~/.agentsmyth/workflow
+    router.md
+    agent-behavior.yaml
+    lifecycle.md
+    skills/
+    schemas/
+    validators/
+```
 
 ---
 

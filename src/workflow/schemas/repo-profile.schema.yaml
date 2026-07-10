@@ -17,6 +17,9 @@ properties:
     const: 1
   kind:
     const: repo-profile
+  agentsmyth_version:
+    type: string
+    description: Version of the agentsmyth package that last wrote or initialized this file. Used to detect version skew between the installed CLI and the managed workflow definitions.
   repository:
     type: object
     additionalProperties: false
@@ -41,6 +44,9 @@ properties:
         type: string
       learnings_sessions_root:
         type: string
+      definitions_root:
+        type: string
+        description: Absolute path to the global agentsmyth definitions tree (e.g. ~/.agentsmyth/workflow). When present, skills/schemas/validators are loaded from here instead of the repo-local workflow/ directory.
   branch_policy:
     type: object
     additionalProperties: false

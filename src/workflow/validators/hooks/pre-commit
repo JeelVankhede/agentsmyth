@@ -32,6 +32,12 @@ phase_for_dir() {
   esac
 }
 
+# Resolve agentsmyth CLI: prefer global binary, fall back to npx.
+AGENTSMYTH_BIN="agentsmyth"
+if ! command -v agentsmyth >/dev/null 2>&1; then
+  AGENTSMYTH_BIN="npx agentsmyth"
+fi
+
 FAILED=0
 IFS='
 '
@@ -42,7 +48,7 @@ for file in $ARTIFACT_FILES; do
   phase=$(phase_for_dir "$dir")
   [ -z "$phase" ] && continue
 
-  if ! node workflow/validators/check-lifecycle.mjs --phase "$phase" --slug "$slug"; then
+  if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
     FAILED=1
   fi
 done
