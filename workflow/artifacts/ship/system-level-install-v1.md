@@ -40,7 +40,19 @@ Ready to ship. All requirements met, all automated checks pass, no open blockers
 
 ## Requirement Coverage
 
-All R1–R6 and RI1–RI5 requirements covered. See verify artifact for per-ID evidence.
+| Manifest ID | State | Citation |
+|---|---|---|
+| R1 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — grep confirms no `workflow/config/agent-behavior.yaml` refs remain in `src/`; render-adapters passes |
+| R2 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — lib.mjs exports `defsPath`/`dataPath`; validators import and use them |
+| R3 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — `agentsmyth check` resolves validator path and forwards args |
+| R4 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — 4 global gate files confirmed token-free by render-adapters RI2 check; windsurf gate = 320 chars |
+| R5 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — headlessBootstrap() code path present in bin/agentsmyth.mjs; profilePath guard active |
+| R6 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — repo-profile.schema.yaml includes `agentsmyth_version`; check command reads + warns on mismatch |
+| RI1 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — lib.mjs guard: `if (_defsRoot !== join(repoRoot, _wf) && !existsSync(_defsRoot))` → exit 1 |
+| RI2 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — render-adapters.mjs global gate loop: no `{{...}}` → pass; windsurf char cap check present |
+| RI3 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — `--system` flag gates all new init behavior; bare init code path unchanged |
+| RI4 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — all 3 suites confirmed passing at each phase boundary in Phase Completion Log |
+| RI5 | covered | `workflow/artifacts/verify/system-level-install-v1.md` Manifest Coverage — CLAUDE.md three-tier table written; repo-mental-map.md two-root section written; setup SKILL.md system install note written |
 
 ## PR / CI Readiness
 
