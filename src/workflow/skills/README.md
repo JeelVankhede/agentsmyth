@@ -39,6 +39,9 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `data-schema-designer` | Focused expert for data/schema design across relational, document, key-value, graph, migration, event-schema routes. |
 | `system-design-advisor` | Focused expert for system/architecture design across monolith, microservices, event-driven, serverless, integration-boundary routes. |
 | `ui-ux-designer` | Focused expert for UI/UX design across web, iOS, Android, cross-platform-mobile, desktop, TUI, and accessibility routes. |
+| `clean-code-architect` | Focused expert for clean-code architecture across OO, functional, layered, and module-boundaries routes. |
+| `quality-gates-validator` | Judges adequacy of unit-coverage, integration, lint/type, security-scan, and perf-budget bars. |
+| `performance-optimizer` | Focused expert for performance across frontend-runtime, backend-throughput, db-query, mobile-runtime, memory, and network routes. |
 
 ## Rules
 
