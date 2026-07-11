@@ -35,6 +35,8 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `repo-alignment-scan` | Explore the actual repo/stack and surface requirement misalignment before framing. |
 | `architecture-decision-advisor` | Force a recorded whole-repo architecture call on high-complexity requirements. |
 | `constraint-conflict-scan` | Cross-check the request against domain.yaml constraints and protected paths. |
+| `interface-contract-designer` | Focused expert for interface/contract design across REST, GraphQL, gRPC, WebSocket, CLI, SDK routes. |
+| `data-schema-designer` | Focused expert for data/schema design across relational, document, key-value, graph, migration, event-schema routes. |
 
 ## Rules
 
