@@ -37,6 +37,8 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `constraint-conflict-scan` | Cross-check the request against domain.yaml constraints and protected paths. |
 | `interface-contract-designer` | Focused expert for interface/contract design across REST, GraphQL, gRPC, WebSocket, CLI, SDK routes. |
 | `data-schema-designer` | Focused expert for data/schema design across relational, document, key-value, graph, migration, event-schema routes. |
+| `system-design-advisor` | Focused expert for system/architecture design across monolith, microservices, event-driven, serverless, integration-boundary routes. |
+| `ui-ux-designer` | Focused expert for UI/UX design across web, iOS, Android, cross-platform-mobile, desktop, TUI, and accessibility routes. |
 
 ## Rules
 
