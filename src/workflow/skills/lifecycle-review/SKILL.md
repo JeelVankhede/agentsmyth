@@ -69,6 +69,9 @@ Review may proceed on a blocked Build only when the review target is clear and t
 - `references/generated-output-review.md` — when reviewing generated-output changes
 - `references/source-of-truth-review.md` — when reviewing source-of-truth handling
 - `references/verification-review.md` — when reviewing verification evidence
+- `workflow/skills/coverage-tracer/SKILL.md` — when mapping requirements to evidence, to extend the covered/deferred/waived/dropped ledger
+- `workflow/skills/evidence-auditor/SKILL.md` — when confirming findings and verification claims cite resolvable evidence
+- `workflow/skills/verify-manifest-coverage/SKILL.md` — before finalizing `manifest_ids`, to cross-check declared coverage against actual diff scope
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect findings
@@ -136,6 +139,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Residual risk is explicit even when there are no findings.
 - Recommendation is `pass`, `pass-with-risk`, or `hold`.
 - `orchestration.phase` is `review`, `orchestration.status` is accurate, and `next_phase` is `test` when unblocked.
+- `verify-manifest-coverage` confirms declared `manifest_ids` equal observed diff coverage, with any delta explained.
+- Every claim tagged as verified in the review passes `evidence-auditor`.
 
 ## Determinism Rules
 

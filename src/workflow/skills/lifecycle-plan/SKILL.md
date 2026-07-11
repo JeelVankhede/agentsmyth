@@ -68,6 +68,8 @@ Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, la
 - `references/verification-planning.md` — when building the verification plan
 - `references/branch-policy.md` — when defining branch and commit strategy
 - `references/source-of-truth-planning.md` — when source-of-truth handling is required
+- `workflow/skills/waiver-completeness-check/SKILL.md` — when the plan records any waiver, to confirm it carries all 6 required fields
+- `workflow/skills/coverage-tracer/SKILL.md` — when building Requirement Coverage, to establish the covered/deferred/waived/dropped ledger
 - `workflow/config/verification.yaml` — when building the verification plan
 - `workflow/config/source-of-truth.yaml` — when source authority or handoff affects planning
 
@@ -138,6 +140,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - User approved the plan or accepted a waiver.
 - Branch strategy is explicit and does not target the default branch unless the user approved that exception.
 - `orchestration.phase` is `plan`, `orchestration.status` is accurate, and `next_phase` is `build` when unblocked.
+- Requirement Coverage is established as a `coverage-tracer` ledger with a row and citation per active R/RI.
+- Any waiver recorded in the plan passes `waiver-completeness-check`.
 
 ## Determinism Rules
 

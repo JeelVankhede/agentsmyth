@@ -21,6 +21,13 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `decompose-requirements` | Create or backfill requirement manifest entries. |
 | `restore-context` | Rebuild lifecycle state from artifacts, config, git, and source references. |
 | `dispatch-subagents` | Define safe optional parallel workstreams. |
+| `waiver-completeness-check` | Validate every claimed waiver carries all 6 required fields. |
+| `coverage-tracer` | Trace every active R/RI into a covered/deferred/waived/dropped ledger. |
+| `evidence-auditor` | Confirm every verified-fact claim cites a resolvable evidence source. |
+| `scope-fence` | Assert Build's actual diff is a subset of the active plan phase's declared touches. |
+| `verify-manifest-coverage` | Cross-check Review's declared manifest_ids against actual diff scope. |
+| `skipped-check-accountant` | Force every skipped/unevidenced check into a risk entry with an owner. |
+| `release-readiness-gate` | Aggregate verify/review/coverage/waiver state into one go/hold/blocked recommendation. |
 
 ## Rules
 

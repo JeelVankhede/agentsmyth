@@ -37,7 +37,7 @@ if (args.includes('--phase')) {
     review:  { dir: 'tasks',    ready: ['ready-for-next-phase'] },
     test:    { dir: 'reviews',  ready: ['ready-for-next-phase'] },
     ship:    { dir: 'verify',   ready: ['ready-for-next-phase'] },
-    reflect: { dir: 'ship',     ready: ['ship', 'hold-with-waiver'] },
+    reflect: { dir: 'ship',     ready: ['ready-for-next-phase'] },
   };
 
   const validPhases = ['think', ...Object.keys(UPSTREAM)];

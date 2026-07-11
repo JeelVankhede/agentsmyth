@@ -71,6 +71,9 @@ If Review is missing or blocked, Test may proceed only when the artifact records
 - `references/manual-qa-policy.md` — when recording manual QA scenarios
 - `references/skipped-check-policy.md` — when a check cannot be run
 - `references/generated-output-verification.md` — when verifying generated output
+- `workflow/skills/waiver-completeness-check/SKILL.md` — when the verify artifact records any waiver, to confirm it carries all 6 required fields
+- `workflow/skills/evidence-auditor/SKILL.md` — when confirming every verification claim cites resolvable evidence
+- `workflow/skills/skipped-check-accountant/SKILL.md` — before finalizing Sign-Off, to confirm every skipped or unevidenced check has a complete risk entry
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect verification
@@ -139,6 +142,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Failed or skipped checks are fixed, rerun, or recorded as hold/waiver with owner and risk.
 - Sign-off includes verifier, date, and recommendation.
 - `orchestration.phase` is `test`, `orchestration.status` is accurate, and `next_phase` is `ship` when unblocked.
+- `skipped-check-accountant` confirms every check is run-with-evidence or has a complete risk entry with owner.
+- Every claim tagged as verified in the verify artifact passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
 
 ## Determinism Rules
 

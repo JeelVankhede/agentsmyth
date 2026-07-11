@@ -72,6 +72,8 @@ Reflect may proceed when Ship is `ship` or user-accepted `hold-with-waiver`. If 
 - `references/learning-capture.md` — when proposing learning candidates
 - `references/raw-session-format.md` — when writing the raw learning session
 - `references/follow-up-policy.md` — when identifying and structuring follow-up actions
+- `workflow/skills/coverage-tracer/SKILL.md` — when building the Manifest Coverage Retrospective
+- `workflow/skills/evidence-auditor/SKILL.md` — when confirming outcome claims cite resolvable evidence
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
@@ -141,6 +143,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - No curated learning file is edited unless the user explicitly requested curation.
 - No unsupported external outcome claims appear.
 - `orchestration.phase` is `reflect`, `status` is `done`, and `next_phase` is `done` when complete.
+- Manifest Coverage Retrospective is built via `coverage-tracer` with a row and citation per active R/RI.
+- Outcome claims tagged as verified pass `evidence-auditor`.
 
 ## Determinism Rules
 

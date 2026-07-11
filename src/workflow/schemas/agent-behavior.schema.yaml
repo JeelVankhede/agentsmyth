@@ -156,6 +156,47 @@ properties:
         type: boolean
       merge_owner:
         type: string
+  skill_scoring:
+    type: object
+    additionalProperties: false
+    required:
+      - version
+      - signals
+      - complexity_score
+      - triggers
+    properties:
+      version:
+        const: 1
+      signals:
+        type: object
+        additionalProperties:
+          type: object
+          additionalProperties: false
+          required:
+            - source
+            - type
+          properties:
+            source:
+              type: string
+            type:
+              type: string
+              enum:
+                - int
+                - bool
+                - string
+      complexity_score:
+        type: object
+        additionalProperties: false
+        required:
+          - weights
+        properties:
+          weights:
+            type: object
+            additionalProperties: true
+      triggers:
+        type: object
+        additionalProperties:
+          type: string
   extensions:
     type: object
     additionalProperties: true

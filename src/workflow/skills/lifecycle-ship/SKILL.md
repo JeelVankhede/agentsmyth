@@ -75,6 +75,10 @@ Ship must hold when Test recommends `hold`, when Review has unresolved blocking 
 - `references/rollback-policy.md` — when defining rollback trigger and action
 - `references/pr-ci-policy.md` — when PR or CI state is required by release config
 - `references/blocked-handoff-format.md` — when an external action cannot be performed
+- `workflow/skills/release-readiness-gate/SKILL.md` — before setting the Ship recommendation, to aggregate verify/review/coverage/waiver state into one go/hold/blocked decision
+- `workflow/skills/coverage-tracer/SKILL.md` — when finalizing Requirement Coverage
+- `workflow/skills/evidence-auditor/SKILL.md` — when confirming release-readiness claims cite resolvable evidence
+- `workflow/skills/waiver-completeness-check/SKILL.md` — when the ship artifact records any waiver
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the recommendation
@@ -150,6 +154,8 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - PR/CI/release/deployment status is explicit when configured.
 - Rollback trigger and action are explicit.
 - `orchestration.phase` is `ship`, `orchestration.status` is accurate, and `next_phase` is `reflect` only for `ship` or accepted `hold-with-waiver`.
+- The recommendation matches `release-readiness-gate`'s aggregation of verify, review, coverage, and waiver state.
+- Every claim tagged as verified passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
 
 ## Determinism Rules
 
