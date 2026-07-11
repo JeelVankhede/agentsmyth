@@ -3,7 +3,45 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 
-export const repoRoot = process.cwd();
+function _expandTilde(p) {
+  if (typeof p === 'string' && p.startsWith('~/')) return join(homedir(), p.slice(2));
+  return p ?? null;
+}
+
+// Reads repository.mode / repository.workspace_root from repo-profile.yaml using a simple
+// regex (same constraint as _readDefinitionsRoot below — no YAML parser available yet at
+// this point in the file). Anchored at process.cwd(), not repoRoot, since this runs BEFORE
+// repoRoot is resolved (WP-R5): a polyrepo-member's own repo-profile.yaml lives at
+// <cwd>/workflow/config/repo-profile.yaml, exactly where single-repo's does — the same
+// "invoked from the repo root" convention every other mode already assumes.
+function _readWorkspaceRoot() {
+  const p = join(process.cwd(), 'workflow', 'config', 'repo-profile.yaml');
+  if (!existsSync(p)) return null;
+  try {
+    const text = readFileSync(p, 'utf8');
+    const mode = text.match(/^\s*mode:\s*(.+)$/m)?.[1]?.trim();
+    if (mode !== 'polyrepo-member') return null;
+    const workspaceRoot = text.match(/^\s*workspace_root:\s*(.+)$/m)?.[1]?.trim();
+    return workspaceRoot || null;
+  } catch { return null; }
+}
+
+// Resolution order (WP-R5 T5.2): a polyrepo-member's shared workflow/ lives outside any single
+// git repo, so git-based detection can't find it — the workspace_root pointer takes priority.
+// Otherwise, git-top-level detection correctly finds the one shared root for single-repo and
+// monorepo alike (both are exactly one git repository spanning everything that matters). Falls
+// back to process.cwd() only when git itself is unavailable (not yet a git repo — fresh init).
+function _resolveRepoRoot() {
+  const workspaceRoot = _readWorkspaceRoot();
+  if (workspaceRoot) return _expandTilde(workspaceRoot);
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  } catch {
+    return process.cwd();
+  }
+}
+
+export const repoRoot = _resolveRepoRoot();
 
 // Detect workflow root: consumer repos use workflow/, source repo build scripts override
 // via AGENTSMYTH_WF env var (set to src/workflow/), fallback is legacy dotted path.
@@ -21,11 +59,6 @@ function _readDefinitionsRoot() {
     const m = readFileSync(p, 'utf8').match(/^\s*definitions_root:\s*(.+)$/m);
     return m ? m[1].trim() : null;
   } catch { return null; }
-}
-
-function _expandTilde(p) {
-  if (typeof p === 'string' && p.startsWith('~/')) return join(homedir(), p.slice(2));
-  return p ?? null;
 }
 
 // defsRoot: where skills, schemas, validators, and agent-behavior.yaml live.

@@ -9,6 +9,36 @@ const pkgRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
 const command = process.argv[2];
 
+// Deliberately duplicated from lib.mjs's _resolveRepoRoot (WP-R5 T5.2), third copy alongside
+// lib.mjs's own and check-setup-complete.mjs's: this is the CLI entrypoint and shells out to
+// validators as a separate process rather than importing lib.mjs directly, so it can't share
+// the function without restructuring the dispatch model. Keep in sync with lib.mjs's version.
+// Used only for `check` (resolving an EXISTING repo) below — NOT for `init`'s target-directory
+// selection further down, which intentionally installs wherever the user invoked the command,
+// same as today. A polyrepo-member's very first `init --system` has no repo-profile.yaml yet to
+// read workspace_root from — specifying workspace_root at first-init time is a real gap, out of
+// scope for T5.2 (flagged, not silently guessed); this fix covers every subsequent `check` call
+// once repo-profile.yaml exists.
+function resolveExistingRepoRoot() {
+  const profilePath = join(cwd, 'workflow', 'config', 'repo-profile.yaml');
+  if (existsSync(profilePath)) {
+    try {
+      const text = readFileSync(profilePath, 'utf8');
+      if (text.match(/^\s*mode:\s*(.+)$/m)?.[1]?.trim() === 'polyrepo-member') {
+        const workspaceRoot = text.match(/^\s*workspace_root:\s*(.+)$/m)?.[1]?.trim();
+        if (workspaceRoot) {
+          return workspaceRoot.startsWith('~/') ? join(homedir(), workspaceRoot.slice(2)) : workspaceRoot;
+        }
+      }
+    } catch { /* fall through to git detection */ }
+  }
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  } catch {
+    return cwd;
+  }
+}
+
 if (!command || command === 'help') {
   console.log('Usage: agentsmyth <command>');
   console.log('');
@@ -25,11 +55,16 @@ if (!command || command === 'help') {
 // binary is not on PATH (common when installed via npm without global linking).
 
 if (command === 'check') {
+  // Resolve the existing repo root first (WP-R5 T5.2) — git top-level for single-repo/monorepo,
+  // workspace_root for polyrepo-member — so a subdirectory invocation finds the real
+  // workflow/config/, rather than headless-bootstrapping a duplicate one in the wrong place.
+  const checkRoot = resolveExistingRepoRoot();
+
   // Headless bootstrap: if workflow/config/repo-profile.yaml is absent, write stub configs
   // and a pending-setup.yaml listing what the agent needs to fill in.
-  const profilePath = join(cwd, 'workflow', 'config', 'repo-profile.yaml');
+  const profilePath = join(checkRoot, 'workflow', 'config', 'repo-profile.yaml');
   if (!existsSync(profilePath)) {
-    const branch = headlessBootstrap(cwd, pkgRoot);
+    const branch = headlessBootstrap(checkRoot, pkgRoot);
     console.log('');
     console.log('agentsmyth: workflow/config/ was absent — bootstrapped stub configs.');
     if (branch !== '<USER-TODO>') console.log(`  inferred default_branch: ${branch}`);
@@ -59,12 +94,12 @@ if (command === 'check') {
 
   // If running from a global install, the validator lives at pkgRoot; fall back
   // to the local workflow/validators/ if check-lifecycle.mjs was placed there.
-  const localValidator = join(cwd, 'workflow', 'validators', 'check-lifecycle.mjs');
+  const localValidator = join(checkRoot, 'workflow', 'validators', 'check-lifecycle.mjs');
   const resolvedValidator = existsSync(validatorPath) ? validatorPath : localValidator;
 
   const args = process.argv.slice(3);
   try {
-    execFileSync(process.execPath, [resolvedValidator, ...args], { stdio: 'inherit', cwd });
+    execFileSync(process.execPath, [resolvedValidator, ...args], { stdio: 'inherit', cwd: checkRoot });
   } catch (e) {
     process.exit(e.status ?? 1);
   }
