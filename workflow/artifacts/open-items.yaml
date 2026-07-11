@@ -35,7 +35,7 @@ items:
     source: follow-up
     owner: user (to schedule)
     next_action: "Design + implement Wave 4 (B4, remaining playbooks)"
-    status: open
+    status: done
     first_seen_run: power-skills-wave2-v1
   - id: OI-7
     source: follow-up
@@ -58,8 +58,8 @@ items:
   - id: OI-10
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to open a PR for the Wave 3 chain (target main, re-check origin/main staleness at that time per Wave 2's R8 lesson)"
-    status: open
+    next_action: "Decide whether/when to open a PR for the Wave 3 chain (target main, re-check origin/main staleness at that time per Wave 2's R8 lesson) — resolved: main was already byte-identical to the Wave 3 branch by the time this was checked (cause undetermined), so no PR was needed"
+    status: done
     first_seen_run: power-skills-domain-experts-v1
   - id: OI-11
     source: follow-up
@@ -79,3 +79,21 @@ items:
     next_action: "Consider a periodic (not per-chain) manual quality pass across all 39 D1-D7 route files, since only 21 were directly spot-read during this chain's Review"
     status: open
     first_seen_run: power-skills-domain-experts-v1
+  - id: OI-14
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to open a PR for the Wave 4 chain (target main)"
+    status: open
+    first_seen_run: power-skills-wave4-v1
+  - id: OI-15
+    source: follow-up
+    owner: user/agent
+    next_action: "Consider the \"mark artifact approved before real user review\" self-check as a structural habit, given it recurred 3 times within Wave 4 alone"
+    status: open
+    first_seen_run: power-skills-wave4-v1
+  - id: OI-16
+    source: follow-up
+    owner: user
+    next_action: "WP-R4 is now fully complete (all 4 waves, 26 total skills) — decide what initiative comes next"
+    status: open
+    first_seen_run: power-skills-wave4-v1
