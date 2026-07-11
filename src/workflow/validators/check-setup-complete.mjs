@@ -56,12 +56,22 @@ for (const file of filesToCheckPlaceholders) {
 }
 
 // Check 3: domain.yaml has a real name and summary
+// Regexes need the `m` flag — without it, `^`/`$` only anchor to the start/end of the whole
+// string, so these never matched (domain.yaml always has `version`/`kind` lines before `domain:`).
+// Also use `[ \t]+` rather than `\s+` before the required non-whitespace character — `\s` matches
+// `\n` too, so an empty "summary:" line was incorrectly seen as "has content" by matching across
+// into the next line's text. `[ \t]` stays within the current line, so a single condition
+// correctly covers both "field absent" and "field present but blank" without the asymmetric
+// second fallback check `name` previously needed and `summary` was missing.
+// Found via audit: this made both checks false-fail for every correctly-filled domain.yaml (and
+// the summary check separately false-pass for a genuinely empty one), in every consumer repo, not
+// just this dev repo.
 const domainText = read('workflow/config/domain.yaml');
 if (domainText) {
-  if (!/^  name:\s+\S/.test(domainText) || /^  name:\s*$/.test(domainText)) {
+  if (!/^  name:[ \t]+\S/m.test(domainText)) {
     errors.push('workflow/config/domain.yaml — domain.name must be a non-empty string');
   }
-  if (!/^  summary:\s+\S/.test(domainText)) {
+  if (!/^  summary:[ \t]+\S/m.test(domainText)) {
     errors.push('workflow/config/domain.yaml — domain.summary must be a non-empty string');
   }
 }

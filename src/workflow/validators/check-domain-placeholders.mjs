@@ -10,6 +10,11 @@ const excluded = [
   /^examples\//,
   /^scripts\//,
   /^src\/workflow\/validators\/.*\.mjs$/,
+  // Dev-workspace dogfood lifecycle artifacts — never shipped (see CLAUDE.md's source vs.
+  // workspace vs. shipped table), so leakage/placeholder rules for shipped template content
+  // do not apply. Found via audit: "Bare init" (ordinary English, not the old starter naming)
+  // and "multi-repo" (legitimate WP-R5 architecture discussion) were false-flagged here.
+  /^workflow\/artifacts\//,
 ];
 
 const textFilePattern = /\.(md|mdc|yaml|yml|mjs|js|json|txt|rules)$/;
@@ -27,7 +32,6 @@ const leakagePatterns = [
   term('frontend-ai-', 'starter-recipes'),
   term('backend-ai-', 'starter-recipes'),
   term('Fa', 're'),
-  term('Ba', 're'),
   term('workspace ', 'root'),
   term('repos', '/'),
   term('Codex', '-only'),
@@ -43,6 +47,12 @@ const leakagePatterns = [
   term('child ', 'repo'),
   term('multi', '-repo'),
 ];
+
+// "Bare" (the other half of the old "fare/bare" starter-naming pair) collides with ordinary
+// English ("bare init", "bare minimum") far too often to be a standalone pattern — found via
+// audit: false-flagged "Bare init" in this repo's own dogfood artifacts. The real leak signal is
+// the paired naming, so only flag "Bare" when "Fare" also appears in the same file.
+const pairedLeakagePattern = { primary: term('Ba', 're'), requiresAlso: term('Fa', 're') };
 
 // Repo-relative phrasing. Legitimate in setup/ and docs/ (which describe the
 // porting process and never get copied), but banned inside workflow/ (shipped content)
@@ -76,6 +86,9 @@ for (const file of trackedFiles()) {
     if (text.includes(pattern)) {
       errors.push(`${file} contains reference-specific term "${pattern}"`);
     }
+  }
+  if (text.includes(pairedLeakagePattern.primary) && text.includes(pairedLeakagePattern.requiresAlso)) {
+    errors.push(`${file} contains reference-specific term "${pairedLeakagePattern.primary}" alongside "${pairedLeakagePattern.requiresAlso}"`);
   }
   if (isWorkflowFile(file)) {
     for (const pattern of workflowOnlyPatterns) {
