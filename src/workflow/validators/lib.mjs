@@ -251,10 +251,12 @@ export function listFiles(pathFromRoot) {
   return out.sort();
 }
 
-export function trackedFiles() {
+// gitCwd defaults to repoRoot, preserving every existing zero-argument call site unchanged
+// (single-repo/monorepo). Polyrepo-member callers pass resolveGitCwd(frontmatter) instead.
+export function trackedFiles(gitCwd = repoRoot) {
   try {
     return execFileSync('git', ['ls-files'], {
-      cwd: repoRoot,
+      cwd: gitCwd,
       encoding: 'utf8',
     })
       .split('\n')
@@ -263,6 +265,31 @@ export function trackedFiles() {
   } catch {
     return listFiles('.');
   }
+}
+
+// Resolves which local git checkout an artifact's git-dependent checks should run against
+// (WP-R5 T5.2). Returns repoRoot unchanged unless the active repo-profile.yaml is mode
+// polyrepo-member AND the artifact's frontmatter declares a target_repo — the common case
+// (single-repo, monorepo, or a polyrepo-member artifact with no target_repo, meaning "this repo
+// itself") is a pure passthrough, zero behavior change. On a target_repo that doesn't match any
+// sibling_repos[].name, warns and falls back to repoRoot rather than throwing — evidence_policy
+// favors graceful degradation over a hard failure here.
+export function resolveGitCwd(frontmatter) {
+  if (!frontmatter?.target_repo) return repoRoot;
+  let profile;
+  try {
+    profile = loadYaml(dataPath('config', 'repo-profile.yaml'));
+  } catch {
+    return repoRoot;
+  }
+  const repository = profile?.repository;
+  if (repository?.mode !== 'polyrepo-member' || !repository?.workspace_root) return repoRoot;
+  const sibling = (repository.sibling_repos ?? []).find((s) => s.name === frontmatter.target_repo);
+  if (!sibling?.path) {
+    console.warn(`agentsmyth: target_repo "${frontmatter.target_repo}" not found in repo-profile.yaml's sibling_repos — using repoRoot`);
+    return repoRoot;
+  }
+  return join(_expandTilde(repository.workspace_root), sibling.path);
 }
 
 export function assertCondition(condition, message, errors) {

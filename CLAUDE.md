@@ -49,6 +49,18 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
   `repo-profile.yaml` → `AGENTSMYTH_HOME` env → repo-local fallback. The dotted string is
   *constructed* (`['.','workflow'].join('')`) so the consumer copy never contains a literal
   `.workflow` reference. Preserve that trick if you touch it.
+- **Repo-root resolution (WP-R5 T5.2)** is a separate concern from the two-root resolver above:
+  `repoRoot` itself is no longer a bare `process.cwd()`. Resolution order: a `workspace_root`
+  pointer in `repo-profile.yaml` (when `mode: polyrepo-member` — the shared `workflow/` lives
+  outside any single git repo, so git can't find it) → `git rev-parse --show-toplevel` (correct
+  for `single-repository`/`monorepo`, since both are exactly one git repo regardless of which
+  package subdirectory you're invoked from) → `process.cwd()` fallback (fresh-init, not yet a git
+  repo). `repository.mode` is now an enum (`single-repository`\|`monorepo`\|`polyrepo-member`),
+  not a fixed `const` — every mode places `workflow/` at exactly one shared root, never
+  package/repo-scoped subtrees. A polyrepo-member artifact's `target_repo` field (optional,
+  matches `sibling_repos[].name`) drives `resolveGitCwd()`, which git-dependent checks
+  (`trackedFiles()`, etc.) use instead of assuming `repoRoot` is always the right git working
+  tree.
 - Build scripts pass `AGENTSMYTH_WF=src/workflow` when running source-level validators so they
   check `src/workflow/` instead of the dev workspace `workflow/`.
 
