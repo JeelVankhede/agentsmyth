@@ -125,6 +125,13 @@ Fixture letters `h`, `i`, `k`, `m` are intentionally unused in this chain — th
 
 No external source-of-truth update is required for this Build/Review/Test/Ship chain — all changes are self-contained repository files (schemas, skills, validators, fixtures, docs). The Notion spike page and roadmap page were already updated to `dev-ready` status during this session's Think-adjacent prep work, ahead of this Plan artifact; no further Notion write is owed by this chain. `workflow/config/source-of-truth.yaml` confirms `mode: optional`, `default_required: false` — consistent with "no update required."
 
+## Assumptions Verified
+
+| Assumption ID | Status | Evidence / Question |
+|---|---|---|
+| A1 | evidence-backed | Retroactively verified against the shipped result: `src/workflow/validators/` contains all 8 Wave-1 validators (`check-waivers.mjs`, `check-coverage-ledger.mjs`, `check-evidence-citations.mjs`, `check-scope-fence.mjs`, `check-manifest-coverage.mjs`, `check-skipped-accounting.mjs`, `check-release-readiness.mjs`, `check-skill-triggers.mjs`) as separate files, matching the Notion spec naming 1:1 — no merge into `check-artifacts.mjs` occurred. |
+| A2 | evidence-backed | Retroactively verified against the shipped result: Phase 1 through Phase 6 below use plain `### Phase N` headings with no `-p<P>` sub-phase splitting — Plan judged the blast radius did not warrant it. |
+
 ## Approach
 
 Each phase is self-contained and leaves the repo in a passing state (`npm run build && npm run validate && npm run violations:test` all exit 0) before the next begins, mirroring the `system-level-install` precedent's enforcement pattern.

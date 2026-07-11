@@ -1,0 +1,57 @@
+version: 1
+kind: open-items
+items:
+  - id: OI-1
+    source: follow-up
+    owner: user (to schedule)
+    next_action: "Design + implement Wave 3 (C1-C3 explorers, D1-D7 domain experts, E1 verification-parallelizer) — narrowed from the original Wave 2-4 scope now that Wave 2 (B1, B2, B6, B9, E2) has shipped"
+    status: open
+    first_seen_run: power-skills-spine-v1
+  - id: OI-2
+    source: follow-up
+    owner: user
+    next_action: "Run a real Standard/Complex task through the Wave 1 invariant spine to measure actual drift reduction, per the resolved spec's own §8 checkpoint, before starting Wave 2–4"
+    status: done
+    first_seen_run: power-skills-spine-v1
+  - id: OI-3
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to open a PR for this Wave 0+1 chain (target feat/system-level-install, per the branch decision)"
+    status: done
+    first_seen_run: power-skills-spine-v1
+  - id: OI-4
+    source: follow-up
+    owner: user/agent
+    next_action: "Audit other shipped validators for the same \"passed its fixture, never tested against a real artifact\" risk class found in check-scope-fence/check-manifest-coverage/check-release-readiness"
+    status: done
+    first_seen_run: power-skills-spine-v1
+  - id: OI-5
+    source: follow-up
+    owner: user
+    next_action: "Watch for recurrence of the mid-session unexplained auto-staging anomaly; investigate if it happens again"
+    status: open
+    first_seen_run: power-skills-spine-v1
+  - id: OI-6
+    source: follow-up
+    owner: user (to schedule)
+    next_action: "Design + implement Wave 4 (B4, remaining playbooks)"
+    status: open
+    first_seen_run: power-skills-wave2-v1
+  - id: OI-7
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to open a PR for the Wave 2 chain (target feat/wp-r4-power-skills-spine or main, re-check origin/main staleness at that time per this chain's own R8 lesson)"
+    status: open
+    first_seen_run: power-skills-wave2-v1
+  - id: OI-8
+    source: follow-up
+    owner: user/agent
+    next_action: "Investigate the recurring range-shorthand habit (3 occurrences across 2 chains) with a structural check, rather than relying on Review noticing it again"
+    status: open
+    first_seen_run: power-skills-wave2-v1
+  - id: OI-9
+    source: follow-up
+    owner: user
+    next_action: "Consider whether this per-work-package branching workflow needs a standing \"fetch + check origin/main before Ship\" step, given R8's stale-main root cause"
+    status: open
+    first_seen_run: power-skills-wave2-v1

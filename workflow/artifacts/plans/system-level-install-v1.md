@@ -128,6 +128,17 @@ a rebuild to sync the schema to `workflow/schemas/`.
 
 **No Notion or external source-of-truth items.** All changes are self-contained in this repo.
 
+## Assumptions Verified
+
+| Assumption ID | Status | Evidence / Question |
+|---|---|---|
+| A1 | evidence-backed | Retroactively verified against the shipped result: `package.json` declares `"bin": { "agentsmyth": "./bin/agentsmyth.mjs" }`, exposing a global CLI entry once installed. |
+| A2 | evidence-backed | Retroactively verified against the shipped result: `src/adapters/windsurf/global-gate.md` is 320 bytes — far under the 6,000-char cap, confirming the whole-file budget assumption held. |
+| A3 | evidence-backed | Retroactively verified against the shipped result: `bin/agentsmyth.mjs` writes to `~/.agentsmyth/` via `homedir()` + `mkdirSync(..., { recursive: true })` — a plain user-writable directory, no elevated-permission calls; no Windows-specific path handling was added, consistent with Windows staying out of scope. |
+| A4 | evidence-backed | Retroactively verified against the shipped result: `bin/agentsmyth.mjs` writes Copilot's global instructions to `homedir()/Library/Application Support/Code/User/prompts/agentsmyth.instructions.md`, the exact macOS + VS Code path assumed. |
+| A5 | evidence-backed | Retroactively verified against the shipped result: `bin/agentsmyth.mjs`'s Cursor handling prints paste-text for `Settings → Rules` instead of writing a global file, matching "per-repo `.cursor/rules/agentsmyth.mdc` outranks User Rules; `--system` emits paste-text, never blocks." |
+| A6 | evidence-backed | Retroactively verified against the shipped result: `src/workflow/validators/lib.mjs` implements the theorem directly — `_defsRoot` falls back through `definitions_root` → `AGENTSMYTH_HOME` → `join(repoRoot, _wf)`, the same expression used for `_dataRoot`, so absent both overrides the two roots are textually identical, exactly as the logical invariant claimed. |
+
 ## Approach
 
 Each phase is self-contained and leaves the repo in a passing state before the next begins.
