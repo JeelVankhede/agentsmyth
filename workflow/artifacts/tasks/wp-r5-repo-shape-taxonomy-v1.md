@@ -30,7 +30,7 @@ orchestration:
 
 ## Active Phase
 
-All 5 plan phases complete. Ready for review.
+- Phase: Phase 5 - target_repo + resolveGitCwd() (complete — all 5 plan phases done, ready for review)
 
 ## Plan Phases Overview
 
@@ -83,9 +83,17 @@ expanding — see Risk And Rollback for the full reasoning; this is not silent s
 
 ## Changed Files
 
-See scope above. All edits are to source (`src/`), schemas, and root-level docs; no generated
-output edited directly. `npm run build` re-run after every phase to keep `dist/`/`workflow/schemas/`
-in sync.
+- `src/workflow/validators/lib.mjs` — `_resolveRepoRoot()`, `_readWorkspaceRoot()`, exported `wf`, parameterized `trackedFiles(gitCwd)`, new `resolveGitCwd(frontmatter)` — IDs: R1, R3, R5, RI1, RI3
+- `src/workflow/validators/check-setup-complete.mjs` — duplicated minimal resolver — IDs: R2, RI2
+- `src/workflow/validators/check-pending-setup.mjs` — imports `repoRoot` from `lib.mjs` — IDs: R2, RI2
+- `bin/agentsmyth.mjs` — `resolveExistingRepoRoot()` for the `check` subcommand path — IDs: R2, RI2
+- `src/workflow/validators/check-assumptions.mjs`, `check-artifacts.mjs`, `check-coverage-ledger.mjs`, `check-verify-matrix.mjs`, `check-waivers.mjs`, `check-phase-map.mjs`, `check-open-items.mjs`, `check-skill-triggers.mjs`, `check-evidence-citations.mjs`, `check-constraint-conflicts.mjs`, `check-followups.mjs`, `check-skipped-accounting.mjs`, `check-release-readiness.mjs`, `check-scope-fence.mjs`, `check-manifest-coverage.mjs`, `check-lifecycle.mjs` (16 files) — import `wf` instead of re-deriving it locally — IDs: R3
+- `src/workflow/schemas/repo-profile.schema.yaml` — `mode` enum, `packages[]`, `workspace_root`, `sibling_repos[]` — IDs: R4
+- `src/workflow/schemas/artifact-frontmatter.schema.yaml` — `target_repo` field — IDs: R5
+- `CLAUDE.md`, `docs/knowledge-map/repo-mental-map.md` — RI5 doc updates — IDs: RI5
+
+Build re-run after every phase (`npm run build`) to keep `dist/`/`workflow/schemas/` in sync — no
+separate changed file, evidenced in Verification Items (RI4) instead.
 
 ## Implementation Log
 
@@ -131,10 +139,9 @@ in sync.
 
 ## Verification Items
 
-- [x] `npm run build` passes after every phase
-- [x] `npm run validate` passes after every phase
-- [x] `npm run violations:test` — 20/20 fixtures still correctly rejected after every phase
-- [x] `npm run setup-checks:test` — 4/4 after Phases 2 and 5 (touches `check-setup-complete.mjs`)
+- [x] `npm run build`, `npm run validate`, `npm run violations:test` all pass after every one of
+      the 5 phases, with zero intermediate breakage (RI4)
+- [x] `npm run setup-checks:test` — 4/4 after Phases 2 and 5 (touches `check-setup-complete.mjs`) (RI2)
 - [x] Manual: subdirectory invocation resolves to git top-level, not the subdirectory (R1)
 - [x] Manual: non-git temp directory falls back to `process.cwd()` without throwing (RI3)
 - [x] Manual: 5 hand-written `repo-profile.yaml` fixtures (3 valid modes + 2 negative cases) all
