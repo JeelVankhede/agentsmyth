@@ -197,6 +197,12 @@ properties:
         type: object
         additionalProperties:
           type: string
+      path_glob_categories:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            type: string
   extensions:
     type: object
     additionalProperties: true
