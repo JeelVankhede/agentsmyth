@@ -27,7 +27,7 @@ pre-existing + 22 new across 4 waves).
   approved) rather than relying on remembering not to do it.
 - When branch/PR state becomes genuinely confusing (byte-identical branches, no discoverable PR
   history, cause undetermined even by the user), querying the actual GitHub API directly
-  (`gh api repos/.../compare/...`) resolved the ambiguity faster and more conclusively than
+  (querying the GitHub API's branch-comparison endpoint directly via `gh api`) resolved the ambiguity faster and more conclusively than
   continuing to reason from local git state alone.
 - Recognizing that a wave's originally-scoped work had already been substantively completed by an
   earlier wave (C1/C2/D3/D4/D7 in Wave 3 already satisfied what Wave 4's brief-writing spec
