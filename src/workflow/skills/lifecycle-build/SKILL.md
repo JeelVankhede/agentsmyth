@@ -78,6 +78,7 @@ For resumed Build work, load the existing task artifact before editing. Continue
 - `workflow/skills/clean-code-architect/SKILL.md` — when the recorded trigger evaluates true, for higher-complexity changes
 - `workflow/skills/quality-gates-validator/SKILL.md` — when the recorded trigger evaluates true, to judge quality-bar adequacy
 - `workflow/skills/performance-optimizer/SKILL.md` — when the recorded trigger evaluates true, for hot-path or higher-complexity changes
+- `workflow/skills/conditional-preservation-check/SKILL.md` — when a refactor's diff shape indicates a fold, merge, or rename-with-restructure touching control flow, to confirm no conditional branch or guard clause was silently dropped
 - `workflow/config/verification.yaml` — when running or recording verification checks
 
 **On demand**:
@@ -119,6 +120,9 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 4. Create or update `workflow/artifacts/tasks/<slug>-v<N>.md`.
 5. Record active phase scope, touched areas, planned checks, and any pre-existing unrelated changes.
 6. Modify only files covered by the active phase touches unless the plan is revised first.
+6a. When a diff folds, merges, or renames-with-restructure code touching control flow, run
+    `conditional-preservation-check` before recording the change as complete, to confirm no
+    conditional branch or guard clause was silently dropped.
 7. Use authorized dispatch only for independent workstreams with no file, import, contract, or generated-output overlap.
 8. Record every changed file with manifest IDs and a short reason.
 9. Run focused checks that are available and relevant to the active phase.

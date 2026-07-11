@@ -42,6 +42,7 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `clean-code-architect` | Focused expert for clean-code architecture across OO, functional, layered, and module-boundaries routes. |
 | `quality-gates-validator` | Judges adequacy of unit-coverage, integration, lint/type, security-scan, and perf-budget bars. |
 | `performance-optimizer` | Focused expert for performance across frontend-runtime, backend-throughput, db-query, mobile-runtime, memory, and network routes. |
+| `conditional-preservation-check` | Detect silently dropped conditional branches or guard clauses on fold/merge/rename refactors. |
 
 ## Rules
 
