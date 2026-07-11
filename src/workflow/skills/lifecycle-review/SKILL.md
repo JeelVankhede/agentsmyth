@@ -72,6 +72,13 @@ Review may proceed on a blocked Build only when the review target is clear and t
 - `workflow/skills/coverage-tracer/SKILL.md` — when mapping requirements to evidence, to extend the covered/deferred/waived/dropped ledger
 - `workflow/skills/evidence-auditor/SKILL.md` — when confirming findings and verification claims cite resolvable evidence
 - `workflow/skills/verify-manifest-coverage/SKILL.md` — before finalizing `manifest_ids`, to cross-check declared coverage against actual diff scope
+- `workflow/skills/interface-contract-designer/SKILL.md` — when the recorded trigger evaluated true for the reviewed diff, to confirm the recommendation was actually applied
+- `workflow/skills/data-schema-designer/SKILL.md` — when the recorded trigger evaluated true, to confirm the recommendation was actually applied
+- `workflow/skills/system-design-advisor/SKILL.md` — when the recorded trigger evaluated true, to confirm the recommendation was actually applied
+- `workflow/skills/ui-ux-designer/SKILL.md` — when the recorded trigger evaluated true, to confirm the recommendation was actually applied
+- `workflow/skills/clean-code-architect/SKILL.md` — when the recorded trigger evaluated true, to confirm the recommendation was actually applied
+- `workflow/skills/quality-gates-validator/SKILL.md` — when the recorded trigger evaluated true, to confirm bar adequacy verdicts were actually applied
+- `workflow/skills/performance-optimizer/SKILL.md` — when the recorded trigger evaluated true, to confirm the recommendation was actually applied
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect findings

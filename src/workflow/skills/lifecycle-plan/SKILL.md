@@ -72,6 +72,11 @@ Refuse to proceed when the brief is missing, has unresolved blocking `Q` IDs, la
 - `workflow/skills/coverage-tracer/SKILL.md` — when building Requirement Coverage, to establish the covered/deferred/waived/dropped ledger
 - `workflow/skills/requirement-phase-mapper/SKILL.md` — before finalizing `## Phases`, to confirm every active R/RI maps to exactly one phase with a binary exit gate
 - `workflow/skills/plan-assumption-verifier/SKILL.md` — when processing the brief's A IDs, to cross-verify each against repo evidence or raise it as a Q ID
+- `workflow/skills/interface-contract-designer/SKILL.md` — when the recorded trigger evaluates true, for interface/contract-shaped changes
+- `workflow/skills/data-schema-designer/SKILL.md` — when the recorded trigger evaluates true, for schema/migration-shaped changes
+- `workflow/skills/system-design-advisor/SKILL.md` — when the recorded trigger evaluates true, for high-complexity or new-surface changes
+- `workflow/skills/ui-ux-designer/SKILL.md` — when the recorded trigger evaluates true, for UI-shaped changes
+- `workflow/skills/quality-gates-validator/SKILL.md` — when the recorded trigger evaluates true, to judge quality-bar adequacy for the planned work
 - `workflow/config/verification.yaml` — when building the verification plan
 - `workflow/config/source-of-truth.yaml` — when source authority or handoff affects planning
 

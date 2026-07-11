@@ -72,6 +72,12 @@ For resumed Build work, load the existing task artifact before editing. Continue
 - `references/verification-recording.md` — when recording command evidence or not-run risk
 - `workflow/skills/scope-fence/SKILL.md` — before marking a Build phase complete, to confirm the actual diff is a subset of its declared touches
 - `workflow/skills/waiver-completeness-check/SKILL.md` — when the task records any waiver, to confirm it carries all 6 required fields
+- `workflow/skills/interface-contract-designer/SKILL.md` — when the recorded trigger evaluates true, for interface/contract-shaped changes
+- `workflow/skills/data-schema-designer/SKILL.md` — when the recorded trigger evaluates true, for schema/migration-shaped changes
+- `workflow/skills/ui-ux-designer/SKILL.md` — when the recorded trigger evaluates true, for UI-shaped changes
+- `workflow/skills/clean-code-architect/SKILL.md` — when the recorded trigger evaluates true, for higher-complexity changes
+- `workflow/skills/quality-gates-validator/SKILL.md` — when the recorded trigger evaluates true, to judge quality-bar adequacy
+- `workflow/skills/performance-optimizer/SKILL.md` — when the recorded trigger evaluates true, for hot-path or higher-complexity changes
 - `workflow/config/verification.yaml` — when running or recording verification checks
 
 **On demand**:

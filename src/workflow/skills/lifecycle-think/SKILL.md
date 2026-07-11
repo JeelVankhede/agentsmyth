@@ -63,6 +63,7 @@ For resumed or revised work, load the current slug chain first through `restore-
 - `workflow/skills/repo-alignment-scan/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to map the requirement to real repo surfaces and surface misalignment before framing
 - `workflow/skills/architecture-decision-advisor/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to force and record a whole-repo architecture decision for high-complexity requirements
 - `workflow/skills/constraint-conflict-scan/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to cross-check the request against `domain.yaml` constraints and protected paths
+- `workflow/skills/system-design-advisor/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, for high-complexity or new-surface requirements needing a whole-repo architecture read before framing
 
 **On demand**:
 - `workflow/config/domain.yaml` — when domain terminology, constraints, or non-goals affect scope
