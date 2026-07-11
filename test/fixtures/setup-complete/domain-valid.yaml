@@ -1,0 +1,10 @@
+version: 1
+kind: domain
+
+domain:
+  name: fixture-domain
+  summary: A minimal but fully-filled domain summary for regression testing.
+  regulated: false
+  glossary: []
+  preferred_terms: []
+  discouraged_terms: []

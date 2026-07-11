@@ -54,6 +54,20 @@ function skippedChecksSection(body) {
   return match ? match[1] : null;
 }
 
+// Extracts the ## Risk And Rollback section body — a ship artifact's designated location for
+// applying waiver policy (lifecycle-ship/SKILL.md Workflow step 8: "Apply waiver policy for any
+// unresolved risk... in Risk And Rollback"). Prose-based, not a table, so "substantive" means
+// non-empty and not the literal "none" placeholder, not "has parseable table rows."
+function riskAndRollbackSection(body) {
+  const match = body.match(/## Risk And Rollback\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/);
+  return match ? match[1] : null;
+}
+
+function isSubstantive(sectionText) {
+  const trimmed = (sectionText ?? '').trim();
+  return trimmed.length > 0 && !/^none$/i.test(trimmed);
+}
+
 // Parses a markdown table into an array of row-cell arrays, skipping the header/divider rows.
 function parseTableRows(tableText) {
   const lines = tableText.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
@@ -64,23 +78,27 @@ function parseTableRows(tableText) {
   );
 }
 
-// Flags lines outside the ## Waivers/## Skipped Checks sections that look like an unstructured
-// waiver claim. If the document already has at least one real row in either structured table,
-// further prose mentions elsewhere in the same document are treated as legitimate cross-references
-// to that already-recorded entry, not a hidden, never-structured claim — the P2 scenario this
-// check exists to catch is a waiver mentioned in prose with ZERO structured rows anywhere in the
-// document, not every incidental mention once a real row already exists. Found via dogfooding:
-// a real verify artifact's own "Skipped Checks" row (Blocks Ship: waiver-required) plus two
-// Architecture Notes lines discussing that same, already-structured entry were all false-flagged
-// before this fix (workflow/artifacts/verify/power-skills-wave2-v1.md).
+// Flags lines outside the ## Waivers/## Skipped Checks/## Risk And Rollback sections that look
+// like an unstructured waiver claim. If the document already has at least one real row in either
+// structured table, or a substantive Risk And Rollback section (a ship artifact's designated
+// waiver-policy location, prose not table), further prose mentions elsewhere in the same document
+// are treated as legitimate cross-references to that already-recorded entry, not a hidden,
+// never-structured claim — the P2 scenario this check exists to catch is a waiver mentioned in
+// prose with ZERO structured disclosure anywhere in the document, not every incidental mention
+// once a real disclosure already exists. Found via dogfooding: a real verify artifact's own
+// "Skipped Checks" row plus Architecture Notes referencing it, and separately a real ship
+// artifact's Architecture Notes referencing its own substantive Risk And Rollback section, were
+// both false-flagged before these fixes (workflow/artifacts/{verify,ship}/power-skills-wave2-v1.md).
 function unstructuredWaiverMentions(body) {
   const withoutStructuredSections = body
     .replace(/## Waivers\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '')
-    .replace(/## Skipped Checks\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '');
+    .replace(/## Skipped Checks\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '')
+    .replace(/## Risk And Rollback\s*\n[\s\S]*?(?=\n## |\n---|\s*$)/, '');
 
   const hasStructuredRow =
     parseTableRows(waiversSection(body) ?? '').length > 0 ||
-    parseTableRows(skippedChecksSection(body) ?? '').length > 0;
+    parseTableRows(skippedChecksSection(body) ?? '').length > 0 ||
+    isSubstantive(riskAndRollbackSection(body));
 
   const flagged = [];
   for (const rawLine of withoutStructuredSections.split('\n')) {
