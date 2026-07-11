@@ -139,6 +139,12 @@ const fixtures = [
     description: '(Wave 2, E2) open-items.yaml item missing required owner field — check-open-items',
     validator: validatorPath('check-open-items.mjs'),
   },
+  {
+    id: 'o1',
+    dir: 'test/fixtures/lifecycle-violations/o1-constraint-conflict-bad-id',
+    description: '(Wave 3, C3) Brief cites a constraint ID absent from domain.yaml — check-constraint-conflicts',
+    validator: validatorPath('check-constraint-conflicts.mjs'),
+  },
 ];
 
 let passed = 0;

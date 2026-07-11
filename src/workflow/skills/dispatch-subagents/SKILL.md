@@ -98,7 +98,7 @@ Do not dispatch when:
 - Caps are hard.
 - Do not nest subagent dispatch.
 - Do not duplicate work between parent and subagents.
-- Do not dispatch state-dependent Test, Ship, or Reflect work.
+- Do not dispatch state-dependent Test, Ship, or Reflect work — the one narrow exception is the `verification-parallelizer` (E1) profile: independently-reproducible `verification-matrix-builder` (B6) rows only, capped at 3, per `references/decision-tree-by-phase.md`'s E1 section.
 - Do not allow Build workers to touch overlapping files or contracts.
 - Read-only review workers must not edit files.
 - Parent agent remains responsible for final integration, evidence, and user-facing claims.

@@ -10,11 +10,11 @@ The global maximum is set by `dispatch.max_parallel_workstreams` in `workflow/ag
 | Plan | explorer | read-only requirement/risk mapping |
 | Build | worker | independent write workstreams |
 | Review | worker-readonly | independent risk-category review |
-| Test | none | no dispatch |
+| Test | verifier-readonly (`verification-parallelizer`/E1 only) | independent verification-row fan-out; all other Test work: no dispatch |
 | Ship | none | no dispatch |
 | Reflect | none | no dispatch |
 
-Phases with `none` role have a cap of 0 — dispatch is never allowed regardless of authorization or agent-behavior.yaml values.
+Phases with `none` role have a cap of 0 — dispatch is never allowed regardless of authorization or agent-behavior.yaml values. Test's cap is 0 for general Test work and `dispatch.max_parallel_workstreams` (capped at 3 regardless of config) only for the narrow `verification-parallelizer` profile — see `decision-tree-by-phase.md`'s E1 section.
 
 For all other phases, the cap is `dispatch.max_parallel_workstreams` from `agent-behavior.yaml`. If the config is absent, default to 1 (no parallelism).
 

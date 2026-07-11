@@ -75,6 +75,7 @@ If Review is missing or blocked, Test may proceed only when the artifact records
 - `workflow/skills/evidence-auditor/SKILL.md` — when confirming every verification claim cites resolvable evidence
 - `workflow/skills/skipped-check-accountant/SKILL.md` — before finalizing Sign-Off, to confirm every skipped or unevidenced check has a complete risk entry
 - `workflow/skills/verification-matrix-builder/SKILL.md` — when building Manifest Coverage, to confirm every active R/RI has a named verification method
+- `workflow/skills/dispatch-subagents/SKILL.md` — only when the user explicitly authorizes it, and only for independently-reproducible verification rows (the `verification-parallelizer`/E1 profile, `references/decision-tree-by-phase.md`); all other Test work stays local
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when evidence policy or waiver rules affect verification

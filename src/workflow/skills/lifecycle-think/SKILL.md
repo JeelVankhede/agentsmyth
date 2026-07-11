@@ -60,6 +60,9 @@ For resumed or revised work, load the current slug chain first through `restore-
 - `references/question-policy.md` — when formulating blocking or non-blocking `Q` IDs
 - `references/architecture-notes-guide.md` — when writing architecture notes
 - `workflow/skills/waiver-completeness-check/SKILL.md` — when the brief records any waiver, to confirm it carries all 6 required fields
+- `workflow/skills/repo-alignment-scan/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to map the requirement to real repo surfaces and surface misalignment before framing
+- `workflow/skills/architecture-decision-advisor/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to force and record a whole-repo architecture decision for high-complexity requirements
+- `workflow/skills/constraint-conflict-scan/SKILL.md` — when the recorded `skill_scoring` trigger evaluates true, to cross-check the request against `domain.yaml` constraints and protected paths
 
 **On demand**:
 - `workflow/config/domain.yaml` — when domain terminology, constraints, or non-goals affect scope
@@ -85,7 +88,7 @@ Stop and ask, or return a blocked brief, when any of these apply:
 
 - The source-of-truth location or authority is required but unknown.
 - The domain rule, non-goal, protected path, release expectation, or verification expectation would change scope and is unclear.
-- The user request conflicts with configured repo/domain constraints and no waiver is provided.
+- The user request conflicts with configured repo/domain constraints and no waiver is provided (`constraint-conflict-scan` surfaces this — see What To Load).
 - A material decision would require inventing product policy, external tracking state, release status, commands, or ownership.
 - Existing manifest IDs would need renumbering to continue in the same version.
 - The request is actually orchestration across multiple repositories. Record it as out of scope unless the user explicitly narrows it to the repository.
@@ -94,7 +97,10 @@ Stop and ask, or return a blocked brief, when any of these apply:
 
 1. Classify task as Trivial, Standard, or Complex.
 2. Determine slug and version. Reuse the active slug where possible; bump version for material scope change.
-3. Inspect available source, repo, and config context before asking questions.
+3. Inspect available source, repo, and config context before asking questions. Evaluate the
+   `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` trigger
+   predicates against recorded signals; run each that evaluates true and record a
+   `skill_trigger_log` entry for every evaluated trigger (ran or skipped, with reason).
 4. Extract explicit requirements as `R` IDs.
 5. Derive implicit requirements as `RI` IDs from repo contracts, domain config, source-of-truth expectations, compatibility, generated output, verification, release, and safety.
 6. Record assumptions as `A` IDs only when proceeding is safe.
@@ -116,6 +122,7 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - tradeoffs considered and rejected
 - assumptions that Plan must verify or preserve
 - downstream impact on Plan, Build, Review, Test, Ship, or Reflect
+- when `architecture-decision-advisor` triggered: the recorded decision, rejected alternatives, and rationale (see the skill's own Exit Gate)
 
 ## Exit Gate
 
@@ -127,6 +134,7 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - `orchestration.phase` is `think`, `orchestration.status` is accurate, and `next_phase` is `plan` when unblocked.
 - The user has approved the brief or the artifact records an explicit waiver before Plan begins.
 - Any waiver recorded in the brief passes `waiver-completeness-check` (all 6 required fields present).
+- The `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` triggers were each evaluated, with a `skill_trigger_log` entry recorded for every one (ran or skipped, with reason) — audited by `check-skill-triggers.mjs`.
 
 ## Determinism Rules
 

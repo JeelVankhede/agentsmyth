@@ -23,6 +23,7 @@ node workflow/validators/check-assumptions.mjs
 node workflow/validators/check-verify-matrix.mjs
 node workflow/validators/check-followups.mjs
 node workflow/validators/check-open-items.mjs
+node workflow/validators/check-constraint-conflicts.mjs
 ```
 
 The WP-R4 Wave 1 checks above all accept a `--dir <path>` override (matching `check-artifacts.mjs`)
@@ -51,5 +52,6 @@ the CLI can resolve the validator from either the repo-local or global definitio
 - `check-verify-matrix.mjs` checks a verify artifact's `## Manifest Coverage` has a row with a named method for every active manifest ID, and no `pass` row with empty evidence.
 - `check-followups.mjs` checks every row in a reflect artifact's `## Follow-Ups` table has a non-empty, non-`TBD` owner.
 - `check-open-items.mjs` checks `workflow/artifacts/open-items.yaml` against its schema when present; exits 0 with an informative message when absent.
+- `check-constraint-conflicts.mjs` checks every constraint-ID citation in a brief's `## Open Questions (Q)` section resolves to a real ID present in `domain.yaml`'s bracket-prefixed constraint arrays.
 
 These validators are conservative contract checks. They do not replace code tests, manual QA, source-of-truth verification, release evidence, or human review.

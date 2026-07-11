@@ -145,12 +145,15 @@ dispatch:
 # justified for every skill whose trigger predicate evaluates true against the recorded signals —
 # it cannot re-derive or verify the score itself.
 #
-# triggers is intentionally empty in this revision: every power skill shipped so far
-# (decompose-requirements, restore-context, dispatch-subagents, lifecycle-orchestrator, and the
-# WP-R4 Wave 1 invariant-spine skills — waiver-completeness-check, coverage-tracer,
-# evidence-auditor, scope-fence, verify-manifest-coverage, skipped-check-accountant,
-# release-readiness-gate) is either Active or Gate-bound, not Passive/scored. Entries are added
-# here only when a Passive/scored skill ships alongside a real consumer.
+# WP-R4 Wave 3 fills in the first 10 real entries below (C1-C3 explorers, D1-D7 domain experts) —
+# every power skill shipped before Wave 3 (decompose-requirements, restore-context,
+# dispatch-subagents, lifecycle-orchestrator, and the WP-R4 Wave 1/2 gate-bound skills) is either
+# Active or Gate-bound, not Passive/scored, so had nothing to enter here. Predicate strings use
+# `path~<category>_globs` as shorthand for "the diff touches a file matching that category's glob
+# set" (verbatim from the resolved WP-R4 spec §5) — there is no runtime to evaluate this
+# mechanically (see comment above); the agent applies the predicate itself and records the
+# decision in skill_trigger_log. check-skill-triggers.mjs audits that the decision was recorded,
+# never that the predicate was evaluated correctly.
 skill_scoring:
   version: 1
   signals:
@@ -190,6 +193,16 @@ skill_scoring:
         trivial: 0
         standard: 6
         complex: 6
-  triggers: {}
+  triggers:
+    repo-alignment-scan: "complexity_score >= 40 OR new_surface OR task_class != trivial"
+    architecture-decision-advisor: "complexity_score >= 60 OR touches_contract OR new_surface"
+    constraint-conflict-scan: "task_class != trivial OR touches_protected"
+    domain.interface-contract-designer: "path~contract_globs OR touches_contract"
+    domain.data-schema-designer: "path~schema_globs"
+    domain.system-design-advisor: "complexity_score >= 60 OR new_surface"
+    domain.ui-ux-designer: "path~ui_globs"
+    domain.clean-code-architect: "complexity_score >= 50"
+    domain.quality-gates-validator: "task_class != trivial"
+    domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= 60"
 
 extensions: {}

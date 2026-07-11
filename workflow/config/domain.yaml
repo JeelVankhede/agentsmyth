@@ -11,16 +11,16 @@ domain:
 
 constraints:
   product:
-    - Do not introduce domain-specific behavior unless the user request or repo context requires it.
-    - Treat compatibility, source authority, verification, and release impact as implicit requirements when material.
+    - "[product-1] Do not introduce domain-specific behavior unless the user request or repo context requires it."
+    - "[product-2] Treat compatibility, source authority, verification, and release impact as implicit requirements when material."
   safety:
-    - Do not expose secrets, credentials, private tokens, API keys, or sensitive local paths in lifecycle artifacts.
-    - Do not perform destructive actions without explicit user approval.
-    - Do not claim external state without evidence.
-    - Do not include environment variable values, connection strings, or authentication material in any artifact section.
+    - "[safety-1] Do not expose secrets, credentials, private tokens, API keys, or sensitive local paths in lifecycle artifacts."
+    - "[safety-2] Do not perform destructive actions without explicit user approval."
+    - "[safety-3] Do not claim external state without evidence."
+    - "[safety-4] Do not include environment variable values, connection strings, or authentication material in any artifact section."
   provider_neutrality:
-    - Do not make any source, ticketing, hosting, CI, package, or deployment provider mandatory by default.
-    - Use configured providers only when this config, another workflow config, or the user request enables them.
+    - "[provider-neutrality-1] Do not make any source, ticketing, hosting, CI, package, or deployment provider mandatory by default."
+    - "[provider-neutrality-2] Use configured providers only when this config, another workflow config, or the user request enables them."
 
 requirement_discovery:
   implicit_requirement_sources:

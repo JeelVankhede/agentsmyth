@@ -37,6 +37,7 @@ const artifactCommands = [
   // no env override needed.
   ['node', ['src/workflow/validators/check-config.mjs']],
   ['node', ['src/workflow/validators/check-domain-placeholders.mjs']],
+  ['node', ['src/workflow/validators/check-constraint-conflicts.mjs']],
 ];
 
 for (const [cmd, args] of sourceCommands) {
