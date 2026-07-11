@@ -123,7 +123,14 @@ for (const file of artifactFiles) {
     continue; // structural frontmatter errors are check-artifacts's job, not this validator's
   }
 
-  const unstructured = unstructuredWaiverMentions(parsed.body);
+  // Reflect artifacts are retrospective narrative — they report on waivers already declared and
+  // resolved elsewhere in the chain (task/verify/ship), never declare a new active one themselves
+  // (no Reflect exemplar has ever had a ## Waivers table). Scanning them for "unstructured claims"
+  // misapplies a check meant for artifacts that can actively hold an unresolved waiver. Found via
+  // dogfooding: workflow/artifacts/reflect/power-skills-wave2-v1.md's "What Worked"/"What Did Not
+  // Work" prose, both discussing an already-resolved historical waiver, false-flagged before this.
+  const isReflect = file.split('/').slice(-2, -1)[0] === 'reflect';
+  const unstructured = isReflect ? [] : unstructuredWaiverMentions(parsed.body);
   for (const line of unstructured) {
     errors.push(`${file} has a possible unstructured waiver claim outside the Waivers table: "${line}" — confirm or move it into a ## Waivers row`);
   }
