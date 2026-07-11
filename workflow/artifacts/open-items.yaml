@@ -5,7 +5,7 @@ items:
     source: follow-up
     owner: user (to schedule)
     next_action: "Design + implement Wave 3 (C1-C3 explorers, D1-D7 domain experts, E1 verification-parallelizer) — narrowed from the original Wave 2-4 scope now that Wave 2 (B1, B2, B6, B9, E2) has shipped"
-    status: open
+    status: done
     first_seen_run: power-skills-spine-v1
   - id: OI-2
     source: follow-up
@@ -41,7 +41,7 @@ items:
     source: follow-up
     owner: user
     next_action: "Decide whether/when to open a PR for the Wave 2 chain (target feat/wp-r4-power-skills-spine or main, re-check origin/main staleness at that time per this chain's own R8 lesson)"
-    status: open
+    status: done
     first_seen_run: power-skills-wave2-v1
   - id: OI-8
     source: follow-up
@@ -55,3 +55,27 @@ items:
     next_action: "Consider whether this per-work-package branching workflow needs a standing \"fetch + check origin/main before Ship\" step, given R8's stale-main root cause"
     status: open
     first_seen_run: power-skills-wave2-v1
+  - id: OI-10
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to open a PR for the Wave 3 chain (target main, re-check origin/main staleness at that time per Wave 2's R8 lesson)"
+    status: open
+    first_seen_run: power-skills-domain-experts-v1
+  - id: OI-11
+    source: follow-up
+    owner: user/agent
+    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification"
+    status: open
+    first_seen_run: power-skills-domain-experts-v1
+  - id: OI-12
+    source: follow-up
+    owner: user/agent
+    next_action: "Update Ship's own default behavior to ask \"resolved fix vs. genuine waiver\" before presenting a checkpoint — now a confirmed repeating pattern (Wave 2's R8, this chain's E1/D3 items)"
+    status: open
+    first_seen_run: power-skills-domain-experts-v1
+  - id: OI-13
+    source: follow-up
+    owner: user
+    next_action: "Consider a periodic (not per-chain) manual quality pass across all 39 D1-D7 route files, since only 21 were directly spot-read during this chain's Review"
+    status: open
+    first_seen_run: power-skills-domain-experts-v1
