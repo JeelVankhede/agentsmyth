@@ -8,17 +8,13 @@ import {
   loadYaml,
   parseFrontmatter,
   readText,
-  repoRoot,
   schemaRegistry,
   validateSchema,
+  wf,
 } from './lib.mjs';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 
 // --dir <path> overrides the default artifacts root (used for fixture testing)
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;

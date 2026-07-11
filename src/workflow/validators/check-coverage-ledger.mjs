@@ -3,14 +3,10 @@
 // manifest ID declared in the artifact's own frontmatter appears as a row in its
 // Requirement Coverage (or Manifest Coverage Retrospective) table, and that any row using
 // dropped/removed language is accompanied by a Waivers section entry for that ID.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

@@ -3,14 +3,10 @@
 // row in an evidence-bearing table (Command Results, Automated Checks, Verification Items,
 // Verification Reviewed) has no empty cell — a structural presence check, not a truthfulness
 // check (a hand-rolled validator cannot verify a citation is honest, only that one exists).
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

@@ -12,6 +12,7 @@ import {
   readText,
   repoRoot,
   trackedFiles,
+  wf,
 } from './lib.mjs';
 
 const args = process.argv.slice(2);
@@ -19,9 +20,6 @@ const phaseArgIdx = args.indexOf('--phase');
 const slugArgIdx = args.indexOf('--slug');
 const targetPhase = phaseArgIdx !== -1 ? args[phaseArgIdx + 1] : null;
 const targetSlug = slugArgIdx !== -1 ? args[slugArgIdx + 1] : null;
-
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 
 // ── Phase gate check (--phase mode) ───────────────────────────────────────
 // Checks that the required upstream artifact exists and is ready before the

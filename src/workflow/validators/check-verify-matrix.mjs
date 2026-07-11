@@ -2,14 +2,10 @@
 // Wave 2 (B6) — verification-matrix-builder. For verify artifacts, confirms every active R/RI
 // (from frontmatter manifest_ids) has a "## Manifest Coverage" row with a named method, and that
 // no row claiming a pass Result has an empty Evidence cell.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

@@ -46,8 +46,13 @@ export const repoRoot = _resolveRepoRoot();
 // Detect workflow root: consumer repos use workflow/, source repo build scripts override
 // via AGENTSMYTH_WF env var (set to src/workflow/), fallback is legacy dotted path.
 // Constructed without a literal dot+workflow string so the consumer-facing copy stays clean.
+// Exported as `wf` (WP-R5 T5.2) so every validator that needs the bare directory-name string
+// (e.g. to build a relative `${wf}/artifacts`-style path for listFiles/readText, which expect
+// repo-root-relative input) shares this single derivation instead of re-deriving it locally —
+// found duplicated across 14 validator files during the T5.2 call-site audit.
 const _wf = process.env.AGENTSMYTH_WF
   || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
+export const wf = _wf;
 
 // ── Two-root resolver ──────────────────────────────────────────────────────
 // Reads definitions_root from repo-profile.yaml using a simple regex — no YAML

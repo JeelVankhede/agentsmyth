@@ -12,8 +12,6 @@
 // this repo's own real artifacts at write time (0 false positives across workflow/artifacts/**)
 // but can still misfire on prose not seen during calibration — that risk was accepted explicitly
 // when this check was added (see workflow/artifacts/reviews/power-skills-spine-v1.md).
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   defsPath,
   finish,
@@ -21,13 +19,11 @@ import {
   loadYaml,
   parseFrontmatter,
   readText,
-  repoRoot,
+  wf,
 } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

@@ -5,13 +5,10 @@
 // an unaccounted not-run/blocked check (no matching Skipped Checks row) is the hardened part
 // of this check, beyond a simple skip-scan.
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { dataPath, finish, listFiles, loadYaml, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { dataPath, finish, listFiles, loadYaml, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];
