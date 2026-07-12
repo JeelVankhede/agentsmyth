@@ -9,6 +9,7 @@ These examples show how to attach `agentsmyth` to different repository shapes wi
 | `minimal-markdown-source/` | Uses a local Markdown file as the source of truth and shows brief/plan artifacts. |
 | `node-package/` | Shows example-specific Node package verification config and a verify artifact. |
 | `product-app/` | Shows a complete sanitized lifecycle chain from brief through reflect. |
+| `power-skill-sandbox/` | Fixed scenario for sanity-checking passive/scored power skill triggers — mechanical regression check plus a manual dogfood log. |
 
 ## Rules
 

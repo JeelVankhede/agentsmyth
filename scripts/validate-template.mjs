@@ -38,6 +38,11 @@ const artifactCommands = [
   ['node', ['src/workflow/validators/check-config.mjs']],
   ['node', ['src/workflow/validators/check-domain-placeholders.mjs']],
   ['node', ['src/workflow/validators/check-constraint-conflicts.mjs']],
+  // Mechanical regression check for skill_scoring.triggers predicates against the fixed
+  // examples/power-skill-sandbox/ scenario. Needs AGENTSMYTH_HOME to resolve agent-behavior.yaml
+  // at src/workflow (same reason as the rest of this group); the sandbox fixture itself is read
+  // by repo-relative path since it lives under examples/, not workflow/.
+  ['node', ['src/workflow/validators/check-trigger-predicates.mjs']],
 ];
 
 for (const [cmd, args] of sourceCommands) {

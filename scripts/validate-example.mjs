@@ -17,7 +17,7 @@ const schemas = schemaRegistry();
 const contractsByArtifact = new Map(artifactContracts.map((contract) => [contract.artifact, contract]));
 const contractsByDir = new Map(artifactContracts.map((contract) => [contract.dir, contract]));
 const frontmatterSchema = schemas['artifact-frontmatter.schema.yaml'];
-const examples = ['minimal-markdown-source', 'node-package', 'product-app'];
+const examples = ['minimal-markdown-source', 'node-package', 'product-app', 'power-skill-sandbox'];
 const banned = [
   'AI ' + 'Recipes',
   'ai-recipes' + '-workspace',

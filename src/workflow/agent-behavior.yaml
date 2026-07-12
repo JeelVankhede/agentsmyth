@@ -204,5 +204,35 @@ skill_scoring:
     domain.clean-code-architect: "complexity_score >= 50"
     domain.quality-gates-validator: "task_class != trivial"
     domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= 60"
+  # path_glob_categories gives the `path~<category>_globs` trigger shorthand above a concrete,
+  # checkable meaning — a starting, deliberately non-exhaustive set per category, editable without
+  # touching the trigger predicates themselves. Used by check-trigger-predicates.mjs against
+  # examples/power-skill-sandbox/ to catch a predicate or glob-category regression mechanically —
+  # the one part of skill-trigger correctness that doesn't require an LLM to evaluate.
+  path_glob_categories:
+    contract_globs:
+      - "**/routes/**"
+      - "**/api/**"
+      - "**/*.proto"
+      - "**/openapi*.yaml"
+      - "**/openapi*.yml"
+      - "**/*.graphql"
+      - "**/cli/**"
+    schema_globs:
+      - "**/migrations/**"
+      - "**/schema/**"
+      - "**/*.sql"
+      - "**/models/**"
+    ui_globs:
+      - "**/components/**"
+      - "**/views/**"
+      - "**/screens/**"
+      - "**/*.css"
+      - "**/*.tsx"
+      - "**/*.jsx"
+      - "**/*.vue"
+    hotpath_globs:
+      - "**/hot/**"
+      - "**/perf/**"
 
 extensions: {}

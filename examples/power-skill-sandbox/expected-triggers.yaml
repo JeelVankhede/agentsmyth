@@ -1,0 +1,34 @@
+version: 1
+kind: expected-triggers
+scenario: order-cancellation-v1
+
+# Signals for this fixed scenario — see SCENARIO.md for the derivation of each value.
+signals:
+  files_touched: 3
+  ri_count: 2
+  touches_protected: false
+  touches_contract: true
+  touches_generated: false
+  new_surface: true
+  task_class: standard
+
+# Real files in this directory, used for path~<category>_globs predicate terms.
+touched_paths:
+  - src/api/routes/orders.ts
+  - migrations/003_add_cancel_reason.sql
+  - src/components/CancelOrderDialog.tsx
+
+# Expected outcome per skill_scoring.triggers entry, given the signals + touched_paths above.
+# check-trigger-predicates.mjs evaluates the real predicates from agent-behavior.yaml against
+# this fixture and fails if the computed outcome does not match what's declared here.
+expected:
+  repo-alignment-scan: ran
+  architecture-decision-advisor: ran
+  constraint-conflict-scan: ran
+  domain.interface-contract-designer: ran
+  domain.data-schema-designer: ran
+  domain.system-design-advisor: ran
+  domain.ui-ux-designer: ran
+  domain.clean-code-architect: skipped
+  domain.quality-gates-validator: ran
+  domain.performance-optimizer: skipped

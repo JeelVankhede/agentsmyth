@@ -1,0 +1,4 @@
+-- Stub only — this file exists to give the power-skill-sandbox scenario a real
+-- schema-shaped path signal (matches path_glob_categories.schema_globs). Never meant to run;
+-- see ../SCENARIO.md.
+-- ALTER TABLE orders ADD COLUMN cancel_reason TEXT NULL;
