@@ -59,9 +59,9 @@ if (command === 'check') {
   // workflow/config/, rather than headless-bootstrapping a duplicate one in the wrong place.
   const checkRoot = resolveExistingRepoRoot();
 
-  // Debug hook (OI-19 drift-detection test only) — prints the resolved root and exits before
-  // headless bootstrap or the validator invocation runs, which would otherwise write files into
-  // a scratch test directory. Never fires in normal operation.
+  // Debug hook (for automated root-resolution testing only) — prints the resolved root and exits
+  // before headless bootstrap or the validator invocation runs, which would otherwise write
+  // files into a scratch test directory. Never fires in normal operation.
   if (process.env.AGENTSMYTH_DEBUG_ROOT) {
     console.log(checkRoot);
     process.exit(0);
