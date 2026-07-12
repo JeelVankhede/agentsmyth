@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-// Deliberately duplicated from lib.mjs's _resolveRepoRoot (WP-R5 T5.2), not imported, even
+// Deliberately duplicated from lib.mjs's _resolveRepoRoot, not imported, even
 // though lib.mjs ships alongside this file at setup time: lib.mjs's module-level code includes
 // a definitions_root guard that can process.exit(1) if a custom root doesn't exist yet — an
 // unacceptable side effect here, since this script runs during setup verification itself,
 // precisely when things may not be fully configured. Keep this in sync with lib.mjs's version.
-function resolveRepoRoot() {
+// Exported so a drift-detection test can call it directly instead of re-deriving expected
+// behavior from source.
+export function resolveRepoRoot() {
   const profilePath = join(process.cwd(), 'workflow', 'config', 'repo-profile.yaml');
   if (existsSync(profilePath)) {
     try {
@@ -17,7 +20,7 @@ function resolveRepoRoot() {
         const workspaceRoot = text.match(/^\s*workspace_root:\s*(.+)$/m)?.[1]?.trim();
         if (workspaceRoot) {
           return workspaceRoot.startsWith('~/')
-            ? join(process.env.HOME ?? '', workspaceRoot.slice(2))
+            ? join(homedir(), workspaceRoot.slice(2))
             : workspaceRoot;
         }
       }
@@ -31,6 +34,15 @@ function resolveRepoRoot() {
 }
 
 const repoRoot = resolveRepoRoot();
+
+// Debug hook (for automated root-resolution testing only) — prints the resolved root and exits
+// before any of this file's actual setup-completeness checks run, which would otherwise
+// fail/exit in a scratch test directory that has no real workflow tree. Never fires in normal
+// operation.
+if (process.env.AGENTSMYTH_DEBUG_ROOT) {
+  console.log(repoRoot);
+  process.exit(0);
+}
 
 const errors = [];
 const warnings = [];
