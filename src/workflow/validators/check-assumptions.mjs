@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 2 (B2) — plan-assumption-verifier. For plan artifacts, confirms every brief-declared
+// plan-assumption-verifier. For plan artifacts, confirms every brief-declared
 // Assumption (A) ID has a corresponding row in the plan's ## Assumptions Verified table, with
 // status evidence-backed (non-empty, non-restated citation) or raised-as-question (citing a Q ID).
 import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 3 (C3) — constraint-conflict-scan. For brief artifacts, confirms every constraint-ID
+// constraint-conflict-scan. For brief artifacts, confirms every constraint-ID
 // citation (a bracketed token like "[safety-2]") appearing in the "## Open Questions (Q)" section
 // resolves to a real ID actually present in workflow/config/domain.yaml's constraint arrays — per
 // the bracket-prefix convention (constraint-conflict-scan/references/constraint-id-convention.md).

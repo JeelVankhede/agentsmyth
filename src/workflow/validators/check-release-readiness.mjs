@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (B8) — release-readiness-gate. For ship artifacts, confirms the Ship Status section
+// release-readiness-gate. For ship artifacts, confirms the Ship Status section
 // declares exactly one of ship/hold/hold-with-waiver, and that a "ship" declaration is not
 // contradicted by unresolved orchestration.blockers or an unwaived P0/P1 in the upstream review.
 import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';

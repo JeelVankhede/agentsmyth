@@ -138,22 +138,19 @@ dispatch:
   require_dispatch_log: true
   merge_owner: primary_agent
 
-# skill_scoring backs passive/scored power skills (WP-R4). There is no runtime that computes
+# skill_scoring backs passive/scored power skills. There is no runtime that computes
 # these values mechanically: the agent reads a requirement/diff, applies this rubric itself, and
 # records the ran/skipped decision in the artifact's skill_trigger_log (see
 # artifact-frontmatter.schema.yaml). A validator can only audit that a decision was recorded and
 # justified for every skill whose trigger predicate evaluates true against the recorded signals —
 # it cannot re-derive or verify the score itself.
 #
-# WP-R4 Wave 3 fills in the first 10 real entries below (C1-C3 explorers, D1-D7 domain experts) —
-# every power skill shipped before Wave 3 (decompose-requirements, restore-context,
-# dispatch-subagents, lifecycle-orchestrator, and the WP-R4 Wave 1/2 gate-bound skills) is either
-# Active or Gate-bound, not Passive/scored, so had nothing to enter here. Predicate strings use
+# Not every power skill has an entry below — only Passive/scored skills do (Active and Gate-bound
+# skills fire on other conditions and have nothing to score here). Predicate strings use
 # `path~<category>_globs` as shorthand for "the diff touches a file matching that category's glob
-# set" (verbatim from the resolved WP-R4 spec §5) — there is no runtime to evaluate this
-# mechanically (see comment above); the agent applies the predicate itself and records the
-# decision in skill_trigger_log. check-skill-triggers.mjs audits that the decision was recorded,
-# never that the predicate was evaluated correctly.
+# set" — there is no runtime to evaluate this mechanically (see comment above); the agent applies
+# the predicate itself and records the decision in skill_trigger_log. check-skill-triggers.mjs
+# audits that the decision was recorded, never that the predicate was evaluated correctly.
 skill_scoring:
   version: 1
   signals:

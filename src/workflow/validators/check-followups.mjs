@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 2 (B9) — follow-up-owner-assigner. For reflect artifacts, confirms every row in the
+// follow-up-owner-assigner. For reflect artifacts, confirms every row in the
 // "## Follow-Ups" table has a non-empty Owner that is not the literal placeholder "TBD" —
 // the skill's Refusal condition never lets it assign TBD itself, so an artifact reaching this
 // check with TBD (or an empty cell) has never actually been through the skill.

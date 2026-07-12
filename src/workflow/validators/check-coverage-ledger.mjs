@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (A2) — coverage-tracer. For plan/review/ship/reflect artifacts, confirms every
+// coverage-tracer. For plan/review/ship/reflect artifacts, confirms every
 // manifest ID declared in the artifact's own frontmatter appears as a row in its
 // Requirement Coverage (or Manifest Coverage Retrospective) table, and that any row using
 // dropped/removed language is accompanied by a Waivers section entry for that ID.

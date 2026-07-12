@@ -1,6 +1,6 @@
 ---
 name: verify-manifest-coverage
-description: Power skill (T4.1) that cross-checks a review artifact's declared manifest_ids against the actual diff scope, catching scope creep before Ship.
+description: Power skill that cross-checks a review artifact's declared manifest_ids against the actual diff scope, catching scope creep before Ship.
 ---
 
 # Verify Manifest Coverage

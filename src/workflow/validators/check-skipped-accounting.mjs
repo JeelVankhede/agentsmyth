@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (B7, hardened) — skipped-check-accountant. For verify artifacts, confirms every
+// skipped-check-accountant. For verify artifacts, confirms every
 // Skipped Checks row carries all verification.yaml-required fields, and cross-references
 // Automated Checks rows with a "not run"/"blocked" outcome against the Skipped Checks table —
 // an unaccounted not-run/blocked check (no matching Skipped Checks row) is the hardened part
