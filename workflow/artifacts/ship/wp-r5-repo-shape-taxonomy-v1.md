@@ -2,7 +2,7 @@
 slug: wp-r5-repo-shape-taxonomy
 version: 1
 artifact: ship
-status: hold
+status: ship
 created: 2026-07-12T00:00:00Z
 updated: 2026-07-12T00:00:00Z
 manifest_ids:
@@ -22,10 +22,9 @@ upstream:
     version: 1
 orchestration:
   phase: ship
-  status: in-progress
+  status: complete
   next_phase: reflect
-  blockers:
-    - "Awaiting your explicit ship-review confirmation (user_checkpoint) before this artifact is finalized to ship"
+  blockers: []
   user_checkpoint: true
 ---
 
@@ -36,11 +35,10 @@ orchestration:
 
 ## Ship Status
 
-Hold, pending your explicit ship-review confirmation. All 5 requirements are built, reviewed, and
-tested; every automated check passes; no outstanding technical blocker exists. The `hold` here is
-procedural, not a finding — this artifact declares `ship` only after you confirm, not before,
-matching this session's established discipline against marking checkpoints approved ahead of
-real review.
+Ship. User confirmed at the ship-review checkpoint. All 5 requirements are built, reviewed, and
+tested; every automated check passes; no outstanding technical blocker exists. PR to be opened
+against `feat/power-skill-sandbox` (this branch's actual base), not `main` — per explicit
+instruction, since `feat/power-skill-sandbox` is itself still on unmerged PR #29.
 
 ## Requirement Coverage
 
@@ -118,7 +116,7 @@ mechanism that would have needed re-computing `repoRoot` per-artifact.
 - [x] No technical blockers
 - [x] Docs updated (RI5 complete)
 - [x] Backward-compat confirmed, re-verified fresh at test time
-- [ ] Your explicit ship-review confirmation — the one remaining gate
+- [x] Your explicit ship-review confirmation — received
 
 ## Next Phase
 
