@@ -6,9 +6,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadYaml } from './lib.mjs';
-
-const repoRoot = process.cwd();
+import { loadYaml, repoRoot } from './lib.mjs';
 
 const pendingPath = join(repoRoot, 'workflow/config/pending-setup.yaml');
 

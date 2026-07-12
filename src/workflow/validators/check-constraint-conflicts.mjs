@@ -5,12 +5,10 @@
 // the bracket-prefix convention (constraint-conflict-scan/references/constraint-id-convention.md).
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { finish, listFiles, loadYaml, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, loadYaml, parseFrontmatter, readText, repoRoot, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

@@ -2,14 +2,10 @@
 // Wave 2 (B2) — plan-assumption-verifier. For plan artifacts, confirms every brief-declared
 // Assumption (A) ID has a corresponding row in the plan's ## Assumptions Verified table, with
 // status evidence-backed (non-empty, non-restated citation) or raised-as-question (citing a Q ID).
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

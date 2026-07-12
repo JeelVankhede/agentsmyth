@@ -4,8 +4,6 @@
 // audits that a triggered skill's decision was RECORDED and justified — it cannot re-derive or
 // verify the skill_scoring predicate itself, since agentsmyth has no runtime to compute scores
 // mechanically (see agent-behavior.yaml's skill_scoring comment).
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   defsPath,
   finish,
@@ -13,14 +11,12 @@ import {
   loadYaml,
   parseFrontmatter,
   readText,
-  repoRoot,
   validateSchema,
+  wf,
 } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

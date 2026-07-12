@@ -2,14 +2,10 @@
 // Wave 2 (B1) — requirement-phase-mapper. For plan artifacts, confirms every active R/RI (from
 // frontmatter manifest_ids) appears in exactly one "### Phase N" block's stated Manifest IDs line,
 // and that every phase declaring manifest IDs has a binary exit gate.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];

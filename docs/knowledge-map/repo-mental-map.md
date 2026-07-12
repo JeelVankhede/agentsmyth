@@ -142,6 +142,42 @@ doesn't exist triggers the RI1 guard: a clean human-readable error and `exit 1`.
 
 ---
 
+## Repo-Root Resolution (WP-R5)
+
+Separate from the two-root resolver above: `repoRoot` itself (both `defsRoot` and `dataRoot`
+build on it) is no longer a bare `process.cwd()`. Every repo shape — single-repo, monorepo,
+polyrepo — places exactly one shared `workflow/` at one root; there are no package-scoped or
+repo-scoped artifact subtrees in any shape.
+
+**Resolution order** (`_resolveRepoRoot()` in `lib.mjs`):
+1. `workspace_root` in `repo-profile.yaml`, only when `mode: polyrepo-member` — the shared
+   `workflow/` lives in a parent directory containing this repo and its siblings as children, not
+   inside any single git repo, so git-based detection can't reach it.
+2. `git rev-parse --show-toplevel` — correct for `single-repository` and `monorepo` alike, since
+   both are exactly one git repository regardless of which package subdirectory the agent was
+   invoked from.
+3. `process.cwd()` — fallback only when step 2 fails (not yet a git repo; the fresh-init case).
+
+`repository.mode` is an enum (`single-repository`\|`monorepo`\|`polyrepo-member`), not the old
+fixed `const`. `monorepo` adds an informational `packages[]` list; `polyrepo-member` adds
+`workspace_root` plus a `sibling_repos[]` list (each entry needs a local `path`, not just a `url`
+— git-dependent checks need a real checkout to run against, not just a remote reference).
+
+**`target_repo` and `resolveGitCwd()`:** a polyrepo-member artifact's frontmatter can declare
+`target_repo` (matching a `sibling_repos[].name`), since the shared `workflow/artifacts/` tree
+doesn't itself say which member repo a given task belongs to. `resolveGitCwd(frontmatter)`
+resolves this to a real path for git-dependent checks (`trackedFiles()`, etc.) — returns
+`repoRoot` unchanged for every case except an artifact with `target_repo` set under
+`mode: polyrepo-member`, so single-repo and monorepo behavior is a pure passthrough.
+
+**Known boundary, not silently patched:** `check-lifecycle.mjs`'s staged-file slug
+auto-detection (used when `--phase` is invoked with no explicit `--slug`) has no artifact
+frontmatter yet to resolve `target_repo` from — finding the artifact is what that step does. It
+stays scoped to `repoRoot` (this repo's own checkout); explicit `--slug` bypasses it entirely.
+No real polyrepo fixture exists in this repo to exercise this further.
+
+---
+
 ## Known Risks and Non-Goals
 
 - **Do not add runtime dependencies.** The zero-dep hand-rolled stack (CLI, YAML parser,

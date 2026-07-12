@@ -97,3 +97,27 @@ items:
     next_action: "WP-R4 is now fully complete (all 4 waves, 26 total skills) — decide what initiative comes next"
     status: open
     first_seen_run: power-skills-wave4-v1
+  - id: OI-17
+    source: follow-up
+    owner: user
+    next_action: "Merge PR #29 (feat/power-skill-sandbox), then retarget/merge PR #30 to main"
+    status: open
+    first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-18
+    source: follow-up
+    owner: user
+    next_action: "Decide the init-time workspace_root specification mechanism before any real polyrepo-member repo needs it"
+    status: open
+    first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-19
+    source: follow-up
+    owner: user/agent
+    next_action: "Consider a drift-detection check across the 3 independent root-resolution copies (lib.mjs, check-setup-complete.mjs, bin/agentsmyth.mjs)"
+    status: open
+    first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-20
+    source: follow-up
+    owner: user
+    next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
+    status: open
+    first_seen_run: wp-r5-repo-shape-taxonomy-v1

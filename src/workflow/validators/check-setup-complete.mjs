@@ -1,8 +1,36 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const repoRoot = process.cwd();
+// Deliberately duplicated from lib.mjs's _resolveRepoRoot (WP-R5 T5.2), not imported, even
+// though lib.mjs ships alongside this file at setup time: lib.mjs's module-level code includes
+// a definitions_root guard that can process.exit(1) if a custom root doesn't exist yet — an
+// unacceptable side effect here, since this script runs during setup verification itself,
+// precisely when things may not be fully configured. Keep this in sync with lib.mjs's version.
+function resolveRepoRoot() {
+  const profilePath = join(process.cwd(), 'workflow', 'config', 'repo-profile.yaml');
+  if (existsSync(profilePath)) {
+    try {
+      const text = readFileSync(profilePath, 'utf8');
+      if (text.match(/^\s*mode:\s*(.+)$/m)?.[1]?.trim() === 'polyrepo-member') {
+        const workspaceRoot = text.match(/^\s*workspace_root:\s*(.+)$/m)?.[1]?.trim();
+        if (workspaceRoot) {
+          return workspaceRoot.startsWith('~/')
+            ? join(process.env.HOME ?? '', workspaceRoot.slice(2))
+            : workspaceRoot;
+        }
+      }
+    } catch { /* fall through to git detection */ }
+  }
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  } catch {
+    return process.cwd();
+  }
+}
+
+const repoRoot = resolveRepoRoot();
 
 const errors = [];
 const warnings = [];

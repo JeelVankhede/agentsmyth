@@ -2,14 +2,10 @@
 // Wave 2 (E2) — follow-up-owner-assigner's ledger. Models check-pending-setup.mjs directly:
 // validates workflow/artifacts/open-items.yaml against its schema when present; exits 0 with an
 // informative message when absent (open items are tracked debt, not a build error).
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, loadYaml, pathExists, repoRoot, schemaRegistry, validateSchema } from './lib.mjs';
+import { finish, loadYaml, pathExists, schemaRegistry, validateSchema, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 const ledgerPath = `${artifactsDir}/open-items.yaml`;
 

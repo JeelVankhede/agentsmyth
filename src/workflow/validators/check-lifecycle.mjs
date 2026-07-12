@@ -12,6 +12,7 @@ import {
   readText,
   repoRoot,
   trackedFiles,
+  wf,
 } from './lib.mjs';
 
 const args = process.argv.slice(2);
@@ -19,9 +20,6 @@ const phaseArgIdx = args.indexOf('--phase');
 const slugArgIdx = args.indexOf('--slug');
 const targetPhase = phaseArgIdx !== -1 ? args[phaseArgIdx + 1] : null;
 const targetSlug = slugArgIdx !== -1 ? args[slugArgIdx + 1] : null;
-
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 
 // ── Phase gate check (--phase mode) ───────────────────────────────────────
 // Checks that the required upstream artifact exists and is ready before the
@@ -56,6 +54,12 @@ if (args.includes('--phase')) {
   const upstream = UPSTREAM[targetPhase];
 
   // Resolve slug — from arg or detected from staged artifact files
+  // WP-R5 T5.2 note: unlike trackedFiles() elsewhere in this file (which callers can pass a
+  // resolveGitCwd()-derived cwd to once an artifact's frontmatter is known), this specific call
+  // has no frontmatter to resolve target_repo from yet — finding the artifact IS what this block
+  // does. For a polyrepo-member repo, staged-file auto-detection stays scoped to repoRoot (this
+  // member's own checkout); explicit --slug bypasses this block entirely. No real polyrepo
+  // fixture exists to exercise this further — documented as a known boundary, not fixed silently.
   let slug = targetSlug;
   if (!slug) {
     let staged = [];

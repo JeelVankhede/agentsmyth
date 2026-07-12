@@ -2,14 +2,10 @@
 // Wave 1 (B8) — release-readiness-gate. For ship artifacts, confirms the Ship Status section
 // declares exactly one of ship/hold/hold-with-waiver, and that a "ship" declaration is not
 // contradicted by unresolved orchestration.blockers or an unwaived P0/P1 in the upstream review.
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { finish, listFiles, parseFrontmatter, readText, repoRoot } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
-const wf = process.env.AGENTSMYTH_WF
-  || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 
 const errors = [];
