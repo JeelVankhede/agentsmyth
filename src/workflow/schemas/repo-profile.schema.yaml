@@ -36,7 +36,7 @@ properties:
           - single-repository
           - monorepo
           - polyrepo-member
-        description: What this workflow install's own scope is — not the surrounding git tree's overall shape. A monorepo package or polyrepo member each declare the mode that describes their own install; workflow/ placement stays git-top-level (monorepo) or workspace-root (polyrepo-member) regardless (see WP-R5 spike).
+        description: What this workflow install's own scope is — not the surrounding git tree's overall shape. A monorepo package or polyrepo member each declare the mode that describes their own install; workflow/ placement stays git-top-level (monorepo) or workspace-root (polyrepo-member) regardless.
       root:
         type: string
       default_branch:
@@ -53,7 +53,7 @@ properties:
         description: Absolute path to the global agentsmyth definitions tree (e.g. ~/.agentsmyth/workflow). When present, skills/schemas/validators are loaded from here instead of the repo-local workflow/ directory.
       packages:
         type: array
-        description: Informational, meaningful under mode monorepo. Lets the agent read the real package list instead of re-discovering it via glob every invocation. Does not change where workflow/ or artifacts live — still git top-level, per the WP-R5 spike.
+        description: Informational, meaningful under mode monorepo. Lets the agent read the real package list instead of re-discovering it via glob every invocation. Does not change where workflow/ or artifacts live — still git top-level.
         items:
           type: object
           additionalProperties: false
@@ -69,7 +69,7 @@ properties:
               type: string
       workspace_root:
         type: string
-        description: Where the shared workflow/ actually lives for a polyrepo-member install (WP-R5 T5.2) — a parent directory containing this repo and its siblings as children, not a subdirectory of this repo's own git root. Not schema-enforced as required under mode polyrepo-member (this repo's hand-rolled schema engine has no if/then conditional support); a polyrepo-member profile with no workspace_root simply falls through to git-top-level detection, which resolves to this repo's own root, not the shared one — a known, documented limitation, not a silent failure.
+        description: Where the shared workflow/ actually lives for a polyrepo-member install — a parent directory containing this repo and its siblings as children, not a subdirectory of this repo's own git root. Not schema-enforced as required under mode polyrepo-member (this repo's hand-rolled schema engine has no if/then conditional support); a polyrepo-member profile with no workspace_root simply falls through to git-top-level detection, which resolves to this repo's own root, not the shared one — a known, documented limitation, not a silent failure.
       sibling_repos:
         type: array
         description: Informational, meaningful under mode polyrepo-member. Names related repos sharing conventions. path is the local checkout location relative to workspace_root, required because git-dependent validators need a real working tree to run against — url alone cannot drive a local git status/diff call.

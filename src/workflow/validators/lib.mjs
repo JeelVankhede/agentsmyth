@@ -10,8 +10,8 @@ function _expandTilde(p) {
 
 // Reads repository.mode / repository.workspace_root from repo-profile.yaml using a simple
 // regex (same constraint as _readDefinitionsRoot below — no YAML parser available yet at
-// this point in the file). Anchored at process.cwd(), not repoRoot, since this runs BEFORE
-// repoRoot is resolved (WP-R5): a polyrepo-member's own repo-profile.yaml lives at
+// this point in the file). Anchored at process.cwd(), not repoRoot, since this runs before
+// repoRoot is resolved: a polyrepo-member's own repo-profile.yaml lives at
 // <cwd>/workflow/config/repo-profile.yaml, exactly where single-repo's does — the same
 // "invoked from the repo root" convention every other mode already assumes.
 function _readWorkspaceRoot() {
@@ -26,7 +26,7 @@ function _readWorkspaceRoot() {
   } catch { return null; }
 }
 
-// Resolution order (WP-R5 T5.2): a polyrepo-member's shared workflow/ lives outside any single
+// Resolution order: a polyrepo-member's shared workflow/ lives outside any single
 // git repo, so git-based detection can't find it — the workspace_root pointer takes priority.
 // Otherwise, git-top-level detection correctly finds the one shared root for single-repo and
 // monorepo alike (both are exactly one git repository spanning everything that matters). Falls
@@ -46,10 +46,10 @@ export const repoRoot = _resolveRepoRoot();
 // Detect workflow root: consumer repos use workflow/, source repo build scripts override
 // via AGENTSMYTH_WF env var (set to src/workflow/), fallback is legacy dotted path.
 // Constructed without a literal dot+workflow string so the consumer-facing copy stays clean.
-// Exported as `wf` (WP-R5 T5.2) so every validator that needs the bare directory-name string
+// Exported as `wf` so every validator that needs the bare directory-name string
 // (e.g. to build a relative `${wf}/artifacts`-style path for listFiles/readText, which expect
 // repo-root-relative input) shares this single derivation instead of re-deriving it locally —
-// found duplicated across 14 validator files during the T5.2 call-site audit.
+// found duplicated across many validator files in an exhaustive audit.
 const _wf = process.env.AGENTSMYTH_WF
   || (existsSync(join(repoRoot, 'workflow')) ? 'workflow' : ['.', 'workflow'].join(''));
 export const wf = _wf;
@@ -267,11 +267,11 @@ export function trackedFiles(gitCwd = repoRoot) {
   }
 }
 
-// Resolves which local git checkout an artifact's git-dependent checks should run against
-// (WP-R5 T5.2). Returns repoRoot unchanged unless the active repo-profile.yaml is mode
-// polyrepo-member AND the artifact's frontmatter declares a target_repo — the common case
-// (single-repo, monorepo, or a polyrepo-member artifact with no target_repo, meaning "this repo
-// itself") is a pure passthrough, zero behavior change. On a target_repo that doesn't match any
+// Resolves which local git checkout an artifact's git-dependent checks should run against.
+// Returns repoRoot unchanged unless the active repo-profile.yaml is mode polyrepo-member AND the
+// artifact's frontmatter declares a target_repo — the common case (single-repo, monorepo, or a
+// polyrepo-member artifact with no target_repo, meaning the repo this workflow/ install belongs
+// to) is a pure passthrough, zero behavior change. On a target_repo that doesn't match any
 // sibling_repos[].name, warns and falls back to repoRoot rather than throwing — evidence_policy
 // favors graceful degradation over a hard failure here.
 export function resolveGitCwd(frontmatter) {

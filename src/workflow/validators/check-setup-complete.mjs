@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Deliberately duplicated from lib.mjs's _resolveRepoRoot (WP-R5 T5.2), not imported, even
+// Deliberately duplicated from lib.mjs's _resolveRepoRoot, not imported, even
 // though lib.mjs ships alongside this file at setup time: lib.mjs's module-level code includes
 // a definitions_root guard that can process.exit(1) if a custom root doesn't exist yet — an
 // unacceptable side effect here, since this script runs during setup verification itself,
