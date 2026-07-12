@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 0 — check-skill-triggers. For any artifact carrying a skill_trigger_log frontmatter
+// check-skill-triggers. For any artifact carrying a skill_trigger_log frontmatter
 // array, schema-validates every entry (skill, decision: ran|skipped, reason). This validator
 // audits that a triggered skill's decision was RECORDED and justified — it cannot re-derive or
 // verify the skill_scoring predicate itself, since agentsmyth has no runtime to compute scores

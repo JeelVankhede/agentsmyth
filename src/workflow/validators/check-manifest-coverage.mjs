@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (B5, T4.1) — verify-manifest-coverage. For review artifacts, compares the
+// verify-manifest-coverage. For review artifacts, compares the
 // frontmatter manifest_ids against the manifest IDs actually touched per the upstream task
 // artifact's Changed Files section. Flags any delta (declared-not-touched or
 // touched-not-declared) as scope creep or stale coverage.

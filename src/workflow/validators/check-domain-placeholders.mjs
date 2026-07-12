@@ -12,8 +12,8 @@ const excluded = [
   /^src\/workflow\/validators\/.*\.mjs$/,
   // Dev-workspace dogfood lifecycle artifacts — never shipped (see CLAUDE.md's source vs.
   // workspace vs. shipped table), so leakage/placeholder rules for shipped template content
-  // do not apply. Found via audit: "Bare init" (ordinary English, not the old starter naming)
-  // and "multi-repo" (legitimate WP-R5 architecture discussion) were false-flagged here.
+  // do not apply. Found via audit: ordinary English phrases and legitimate architecture
+  // discussion terms were false-flagged here before this exclusion existed.
   /^workflow\/artifacts\//,
 ];
 

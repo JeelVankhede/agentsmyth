@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 2 (B1) — requirement-phase-mapper. For plan artifacts, confirms every active R/RI (from
+// requirement-phase-mapper. For plan artifacts, confirms every active R/RI (from
 // frontmatter manifest_ids) appears in exactly one "### Phase N" block's stated Manifest IDs line,
 // and that every phase declaring manifest IDs has a binary exit gate.
 import { existsSync } from 'node:fs';

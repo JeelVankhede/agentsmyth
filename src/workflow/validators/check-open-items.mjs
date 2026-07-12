@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 2 (E2) — follow-up-owner-assigner's ledger. Models check-pending-setup.mjs directly:
+// follow-up-owner-assigner's ledger. Models check-pending-setup.mjs directly:
 // validates workflow/artifacts/open-items.yaml against its schema when present; exits 0 with an
 // informative message when absent (open items are tracked debt, not a build error).
 import { existsSync } from 'node:fs';

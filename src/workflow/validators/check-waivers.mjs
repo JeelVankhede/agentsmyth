@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (A1) — waiver-completeness-check. Walks artifacts; for each artifact with a
+// waiver-completeness-check. Walks artifacts; for each artifact with a
 // `## Waivers` markdown table, confirms every row carries all 6 fields required by
 // agent-behavior.yaml's waivers.required_fields, in order, non-empty.
 //

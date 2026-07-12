@@ -26,8 +26,8 @@ node workflow/validators/check-open-items.mjs
 node workflow/validators/check-constraint-conflicts.mjs
 ```
 
-The WP-R4 Wave 1 checks above all accept a `--dir <path>` override (matching `check-artifacts.mjs`)
-for fixture testing, e.g. `node workflow/validators/check-waivers.mjs --dir test/fixtures/lifecycle-violations/e-waiver-missing-field`.
+Most of the artifact-scanning checks above accept a `--dir <path>` override (matching
+`check-artifacts.mjs`) for fixture testing, e.g. `node workflow/validators/check-waivers.mjs --dir test/fixtures/lifecycle-violations/e-waiver-missing-field`.
 
 The lifecycle phase gate (`check-lifecycle.mjs`) is invoked via `agentsmyth check` so that
 the CLI can resolve the validator from either the repo-local or global definitions root.

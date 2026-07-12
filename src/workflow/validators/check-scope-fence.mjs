@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (B3) — scope-fence. For task artifacts, confirms every path listed in Changed Files
+// scope-fence. For task artifacts, confirms every path listed in Changed Files
 // is covered by the upstream plan's declared phase Touches (exact file match or directory
 // prefix match), or by a Waivers entry. Flags files outside both as out-of-scope.
 import { existsSync } from 'node:fs';

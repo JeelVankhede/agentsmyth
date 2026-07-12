@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 1 (A3) — evidence-auditor. For review/verify/ship/reflect artifacts, confirms every
+// evidence-auditor. For review/verify/ship/reflect artifacts, confirms every
 // row in an evidence-bearing table (Command Results, Automated Checks, Verification Items,
 // Verification Reviewed) has no empty cell — a structural presence check, not a truthfulness
 // check (a hand-rolled validator cannot verify a citation is honest, only that one exists).

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wave 2 (B6) — verification-matrix-builder. For verify artifacts, confirms every active R/RI
+// verification-matrix-builder. For verify artifacts, confirms every active R/RI
 // (from frontmatter manifest_ids) has a "## Manifest Coverage" row with a named method, and that
 // no row claiming a pass Result has an empty Evidence cell.
 import { existsSync } from 'node:fs';
