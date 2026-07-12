@@ -106,14 +106,14 @@ items:
   - id: OI-18
     source: follow-up
     owner: user
-    next_action: "Decide the init-time workspace_root specification mechanism before any real polyrepo-member repo needs it"
+    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does."
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-19
     source: follow-up
     owner: user/agent
-    next_action: "Consider a drift-detection check across the 3 independent root-resolution copies (lib.mjs, check-setup-complete.mjs, bin/agentsmyth.mjs)"
-    status: open
+    next_action: "Done: test/run-root-resolution-drift-tests.mjs (npm run root-resolution:test) spawns lib.mjs, check-setup-complete.mjs, and bin/agentsmyth.mjs as real subprocesses against 4 scenarios and asserts they agree. Found and fixed a real bug while building it: check-setup-complete.mjs used process.env.HOME instead of homedir() for tilde-expansion."
+    status: done
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-20
     source: follow-up
