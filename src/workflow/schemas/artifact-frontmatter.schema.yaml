@@ -64,7 +64,7 @@ properties:
   target_repo:
     type: string
     minLength: 1
-    description: Which polyrepo member repo this artifact's work targets (WP-R5 T5.2) — matches a repo-profile.yaml sibling_repos[].name, or omitted for this repo itself. Only meaningful when the active repo-profile.yaml is mode polyrepo-member; ignored otherwise. Drives which member checkout git-dependent validators (trackedFiles, check-lifecycle.mjs's staged-diff detection) run against, since the shared workflow/artifacts/ tree doesn't itself say which repo a given task belongs to.
+    description: Which polyrepo member repo this artifact's work targets — matches a repo-profile.yaml sibling_repos[].name, or omitted to mean the repo whose own workflow/ this artifact lives under. Only meaningful when the active repo-profile.yaml is mode polyrepo-member; ignored otherwise. Drives which member checkout git-dependent validators (trackedFiles, check-lifecycle.mjs's staged-diff detection) run against, since the shared workflow/artifacts/ tree doesn't itself say which repo a given task belongs to.
   orchestration:
     type: object
     additionalProperties: false

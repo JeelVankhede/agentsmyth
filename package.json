@@ -32,6 +32,7 @@
     "validate": "node scripts/validate-template.mjs && node scripts/validate-example.mjs && node scripts/render-adapters.mjs",
     "hooks:install": "git config core.hooksPath .githooks && echo \"pre-commit hook enabled (bypass with --no-verify)\"",
     "violations:test": "node test/run-violation-tests.mjs",
-    "setup-checks:test": "node test/run-setup-complete-tests.mjs"
+    "setup-checks:test": "node test/run-setup-complete-tests.mjs",
+    "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs"
   }
 }

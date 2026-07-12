@@ -9,16 +9,15 @@ const pkgRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
 const command = process.argv[2];
 
-// Deliberately duplicated from lib.mjs's _resolveRepoRoot (WP-R5 T5.2), third copy alongside
+// Deliberately duplicated from lib.mjs's _resolveRepoRoot, third copy alongside
 // lib.mjs's own and check-setup-complete.mjs's: this is the CLI entrypoint and shells out to
 // validators as a separate process rather than importing lib.mjs directly, so it can't share
 // the function without restructuring the dispatch model. Keep in sync with lib.mjs's version.
 // Used only for `check` (resolving an EXISTING repo) below — NOT for `init`'s target-directory
 // selection further down, which intentionally installs wherever the user invoked the command,
 // same as today. A polyrepo-member's very first `init --system` has no repo-profile.yaml yet to
-// read workspace_root from — specifying workspace_root at first-init time is a real gap, out of
-// scope for T5.2 (flagged, not silently guessed); this fix covers every subsequent `check` call
-// once repo-profile.yaml exists.
+// read workspace_root from — specifying workspace_root at first-init time is a real gap, not
+// handled here; this covers every subsequent `check` call once repo-profile.yaml exists.
 function resolveExistingRepoRoot() {
   const profilePath = join(cwd, 'workflow', 'config', 'repo-profile.yaml');
   if (existsSync(profilePath)) {
@@ -55,10 +54,18 @@ if (!command || command === 'help') {
 // binary is not on PATH (common when installed via npm without global linking).
 
 if (command === 'check') {
-  // Resolve the existing repo root first (WP-R5 T5.2) — git top-level for single-repo/monorepo,
+  // Resolve the existing repo root first — git top-level for single-repo/monorepo,
   // workspace_root for polyrepo-member — so a subdirectory invocation finds the real
   // workflow/config/, rather than headless-bootstrapping a duplicate one in the wrong place.
   const checkRoot = resolveExistingRepoRoot();
+
+  // Debug hook (for automated root-resolution testing only) — prints the resolved root and exits
+  // before headless bootstrap or the validator invocation runs, which would otherwise write
+  // files into a scratch test directory. Never fires in normal operation.
+  if (process.env.AGENTSMYTH_DEBUG_ROOT) {
+    console.log(checkRoot);
+    process.exit(0);
+  }
 
   // Headless bootstrap: if workflow/config/repo-profile.yaml is absent, write stub configs
   // and a pending-setup.yaml listing what the agent needs to fill in.

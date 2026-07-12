@@ -54,7 +54,7 @@ if (args.includes('--phase')) {
   const upstream = UPSTREAM[targetPhase];
 
   // Resolve slug — from arg or detected from staged artifact files
-  // WP-R5 T5.2 note: unlike trackedFiles() elsewhere in this file (which callers can pass a
+  // Note: unlike trackedFiles() elsewhere in this file (which callers can pass a
   // resolveGitCwd()-derived cwd to once an artifact's frontmatter is known), this specific call
   // has no frontmatter to resolve target_repo from yet — finding the artifact IS what this block
   // does. For a polyrepo-member repo, staged-file auto-detection stays scoped to repoRoot (this
