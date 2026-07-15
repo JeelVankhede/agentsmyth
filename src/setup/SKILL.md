@@ -89,7 +89,7 @@ For each one, add an entry to `workflow/config/pending-setup.yaml`:
 
 - `id`: `PS-1`, `PS-2`, ... — increment sequentially, never reuse or renumber
 - `config`: the filename of the config this field belongs to (e.g. `verification.yaml`)
-- `field`: dot-notation path to the field (e.g. `commands[0].run`)
+- `field`: dot-notation path to the field, relative to the config file's schema root (e.g. `commands[0].command`)
 - `question`: the question that would resolve this item
 - `hint`: where the agent might find the answer via repo inspection (check `package.json`
   scripts for test/build commands; check `.github/workflows/` for CI and deploy targets;
@@ -106,7 +106,7 @@ kind: pending-setup
 items:
   - id: PS-1
     config: verification.yaml
-    field: commands[0].run
+    field: commands[0].command
     question: "What command runs the test suite?"
     hint: "Check package.json scripts.test or .github/workflows/ for test job steps"
     status: open
@@ -114,7 +114,7 @@ items:
     resolution: ~
   - id: PS-2
     config: source-of-truth.yaml
-    field: providers[0].read_url
+    field: source_of_truth.providers[0].location
     question: "Where are requirements tracked — URL or file path?"
     hint: "Check README.md, CONTRIBUTING.md, or any linked project management tool"
     status: open

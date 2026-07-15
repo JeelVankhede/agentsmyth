@@ -42,7 +42,7 @@ Required body sections:
 13. Architecture Notes
 14. Exit Gate
 
-`manifest_ids` should include active `R` and `RI` IDs covered by the brief. Blocking `Q` IDs must also appear in `orchestration.blockers`.
+`manifest_ids` should include active `R` and `RI` IDs covered by the brief. **Only `R` and `RI` IDs may appear in `manifest_ids`** — `A` (assumption) and `Q` (question) IDs must never be listed there (the schema's `manifest_ids` pattern accepts only `R`/`RI`). Blocking `Q` IDs must also appear in `orchestration.blockers`.
 
 ## Starter Block
 
@@ -57,13 +57,24 @@ status: draft
 created: <YYYY-MM-DD>
 updated: <YYYY-MM-DD>
 manifest_ids: []
-upstream: []
+upstream:
+  - user-request
 orchestration:
   phase: think
   status: blocked-for-user
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
+skill_trigger_log:
+  - skill: repo-alignment-scan
+    decision: ran
+    reason: <ran or skipped — why>
+  - skill: architecture-decision-advisor
+    decision: skipped
+    reason: <ran or skipped — why>
+  - skill: constraint-conflict-scan
+    decision: ran
+    reason: <ran or skipped — why>
 ---
 
 # <Title> - Brief
@@ -102,7 +113,7 @@ orchestration:
 
 ## Architecture Notes
 
-- role: Lead Architect
+- role: Architect
 - decision:
 - constraint:
 - tradeoff:

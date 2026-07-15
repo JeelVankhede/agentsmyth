@@ -1,6 +1,12 @@
 # Config Map
 
-Maps interview topics to the config fields they populate. Use this during Phase 3 (Write Configs) to route each answer to the correct file and field.
+Maps interview topics to the config fields they populate. Use this during Phase 3 (Write Configs) to
+route each answer to the correct file and field.
+
+Field paths are written **relative to each config file's own schema root** (the file's top-level
+keys), e.g. `domain.name` is the `name` key inside the `domain:` block of `domain.yaml`. A trailing
+`[]` marks an array field. `check-setup-refs.mjs` verifies every field named here exists in the
+matching `workflow/schemas/*.schema.yaml`, so keep these in sync with the schemas.
 
 ---
 
@@ -8,22 +14,27 @@ Maps interview topics to the config fields they populate. Use this during Phase 
 
 | Interview answer | Target field |
 |---|---|
-| Repo name | `domain.domain.name` |
-| Repo purpose (1–3 sentences) | `domain.domain.summary` and `repo-mental-map.md` §What This Repo Does |
-| Regulated environment (yes/no) | `domain.domain.regulated` |
-| Key domain terms | `domain.domain.glossary[]` |
-| Terms to avoid | `domain.domain.discouraged_terms[]` |
+| Repo name | `domain.name` |
+| Repo purpose (1–3 sentences) | `domain.summary` and `repo-mental-map.md` §What This Repo Does |
+| Regulated environment (yes/no) | `domain.regulated` |
+| Key domain terms | `domain.glossary[]` |
+| Preferred terms | `domain.preferred_terms[]` |
+| Terms to avoid | `domain.discouraged_terms[]` |
 
 ---
 
 ## Source-of-Truth → `source-of-truth.yaml`
 
+Each tracked source is one entry in `source_of_truth.providers[]` (fields: `id`, `type`, `enabled`,
+`read`, `update`, `owner`, `location`). There is no separate `kind` or `resolution_order` field —
+priority is the array order of `providers[]`.
+
 | Interview answer | Target field |
 |---|---|
-| Requirements tracker (Linear, Jira, GitHub Issues, etc.) | `sources[].kind`, `sources[].location` |
-| Decision record location (ADR folder, Notion, wiki) | `sources[].kind: decision`, `sources[].location` |
-| Public API contract location | `sources[].kind: contract`, `sources[].location` |
-| Priority order among sources | `resolution_order[]` |
+| Requirements tracker (Linear, Jira, GitHub Issues, etc.) | `source_of_truth.providers[].type`, `source_of_truth.providers[].location` |
+| Decision record location (ADR folder, Notion, wiki) | `source_of_truth.providers[].type`, `source_of_truth.providers[].location` |
+| Public API contract location | `source_of_truth.providers[].type`, `source_of_truth.providers[].location` |
+| Priority order among sources | order of entries in `source_of_truth.providers[]` |
 
 Also populate `repo-mental-map.md` §Source-of-Truth Hierarchy.
 
@@ -45,10 +56,12 @@ Also populate `repo-mental-map.md` §Key Paths.
 
 ## Protected Paths → `repo-profile.yaml` + `repo-mental-map.md`
 
+`paths.protected[]` entries carry a `path` and a `reason`.
+
 | Interview answer | Target field |
 |---|---|
-| Paths requiring security review | `paths.protected[]` with `reason` |
-| Paths requiring special approval | `paths.protected[]` with `reason` |
+| Paths requiring security review | `paths.protected[]` |
+| Paths requiring special approval | `paths.protected[]` |
 
 Also populate `repo-mental-map.md` §Protected Paths.
 
@@ -56,14 +69,19 @@ Also populate `repo-mental-map.md` §Protected Paths.
 
 ## Verification → `verification.yaml` + `repo-mental-map.md`
 
+Each command is one entry in `commands[]` (fields: `id`, `command`, `cwd`, `required`, `phases[]`,
+optional `covers[]`, `env`, `timeout_seconds`). There is no `commands.build`/`commands.lint` map and
+no `required_before_ship[]` — "required before ship" is `commands[].required: true` with `ship` in
+that command's `commands[].phases[]`.
+
 | Interview answer | Target field |
 |---|---|
-| Build command | `commands.build` |
-| Unit test command | `commands.test_unit` |
-| Integration test command | `commands.test_integration` |
-| Lint/static analysis command | `commands.lint` |
-| Required checks before ship | `required_before_ship[]` |
-| Evidence requirements | `evidence_policy.*` |
+| Build command | `commands[].id`, `commands[].command`, `commands[].phases[]` |
+| Unit test command | `commands[].id`, `commands[].command`, `commands[].phases[]` |
+| Integration test command | `commands[].id`, `commands[].command`, `commands[].phases[]` |
+| Lint/static analysis command | `commands[].id`, `commands[].command`, `commands[].phases[]` |
+| Required checks before ship | `commands[].required`, `commands[].phases[]` |
+| Evidence requirements | `command_policy.record_not_run_as_risk`, `evidence_types[]` |
 
 Also populate `repo-mental-map.md` §Verification Defaults.
 
@@ -76,9 +94,9 @@ Also populate `repo-mental-map.md` §Verification Defaults.
 | Default branch name | `repository.default_branch` |
 | Direct-to-main allowed? | `branch_policy.require_non_default_branch_for_changes` |
 | PR required? | `branch_policy.default_branch_commit_requires_user_approval` |
-| Release process (tag, CI deploy, manual) | `release.process` |
-| Rollback approach | `release.rollback` |
-| Deployment targets | `release.targets[]` |
+| Release process (tag, CI deploy, manual) | `release.required`, `gates.release` |
+| Rollback approach | `rollback.required_fields[]` |
+| Deployment targets | `gates.deployment` |
 
 ---
 
@@ -86,8 +104,8 @@ Also populate `repo-mental-map.md` §Verification Defaults.
 
 | Interview answer | Target field |
 |---|---|
-| Things the AI must not do | `domain.constraints.safety[]` or `constraints.product[]` |
-| Out-of-scope topics | `domain.constraints.product[]` |
+| Things the AI must not do | `constraints.safety[]` or `constraints.product[]` |
+| Out-of-scope topics | `constraints.product[]` |
 
 Also populate `repo-mental-map.md` §Known Risks and Non-Goals.
 

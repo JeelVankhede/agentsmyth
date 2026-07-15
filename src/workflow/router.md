@@ -42,7 +42,7 @@ Classify every request before routing. Full definitions and skip rules are in `w
 | Class | Signals | Lifecycle |
 |---|---|---|
 | Trivial | Single-location change, no architectural impact, no callers affected | Handle inline — no artifact required. |
-| Standard | Multi-file or cross-function change within a defined scope | Think → Plan → Build → Review → Ship → Reflect. Test skippable with waiver. |
+| Standard | Multi-file or cross-function change within a defined scope | Think → Plan → Build → Review → Ship → Reflect. Test skippable with a waiver — the waived Test still writes a verify artifact recording the waiver (see `lifecycle-test` → "Waived Test Phase"), so Ship's gate stays satisfied. |
 | Complex | Cross-cutting, new architectural pattern, or parallel workstreams | All phases required. No phase skippable without waiver. |
 
 When classification is unclear, default to Standard.

@@ -98,6 +98,13 @@ function unstructuredWaiverMentions(body) {
 
   const flagged = [];
   for (const rawLine of withoutStructuredSections.split('\n')) {
+    // Markdown table rows are usually structured enumerations, not prose claims: the verify matrix
+    // lists `waiver` (a method) and `waived` (a status) as enum options, and a Plan Phases Overview
+    // may name a hyphenated "waived-Test" phase. Skip such rows — EXCEPT when a cell carries an
+    // explicit action claim ("waived <something>"), which is a real unstructured waiver even inside a
+    // table and must still be caught. `\bwaived\s+\w` matches "waived R2's gate" but not the enum
+    // "skip / waived |" (no following word) nor the compound "waived-Test" (hyphen, not space).
+    if (rawLine.trim().startsWith('|') && !/\bwaived\s+[`'"A-Za-z0-9]/i.test(rawLine)) continue;
     const line = rawLine.replace(/hold-with-waiver/gi, ''); // legitimate enum value, not a claim
     if (!/\bwaiv(?:er|ed|ing)\b/i.test(line)) continue;
     if (/\bno\b.{0,15}\bwaiv|\bwithout\b.{0,10}\bwaiv|\bnot\b.{0,10}\bwaiv|waiver-completeness-check|check-waivers/i.test(line)) continue;
@@ -125,8 +132,16 @@ for (const file of artifactFiles) {
   // misapplies a check meant for artifacts that can actively hold an unresolved waiver. Found via
   // dogfooding: workflow/artifacts/reflect/power-skills-wave2-v1.md's "What Worked"/"What Did Not
   // Work" prose, both discussing an already-resolved historical waiver, false-flagged before this.
-  const isReflect = file.split('/').slice(-2, -1)[0] === 'reflect';
-  const unstructured = isReflect ? [] : unstructuredWaiverMentions(parsed.body);
+  // Framing artifacts (brief = Think, plan = Plan) frame and sequence work; they do not execute a
+  // gate, so they never hold an active structured waiver — their required-section contracts have no
+  // ## Waivers table at all, which makes the hasStructuredRow suppression path structurally
+  // unreachable for them. An active waiver is recorded downstream in the task/verify/ship artifact
+  // that actually skips a gate. Scanning briefs/plans for "unstructured claims" therefore only ever
+  // misfires on prose that discusses the waiver mechanism as subject matter (e.g. a brief planning a
+  // change to the waiver system). Exempted for the same reason as Reflect below.
+  const artifactDir = file.split('/').slice(-2, -1)[0];
+  const isFramingOrRetrospective = ['briefs', 'plans', 'reflect'].includes(artifactDir);
+  const unstructured = isFramingOrRetrospective ? [] : unstructuredWaiverMentions(parsed.body);
   for (const line of unstructured) {
     errors.push(`${file} has a possible unstructured waiver claim outside the Waivers table: "${line}" — confirm or move it into a ## Waivers row`);
   }

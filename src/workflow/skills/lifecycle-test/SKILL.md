@@ -123,6 +123,17 @@ Stop and ask, or return a blocked verify artifact, when any of these apply:
 10. Set recommendation to `ship`, `hold`, or `hold-with-waiver`.
 11. Set `orchestration.status` to `blocked` when failed or missing evidence blocks Ship, otherwise `ready-for-next-phase` with `next_phase: ship`.
 
+## Waived Test Phase (Standard task skip)
+
+A Standard task may skip Test with a waiver (`agent-behavior.yaml` `task_classes.standard.skippable_phases: [test]`). Skipping the phase does **not** mean skipping the artifact: a waived Test still writes `workflow/artifacts/verify/<slug>-v<N>.md` so the chain stays gate-checkable and the waiver stays visible as residual risk. When Test is waived:
+
+1. Write the verify artifact as usual, but mark each affected Manifest Coverage row status `waived` (never `pass` — a waiver is not evidence).
+2. Record the phase-skip in the `## Waivers` table with all six required fields (`waived_gate_or_requirement_id`, `reason`, `residual_risk`, `owner`, `follow_up_action`, `approval_evidence`); it must pass `waiver-completeness-check`.
+3. Set the Sign-Off recommendation to `hold-with-waiver`.
+4. Set `orchestration.status: ready-for-next-phase`, `next_phase: ship`.
+
+This keeps the phase gate honest: Ship's upstream verify artifact exists and is `ready-for-next-phase`, so `check-lifecycle --phase ship` passes, and `release-readiness-gate` sees a `hold-with-waiver` it can aggregate — rather than a missing artifact or a fabricated pass. A waiver never turns a row `pass` and never invents evidence.
+
 ## Architecture Notes Expectations
 
 The verify artifact must include architecture notes when evidence choices affect Ship or future maintenance.
