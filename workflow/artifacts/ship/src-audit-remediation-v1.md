@@ -2,7 +2,7 @@
 slug: src-audit-remediation
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-16T09:00:00Z
 updated: 2026-07-16T09:00:00Z
 manifest_ids:
@@ -31,7 +31,7 @@ upstream:
   - workflow/artifacts/verify/src-audit-remediation-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -51,7 +51,7 @@ orchestration:
 - Recommendation: ship
 - Review result: pass (0 P0/P1)
 - Verification recommendation: ship
-- PR / CI: prepared, **not yet executed** — awaiting user go-ahead at the ship-review checkpoint
+- PR / CI: **executed** — commit `1af7d25` pushed to `origin/fix/src-audit-remediation`; PR opened to `main`: https://github.com/JeelVankhede/agentsmyth/pull/34 (user drove commit+push; agent opened PR)
 - Source-of-truth: not applicable (no provider configured)
 - Release: not applicable (`release.required: false`)
 
@@ -133,7 +133,7 @@ ship-ready; the pause is the required `ship-review` checkpoint for outward-facin
 - [x] Every R and RI has a coverage row.
 - [x] Rollback trigger and action defined.
 - [x] All configured gates checked or marked not applicable with config reference.
-- [ ] User approves the outward-facing git actions at ship-review (pending).
+- [x] User approved the outward-facing git actions at ship-review — commit + push driven by user, PR #34 opened.
 
 ## Next Phase
 
