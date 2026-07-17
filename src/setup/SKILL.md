@@ -81,9 +81,9 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<USER-TODO: describe X>` instead.
 
 `workflow/config/repo-profile.yaml` already exists at this point, pre-populated by
-`agentsmyth init` with `agentsmyth_version` and `definitions_root` (WP-R7 — the CLI links the
+`agentsmyth init` with `agentsmyth_version` and `definitions_root` — the CLI links the
 repo to the global definitions install before this skill starts; see the Global Install Note
-below Step 5b). Read the existing file and fill in the remaining fields (`repository.mode`,
+below Step 5b. Read the existing file and fill in the remaining fields (`repository.mode`,
 `branch_policy`, `paths`, etc.) around those two — do not overwrite the file wholesale from
 the placeholder template, which would silently drop the `definitions_root` pointer.
 
@@ -203,7 +203,7 @@ Write the **rendered output** — not the raw template — to the tool-native pa
 #### Step 5b — Expand workflow bundle
 
 Read `workflow/config/repo-profile.yaml` (written in Phase 3). Check whether it has
-`definitions_root:` set — this is the default outcome of `agentsmyth init` since WP-R7 (see
+`definitions_root:` set — this is the default outcome of `agentsmyth init` (see
 the Global Install Note below): the CLI links the repo to a global definitions install
 before Phase 1 of this skill ever runs.
 

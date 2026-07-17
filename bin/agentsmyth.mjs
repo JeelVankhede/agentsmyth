@@ -17,7 +17,7 @@ const command = process.argv[2];
 // Used only for `check` (resolving an EXISTING repo) below — NOT for `init`'s target-directory
 // selection further down, which intentionally installs wherever the user invoked the command,
 // same as today. A polyrepo-member's very first `init` (which now writes `definitions_root`
-// itself, WP-R7) has no repo-profile.yaml yet to read workspace_root from — specifying
+// itself) has no repo-profile.yaml yet to read workspace_root from — specifying
 // workspace_root at first-init time is a real gap, not handled here; this covers every
 // subsequent `check` call once repo-profile.yaml exists.
 function resolveExistingRepoRoot() {
@@ -145,7 +145,7 @@ if (command !== 'init') {
 // Infers what it can (default branch); marks the rest <USER-TODO> in pending-setup.yaml.
 // Never overwrites existing files. Returns the inferred default branch string.
 function headlessBootstrap(repoDir, pkgRootDir) {
-  // Link to a global definitions install (WP-R7), same treatment as bare `init`: auto-run
+  // Link to a global definitions install, same treatment as bare `init`: auto-run
   // `prepare` when missing, surface any failure clearly, and exit before touching any repo
   // file — no partial stub-config state on a prepare failure.
   const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
@@ -193,7 +193,7 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     writeFileSync(dest, content);
   }
 
-  // Write definitions_root into the stub repo-profile.yaml (WP-R7) — reuses the same
+  // Write definitions_root into the stub repo-profile.yaml — reuses the same
   // insertion logic `init` and `prepare`-linked repos already rely on, rather than
   // duplicating the repository:/learnings_sessions_root: anchor-matching here.
   writeDefinitionsRoot(repoDir, globalWorkflowDir, pkgVersion);
@@ -396,9 +396,10 @@ function runPrepare(pkgRootDir) {
   console.log('');
 }
 
-// The definitions files a pre-WP-R7 bare `init` used to copy locally. Present as a group at
-// the workflow root only in a repo that ran `init` before this repo linked to a global
-// install — never partially, since expandBundle() always writes all of them together.
+// The definitions files an older bare `init` used to copy locally, before `init` started
+// linking to a global install by default. Present as a group at the workflow root only in a
+// repo that ran `init` under the old behavior — never partially, since expandBundle() always
+// writes all of them together.
 const STALE_DEFINITION_NAMES = ['skills', 'router.md', 'lifecycle.md', 'rules.md', 'schemas', 'validators'];
 
 // Prompts for explicit confirmation before deleting the given paths. Fails closed (no hang,
@@ -420,7 +421,7 @@ async function confirmDeletion(paths) {
   }
 }
 
-// Migration case (WP-R7): audits a repo's workflow/ for a pre-existing local definitions
+// Migration: audits a repo's workflow/ for a pre-existing local definitions
 // tree, prompts with the exact paths, and deletes only on explicit confirmation. Never
 // silent in either direction — declining still leaves the paths in place and logged, never
 // hidden. Runs before the caller writes definitions_root, but does not block linking either
@@ -448,7 +449,7 @@ async function auditStaleDefinitions(repoDir) {
 
 // ── init (per-repo) ───────────────────────────────────────────────────────
 
-// `--system` was removed (WP-R7): it never shipped in a published release, so no deprecated
+// `--system` was removed: it never shipped in a published release, so no deprecated
 // alias is kept. Reject explicitly rather than silently falling through to a full interview —
 // a stale `--system` invocation should not look like it worked.
 if (process.argv.slice(3).includes('--system')) {
@@ -465,7 +466,7 @@ if (existsSync(targetDir)) {
   process.exit(1);
 }
 
-// Link to a global definitions install (WP-R7): auto-run `prepare` when no global install
+// Link to a global definitions install: auto-run `prepare` when no global install
 // exists yet, then write `definitions_root` into this repo's repo-profile.yaml before the
 // setup skill's interview starts. No opt-out, no fallback to a local copy — any failure here
 // is surfaced clearly and stops `init`, rather than silently continuing into a half-linked
@@ -482,7 +483,7 @@ if (!existsSync(globalWorkflowDir)) {
     process.exit(1);
   }
 }
-// Migration case (WP-R7, R7): audit for a pre-existing local definitions tree before
+// Migration: audit for a pre-existing local definitions tree before
 // committing the link — see auditStaleDefinitions()'s own comment for why this never blocks
 // linking either way.
 await auditStaleDefinitions(cwd);
