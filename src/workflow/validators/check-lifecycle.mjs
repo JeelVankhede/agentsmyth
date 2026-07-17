@@ -69,7 +69,9 @@ if (args.includes('--phase')) {
       }).split('\n').filter(Boolean);
     } catch { /* not in a git repo or no staged files */ }
 
-    const artifactRe = new RegExp(`^${wf}/artifacts/[^/]+/(.+)-v[0-9]+\\.md$`);
+    // Accept the optional `-p<P>` Build-phase suffix (lifecycle.md "Build Phase Sub-Versioning");
+    // the slug capture excludes it so a split task resolves to its parent slug.
+    const artifactRe = new RegExp(`^${wf}/artifacts/[^/]+/(.+)-v[0-9]+(?:-p[0-9]+)?\\.md$`);
     const slugsFound = new Set(
       staged.flatMap(f => { const m = f.match(artifactRe); return m ? [m[1]] : []; })
     );
@@ -94,10 +96,10 @@ if (args.includes('--phase')) {
   // Find the latest upstream artifact for this slug
   const upstreamDir = `${wf}/artifacts/${upstream.dir}`;
   const candidates = listFiles(upstreamDir)
-    .filter(f => new RegExp(`/${slug}-v[0-9]+\\.md$`).test(f))
+    .filter(f => new RegExp(`/${slug}-v[0-9]+(?:-p[0-9]+)?\\.md$`).test(f))
     .sort((a, b) => {
-      const va = parseInt(a.match(/-v([0-9]+)\.md$/)?.[1] ?? '0');
-      const vb = parseInt(b.match(/-v([0-9]+)\.md$/)?.[1] ?? '0');
+      const va = parseInt(a.match(/-v([0-9]+)(?:-p[0-9]+)?\.md$/)?.[1] ?? '0');
+      const vb = parseInt(b.match(/-v([0-9]+)(?:-p[0-9]+)?\.md$/)?.[1] ?? '0');
       return vb - va;
     });
 
@@ -107,28 +109,35 @@ if (args.includes('--phase')) {
     process.exit(1);
   }
 
-  const latestFile = candidates[0];
+  // When a Build phase was split into `-p<P>` parts (lifecycle.md "Build Phase Sub-Versioning"),
+  // several files share the latest version. The gate must require EVERY part of that latest version
+  // to be ready — not just an arbitrary one — otherwise a later phase could start while a sibling
+  // build-phase task is still incomplete. Select all files at the highest version and check each.
+  const latestVersion = parseInt(candidates[0].match(/-v([0-9]+)(?:-p[0-9]+)?\.md$/)?.[1] ?? '0');
+  const latestParts = candidates.filter(
+    f => parseInt(f.match(/-v([0-9]+)(?:-p[0-9]+)?\.md$/)?.[1] ?? '0') === latestVersion
+  );
 
-  let parsed;
-  try {
-    parsed = parseFrontmatter(readText(latestFile), latestFile);
-  } catch (e) {
-    errors.push(`${latestFile}: ${e.message}`);
-    finish(label, errors, details);
-    process.exit(1);
-  }
+  for (const partFile of latestParts) {
+    let parsed;
+    try {
+      parsed = parseFrontmatter(readText(partFile), partFile);
+    } catch (e) {
+      errors.push(`${partFile}: ${e.message}`);
+      continue;
+    }
 
-  const status = parsed.frontmatter.orchestration?.status ?? parsed.frontmatter.status;
-
-  if (!upstream.ready.includes(status)) {
-    const blockers = parsed.frontmatter.orchestration?.blockers ?? [];
-    const blockerNote = blockers.length > 0 ? ` — blockers: ${blockers.join(', ')}` : '';
-    errors.push(
-      `${targetPhase}: upstream ${latestFile} has status "${status}"${blockerNote}` +
-      ` (need ${upstream.ready.join(' or ')} before ${targetPhase} can proceed)`
-    );
-  } else {
-    details.push(`${targetPhase}: ${latestFile} → ${status} ✓`);
+    const status = parsed.frontmatter.orchestration?.status ?? parsed.frontmatter.status;
+    if (!upstream.ready.includes(status)) {
+      const blockers = parsed.frontmatter.orchestration?.blockers ?? [];
+      const blockerNote = blockers.length > 0 ? ` — blockers: ${blockers.join(', ')}` : '';
+      errors.push(
+        `${targetPhase}: upstream ${partFile} has status "${status}"${blockerNote}` +
+        ` (need ${upstream.ready.join(' or ')} before ${targetPhase} can proceed)`
+      );
+    } else {
+      details.push(`${targetPhase}: ${partFile} → ${status} ✓`);
+    }
   }
 
   finish(label, errors, details);

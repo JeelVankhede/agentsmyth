@@ -48,6 +48,8 @@ Preferred:
 
 Ship must hold when Test recommends `hold`, when Review has unresolved blocking findings, or when active requirement coverage is missing without a documented waiver.
 
+A **waived Test phase** (Standard task) is not a missing verify artifact: it produces a verify artifact recommending `hold-with-waiver` with the phase-skip recorded in its `## Waivers` table (see `lifecycle-test` → "Waived Test Phase"). Ship accepts it through the normal waiver path — aggregate it via `release-readiness-gate`, keep the waiver visible as residual risk in `## Risk And Rollback`, and do not treat the skipped Test as a blocker in itself. The verify artifact must still exist and be `ready-for-next-phase`; a genuinely absent verify artifact is still a `hold`.
+
 ## What To Load
 
 **Foundation** (confirm in context; load if not already present):

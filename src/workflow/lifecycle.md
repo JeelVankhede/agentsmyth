@@ -14,7 +14,7 @@ brief -> plan -> task -> review -> verify -> ship -> reflect
 | Plan | plan | brief | requirement-mapped phases and verification |
 | Build | task | plan | scoped changes and task evidence |
 | Review | review | brief, plan, task, diff | findings, coverage, recommendation |
-| Test | verify | brief, plan, task, review when available | verification evidence and sign-off |
+| Test | verify | brief, plan, task, review | verification evidence and sign-off |
 | Ship | ship | brief, plan, task, verify, review when available | ship, hold, or hold-with-waiver |
 | Reflect | reflect | full chain through ship | outcome and learning candidates |
 

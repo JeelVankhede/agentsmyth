@@ -9,6 +9,9 @@ const sourceEnv = { ...process.env, AGENTSMYTH_WF: 'src/workflow' };
 const sourceCommands = [
   ['node', ['src/workflow/validators/check-starter-blocks.mjs']],
   ['node', ['src/workflow/validators/check-lifecycle.mjs']],
+  // Recurrence guard: every field named in the setup reference docs must exist in the schemas
+  // (audit-remediation R8). Reads src/setup/references/ and src/workflow/schemas/.
+  ['node', ['src/workflow/validators/check-setup-refs.mjs']],
 ];
 
 // WP-R4 Wave 1 semantic checks — validate this repo's own dogfooded lifecycle artifacts

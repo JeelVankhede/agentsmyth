@@ -68,9 +68,11 @@ for (const file of artifactFiles) {
     errors.push(`${file} directory ${dir} does not match artifact ${parsed.frontmatter.artifact}`);
   }
 
-  const filenameMatch = filename?.match(/^(.+)-v([0-9]+)\.md$/);
+  // Optional `-p<P>` Build-phase suffix per lifecycle.md ("Build Phase Sub-Versioning"): a task may
+  // be split into workflow/artifacts/tasks/<slug>-v<N>-p<P>.md, sharing the parent slug and version.
+  const filenameMatch = filename?.match(/^(.+)-v([0-9]+)(?:-p[0-9]+)?\.md$/);
   if (!filenameMatch) {
-    errors.push(`${file} filename must match <slug>-v<N>.md`);
+    errors.push(`${file} filename must match <slug>-v<N>.md (optionally -p<P>)`);
   } else {
     const [, slug, version] = filenameMatch;
     if (parsed.frontmatter.slug !== slug) {

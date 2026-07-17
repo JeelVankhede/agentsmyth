@@ -3,6 +3,8 @@ Domain: {{DOMAIN_NAME}} — {{REPO_PURPOSE}}
 
 Before any task: read workflow/router.md and workflow/agent-behavior.yaml.
 
+Never skip this gate. Never mark a phase complete without evidence.
+
 Default branch: {{DEFAULT_BRANCH}}
 Branch policy: {{BRANCH_POLICY}}
 

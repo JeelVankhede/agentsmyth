@@ -25,6 +25,16 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
+skill_trigger_log:
+  - skill: repo-alignment-scan
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled for presence enforcement).
+  - skill: architecture-decision-advisor
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled).
+  - skill: constraint-conflict-scan
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled).
 ---
 
 # WP-R5 T5.2 — Repo-Shape Root Resolution — Brief

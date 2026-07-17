@@ -58,7 +58,7 @@ created: <YYYY-MM-DD>
 updated: <YYYY-MM-DD>
 manifest_ids: []
 upstream:
-  brief: workflow/artifacts/briefs/<slug>-v<N>.md
+  - workflow/artifacts/briefs/<slug>-v<N>.md
 orchestration:
   phase: plan
   status: blocked-for-user
@@ -91,10 +91,10 @@ orchestration:
 
 ### Phase 1 - <name>
 
-- Manifest IDs:
+- **Manifest IDs:**
 - Touches:
 - Work:
-- Exit gate:
+- **Exit gate:**
 
 ## Dependency Order
 

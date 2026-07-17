@@ -135,7 +135,7 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - `orchestration.phase` is `think`, `orchestration.status` is accurate, and `next_phase` is `plan` when unblocked.
 - The user has approved the brief or the artifact records an explicit waiver before Plan begins.
 - Any waiver recorded in the brief passes `waiver-completeness-check` (all 6 required fields present).
-- The `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` triggers were each evaluated, with a `skill_trigger_log` entry recorded for every one (ran or skipped, with reason) — audited by `check-skill-triggers.mjs`.
+- The `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` triggers were each evaluated and recorded in `skill_trigger_log` (ran or skipped, with reason). `check-skill-triggers.mjs` enforces both presence and completeness: a brief must record a `skill_trigger_log`, and it must cover all three mandated skills (a missing log, or a log that omits one, fails). Use the starter-block stub. The validator cannot re-derive the score itself — only that each mandated decision was recorded.
 
 ## Determinism Rules
 

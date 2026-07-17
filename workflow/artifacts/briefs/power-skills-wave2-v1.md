@@ -31,6 +31,16 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: approved
+skill_trigger_log:
+  - skill: repo-alignment-scan
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled for presence enforcement).
+  - skill: architecture-decision-advisor
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled).
+  - skill: constraint-conflict-scan
+    decision: skipped
+    reason: Predates the skill-scoring feature; triggers were not evaluated at authoring time (backfilled).
 ---
 
 # Power Skills — Wave 2 (Phase Gates) - Brief

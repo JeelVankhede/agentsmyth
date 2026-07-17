@@ -8,7 +8,7 @@ Before any implementation work — no exceptions:
 
 3. **Load `workflow/agent-behavior.yaml`** — classify the request:
    - `trivial` → handle inline, no artifact required
-   - `standard` → full lifecycle required: think → plan → build → review → ship → reflect
+   - `standard` → full lifecycle required: think → plan → build → review → ship → reflect. Test is skippable **only with a waiver**, and a waived Test still writes a verify artifact recording that waiver (it is not simply omitted).
    - `complex` → all phases required including test; no phases may be skipped
 
 4. **Route using `workflow/lifecycle.md`** — select the current phase. If resuming, use the `restore-context` skill first. Never resume from chat memory alone.

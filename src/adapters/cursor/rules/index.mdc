@@ -10,6 +10,8 @@ alwaysApply: true
 
 Read `workflow/router.md` before any task. Load `workflow/agent-behavior.yaml`.
 
+Never skip this gate. Never mark a phase complete without evidence.
+
 Default branch: `{{DEFAULT_BRANCH}}` | {{BRANCH_POLICY}}
 
 **Protected:** {{PROTECTED_PATHS}}

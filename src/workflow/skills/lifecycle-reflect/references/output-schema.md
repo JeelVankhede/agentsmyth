@@ -74,12 +74,12 @@ created: <YYYY-MM-DD>
 updated: <YYYY-MM-DD>
 manifest_ids: []
 upstream:
-  brief: workflow/artifacts/briefs/<slug>-v<N>.md
-  plan: workflow/artifacts/plans/<slug>-v<N>.md
-  task: workflow/artifacts/tasks/<slug>-v<N>.md
-  review: workflow/artifacts/reviews/<slug>-v<N>.md
-  verify: workflow/artifacts/verify/<slug>-v<N>.md
-  ship: workflow/artifacts/ship/<slug>-v<N>.md
+  - workflow/artifacts/briefs/<slug>-v<N>.md
+  - workflow/artifacts/plans/<slug>-v<N>.md
+  - workflow/artifacts/tasks/<slug>-v<N>.md
+  - workflow/artifacts/reviews/<slug>-v<N>.md
+  - workflow/artifacts/verify/<slug>-v<N>.md
+  - workflow/artifacts/ship/<slug>-v<N>.md
 orchestration:
   phase: reflect
   status: in-progress

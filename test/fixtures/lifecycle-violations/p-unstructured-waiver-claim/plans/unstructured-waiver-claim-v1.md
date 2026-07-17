@@ -20,16 +20,21 @@ orchestration:
 
 # Unstructured Waiver Claim — Plan
 
+Benign upstream plan for this fixture. The deliberate `check-waivers` violation (a waiver claimed in
+prose, never structured) lives in the sibling `tasks/` artifact — briefs and plans are framing
+artifacts and are exempt from the unstructured-claim scan (they cannot hold a structured `## Waivers`
+table by contract; a real active waiver is recorded in the gate-executing task/verify/ship artifact).
+
 ## Summary
 
-A plan that claims a waiver in prose instead of a structured `## Waivers` table row.
+Sets up R1 and R2 for the Build phase.
 
 ## Requirement Coverage
 
 | Manifest ID | Covered by phases | Notes |
 |---|---|---|
 | R1 | Phase 1 | — |
-| R2 | Phase 1 | The user waived R2's verification gate in chat — no table entry recorded here, which is the deliberate violation. |
+| R2 | Phase 1 | — |
 
 ## Repo Impact Map
 
@@ -45,5 +50,4 @@ No architectural changes.
 
 ## Exit Gate
 
-R2's waiver claim above is prose-only — this is the deliberate violation for `check-waivers.mjs`'s
-unstructured-claim scan.
+Plan is benign; the violation is in the task artifact.

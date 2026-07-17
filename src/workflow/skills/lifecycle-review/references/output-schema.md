@@ -60,9 +60,9 @@ created: <YYYY-MM-DD>
 updated: <YYYY-MM-DD>
 manifest_ids: []
 upstream:
-  brief: workflow/artifacts/briefs/<slug>-v<N>.md
-  plan: workflow/artifacts/plans/<slug>-v<N>.md
-  task: workflow/artifacts/tasks/<slug>-v<N>.md
+  - workflow/artifacts/briefs/<slug>-v<N>.md
+  - workflow/artifacts/plans/<slug>-v<N>.md
+  - workflow/artifacts/tasks/<slug>-v<N>.md
 orchestration:
   phase: review
   status: blocked-for-user
