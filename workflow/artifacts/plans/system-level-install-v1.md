@@ -318,6 +318,9 @@ Do not proceed to the next phase if any command exits non-zero.
 - `render-adapters.mjs` passes with zero `{{...}}` markers found in global gate files (RI2)
 - `agentsmyth init` (bare, no `--system`) produces identical `.agentsmyth/` layout as before;
   no `definitions_root` written to `repo-profile.yaml` (RI3)
+  — **superseded by WP-R7-T7.2 (2026-07-17):** bare `init` now always writes
+  `definitions_root` by default (auto-linking to a global install); see
+  `workflow/artifacts/plans/init-prepare-interop-v1.md`. Preserved verbatim, not rewritten.
 - Windsurf global gate char count ≤ 6,000
 - `CLAUDE.md` contains three-tier table (source / dev-workspace / global `~/.agentsmyth/`)
 - `npm run build && npm run validate && npm run violations:test` pass
@@ -486,6 +489,11 @@ in-place by the end of Phase 4.
 - constraint: **Per-repo `init` must not write `definitions_root` (RI3).** The `--system` flag
   is the only code path that writes `definitions_root`. Bare `init` must not touch `repo-profile.yaml`
   at all (it does not today; preserve that).
+  — **Superseded by WP-R7-T7.2 (2026-07-17):** this constraint is deliberately overridden —
+  bare `init` now writes `definitions_root` itself as its default behavior, and `--system`
+  was removed outright in favor of `agentsmyth prepare`. See
+  `workflow/artifacts/plans/init-prepare-interop-v1.md`'s Architecture Notes for the
+  rationale. Preserved verbatim above for historical accuracy, not rewritten.
 
 - tradeoff: **`agentsmyth check` falls back to `npx agentsmyth check` in the shipped hook.**
   This adds a cold-start latency for consumers who install via npm but don't have the binary on

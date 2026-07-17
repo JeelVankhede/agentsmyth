@@ -1,7 +1,10 @@
 agentsmyth workflow gate — {{REPO_NAME}}
 Domain: {{DOMAIN_NAME}} — {{REPO_PURPOSE}}
 
-Before any task: read workflow/router.md and workflow/agent-behavior.yaml.
+Before any task: read workflow/router.md and workflow/agent-behavior.yaml. If these don't
+exist locally, read definitions_root from workflow/config/repo-profile.yaml and load
+<definitions_root>/router.md and <definitions_root>/agent-behavior.yaml instead — this repo
+is linked to a global install.
 
 Never skip this gate. Never mark a phase complete without evidence.
 

@@ -8,7 +8,9 @@ alwaysApply: true
 
 > **Domain:** {{DOMAIN_NAME}} | {{REPO_PURPOSE}}
 
-Read `workflow/router.md` before any task. Load `workflow/agent-behavior.yaml`.
+Read `workflow/router.md` before any task (if absent, read `definitions_root` from
+`workflow/config/repo-profile.yaml` and load `<definitions_root>/router.md` instead — this
+repo is linked to a global install). Load `workflow/agent-behavior.yaml` the same way.
 
 Never skip this gate. Never mark a phase complete without evidence.
 

@@ -35,6 +35,7 @@
     "setup-checks:test": "node test/run-setup-complete-tests.mjs",
     "setup-refs:test": "node test/run-setup-refs-tests.mjs",
     "conformance:test": "node test/run-conformance-tests.mjs",
-    "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs"
+    "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs",
+    "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs"
   }
 }

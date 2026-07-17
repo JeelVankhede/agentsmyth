@@ -181,6 +181,12 @@ This requires:
   to write `workflow/` + per-repo adapter, producing a fully self-contained repo install with no
   `definitions_root` set. All existing consumers are unaffected.
   - Acceptance: bare `init` produces the same file layout as today; `validate` passes in that state.
+  - **Superseded by WP-R7-T7.2 (2026-07-17):** bare `init` now always links to a global
+    definitions install by default — auto-running `prepare` (the `--system` flag's
+    successor) when one doesn't exist yet, and writing `definitions_root` itself. The
+    "fully self-contained, no `definitions_root` set" guarantee above no longer holds; see
+    `workflow/artifacts/briefs/init-prepare-interop-v1.md` for the resolved model. This
+    entry is preserved verbatim above for historical accuracy, not deleted.
 
 - **RI4** — Continuous validator integrity. Each requirement (R1 through R6) must pass the full
   `npm run build && npm run validate && npm run violations:test` suite before the next requirement

@@ -121,3 +121,9 @@ items:
     next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-21
+    source: follow-up
+    owner: user
+    next_action: "Separate initiative from WP-R7 (2026-07-17): reframe agentsmyth init as scaffold-only — CLI ensures the global install + writes local placeholders, no longer implicitly gated behind the agent-driven setup skill for the mechanical parts. Possibly present init-time questions via a terminal-UI questionnaire (user referenced https://github.com/charmbracelet/huh, a Go TUI library — this is a Node/zero-runtime-dependency project, so either a JS equivalent or a different mechanism would be needed; flagged, not resolved). The AI agent still runs \"agentsmyth setup\" afterward to do the real repo-mapping interview. User wants a research spike + Notion scoping page first (same process as the WP-R7 spike) before committing to a brief. Explicitly: don't defer indefinitely, but don't start until the current init-prepare-interop (WP-R7) chain reaches Ship/Reflect."
+    status: open
+    first_seen_run: init-prepare-interop-v1

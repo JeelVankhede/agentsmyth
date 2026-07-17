@@ -80,6 +80,13 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 
 Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<USER-TODO: describe X>` instead.
 
+`workflow/config/repo-profile.yaml` already exists at this point, pre-populated by
+`agentsmyth init` with `agentsmyth_version` and `definitions_root` (WP-R7 — the CLI links the
+repo to the global definitions install before this skill starts; see the Global Install Note
+below Step 5b). Read the existing file and fill in the remaining fields (`repository.mode`,
+`branch_policy`, `paths`, etc.) around those two — do not overwrite the file wholesale from
+the placeholder template, which would silently drop the `definitions_root` pointer.
+
 Note: `workflow/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
 
 #### Step 3.x — Write pending-setup.yaml
@@ -195,11 +202,27 @@ Write the **rendered output** — not the raw template — to the tool-native pa
 
 #### Step 5b — Expand workflow bundle
 
-Read `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content to that path relative to the repo root. Create parent directories as needed.
+Read `workflow/config/repo-profile.yaml` (written in Phase 3). Check whether it has
+`definitions_root:` set — this is the default outcome of `agentsmyth init` since WP-R7 (see
+the Global Install Note below): the CLI links the repo to a global definitions install
+before Phase 1 of this skill ever runs.
 
-Do not expand files under `workflow/config/` — those were already written by the agent in Phase 3.
+- If `definitions_root` **is** set: skills, router, lifecycle, rules, glossary, schemas, and
+  validators are **not** expanded locally — they resolve from the global install at runtime.
+  From `.agentsmyth/workflow-bundle.md`, expand only the `<!-- FILE: -->` blocks under
+  `workflow/artifacts/` and `workflow/learnings/`.
+- If `definitions_root` is **not** set (defensive fallback — should not normally happen,
+  since `init` always links before this skill starts): read
+  `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content
+  to that path relative to the repo root. Create parent directories as needed. Do not expand
+  files under `workflow/config/` — those were already written by the agent in Phase 3.
 
-After expansion, the following must exist in the repo:
+After expansion, the following must always exist in the repo, regardless of link state:
+
+- `workflow/artifacts/` (empty phase dirs)
+- `workflow/learnings/` (README and sessions dir)
+
+The following exist locally only in the defensive (no-`definitions_root`) fallback above:
 
 - `workflow/router.md`
 - `workflow/lifecycle.md`
@@ -208,8 +231,6 @@ After expansion, the following must exist in the repo:
 - `workflow/skills/` (full skill tree)
 - `workflow/validators/` (all validator scripts)
 - `workflow/schemas/` (all schema files)
-- `workflow/artifacts/` (empty phase dirs)
-- `workflow/learnings/` (README and sessions dir)
 
 #### Step 5c — Produce copy-log
 
@@ -252,18 +273,19 @@ If the user says no, skip without comment. Do not install the hook silently.
 
 This is the final step.
 
-## System-Level Install Note
+## Global Install Note
 
-`agentsmyth init --system` is a separate machine-wide install that a developer runs once
-(not per-repo). It expands the workflow definitions to `~/.agentsmyth/workflow/` and
-installs global gate files into each AI tool's global config path. When a repo's
-`workflow/config/repo-profile.yaml` contains `definitions_root: ~/.agentsmyth/workflow`,
-validators resolve skills and schemas from the global location instead of the per-repo
-`workflow/` directory.
+`agentsmyth init` always ends with the repo linked to a global lifecycle-definitions install
+at `~/.agentsmyth/workflow/` — the CLI runs `agentsmyth prepare` automatically before this
+skill starts if no global install exists yet, then writes `definitions_root:
+~/.agentsmyth/workflow` into `workflow/config/repo-profile.yaml` itself, before Phase 1 of
+this skill even begins. Validators and the agent resolve skills and schemas from that global
+location instead of a per-repo `workflow/` copy — see Step 5b above.
 
-This skill (per-repo setup) is independent of the system install. You do not need to run
-`init --system` as part of setup, and you do not need to set `definitions_root` unless the
-user specifically asks for the system-level install flow.
+This skill does not need to manage `definitions_root` or run any global-install step itself
+— that already happened by the time this skill starts. Run `agentsmyth prepare` standalone
+(without `init`) only to install or refresh the global definitions on a machine ahead of
+time, with no repo-level effect.
 
 ## Stop Conditions
 
