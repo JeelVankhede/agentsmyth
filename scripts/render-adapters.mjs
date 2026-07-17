@@ -41,7 +41,7 @@ for (const [adapterPath, text] of adapterTexts) {
 }
 
 // ── Global gate templates (RI2: must be token-free) ─────────────────────────
-// Installed by `agentsmyth init --system` to tool-native global config paths.
+// Installed by `agentsmyth prepare` to tool-native global config paths.
 // Must never contain {{...}} substitution markers — they serve all repos.
 
 const globalGates = [

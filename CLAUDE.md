@@ -27,9 +27,9 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
 
 | | **Source (`src/`)** | **Dev workspace (`workflow/`)** | **Shipped (consumer repo)** | **Global install (`~/.agentsmyth/`)** |
 |---|---|---|---|---|
-| Workflow skills/schemas/validators | `src/workflow/` | — | `workflow/` (expanded from bundle) | `~/.agentsmyth/workflow/` (same bundle, expanded by `--system`) |
+| Workflow skills/schemas/validators | `src/workflow/` | — | `workflow/` (expanded from bundle, only when not linked to a global install — see below) | `~/.agentsmyth/workflow/` (same bundle, expanded by `prepare`) |
 | Adapters (per-repo) | `src/adapters/` | — | placed at tool-native path | — |
-| Adapters (global gate) | `src/adapters/*/global-gate.md` | — | — | installed to tool-native global path by `--system` |
+| Adapters (global gate) | `src/adapters/*/global-gate.md` | — | — | installed to tool-native global path by `prepare` |
 | Static assets | `src/assets/` | — | `.agentsmyth/assets/` | — |
 | Setup skill | `src/setup/` | — | `.agentsmyth/` (then deleted) | — |
 | Behavior config | `src/workflow/agent-behavior.yaml` | — | `workflow/agent-behavior.yaml` | `~/.agentsmyth/workflow/agent-behavior.yaml` |
@@ -40,11 +40,17 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
 - `scripts/build-bundle.mjs` compiles `src/workflow/` → `dist/workflow-bundle.md` (FILE-marker
   blocks the agent expands) and `src/setup/` → `dist/setup-bundle.md`. Also syncs
   `src/workflow/schemas/` → `workflow/schemas/` so dev-workspace validators can find them.
-- `bin/agentsmyth.mjs` copies `dist/` + `src/assets/` + `validators/` into the consumer's
-  `.agentsmyth/`, then the **agent** does all real setup work (see `src/setup/SKILL.md`).
-  With `--system`, it expands `dist/workflow-bundle.md` → `~/.agentsmyth/workflow/`, installs
-  global gate files into each AI tool's global config, and writes `definitions_root` into
-  `workflow/config/repo-profile.yaml`.
+- `bin/agentsmyth.mjs` has two top-level install commands (WP-R7): `prepare` expands
+  `dist/workflow-bundle.md` → `~/.agentsmyth/workflow/` and installs global gate files into
+  each AI tool's global config — global-only, writes zero repo-level files. `init` always
+  auto-runs `prepare` first when no global install exists (no opt-out, no local-copy
+  fallback — a failure here is a hard, clearly-surfaced stop), writes `definitions_root` into
+  `workflow/config/repo-profile.yaml`, then copies `dist/` + `src/assets/` + `validators/`
+  into the consumer's `.agentsmyth/` for the **agent** to do the rest of setup (see
+  `src/setup/SKILL.md`) — the agent-driven expansion skips the definitions files entirely
+  once `definitions_root` is set, expanding only `workflow/artifacts/` and
+  `workflow/learnings/`. `--system` was removed outright; it never shipped in a published
+  release.
 - `src/workflow/validators/lib.mjs` uses a two-root resolver: `definitions_root` in
   `repo-profile.yaml` → `AGENTSMYTH_HOME` env → repo-local fallback. The dotted string is
   *constructed* (`['.','workflow'].join('')`) so the consumer copy never contains a literal

@@ -49,8 +49,8 @@ planning history is not retained in the repo.
 | `src/adapters/` | Five tool gate shims (source of truth for the mandatory gate) |
 | `src/assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
 | `scripts/build-bundle.mjs` | Compiles `src/workflow/` + `src/setup/` → `dist/` bundles |
-| `bin/agentsmyth.mjs` | The `init` CLI — copies payload into `.agentsmyth/`; `--system` expands the bundle to `~/.agentsmyth/` |
-| `src/adapters/*/global-gate.md` | Token-free global gate templates installed by `init --system` to tool-native global paths |
+| `bin/agentsmyth.mjs` | The CLI — `prepare` expands the bundle to `~/.agentsmyth/` (global-only, no repo write); `init` copies payload into `.agentsmyth/` and links the repo to the global install (auto-running `prepare` first if needed) |
+| `src/adapters/*/global-gate.md` | Token-free global gate templates installed by `prepare` to tool-native global paths |
 | `workflow/config/` | This repo's own per-repo lifecycle config (not shipped) |
 | `workflow/artifacts/` | This repo's dogfood lifecycle artifacts (not shipped) |
 | `workflow/learnings/` | Curated retros and session notes (not shipped) |
@@ -139,6 +139,33 @@ doesn't exist triggers the RI1 guard: a clean human-readable error and `exit 1`.
     schemas/
     validators/
 ```
+
+**`init`/`prepare` interoperability (WP-R7):** `agentsmyth prepare` is the global-only install
+— it refreshes `~/.agentsmyth/workflow/` and the 5 adapters' global gate files and writes zero
+repo-level files. `agentsmyth init` always ends with the repo linked to a global install: it
+auto-runs `prepare` when `~/.agentsmyth/workflow/` doesn't exist yet (no opt-out, no fallback
+to a local copy — any failure is surfaced as a clear error, not silently absorbed), then writes
+`definitions_root` into the repo's `repo-profile.yaml` before the setup skill's interview even
+starts. `--system` was removed outright (WP-R7) — it never shipped in a published release, so
+no deprecated alias was kept; use `prepare` instead.
+
+**The definitions/data invariant, stated once:** skill *definitions* (skills, router,
+lifecycle, rules, schemas, validators, `agent-behavior.yaml`) may live system-side and are read
+at runtime via `defsRoot`; repo-specific *config and artifacts* are always repo-local via
+`dataRoot`. This is the rule the two-root resolver above encodes in code — WP-R7 is what makes
+`init` actually produce this split by default instead of every repo defaulting to a full local
+copy (WP-R2's original `RI3`, "bare `init` must never write `definitions_root`", is superseded
+by this — see `workflow/artifacts/briefs/system-level-install-v1.md`'s annotated entry).
+
+A repo that ran `init` before WP-R7 (a full local `workflow/skills|router.md|...` copy, no
+`definitions_root`) migrates the next time `init` runs: it audits for that stale local tree,
+prompts with the exact paths, and deletes only on explicit confirmation — never silently either
+way. The prompt requires a real interactive TTY; a non-interactive session (CI, piped input)
+fails closed with the path list rather than hanging or silently deciding either way.
+
+**Version skew:** `agentsmyth check` compares the `agentsmyth_version` stamped in
+`repo-profile.yaml` against the running CLI's version and emits a plain warning pointing at
+`prepare` on mismatch — there is no automatic re-link or version-pin enforcement.
 
 ---
 
