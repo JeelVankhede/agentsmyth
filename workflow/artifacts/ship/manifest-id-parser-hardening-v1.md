@@ -2,7 +2,7 @@
 slug: manifest-id-parser-hardening
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-18
 updated: 2026-07-18
 manifest_ids: [R1, R2, R3, RI1, RI2, RI3]
@@ -14,10 +14,10 @@ upstream:
   - workflow/artifacts/verify/manifest-id-parser-hardening-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
-  user_checkpoint: ship-review
+  user_checkpoint: approved
 ---
 
 # Manifest-ID Parser Hardening - Ship
@@ -38,12 +38,11 @@ orchestration:
 
 ## Ship Status
 
-- Recommendation: **ship** (meaning: this Build unit is complete, verified, and ready for you
-  to commit/merge/PR at your discretion — not that anything has been committed, pushed, or
-  released externally)
+- Recommendation: **ship**
 - Review result: pass (0 open findings)
 - Verification recommendation: ship
-- PR / CI: not applicable (not configured, not requested)
+- PR / CI: PR #36 open — https://github.com/JeelVankhede/agentsmyth/pull/36 (commit `d97ac4b`
+  pushed to `feat/manifest-id-parser-hardening`, PR created at user's explicit request)
 - Source-of-truth: not applicable (no provider configured; this is a self-contained fix to
   this repo's own validators, no external tracker involved)
 - Release: not applicable (no package/deployment gate configured or in scope)
@@ -61,13 +60,12 @@ orchestration:
 
 ## PR / CI Readiness
 
-not applicable — `release.yaml`'s `pull_request.required: false`,
-`create_policy: user_requested_or_configured`. No PR has been created; none was requested
-this session. `ci.required: false, provider: none` — no CI gate configured for this repo as a
-Ship-blocking requirement, though this chain itself *added* a new CI step
-(`npm run conformance:test` in `.github/workflows/ci.yml`) as one of its own fixes (Review P2)
-— that step will run automatically once this branch is pushed and a PR is opened, but is not
-itself a precondition for this Ship recommendation.
+PR #36 opened: https://github.com/JeelVankhede/agentsmyth/pull/36 (`create_policy:
+user_requested_or_configured` — created at the user's explicit request "raise PR"). Base
+`main`, head `feat/manifest-id-parser-hardening`, commit `d97ac4b`. `ci.required: false,
+provider: none` in `release.yaml`, so CI status is not itself a Ship-blocking gate — but this
+chain's own fix (Review P2) means the PR's CI run will now exercise `npm run conformance:test`
+in addition to `npm run violations:test`, giving this PR's own merge the protection it added.
 
 ## Release Readiness
 
@@ -114,12 +112,10 @@ commit/merge decision itself, which is reserved for you.
 - decision: Recommending `ship` (not `hold-with-waiver`) — all 4 Review findings were fixed
   and independently re-verified within the same chain, not waived; Verify's Residual Risk and
   Review's Residual Risk both read `none`.
-- decision: Nothing on this branch is committed yet (confirmed via `git status` — 6 modified,
-  9 untracked files, all from this chain). This is consistent with this repo's own established
-  Ship precedent (`power-skills-spine-v1.md`): "ship" at this checkpoint means the branch's
-  diff is complete, verified, and ready for a merge/commit decision — not that a commit,
-  push, or PR has happened. Those actions remain separately gated behind your explicit
-  request, per this session's standing instruction not to commit without being asked.
+- decision: Committed (`d97ac4b`), pushed, and PR #36 opened, each only after explicit user
+  request ("Commit, then wait for me to push", then "Done, raise PR, continue reflect"). The
+  pre-commit hook ran the full validation suite against the entire repo (not just this diff)
+  and passed clean before the commit was accepted.
 - constraint: This is a source-repo (agentsmyth-on-itself) chain — "ship" cannot mean
   "publish to npm" or "deploy," since neither is in scope. `src/workflow/validators/` is
   dev-tooling for this repo's own dogfooded lifecycle (confirmed not present in
@@ -138,10 +134,9 @@ commit/merge decision itself, which is reserved for you.
 - [x] Rollback trigger and action defined.
 - [x] All configured gates checked or marked not applicable with config reference
       (`release.yaml`, `source-of-truth.yaml`).
-- [ ] User approved proceeding to Reflect — pending. Commit/push/PR are also unrequested and
-      not assumed by this recommendation.
+- [x] User approved proceeding to Reflect ("continue reflect", 2026-07-18). Commit (`d97ac4b`),
+      push, and PR #36 all completed at explicit user request.
 
 ## Next Phase
 
-Reflect — pending your go-ahead. Also pending: whether to commit this branch's work now (and
-if so, whether to push and/or open a PR).
+Reflect.

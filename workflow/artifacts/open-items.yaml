@@ -121,3 +121,33 @@ items:
     next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-22
+    source: follow-up
+    owner: user/agent
+    next_action: "Harden check-manifest-coverage.mjs/check-coverage-ledger.mjs/check-phase-map.mjs's manifest-ID extraction regex -- found 3 false positives/negatives in the WP-R7 chain alone: matched inside a hyphenated compound token, matched inside plain prose, and failed to recognize a parenthetical qualifier as covering its ID. Done: shipped as PR #36 (feat/manifest-id-parser-hardening) -- structured-tag scanning + shared parseIdList() helper + narrower waiverIds() exclusion, 3 new conformance fixtures now CI-enforced. Note: this entry was reconstructed from the brief's quoted original text -- the 'real' OI-22 (added on the still-unmerged feat/init-prepare-interop, PR #35) will collide with this one at merge time; keep this done version, see manifest-id-parser-hardening-v1 Reflect Follow-Ups."
+    status: done
+    first_seen_run: init-prepare-interop-v1
+  - id: OI-24
+    source: follow-up
+    owner: user
+    next_action: "Reconcile open-items.yaml OI-22 duplication between PR #35 (adds OI-21/22/23, OI-22 left open) and PR #36 (recreates OI-22 as done) once both merge to main -- keep the done version, verify no other ID collisions"
+    status: open
+    first_seen_run: manifest-id-parser-hardening-v1
+  - id: OI-25
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #35 (feat/init-prepare-interop, still open) and PR #36 (feat/manifest-id-parser-hardening)"
+    status: open
+    first_seen_run: manifest-id-parser-hardening-v1
+  - id: OI-26
+    source: follow-up
+    owner: user/agent
+    next_action: "Audit package.json's other npm run *:test scripts for the same CI-unenforced gap found in conformance:test (only violations:test was wired into ci.yml before this chain)"
+    status: open
+    first_seen_run: manifest-id-parser-hardening-v1
+  - id: OI-27
+    source: follow-up
+    owner: user/agent
+    next_action: "Consider adding 'verify a fix's boundary with a before/after comparison before implementing' as an explicit step in lifecycle-build's Workflow section, per this chain's Phase 3/Phase 6 pattern"
+    status: open
+    first_seen_run: manifest-id-parser-hardening-v1
