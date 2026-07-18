@@ -40,10 +40,11 @@ function isPureIdTag(raw) {
 // output-schema.md convention), a markdown table row whose first cell holds one or more
 // comma-separated IDs (e.g. "| R9, RI3, RI4 | ... |"), or a bare parenthetical tag whose
 // entire content is ID(s) (e.g. "...with zero intermediate breakage (RI4)") — instead of
-// matching any ID-shaped substring anywhere in the section's prose. The prior free-prose scan
-// matched inside unrelated compound tokens (e.g. "WP-R7-T7.2") and inside incidental
-// sentences with no coverage-claim intent (e.g. "...so R6 has an explicit phase-map entry") —
-// both found as real false positives while dogfooding the WP-R7 chain. Two earlier versions
+// matching any ID-shaped substring anywhere in the section's prose. A prior free-prose scan
+// matched inside unrelated hyphenated compound tokens (e.g. a cross-reference like
+// "prefix-R7-suffix") and inside incidental sentences with no coverage-claim intent (e.g.
+// "...so R6 has an explicit phase-map entry") — both found as real false positives while
+// dogfooding real lifecycle artifacts. Two earlier versions
 // of this fix regressed against this repo's own existing artifacts before landing here: one
 // only matched a single bare ID per table cell (dropping every ID in a multi-ID cell like the
 // one above), the other missed the bare-parenthetical convention entirely — both found by

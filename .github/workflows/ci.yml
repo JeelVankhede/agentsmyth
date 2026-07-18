@@ -30,3 +30,15 @@ jobs:
 
       - name: Run conformance tests
         run: npm run conformance:test
+
+      - name: Run setup-completion tests
+        run: npm run setup-checks:test
+
+      - name: Run setup-reference tests
+        run: npm run setup-refs:test
+
+      - name: Run root-resolution drift tests
+        run: npm run root-resolution:test
+
+      - name: Run init/prepare interoperability tests
+        run: npm run init-prepare-interop:test

@@ -121,8 +121,16 @@ Stop and write a `hold` ship artifact when any of these apply:
 2. Read upstream artifacts and collect active `R`/`RI` coverage, skipped checks, review findings, waivers, blockers, and residual risk.
 3. Read release config and identify required gates: PR, CI, release, deployment, docs, package, rollback, source handoff, or none.
 4. Inspect repository readiness for configured branch, PR, CI, release, or deployment gates.
+4a. When the repository has a remote and the branch's base may have advanced since work
+    started, fetch and compare the current branch against the remote default branch. Treat
+    meaningful divergence as something to surface explicitly (a merge/rebase decision point),
+    not a silent risk absorbed into the ship recommendation.
 5. Verify source-of-truth handoff: updated, not required, blocked with copy-ready handoff, or waived.
 6. Map every active `R` and `RI` to shipped, deferred, blocked, or waived.
+6a. For any Build or Review discovery not already covered by the plan's declared scope, first
+    classify it as either a completed, independently-verified fix (a resolved scope note) or
+    genuinely open, unresolved risk. Only genuinely open risk may become a waiver in step 8 —
+    do not present an already-fixed item to the user as pending risk-acceptance.
 7. Record rollback trigger, rollback action, owner, and evidence required to execute rollback.
 8. Apply waiver policy for any unresolved risk. Use `hold-with-waiver` only when the user explicitly accepts risk, owner, and follow-up action.
 9. Set recommendation:

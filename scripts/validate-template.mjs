@@ -24,6 +24,7 @@ const artifactEnv = { ...process.env, AGENTSMYTH_HOME: 'src/workflow' };
 const artifactCommands = [
   ['node', ['src/workflow/validators/check-waivers.mjs']],
   ['node', ['src/workflow/validators/check-coverage-ledger.mjs']],
+  ['node', ['src/workflow/validators/check-coverage-range-shorthand.mjs']],
   ['node', ['src/workflow/validators/check-evidence-citations.mjs']],
   ['node', ['src/workflow/validators/check-scope-fence.mjs']],
   ['node', ['src/workflow/validators/check-manifest-coverage.mjs']],

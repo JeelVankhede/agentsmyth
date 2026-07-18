@@ -28,14 +28,14 @@ function coverageSection(body) {
 // 3)", not a bare ID or a structured tag), so this stays a prose scan rather than switching
 // to check-manifest-coverage.mjs's structured-tag approach — doing that here would silently
 // stop finding IDs in typical real waivers entirely. The confirmed, narrow fix: exclude a
-// match immediately preceded by a hyphen, which is what "WP-R4"/"WP-R2"/"WP-R7-T7.2"
-// compound-token mentions (real instances found in existing Waivers content) look like —
-// while still matching a genuine bare mention, including inside parentheses like "(RI2)"/
-// "(RI5)" (2 more real instances confirmed) since a paren isn't a hyphen. A trailing-hyphen
-// exclusion was tried first but rejected (Review found it during manifest-id-parser-hardening
-// R2 follow-up): it also excluded a hyphenated sub-label reference like "RI5-a", which should
-// still credit its base ID "RI5" — the leading-hyphen exclusion alone already fully covers the
-// real compound-token cases, so the trailing exclusion was pure over-correction.
+// match immediately preceded by a hyphen, which is what a hyphenated compound-token mention
+// (e.g. a cross-reference like "prefix-R4-suffix") looks like — while still matching a
+// genuine bare mention, including inside parentheses like "(RI2)"/"(RI5)" (real instances
+// confirmed) since a paren isn't a hyphen. A trailing-hyphen exclusion was tried first but
+// rejected during review: it also excluded a hyphenated sub-label reference like "RI5-a",
+// which should still credit its base ID "RI5" — the leading-hyphen exclusion alone already
+// fully covers the real compound-token cases, so the trailing exclusion was pure
+// over-correction.
 function waiverIds(body) {
   const match = body.match(/## Waivers\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/);
   if (!match) return new Set();
