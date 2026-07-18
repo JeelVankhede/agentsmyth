@@ -2,7 +2,7 @@
 slug: lifecycle-process-hardening
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-18
 updated: 2026-07-18
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4]
@@ -14,10 +14,10 @@ upstream:
   - workflow/artifacts/verify/lifecycle-process-hardening-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
-  user_checkpoint: ship-review
+  user_checkpoint: approved
 ---
 
 # Lifecycle Process Hardening - Ship
@@ -37,12 +37,11 @@ orchestration:
 
 ## Ship Status
 
-- Recommendation: **ship** (meaning: this Build unit is complete, verified, and ready for you
-  to commit/merge/PR at your discretion — not that anything has been committed, pushed, or
-  released externally)
+- Recommendation: **ship**
 - Review result: pass (0 findings)
 - Verification recommendation: ship
-- PR / CI: not applicable (not configured, not requested this session)
+- PR / CI: PR #37 open — https://github.com/JeelVankhede/agentsmyth/pull/37 (commit `918d01f`
+  pushed to `feat/lifecycle-process-hardening`, PR created at user's explicit request)
 - Source-of-truth: not applicable (no provider configured; self-contained process/validator
   hardening, no external tracker involved)
 - Release: not applicable (no package/deployment gate configured or in scope)
@@ -68,12 +67,13 @@ orchestration:
 
 ## PR / CI Readiness
 
-not applicable — `release.yaml`'s `pull_request.required: false`,
-`create_policy: user_requested_or_configured`. No PR has been created; none requested this
-session. `ci.required: false, provider: none` — not a Ship-blocking gate, though this chain's
-own R2 fix means `ci.yml` now runs 4 more test scripts than it did at the start of this chain
-(6 total, was 2), and R7's fix means the CI-run `conformance:test`/`violations:test` suites
-exercise jargon-free validator source.
+PR #37 opened: https://github.com/JeelVankhede/agentsmyth/pull/37 (`create_policy:
+user_requested_or_configured` — created at the user's explicit request). Base `main`, head
+`feat/lifecycle-process-hardening`, commit `918d01f`. `ci.required: false, provider: none` in
+`release.yaml`, so CI status is not itself a Ship-blocking gate — but this chain's own R2 fix
+means `ci.yml` now runs 4 more test scripts than it did at the start of this chain (6 total,
+was 2), and R7's fix means the CI-run `conformance:test`/`violations:test` suites exercise
+jargon-free validator source. This PR's own merge gets the full benefit of both fixes.
 
 ## Release Readiness
 
@@ -119,9 +119,10 @@ commit/merge decision itself, which is reserved for you.
 - decision: Applied this chain's own new step 4a to itself for the first time this Ship phase
   — found local `main` byte-identical to `origin/main`, nothing to surface. A clean
   self-consistency data point, not just an assertion that the rule works.
-- decision: Nothing on this branch is committed yet (confirmed via `git status` — 8 modified,
-  6 untracked files, all from this chain). Consistent with this repo's established Ship
-  precedent and this session's standing instruction not to commit without being asked.
+- decision: Committed (`918d01f`), pushed, and PR #37 opened, each only after explicit user
+  request ("Commit, then wait for me to push and continue reflect", then "done, raise PR once
+  done"). The pre-commit hook ran the full validation suite against the entire repo (not just
+  this diff) and passed clean before the commit was accepted.
 - constraint: This is a source-repo (agentsmyth-on-itself) chain — "ship" means the branch's
   diff is complete and ready for your review/merge decision, not that anything was published
   or deployed.
@@ -137,10 +138,10 @@ commit/merge decision itself, which is reserved for you.
 - [x] Rollback trigger and action defined.
 - [x] All configured gates checked or marked not applicable with config reference
       (`release.yaml`, `source-of-truth.yaml`).
-- [ ] User approved proceeding to Reflect — pending. Commit/push/PR are also unrequested and
-      not assumed by this recommendation.
+- [x] User approved proceeding to Reflect ("continue reflect", 2026-07-18, part of the same
+      instruction that authorized commit). Commit (`918d01f`), push, and PR #37 all completed
+      at explicit user request.
 
 ## Next Phase
 
-Reflect — pending your go-ahead. Also pending: whether to commit this branch's work now (and
-if so, whether to push and/or open a PR).
+Reflect.
