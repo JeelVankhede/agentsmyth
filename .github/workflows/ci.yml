@@ -27,3 +27,6 @@ jobs:
 
       - name: Run violation tests
         run: npm run violations:test
+
+      - name: Run conformance tests
+        run: npm run conformance:test

@@ -3,7 +3,7 @@
 // frontmatter manifest_ids against the manifest IDs actually touched per the upstream task
 // artifact's Changed Files section. Flags any delta (declared-not-touched or
 // touched-not-declared) as scope creep or stale coverage.
-import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, parseIdList, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -22,9 +22,48 @@ function namedSection(body, name) {
   return match ? match[1] : null;
 }
 
+// A parenthetical counts as a real ID tag only when its ENTIRE content is a comma-separated
+// list of valid IDs — not merely containing an ID as a substring. This is what excludes a
+// prose parenthetical that happens to mention other words alongside an ID, while still
+// accepting a bare "(RI4)" or "(R9, RI3)" tag, a convention confirmed genuinely common (31
+// instances) across this repo's own existing task artifacts — narrower call sites like
+// "(partial)" from a Manifest IDs line never reach this function at all.
+// The ID-shape regex below is intentionally duplicated in lib.mjs's parseIdList() — keep both
+// in sync if the ID shape ever changes.
+function isPureIdTag(raw) {
+  const segments = raw.split(',').map((s) => s.trim());
+  return segments.length > 0 && segments.every((s) => /^R(I)?[0-9]+(-[a-zA-Z0-9]+)?$/.test(s));
+}
+
+// Scans the structured positions a Changed Files/Verification Items section actually uses to
+// tag manifest IDs — a trailing "— ID:"/"— IDs:" tag (per lifecycle-build's own
+// output-schema.md convention), a markdown table row whose first cell holds one or more
+// comma-separated IDs (e.g. "| R9, RI3, RI4 | ... |"), or a bare parenthetical tag whose
+// entire content is ID(s) (e.g. "...with zero intermediate breakage (RI4)") — instead of
+// matching any ID-shaped substring anywhere in the section's prose. The prior free-prose scan
+// matched inside unrelated compound tokens (e.g. "WP-R7-T7.2") and inside incidental
+// sentences with no coverage-claim intent (e.g. "...so R6 has an explicit phase-map entry") —
+// both found as real false positives while dogfooding the WP-R7 chain. Two earlier versions
+// of this fix regressed against this repo's own existing artifacts before landing here: one
+// only matched a single bare ID per table cell (dropping every ID in a multi-ID cell like the
+// one above), the other missed the bare-parenthetical convention entirely — both found by
+// running against the full existing tree, not just the new false-positive fixtures.
 function taskDerivedIds(section) {
   const ids = new Set();
-  for (const m of section.matchAll(/\b(R(?:I)?[0-9]+)\b/g)) ids.add(m[1]);
+  for (const m of section.matchAll(/[—-]\s*IDs?:\s*([^\n]+)/g)) {
+    for (const id of parseIdList(m[1])) ids.add(id);
+  }
+  for (const line of section.split('\n')) {
+    const rowMatch = line.match(/^\|\s*([^|]+?)\s*\|/);
+    if (rowMatch) {
+      for (const id of parseIdList(rowMatch[1])) ids.add(id);
+    }
+  }
+  for (const m of section.matchAll(/\(([^)]+)\)/g)) {
+    if (isPureIdTag(m[1])) {
+      for (const id of m[1].split(',').map((s) => s.trim())) ids.add(id);
+    }
+  }
   return ids;
 }
 

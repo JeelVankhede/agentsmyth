@@ -331,6 +331,29 @@ export function headings(markdown) {
     .map((match) => match[1]);
 }
 
+// Parses a known, already-isolated comma-separated manifest-ID list — e.g. a plan phase's
+// "**Manifest IDs:**" line value, or a task Changed Files entry's "— IDs:" tag value. NOT a
+// general-purpose ID extractor for free prose (see check-coverage-ledger.mjs's waiverIds()
+// for why free-text content needs a different approach). Strips parenthetical qualifiers
+// before splitting on commas — this is what lets "RI2 (partial)" resolve to just "RI2", and
+// "RI1 (infra supporting R2, R3, R4, R7 verification)" resolve to just "RI1" instead of
+// spuriously picking up the IDs named inside the qualifier's own internal commas — then keeps
+// only segments that are exactly an ID, optionally with a hyphenated sub-label suffix (e.g.
+// "RI5-a" — real plans decompose one implicit requirement into per-phase sub-parts this way,
+// per check-phase-map.mjs's own `startsWith(id + '-')` coverage rule; found via dogfooding
+// this exact fix against system-level-install-v1.md, which uses RI5-a/RI5-b/RI5-c and
+// regressed under an earlier, stricter version of this filter), discarding any other fragment.
+// The ID-shape regex below is intentionally duplicated in check-manifest-coverage.mjs's
+// isPureIdTag() (different semantics — whole-parenthetical rejection vs. per-segment
+// extraction — so not shared) — keep both in sync if the ID shape ever changes.
+export function parseIdList(raw) {
+  return raw
+    .replace(/\([^)]*\)/g, '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => /^R(I)?[0-9]+(-[a-zA-Z0-9]+)?$/.test(s));
+}
+
 // Converts block scalars (> and |) to escaped double-quoted strings before the main parser
 // runs. This keeps the line-based parser intact — block content is collapsed inline.
 function preprocessBlockScalars(text) {
