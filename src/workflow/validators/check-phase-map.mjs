@@ -2,7 +2,7 @@
 // requirement-phase-mapper. For plan artifacts, confirms every active R/RI (from
 // frontmatter manifest_ids) appears in exactly one "### Phase N" block's stated Manifest IDs line,
 // and that every phase declaring manifest IDs has a binary exit gate.
-import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, parseIdList, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -31,7 +31,7 @@ function phaseBlocks(body) {
       const idsMatch = block.match(/\*\*Manifest IDs:\*\*\s*(.+)/);
       const exitGateMatch = block.match(/\*\*Exit gate:\*\*\s*\n?([\s\S]*?)(?=\n### |$)/i);
       if (!numMatch) return null;
-      const ids = idsMatch ? idsMatch[1].split(',').map((s) => s.trim()).filter(Boolean) : [];
+      const ids = idsMatch ? parseIdList(idsMatch[1]) : [];
       return { phase: numMatch[1], ids, hasExitGate: Boolean(exitGateMatch && exitGateMatch[1].trim().length > 0) };
     })
     .filter(Boolean);

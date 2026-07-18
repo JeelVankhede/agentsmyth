@@ -76,5 +76,30 @@ const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
 
+// Manifest-ID parser hardening — check-manifest-coverage.mjs's structured-tag scan must not
+// treat an incidental compound-token mention (e.g. "WP-R7-T7.2") or unrelated prose ("...so R6
+// has...") as a manifest ID claim, while still crediting a real "— ID:" tag.
+const mid = run(V('check-manifest-coverage'), ['--dir', 'test/fixtures/conformance/manifest-id-false-positive']);
+check('mid-false-positive', 'compound-token and incidental prose mentions are not treated as manifest ID claims',
+  mid.status === 0);
+
+// Manifest-ID parser hardening — check-phase-map.mjs must parse a `**Manifest IDs:**` line
+// carrying a parenthetical annotation (e.g. "RI2 (partial)", "RI1 (infra supporting R2, R3, R4,
+// R7 verification)"), crediting only the intended ID without orphaning it or spuriously
+// extracting the IDs named inside the parenthetical prose.
+const pmp = run(V('check-phase-map'), ['--dir', 'test/fixtures/conformance/phase-map-parenthetical']);
+check('phase-map-parenthetical', 'parenthetical annotation on a Manifest IDs line is parsed correctly',
+  pmp.status === 0);
+
+// Manifest-ID parser hardening (Review follow-up) — check-coverage-ledger.mjs's waiverIds()
+// must credit a base ID mentioned only via a hyphenated sub-label (e.g. "RI5-a" crediting
+// "RI5"), while still excluding a genuine WP-R#-style compound-token mention ("WP-R7-T7.2")
+// as a real waiver claim for the ID it happens to contain.
+const cls = run(V('check-coverage-ledger'), ['--dir', 'test/fixtures/conformance/coverage-ledger-sublabel']);
+check('coverage-ledger-sublabel', 'hyphenated sub-label credits base ID; compound-token mention still excluded',
+  cls.status !== 0 &&
+  /manifest ID R7 is marked dropped\/removed with no matching Waivers entry/.test(cls.out) &&
+  !/manifest ID RI5 is marked dropped/.test(cls.out));
+
 console.log(`\n${passed}/${passed + failed} conformance checks passed`);
 process.exit(failed === 0 ? 0 : 1);
