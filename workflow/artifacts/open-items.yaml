@@ -148,8 +148,8 @@ items:
   - id: OI-25
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.)"
-    status: open
+    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.) Done: PR #36 merged (commit deaa98f), both source branches deleted (remote and local)."
+    status: done
     first_seen_run: manifest-id-parser-hardening-v1
   - id: OI-26
     source: follow-up
