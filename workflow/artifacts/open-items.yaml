@@ -46,14 +46,14 @@ items:
   - id: OI-8
     source: follow-up
     owner: user/agent
-    next_action: "Investigate the recurring range-shorthand habit (3 occurrences across 2 chains) with a structural check, rather than relying on Review noticing it again"
-    status: open
+    next_action: "Investigate the recurring range-shorthand habit (3 occurrences across 2 chains) with a structural check, rather than relying on Review noticing it again. Done: shipped as part of PR #37 (feat/lifecycle-process-hardening) -- check-coverage-range-shorthand.mjs, narrowed to the Requirement/Manifest Coverage table position after real evidence showed a repo-wide scan would false-positive ~46 times."
+    status: done
     first_seen_run: power-skills-wave2-v1
   - id: OI-9
     source: follow-up
     owner: user
-    next_action: "Consider whether this per-work-package branching workflow needs a standing \"fetch + check origin/main before Ship\" step, given R8's stale-main root cause"
-    status: open
+    next_action: "Consider whether this per-work-package branching workflow needs a standing \"fetch + check origin/main before Ship\" step, given R8's stale-main root cause. Done: shipped as part of PR #37 -- lifecycle-ship/SKILL.md gained Workflow step 4a."
+    status: done
     first_seen_run: power-skills-wave2-v1
   - id: OI-10
     source: follow-up
@@ -70,8 +70,8 @@ items:
   - id: OI-12
     source: follow-up
     owner: user/agent
-    next_action: "Update Ship's own default behavior to ask \"resolved fix vs. genuine waiver\" before presenting a checkpoint — now a confirmed repeating pattern (Wave 2's R8, this chain's E1/D3 items)"
-    status: open
+    next_action: "Update Ship's own default behavior to ask \"resolved fix vs. genuine waiver\" before presenting a checkpoint — now a confirmed repeating pattern (Wave 2's R8, this chain's E1/D3 items). Done: shipped as part of PR #37 -- lifecycle-ship/SKILL.md gained Workflow step 6a."
+    status: done
     first_seen_run: power-skills-domain-experts-v1
   - id: OI-13
     source: follow-up
@@ -88,8 +88,8 @@ items:
   - id: OI-15
     source: follow-up
     owner: user/agent
-    next_action: "Consider the \"mark artifact approved before real user review\" self-check as a structural habit, given it recurred 3 times within Wave 4 alone"
-    status: open
+    next_action: "Consider the \"mark artifact approved before real user review\" self-check as a structural habit, given it recurred 3 times within Wave 4 alone. Done: shipped as part of PR #37 -- rules.md gained a new ## Approval section stating the rule explicitly."
+    status: done
     first_seen_run: power-skills-wave4-v1
   - id: OI-16
     source: follow-up
@@ -148,18 +148,30 @@ items:
   - id: OI-25
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.)"
-    status: open
+    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.) Done: PR #36 merged (commit deaa98f), both source branches deleted (remote and local)."
+    status: done
     first_seen_run: manifest-id-parser-hardening-v1
   - id: OI-26
     source: follow-up
     owner: user/agent
-    next_action: "Audit package.json's other npm run *:test scripts for the same CI-unenforced gap found in conformance:test (only violations:test was wired into ci.yml before this chain)"
-    status: open
+    next_action: "Audit package.json's other npm run *:test scripts for the same CI-unenforced gap found in conformance:test (only violations:test was wired into ci.yml before this chain). Done: shipped as part of PR #37 -- ci.yml now runs all 6 npm run *:test scripts (setup-checks:test, setup-refs:test, root-resolution:test, init-prepare-interop:test added)."
+    status: done
     first_seen_run: manifest-id-parser-hardening-v1
   - id: OI-27
     source: follow-up
     owner: user/agent
-    next_action: "Consider adding 'verify a fix's boundary with a before/after comparison before implementing' as an explicit step in lifecycle-build's Workflow section, per this chain's Phase 3/Phase 6 pattern"
-    status: open
+    next_action: "Consider adding 'verify a fix's boundary with a before/after comparison before implementing' as an explicit step in lifecycle-build's Workflow section, per this chain's Phase 3/Phase 6 pattern. Done: shipped as part of PR #37 -- lifecycle-build/SKILL.md gained Workflow step 6b, mirroring the existing 6a convention."
+    status: done
     first_seen_run: manifest-id-parser-hardening-v1
+  - id: OI-28
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #37 (feat/lifecycle-process-hardening) into main"
+    status: open
+    first_seen_run: lifecycle-process-hardening-v1
+  - id: OI-29
+    source: follow-up
+    owner: user/agent
+    next_action: "check-waivers.mjs's unstructured-claim heuristic has now tripped on a lifecycle artifact's own descriptive prose (not a real waiver claim) at least twice across 2 different chains -- once describing a fix named 'resolved-fix vs. waiver classification', once describing an example 'waived RI5-a's partial scope'. It already exempts reflect/ entirely for a similar reason (retrospective narrative, not an active claim). Consider whether task/review artifacts' own Implementation Log / Changed Files prose describing waiver-related work (not making a waiver claim) needs a similar, narrower exemption."
+    status: open
+    first_seen_run: lifecycle-process-hardening-v1

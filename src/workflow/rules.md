@@ -23,6 +23,15 @@ These rules apply across every lifecycle phase.
 - Treat skipped checks as risk; record them with reason, risk level, and owner.
 - Treat waivers as visible residual risk, not success.
 
+## Approval
+
+- A checkpoint status of `approved` or `ready-for-next-phase` requires the user to have
+  responded to that specific artifact's own content in the current turn — not merely a prior
+  phase's content, and not inferred from silence, a later unrelated instruction, or an earlier
+  approval of a different artifact.
+- When in doubt whether the user has actually seen and responded to the artifact in question,
+  present it and wait rather than marking it approved.
+
 ## Git Safety
 
 - Use a non-default branch for planned changes unless the user approves otherwise.

@@ -145,6 +145,12 @@ const fixtures = [
     description: '(Wave 3, C3) Brief cites a constraint ID absent from domain.yaml — check-constraint-conflicts',
     validator: validatorPath('check-constraint-conflicts.mjs'),
   },
+  {
+    id: 'v',
+    dir: 'test/fixtures/lifecycle-violations/v-id-range-shorthand',
+    description: 'Plan Requirement Coverage row uses range shorthand ("R1-R4") as its Manifest ID cell — check-coverage-range-shorthand',
+    validator: validatorPath('check-coverage-range-shorthand.mjs'),
+  },
 ];
 
 let passed = 0;

@@ -123,6 +123,11 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 6a. When a diff folds, merges, or renames-with-restructure code touching control flow, run
     `conditional-preservation-check` before recording the change as complete, to confirm no
     conditional branch or guard clause was silently dropped.
+6b. When a change adjusts a check, scan, or exclusion boundary (a regex, a matching condition,
+    a filter), verify its correctness with an explicit before/after comparison across
+    representative cases — not just the motivating case — before recording the change as
+    complete, in addition to any full-tree regression run this Workflow already requires
+    elsewhere.
 7. Use authorized dispatch only for independent workstreams with no file, import, contract, or generated-output overlap.
 8. Record every changed file with manifest IDs and a short reason.
 9. Run focused checks that are available and relevant to the active phase.
