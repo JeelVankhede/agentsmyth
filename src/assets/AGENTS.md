@@ -5,6 +5,12 @@ Before any implementation work — no exceptions:
 1. **Check for `.agentsmyth/`** — if it exists, read `.agentsmyth/setup-bundle.md` and run the setup skill. Do not proceed to step 2 until setup is complete and `.agentsmyth/` is removed.
 
 2. **Read `workflow/router.md`** — this is the canonical entry point for all lifecycle work.
+   If this file does not exist, read `definitions_root` from
+   `workflow/config/repo-profile.yaml` and load `<definitions_root>/router.md` instead — this
+   repo is linked to a global install rather than holding a local copy. Every other
+   `workflow/...` path referenced below (`agent-behavior.yaml`, `lifecycle.md`,
+   `skills/...`) resolves the same way: local if present, otherwise under
+   `<definitions_root>/`.
 
 3. **Load `workflow/agent-behavior.yaml`** — classify the request:
    - `trivial` → handle inline, no artifact required
@@ -13,7 +19,7 @@ Before any implementation work — no exceptions:
 
 4. **Route using `workflow/lifecycle.md`** — select the current phase. If resuming, use the `restore-context` skill first. Never resume from chat memory alone.
 
-5. **Write a brief artifact before any implementation** — for Standard or Complex work, create `workflow/artifacts/briefs/<slug>-v1.md` using the Starter Block in `workflow/skills/lifecycle-think/references/output-schema.md`. Do not write code before the brief is complete and the user has approved it.
+5. **Write a brief artifact before any implementation** — for Standard or Complex work, create `workflow/artifacts/briefs/<slug>-v1.md` using the Starter Block in `workflow/skills/lifecycle-think/references/output-schema.md`. Do not write code before the brief is complete and the user has approved it. (`workflow/artifacts/` is always repo-local, unlike the skill/schema paths above.)
 
 6. **Gate every phase transition on artifact status** — do not proceed to the next phase unless the current artifact has `status: ready-for-next-phase`. Missing artifacts or wrong status are blockers, not warnings.
 

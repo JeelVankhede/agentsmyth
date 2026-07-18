@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createInterface } from 'node:readline/promises';
 
 const pkgRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
@@ -15,9 +16,10 @@ const command = process.argv[2];
 // the function without restructuring the dispatch model. Keep in sync with lib.mjs's version.
 // Used only for `check` (resolving an EXISTING repo) below — NOT for `init`'s target-directory
 // selection further down, which intentionally installs wherever the user invoked the command,
-// same as today. A polyrepo-member's very first `init --system` has no repo-profile.yaml yet to
-// read workspace_root from — specifying workspace_root at first-init time is a real gap, not
-// handled here; this covers every subsequent `check` call once repo-profile.yaml exists.
+// same as today. A polyrepo-member's very first `init` (which now writes `definitions_root`
+// itself) has no repo-profile.yaml yet to read workspace_root from — specifying
+// workspace_root at first-init time is a real gap, not handled here; this covers every
+// subsequent `check` call once repo-profile.yaml exists.
 function resolveExistingRepoRoot() {
   const profilePath = join(cwd, 'workflow', 'config', 'repo-profile.yaml');
   if (existsSync(profilePath)) {
@@ -43,6 +45,7 @@ if (!command || command === 'help') {
   console.log('');
   console.log('Commands:');
   console.log('  init     Set up the agentsmyth workflow in the current repository');
+  console.log('  prepare  Install/refresh the global lifecycle definitions (~/.agentsmyth/)');
   console.log('  check    Run the lifecycle phase gate validator');
   console.log('  doctor   Diagnose agentsmyth installation (not yet implemented)');
   process.exit(0);
@@ -90,7 +93,7 @@ if (command === 'check') {
     const profileVersion = versionMatch ? versionMatch[1] : null;
     if (profileVersion && profileVersion !== currentPkgVersion) {
       console.warn(`agentsmyth: version skew detected — repo-profile.yaml was written by v${profileVersion}, CLI is v${currentPkgVersion}`);
-      console.warn('  Run "agentsmyth init --system" to update the global definitions and re-stamp repo-profile.yaml.');
+      console.warn('  Run "agentsmyth prepare" to update the global definitions and re-stamp repo-profile.yaml.');
       console.warn('');
     }
   } catch { /* non-fatal */ }
@@ -113,6 +116,16 @@ if (command === 'check') {
   process.exit(0);
 }
 
+// ─── prepare ───────────────────────────────────────────────────────────────
+// Global-only install: installs/refreshes ~/.agentsmyth/workflow/ and the 5 adapters' global
+// gate files. Writes zero repo-level files — that split (definitions global, config+artifacts
+// repo-local) is what distinguishes `prepare` from `init`. See runPrepare() below.
+
+if (command === 'prepare') {
+  runPrepare(pkgRoot);
+  process.exit(0);
+}
+
 // ─── doctor ────────────────────────────────────────────────────────────────
 
 if (command === 'doctor') {
@@ -132,6 +145,22 @@ if (command !== 'init') {
 // Infers what it can (default branch); marks the rest <USER-TODO> in pending-setup.yaml.
 // Never overwrites existing files. Returns the inferred default branch string.
 function headlessBootstrap(repoDir, pkgRootDir) {
+  // Link to a global definitions install, same treatment as bare `init`: auto-run
+  // `prepare` when missing, surface any failure clearly, and exit before touching any repo
+  // file — no partial stub-config state on a prepare failure.
+  const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
+  if (!existsSync(globalWorkflowDir)) {
+    try {
+      runPrepare(pkgRootDir);
+    } catch (err) {
+      console.error('');
+      console.error('agentsmyth: could not install the global lifecycle definitions needed to bootstrap this repo.');
+      console.error(`  ${err.message}`);
+      console.error('  Fix the issue above and re-run "agentsmyth check" (or run "agentsmyth prepare" directly to see the full error).');
+      process.exit(1);
+    }
+  }
+
   const configDir = join(repoDir, 'workflow', 'config');
   mkdirSync(configDir, { recursive: true });
 
@@ -163,6 +192,11 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     }
     writeFileSync(dest, content);
   }
+
+  // Write definitions_root into the stub repo-profile.yaml — reuses the same
+  // insertion logic `init` and `prepare`-linked repos already rely on, rather than
+  // duplicating the repository:/learnings_sessions_root: anchor-matching here.
+  writeDefinitionsRoot(repoDir, globalWorkflowDir, pkgVersion);
 
   const pendingPath = join(configDir, 'pending-setup.yaml');
   if (!existsSync(pendingPath)) {
@@ -240,7 +274,7 @@ function writeDefinitionsRoot(repoDir, defsRootValue, pkgVersion) {
 
   if (!existsSync(profilePath)) {
     writeFileSync(profilePath,
-      `# Created by agentsmyth init --system\n` +
+      `# Created by agentsmyth init (linked to a global install)\n` +
       `# Run the agentsmyth setup skill to fill remaining fields.\n` +
       `agentsmyth_version: ${pkgVersion}\nversion: 1\nkind: repo-profile\n\nrepository:\n  definitions_root: ${defsRootValue}\n`
     );
@@ -267,25 +301,26 @@ function writeDefinitionsRoot(repoDir, defsRootValue, pkgVersion) {
   writeFileSync(profilePath, content);
 }
 
-// ─── init ──────────────────────────────────────────────────────────────────
-
-const initArgs = process.argv.slice(3);
-const isSystem = initArgs.includes('--system');
-
-if (isSystem) {
-  // ── init --system: install definitions globally ───────────────────────────
-
+// Installs/refreshes the global lifecycle definitions at ~/.agentsmyth/workflow/ and the 5
+// adapters' global gate files. Writes zero repo-level files — callers that need a repo linked
+// to the resulting global tree must independently compute the global workflow dir and call
+// writeDefinitionsRoot() themselves afterward (see bare `init` and headlessBootstrap(), which
+// both do this) — they need that same computation whether or not this function actually ran
+// (e.g. when the global install already existed), so there is no shared value worth returning.
+// Throws on failure (e.g. an unwritable home directory) so callers can surface the error
+// instead of silently continuing.
+function runPrepare(pkgRootDir) {
   const globalDir = join(homedir(), '.agentsmyth');
-  const pkg = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8'));
   const version = pkg.version;
 
-  console.log(`agentsmyth init --system (v${version})`);
+  console.log(`agentsmyth prepare (v${version})`);
   console.log(`Installing global definitions to ${globalDir} ...`);
 
   // Expand workflow bundle to ~/.agentsmyth/workflow/
-  expandBundle(join(pkgRoot, 'dist', 'workflow-bundle.md'), globalDir);
+  expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
   // Copy validators
-  copyRecursive(join(pkgRoot, 'validators'), join(globalDir, 'validators'));
+  copyRecursive(join(pkgRootDir, 'validators'), join(globalDir, 'validators'));
   console.log('  ✓ definitions installed');
 
   // Install global gates
@@ -293,7 +328,7 @@ if (isSystem) {
   const gatesMissed = [];
 
   // Claude Code: ~/.claude/CLAUDE.md
-  const claudeGate = readFileSync(join(pkgRoot, 'src', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
+  const claudeGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.claude', 'CLAUDE.md'),
     claudeGate + '\n',
@@ -303,7 +338,7 @@ if (isSystem) {
   gatesInstalled.push('Claude Code (~/.claude/CLAUDE.md)');
 
   // Codex: ~/.codex/AGENTS.md
-  const codexGate = readFileSync(join(pkgRoot, 'src', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
+  const codexGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codex', 'AGENTS.md'),
     codexGate + '\n',
@@ -313,7 +348,7 @@ if (isSystem) {
   gatesInstalled.push('Codex (~/.codex/AGENTS.md)');
 
   // Windsurf: ~/.codeium/windsurf/memories/global_rules.md
-  const windsurfGate = readFileSync(join(pkgRoot, 'src', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
+  const windsurfGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codeium', 'windsurf', 'memories', 'global_rules.md'),
     windsurfGate + '\n',
@@ -325,7 +360,7 @@ if (isSystem) {
   // Copilot (macOS + VS Code only)
   const copilotPath = join(homedir(), 'Library', 'Application Support', 'Code', 'User', 'prompts', 'agentsmyth.instructions.md');
   if (process.platform === 'darwin') {
-    const copilotGate = readFileSync(join(pkgRoot, 'src', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
+    const copilotGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
     installGateSection(
       copilotPath,
       copilotGate + '\n',
@@ -348,26 +383,79 @@ if (isSystem) {
     '──────────────────────────────────────────────────────────',
   ].join('\n');
 
-  // Write definitions_root + agentsmyth_version to this repo's repo-profile.yaml
-  const defsRootValue = join(homedir(), '.agentsmyth', 'workflow');
-  writeDefinitionsRoot(cwd, defsRootValue, version);
-  console.log(`  ✓ definitions_root + agentsmyth_version written to workflow/config/repo-profile.yaml`);
-
   console.log('');
   console.log('Global gates installed:');
   for (const g of gatesInstalled) console.log(`  ✓ ${g}`);
   for (const g of gatesMissed) console.log(`  - ${g}`);
   console.log(cursorPasteText);
   console.log('');
-  console.log('agentsmyth init --system complete.');
+  console.log('agentsmyth prepare complete.');
   console.log('');
-  console.log('Next: open your AI agent in any repository and it will');
-  console.log('automatically use the global lifecycle definitions.');
+  console.log('Next: run "agentsmyth init" in any repository — it will link to');
+  console.log('this global install instead of copying the definitions locally.');
   console.log('');
-  process.exit(0);
+}
+
+// The definitions files an older bare `init` used to copy locally, before `init` started
+// linking to a global install by default. Present as a group at the workflow root only in a
+// repo that ran `init` under the old behavior — never partially, since expandBundle() always
+// writes all of them together.
+const STALE_DEFINITION_NAMES = ['skills', 'router.md', 'lifecycle.md', 'rules.md', 'schemas', 'validators'];
+
+// Prompts for explicit confirmation before deleting the given paths. Fails closed (no hang,
+// no silent skip) when stdin is not an interactive TTY — e.g. CI — by surfacing the pending
+// state as a blocking error instead of waiting for input that will never arrive.
+async function confirmDeletion(paths) {
+  if (!process.stdin.isTTY) {
+    console.error('agentsmyth: non-interactive session — cannot prompt to confirm deletion of:');
+    for (const p of paths) console.error(`  - ${p}`);
+    console.error('Re-run "agentsmyth init" in an interactive terminal, or remove these paths manually first.');
+    process.exit(1);
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = await rl.question('Delete these local files now? [y/N] ');
+    return /^y(es)?$/i.test(answer.trim());
+  } finally {
+    rl.close();
+  }
+}
+
+// Migration: audits a repo's workflow/ for a pre-existing local definitions
+// tree, prompts with the exact paths, and deletes only on explicit confirmation. Never
+// silent in either direction — declining still leaves the paths in place and logged, never
+// hidden. Runs before the caller writes definitions_root, but does not block linking either
+// way (declining is not a reason to refuse the link).
+async function auditStaleDefinitions(repoDir) {
+  const stalePaths = STALE_DEFINITION_NAMES
+    .map((name) => join(repoDir, 'workflow', name))
+    .filter((p) => existsSync(p));
+
+  if (stalePaths.length === 0) return;
+
+  console.log('');
+  console.log('agentsmyth: found a local copy of the lifecycle definitions from before this repo linked to a global install:');
+  for (const p of stalePaths) console.log(`  - ${p}`);
+  console.log('These are no longer read once linked (skills/schemas resolve from the global install instead).');
+
+  const confirmed = await confirmDeletion(stalePaths);
+  if (confirmed) {
+    for (const p of stalePaths) rmSync(p, { recursive: true, force: true });
+    console.log('  ✓ removed the stale local definitions listed above.');
+  } else {
+    console.log('  Leaving them in place — the repo will still link to the global install.');
+  }
 }
 
 // ── init (per-repo) ───────────────────────────────────────────────────────
+
+// `--system` was removed: it never shipped in a published release, so no deprecated
+// alias is kept. Reject explicitly rather than silently falling through to a full interview —
+// a stale `--system` invocation should not look like it worked.
+if (process.argv.slice(3).includes('--system')) {
+  console.error('agentsmyth: "init --system" was removed. Use "agentsmyth prepare" for a global-only install.');
+  process.exit(1);
+}
 
 const targetDir = join(cwd, '.agentsmyth');
 
@@ -377,6 +465,31 @@ if (existsSync(targetDir)) {
   console.error('If setup is complete, .agentsmyth/ should have been removed by the agent.');
   process.exit(1);
 }
+
+// Link to a global definitions install: auto-run `prepare` when no global install
+// exists yet, then write `definitions_root` into this repo's repo-profile.yaml before the
+// setup skill's interview starts. No opt-out, no fallback to a local copy — any failure here
+// is surfaced clearly and stops `init`, rather than silently continuing into a half-linked
+// repo (see runPrepare()'s own comment for why it throws instead of exiting internally).
+const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
+if (!existsSync(globalWorkflowDir)) {
+  try {
+    runPrepare(pkgRoot);
+  } catch (err) {
+    console.error('');
+    console.error('agentsmyth: could not install the global lifecycle definitions needed by "init".');
+    console.error(`  ${err.message}`);
+    console.error('  Fix the issue above and re-run "agentsmyth init" (or run "agentsmyth prepare" directly to see the full error).');
+    process.exit(1);
+  }
+}
+// Migration: audit for a pre-existing local definitions tree before
+// committing the link — see auditStaleDefinitions()'s own comment for why this never blocks
+// linking either way.
+await auditStaleDefinitions(cwd);
+
+const initPkgVersion = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).version;
+writeDefinitionsRoot(cwd, globalWorkflowDir, initPkgVersion);
 
 // Copy bundles
 mkdirSync(targetDir, { recursive: true });

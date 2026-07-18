@@ -121,22 +121,34 @@ items:
     next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
+  - id: OI-21
+    source: follow-up
+    owner: user
+    next_action: "Separate initiative from WP-R7 (2026-07-17): reframe agentsmyth init as scaffold-only — CLI ensures the global install + writes local placeholders, no longer implicitly gated behind the agent-driven setup skill for the mechanical parts. Possibly present init-time questions via a terminal-UI questionnaire (user referenced https://github.com/charmbracelet/huh, a Go TUI library — this is a Node/zero-runtime-dependency project, so either a JS equivalent or a different mechanism would be needed; flagged, not resolved). The AI agent still runs \"agentsmyth setup\" afterward to do the real repo-mapping interview. User wants a research spike + Notion scoping page first (same process as the WP-R7 spike) before committing to a brief. Explicitly: don't defer indefinitely, but don't start until the current init-prepare-interop (WP-R7) chain reaches Ship/Reflect."
+    status: open
+    first_seen_run: init-prepare-interop-v1
   - id: OI-22
     source: follow-up
     owner: user/agent
-    next_action: "Harden check-manifest-coverage.mjs/check-coverage-ledger.mjs/check-phase-map.mjs's manifest-ID extraction regex -- found 3 false positives/negatives in the WP-R7 chain alone: matched inside a hyphenated compound token, matched inside plain prose, and failed to recognize a parenthetical qualifier as covering its ID. Done: shipped as PR #36 (feat/manifest-id-parser-hardening) -- structured-tag scanning + shared parseIdList() helper + narrower waiverIds() exclusion, 3 new conformance fixtures now CI-enforced. Note: this entry was reconstructed from the brief's quoted original text -- the 'real' OI-22 (added on the still-unmerged feat/init-prepare-interop, PR #35) will collide with this one at merge time; keep this done version, see manifest-id-parser-hardening-v1 Reflect Follow-Ups."
+    next_action: "Harden check-manifest-coverage.mjs/check-coverage-ledger.mjs/check-phase-map.mjs's manifest-ID extraction regex -- found 3 false positives/negatives in the WP-R7 chain alone: matched inside a hyphenated compound token, matched inside plain prose, and failed to recognize a parenthetical qualifier as covering its ID. (Correction to this item's original wording: the substring bug was in check-manifest-coverage.mjs, not check-scope-fence.mjs -- found by re-reading source during the fix's own brief.) Done: shipped as PR #36 (feat/manifest-id-parser-hardening) -- structured-tag scanning + shared parseIdList() helper + narrower waiverIds() exclusion, 3 new conformance fixtures now CI-enforced."
     status: done
+    first_seen_run: init-prepare-interop-v1
+  - id: OI-23
+    source: follow-up
+    owner: user
+    next_action: "Run Sandbox Testing Plan (Notion page 10, https://app.notion.com/p/39b972bdebbb818fac26f3be928dc403) Scenarios A-E for real — WP-R7 was the blocking gap (P1-01: adapter gates couldn't find workflow/router.md once linked) and both the gap and the page itself are now fixed. Page 10 is the ticket; no new artifact needed."
+    status: open
     first_seen_run: init-prepare-interop-v1
   - id: OI-24
     source: follow-up
     owner: user
-    next_action: "Reconcile open-items.yaml OI-22 duplication between PR #35 (adds OI-21/22/23, OI-22 left open) and PR #36 (recreates OI-22 as done) once both merge to main -- keep the done version, verify no other ID collisions"
-    status: open
+    next_action: "Reconcile open-items.yaml OI-22 duplication between PR #35 (adds OI-21/22/23, OI-22 left open) and PR #36 (recreates OI-22 as done) once both merge to main -- keep the done version, verify no other ID collisions. Done: resolved directly in this merge (feat/manifest-id-parser-hardening merging origin/main) -- kept OI-22 status done with corrected wording, kept OI-21/OI-23 from main unchanged, no other ID collisions found."
+    status: done
     first_seen_run: manifest-id-parser-hardening-v1
   - id: OI-25
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #35 (feat/init-prepare-interop, still open) and PR #36 (feat/manifest-id-parser-hardening)"
+    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.)"
     status: open
     first_seen_run: manifest-id-parser-hardening-v1
   - id: OI-26

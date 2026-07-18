@@ -78,7 +78,7 @@ const _dataRoot = join(repoRoot, _wf);
 // exit cleanly rather than producing an opaque ENOENT stack trace (satisfies RI1).
 if (_defsRoot !== join(repoRoot, _wf) && !existsSync(_defsRoot)) {
   console.error(`agentsmyth: global definitions root not found: ${_defsRoot}`);
-  console.error('Run "agentsmyth init --system" to install the global definitions.');
+  console.error('Run "agentsmyth prepare" to install the global definitions.');
   process.exit(1);
 }
 
