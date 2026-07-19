@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, platform } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { confirmPrompt } from './prompts.mjs';
@@ -211,7 +211,7 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     const items = [
       [`  - id: PS-1`, `    config: domain.yaml`, `    field: "domain.name"`, `    question: "What is the name of the domain or product this repo serves?"`, `    hint: "Check README.md or package.json description"`, `    status: open`].join('\n'),
       [`  - id: PS-2`, `    config: domain.yaml`, `    field: "domain.summary"`, `    question: "Describe the domain in one sentence for lifecycle artifacts."`, `    hint: "Check README.md"`, `    status: open`].join('\n'),
-      [`  - id: PS-3`, `    config: verification.yaml`, `    field: "commands[0].run"`, `    question: "What command confirms the repo is healthy (build, test, lint)?"`, `    hint: "Check Makefile, package.json scripts, or CI config"`, `    status: open`].join('\n'),
+      [`  - id: PS-3`, `    config: verification.yaml`, `    field: "commands[0].command"`, `    question: "What command confirms the repo is healthy (build, test, lint)?"`, `    hint: "Check Makefile, package.json scripts, or CI config"`, `    status: open`].join('\n'),
       ...(branchItem ? [branchItem] : []),
     ];
     writeFileSync(pendingPath,
@@ -220,6 +220,22 @@ function headlessBootstrap(repoDir, pkgRootDir) {
       `# Run the agentsmyth setup skill to resolve these items.\n` +
       `items:\n${items.join('\n')}\n`
     );
+  }
+
+  // Scaffold workflow/artifacts/ (7 empty phase dirs) and workflow/learnings/ (README,
+  // curated.md, empty sessions/) — mechanical, idempotent (mkdirSync recursive is a no-op if
+  // present; the two template files use the same skip-if-exists rule as the config stubs
+  // above). Mirrors what the agent's setup skill Phase 5b previously created by hand.
+  for (const name of ['briefs', 'plans', 'tasks', 'reviews', 'verify', 'ship', 'reflect']) {
+    mkdirSync(join(repoDir, 'workflow', 'artifacts', name), { recursive: true });
+  }
+  const learningsDir = join(repoDir, 'workflow', 'learnings');
+  mkdirSync(join(learningsDir, 'sessions'), { recursive: true });
+  const learningsTemplateDir = join(pkgRootDir, 'src', 'assets', 'workflow', 'learnings');
+  for (const name of ['README.md', 'curated.md']) {
+    const dest = join(learningsDir, name);
+    if (existsSync(dest)) continue;
+    copyFileSync(join(learningsTemplateDir, name), dest);
   }
 
   return defaultBranch;
@@ -299,6 +315,149 @@ function writeDefinitionsRoot(repoDir, defsRootValue, pkgVersion) {
     content += `\n  definitions_root: ${defsRootValue}\n`;
   }
   writeFileSync(profilePath, content);
+}
+
+// Adapter token substitution — a deterministic implementation of the same 8-token map and
+// TODO-fallback rule setup/references/token-map.md and SKILL.md Step 5a.1 already document as
+// agent-executed prose. Used only by placeDeterministicAdapters() below, for the two tools no
+// global gate can ever cover (Cursor, non-macOS Copilot) — everything else stays agent-driven.
+const ADAPTER_TODO_FALLBACK = '<!-- TODO: see pending-setup.yaml -->';
+
+// Minimal indentation-based YAML list reader — not a general parser, sufficient for this
+// repo's own hand-authored config shape (2-space nesting, list items starting with "- ", or
+// inline flow-style "key: [a, b]"/"key: []"). Returns an array of strings (scalar items) or
+// objects (single-level "key: value" mapping items, e.g. paths.protected's {pattern, reason}
+// entries).
+function extractYamlList(content, dottedPath) {
+  const keys = dottedPath.split('.');
+  const lines = content.split('\n');
+  let searchFrom = 0;
+  let indent = 0;
+  let terminalTrailing = '';
+  for (let k = 0; k < keys.length; k++) {
+    const re = new RegExp(`^${' '.repeat(indent)}${keys[k]}:[ \\t]*(.*)$`);
+    let found = -1;
+    let trailing = '';
+    for (let i = searchFrom; i < lines.length; i++) {
+      const m = lines[i].match(re);
+      if (m) { found = i; trailing = m[1].trim(); break; }
+    }
+    if (found === -1) return [];
+    searchFrom = found + 1;
+    indent += 2;
+    if (k === keys.length - 1) terminalTrailing = trailing;
+  }
+  // Inline flow-style value on the same line as the terminal key (e.g. "commands: []" or
+  // "commands: [a, b]") — parse directly instead of walking subsequent lines as a block list.
+  if (terminalTrailing) {
+    const flow = terminalTrailing.match(/^\[(.*)\]$/);
+    if (!flow) return [];
+    const inner = flow[1].trim();
+    return inner === '' ? [] : inner.split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, ''));
+  }
+  const items = [];
+  let current = null;
+  for (let i = searchFrom; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') continue;
+    const lineIndent = line.match(/^ */)[0].length;
+    if (lineIndent < indent) break;
+    if (lineIndent === indent && line.trim().startsWith('- ')) {
+      if (current !== null) items.push(current);
+      const rest = line.trim().slice(2);
+      const kv = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+      current = kv ? { [kv[1]]: kv[2].replace(/^['"]|['"]$/g, '') } : rest.replace(/^['"]|['"]$/g, '');
+    } else if (current !== null && typeof current === 'object' && lineIndent === indent + 2) {
+      const kv = line.trim().match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+      if (kv) current[kv[1]] = kv[2].replace(/^['"]|['"]$/g, '');
+    }
+  }
+  if (current !== null) items.push(current);
+  return items;
+}
+
+// Builds the 8-token adapter substitution map from whatever config values already exist in
+// repoDir at the time this runs (see token-map.md for the authoritative field list). Only
+// includes a key when a real, non-placeholder value is resolvable; renderAdapterTemplate()
+// applies the standard TODO fallback for every token left absent here.
+function buildAdapterTokens(repoDir) {
+  const configDir = join(repoDir, 'workflow', 'config');
+  const tokens = {};
+
+  try {
+    const profile = readFileSync(join(configDir, 'repo-profile.yaml'), 'utf8');
+    const branchMatch = profile.match(/^\s*default_branch:\s*(.*)$/m);
+    const branch = branchMatch?.[1]?.trim();
+    if (branch && branch !== '<USER-TODO>' && branch !== '<PLACEHOLDER>') {
+      tokens.DEFAULT_BRANCH = branch;
+    }
+    const policyMatch = profile.match(/^\s*require_non_default_branch_for_changes:\s*(true|false)\s*$/m);
+    if (policyMatch) {
+      tokens.BRANCH_POLICY = policyMatch[1] === 'true'
+        ? 'All changes via non-default branch required.'
+        : `Direct commits to \`${tokens.DEFAULT_BRANCH ?? ADAPTER_TODO_FALLBACK}\` permitted.`;
+    }
+    const protectedPaths = extractYamlList(profile, 'paths.protected');
+    tokens.PROTECTED_PATHS = protectedPaths.length === 0
+      ? '- (none defined)'
+      : protectedPaths.map((p) => typeof p === 'string' ? `- ${p}` : `- \`${p.pattern}\` — ${p.reason}`).join('\n');
+  } catch { /* repo-profile.yaml unreadable — leave these tokens for the fallback */ }
+
+  try {
+    const verification = readFileSync(join(configDir, 'verification.yaml'), 'utf8');
+    const commands = extractYamlList(verification, 'commands');
+    tokens.VERIFICATION_CMDS = commands.length === 0
+      ? '- (none defined)'
+      : commands.map((c) => typeof c === 'string' ? `- ${c}` : `- \`${c.command}\``).join('\n');
+  } catch { /* verification.yaml unreadable — leave this token for the fallback */ }
+
+  try {
+    const domain = readFileSync(join(configDir, 'domain.yaml'), 'utf8');
+    const constraints = [...extractYamlList(domain, 'constraints.product'), ...extractYamlList(domain, 'constraints.safety')];
+    tokens.CONSTRAINTS = constraints.length === 0
+      ? '- (none defined)'
+      : constraints.map((c) => `- ${c}`).join('\n');
+    // REPO_NAME, REPO_PURPOSE, DOMAIN_NAME source from domain.name/domain.summary, which stay
+    // literal <PLACEHOLDER> until the agent's resolution pass — intentionally left unset here
+    // so they fall back to ADAPTER_TODO_FALLBACK, per the user's "final call is from interview
+    // setup only" instruction for anything requiring judgment.
+  } catch { /* domain.yaml unreadable — leave these tokens for the fallback */ }
+
+  return tokens;
+}
+
+// Renders a {{TOKEN}}-templated adapter source against a token map, substituting
+// ADAPTER_TODO_FALLBACK for any token with no resolvable value.
+function renderAdapterTemplate(templateContent, tokens) {
+  return templateContent.replace(/\{\{([A-Z_]+)\}\}/g, (_match, name) => tokens[name] ?? ADAPTER_TODO_FALLBACK);
+}
+
+// Places the adapter file for exactly the two cases no global gate mechanism can ever cover,
+// regardless of which AI agent tool the user actually uses in this repo: Cursor (no global
+// config mechanism exists for this tool at all) and Copilot on a non-macOS platform (the
+// global install only writes Copilot's gate on macOS — see runPrepare()). Deterministic,
+// platform-detected, never an interview question. Strictly additive: never overwrites an
+// existing adapter file at the target path, skipping entirely if one is already there — see
+// R5 in workflow/artifacts/briefs/wp-r9b-scaffold-init-resolution-v1.md for why this is
+// narrower than SKILL.md Step 5a.1's own append-on-collision rule for the same paths.
+function placeDeterministicAdapters(repoDir, pkgRootDir) {
+  const tokens = buildAdapterTokens(repoDir);
+
+  const cursorDest = join(repoDir, '.cursor', 'rules', 'agentsmyth.mdc');
+  if (!existsSync(cursorDest)) {
+    const cursorSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'cursor', 'rules', 'index.mdc'), 'utf8');
+    mkdirSync(dirname(cursorDest), { recursive: true });
+    writeFileSync(cursorDest, renderAdapterTemplate(cursorSrc, tokens));
+  }
+
+  if (platform() !== 'darwin') {
+    const copilotDest = join(repoDir, '.github', 'copilot-instructions.md');
+    if (!existsSync(copilotDest)) {
+      const copilotSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'copilot-instructions.md'), 'utf8');
+      mkdirSync(dirname(copilotDest), { recursive: true });
+      writeFileSync(copilotDest, renderAdapterTemplate(copilotSrc, tokens));
+    }
+  }
 }
 
 // Installs/refreshes the global lifecycle definitions at ~/.agentsmyth/workflow/ and the 5
@@ -482,8 +641,23 @@ if (!existsSync(globalWorkflowDir)) {
 // linking either way.
 await auditStaleDefinitions(cwd);
 
-const initPkgVersion = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).version;
-writeDefinitionsRoot(cwd, globalWorkflowDir, initPkgVersion);
+// Mechanical scaffold: write config stubs, pending-setup.yaml, empty workflow/artifacts/ +
+// workflow/learnings/, and inject definitions_root — the same headlessBootstrap() logic
+// `check` already uses for a repo with no workflow/config/. headlessBootstrap() writes the
+// full repo-profile.yaml template (with default_branch, branch_policy, paths.protected, etc.)
+// before injecting definitions_root into it — deliberately NOT calling writeDefinitionsRoot()
+// separately here first: doing so would pre-create a minimal repo-profile.yaml containing only
+// definitions_root, which would then make headlessBootstrap()'s own per-file skip-if-exists
+// check skip writing the full template entirely, silently dropping every other default field.
+// headlessBootstrap()'s per-file skip-if-exists still means this never overwrites a config a
+// prior agent session already filled in with real values.
+headlessBootstrap(cwd, pkgRoot);
+
+// Deterministic adapter placement (R5): Cursor unconditionally, Copilot only on a non-macOS
+// platform — the two cases no global gate mechanism can ever reach. Runs after
+// headlessBootstrap() so the config values it renders from (default branch, protected paths,
+// etc.) already exist.
+placeDeterministicAdapters(cwd, pkgRoot);
 
 // Copy bundles
 mkdirSync(targetDir, { recursive: true });
@@ -510,10 +684,12 @@ if (existsSync(gitignorePath)) {
 
 console.log('');
 console.log('agentsmyth init complete.');
+console.log('  workflow/config/*.yaml, pending-setup.yaml, workflow/artifacts/, and');
+console.log('  workflow/learnings/ are already scaffolded.');
 console.log('');
 console.log('Next step: open your AI agent and say:');
 console.log('  "run the agentsmyth setup"');
 console.log('');
-console.log('The agent will inspect this repo, interview you, fill the');
-console.log('workflow configs, and remove .agentsmyth/ when done.');
+console.log('The agent will resolve the open items in pending-setup.yaml,');
+console.log('fill in the remaining workflow configs, and remove .agentsmyth/ when done.');
 console.log('');

@@ -175,3 +175,21 @@ items:
     next_action: "check-waivers.mjs's unstructured-claim heuristic has now tripped on a lifecycle artifact's own descriptive prose (not a real waiver claim) at least twice across 2 different chains -- once describing a fix named 'resolved-fix vs. waiver classification', once describing an example 'waived RI5-a's partial scope'. It already exempts reflect/ entirely for a similar reason (retrospective narrative, not an active claim). Consider whether task/review artifacts' own Implementation Log / Changed Files prose describing waiver-related work (not making a waiver claim) needs a similar, narrower exemption."
     status: open
     first_seen_run: lifecycle-process-hardening-v1
+  - id: OI-30
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to commit, push, and open a PR for feat/wp-r9b-scaffold-init-resolution (target main directly -- branch is rebased onto origin/main with zero divergence, no stacked-branch concern this time). Done: committed (af82aa3), pushed, PR #40 opened against main."
+    status: done
+    first_seen_run: wp-r9b-scaffold-init-resolution-v1
+  - id: OI-31
+    source: follow-up
+    owner: user/agent
+    next_action: "headlessBootstrap()'s PS-3 pending-setup.yaml item (bin/agentsmyth.mjs) named field: \"commands[0].run\", but verification.schema.yaml's real field name is \"command\" (confirmed against examples/node-package/workflow/config/verification.yaml's real usage). Done: fixed same-session as a Trivial inline change -- field: \"commands[0].command\" now, verified via a fresh scratch-repo init run and the full regression suite (npm run validate, init-prepare-interop:test 32/32, setup-checks:test 4/4, setup-refs:test 5/5, zero regression)."
+    status: done
+    first_seen_run: wp-r9b-scaffold-init-resolution-v1
+  - id: OI-32
+    source: follow-up
+    owner: user
+    next_action: "Update Notion WP-R9b page status to Done (and WP-R9a/WP-R9c pages, if not already done) once this chain merges -- also update page 06 (Roadmap & Work Packages) Triage Summary. Done: WP-R9a/R9b/R9c all set to Done with PR links (#38/#40/#39); found and fixed R9a/R9c were also stale (still In Progress despite being merged) -- both corrected. Page 06's Triage Summary and Overall Sequencing narrative updated to match."
+    status: done
+    first_seen_run: wp-r9b-scaffold-init-resolution-v1

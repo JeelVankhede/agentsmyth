@@ -145,9 +145,20 @@ doesn't exist triggers the RI1 guard: a clean human-readable error and `exit 1`.
 repo-level files. `agentsmyth init` always ends with the repo linked to a global install: it
 auto-runs `prepare` when `~/.agentsmyth/workflow/` doesn't exist yet (no opt-out, no fallback
 to a local copy — any failure is surfaced as a clear error, not silently absorbed), then writes
-`definitions_root` into the repo's `repo-profile.yaml` before the setup skill's interview even
-starts. `--system` was removed outright (WP-R7) — it never shipped in a published release, so
-no deprecated alias was kept; use `prepare` instead.
+`definitions_root` into the repo's `repo-profile.yaml`. `--system` was removed outright
+(WP-R7) — it never shipped in a published release, so no deprecated alias was kept; use
+`prepare` instead.
+
+**`init`'s mechanical scaffold + setup's resolution pass (WP-R9b):** `init` does not stop at
+linking `definitions_root` — it also writes all 5 `workflow/config/*.yaml` stubs,
+`pending-setup.yaml`, `workflow/artifacts/`/`workflow/learnings/`, and (for Cursor and
+non-macOS Copilot specifically, the two tools no global gate can ever cover) an adapter file,
+all before staging `.agentsmyth/` for the agent. The setup skill (`src/setup/SKILL.md`) no
+longer runs a from-scratch interview — its Phase 2 is a **resolution pass** over
+`pending-setup.yaml`, reusing `router.md`'s "Pending Setup Resolution" pattern (inspect first,
+batch remaining items as one question block). Both share one implementation
+(`headlessBootstrap()` in `bin/agentsmyth.mjs`), also used by `agentsmyth check` for the same
+headless-bootstrap case.
 
 **The definitions/data invariant, stated once:** skill *definitions* (skills, router,
 lifecycle, rules, schemas, validators, `agent-behavior.yaml`) may live system-side and are read
