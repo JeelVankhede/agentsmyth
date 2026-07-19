@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSy
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createInterface } from 'node:readline/promises';
+import { confirmPrompt } from './prompts.mjs';
 
 const pkgRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
@@ -412,13 +412,7 @@ async function confirmDeletion(paths) {
     console.error('Re-run "agentsmyth init" in an interactive terminal, or remove these paths manually first.');
     process.exit(1);
   }
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = await rl.question('Delete these local files now? [y/N] ');
-    return /^y(es)?$/i.test(answer.trim());
-  } finally {
-    rl.close();
-  }
+  return confirmPrompt('Delete these local files now?');
 }
 
 // Migration: audits a repo's workflow/ for a pre-existing local definitions

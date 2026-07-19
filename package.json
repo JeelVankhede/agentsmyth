@@ -27,7 +27,7 @@
   "author": "Jeel Vankhede",
   "license": "MIT",
   "scripts": {
-    "build": "node scripts/build-bundle.mjs",
+    "build": "node scripts/build-bundle.mjs && node scripts/build-cli.mjs",
     "pack:local": "npm run build && npm pack",
     "validate": "node scripts/validate-template.mjs && node scripts/validate-example.mjs && node scripts/render-adapters.mjs",
     "hooks:install": "git config core.hooksPath .githooks && echo \"pre-commit hook enabled (bypass with --no-verify)\"",
@@ -37,5 +37,9 @@
     "conformance:test": "node test/run-conformance-tests.mjs",
     "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs",
     "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^1.7.0",
+    "esbuild": "^0.28.1"
   }
 }

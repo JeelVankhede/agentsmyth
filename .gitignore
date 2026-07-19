@@ -9,6 +9,9 @@
 # npm pack output
 *.tgz
 
+# installed devDependencies — package-lock.json is committed, node_modules/ is not
+node_modules/
+
 # local consumer init directory (created by agentsmyth init)
 .agentsmyth/
 
