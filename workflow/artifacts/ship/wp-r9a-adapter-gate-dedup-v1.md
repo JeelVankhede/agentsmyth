@@ -2,7 +2,7 @@
 slug: wp-r9a-adapter-gate-dedup
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-19
 updated: 2026-07-19
 manifest_ids: [R1, R2, RI1, RI2]
@@ -14,10 +14,10 @@ upstream:
   - workflow/artifacts/verify/wp-r9a-adapter-gate-dedup-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
-  user_checkpoint: ship-review
+  user_checkpoint: approved
 ---
 
 # WP-R9a — Redundant Adapter-Gate Fix - Ship
@@ -90,8 +90,8 @@ none.
   independently re-verified 3x across the chain's phases.
 - decision: Applied this chain's sibling WP-R9's own new step 4a (origin/main staleness check)
   for the second time now — found no divergence again, consistent with the first application.
-- decision: Nothing on this branch is committed yet. Consistent with this session's standing
-  instruction not to commit without being asked.
+- decision: Committed (`2f6cb2a`) after explicit user confirmation ("confirm"). Push remains
+  the user's own action, per this session's established pattern.
 - downstream: Reflect should note this is the first of the R9 family (R9a/R9b/R9c) to ship —
   R9b inherits the proven dedup logic verbatim when it starts; R9c is unaffected (different
   file). Per the user's explicit sequencing, R9c starts next, built on top of R9a, not R9b.
@@ -102,8 +102,8 @@ none.
 - [x] Every R and RI has a coverage row, all `shipped`.
 - [x] Rollback trigger and action defined.
 - [x] All configured gates checked or marked not applicable.
-- [ ] User approved proceeding to Reflect — pending. Commit/push/PR also unrequested.
+- [x] User approved proceeding to Reflect — "confirm," 2026-07-19.
 
 ## Next Phase
 
-Reflect — pending your go-ahead. Also pending: whether to commit this branch's work now.
+Reflect.
