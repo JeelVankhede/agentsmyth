@@ -178,8 +178,8 @@ items:
   - id: OI-30
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to commit, push, and open a PR for feat/wp-r9b-scaffold-init-resolution (target main directly -- branch is rebased onto origin/main with zero divergence, no stacked-branch concern this time)."
-    status: open
+    next_action: "Decide whether/when to commit, push, and open a PR for feat/wp-r9b-scaffold-init-resolution (target main directly -- branch is rebased onto origin/main with zero divergence, no stacked-branch concern this time). Done: committed (af82aa3), pushed, PR #40 opened against main."
+    status: done
     first_seen_run: wp-r9b-scaffold-init-resolution-v1
   - id: OI-31
     source: follow-up
@@ -190,6 +190,6 @@ items:
   - id: OI-32
     source: follow-up
     owner: user
-    next_action: "Update Notion WP-R9b page status to Done (and WP-R9a/WP-R9c pages, if not already done) once this chain merges -- also update page 06 (Roadmap & Work Packages) Triage Summary."
-    status: open
+    next_action: "Update Notion WP-R9b page status to Done (and WP-R9a/WP-R9c pages, if not already done) once this chain merges -- also update page 06 (Roadmap & Work Packages) Triage Summary. Done: WP-R9a/R9b/R9c all set to Done with PR links (#38/#40/#39); found and fixed R9a/R9c were also stale (still In Progress despite being merged) -- both corrected. Page 06's Triage Summary and Overall Sequencing narrative updated to match."
+    status: done
     first_seen_run: wp-r9b-scaffold-init-resolution-v1
