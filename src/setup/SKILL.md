@@ -1,13 +1,13 @@
 ---
 name: setup
-description: One-time porting skill. Run this skill once, pointed at a new target repository, to interview the user and populate the lifecycle workflow configs for that repo.
+description: One-time porting skill. Run this skill once, pointed at a new target repository, to resolve the pending setup items agentsmyth init already scaffolded and finish the lifecycle workflow configs for that repo.
 ---
 
 # Setup Skill
 
 ## Purpose
 
-This skill sets up a new target repository to use the agentsmyth lifecycle workflow. It is a one-time operation: inspect the target repo, interview the user, then write the config files that make every other lifecycle skill work correctly.
+This skill finishes setting up a target repository to use the agentsmyth lifecycle workflow. `agentsmyth init` already performs the mechanical half before this skill ever runs: it writes config stubs (real structure, `<USER-TODO>` placeholders where a value isn't inferrable), `workflow/config/pending-setup.yaml` (every open item, with a question and inspection hint), the `workflow/artifacts/`/`workflow/learnings/` directories, and — for Cursor and non-macOS Copilot specifically, the two cases no global gate mechanism can ever cover — an adapter file. This skill's job is a **resolution pass**: resolve `pending-setup.yaml`'s open items (inspect first, ask only what's left), fill in the remaining config fields, and finish what `init` couldn't do mechanically.
 
 This skill lives in `setup/` and is **not** copied to the target repository.
 
@@ -26,48 +26,45 @@ Do not load any `workflow/` skill files. Those belong to the target repo after s
 
 Run this skill when:
 
-- A new repository is being set up for the first time.
-- The user says "set up this repo" or "port the workflow to this repo."
-- The `workflow/config/` files contain only placeholder values from the template.
+- `agentsmyth init` has just staged `.agentsmyth/` and the user says "run the agentsmyth setup" (the normal path — `workflow/config/pending-setup.yaml` already exists, listing exactly what's left to resolve).
+- The user says "set up this repo" or "port the workflow to this repo" and `workflow/config/` still has `<USER-TODO>`/`<PLACEHOLDER>` values but no `pending-setup.yaml` (defensive fallback — see the Global Install Note; should not normally happen since `init` always scaffolds first).
 
 Do not run this skill on a repo that already has a populated `docs/knowledge-map/repo-mental-map.md` and non-placeholder config files — inspect first and confirm with the user.
 
 ## Inputs
 
 - The target repository root path or current working directory.
-- User answers to interview questions.
+- `workflow/config/pending-setup.yaml` — the bounded list of open items this pass resolves.
+- User answers to any batched questions still open after inspection.
 
 ## Workflow
 
 ### Phase 1 — Inspect
 
-Before asking any questions, read the target repo to form a starting picture. Follow `setup/references/inspection-checklist.md`.
+By the time this skill starts, `init` has already scaffolded `workflow/config/*.yaml` (real structure, `<USER-TODO>` placeholders where not inferrable), `pending-setup.yaml`, `workflow/artifacts/`, `workflow/learnings/`, and — conditionally, for Cursor or non-macOS Copilot — an adapter file. Read the existing state to confirm what's already there and orient around it — this phase confirms and extends a real starting point, it does not discover a blank slate. Follow `setup/references/inspection-checklist.md` for anything `pending-setup.yaml` doesn't already cover.
 
 Concisely summarise what you found and confirm with the user before moving on. Do not assume; flag gaps.
 
-### Phase 2 — Interview
+### Phase 2 — Pending Setup Resolution
 
-Ask the user questions in small batches (2–4 at a time). Do not ask all questions at once. Use the answers from each batch to inform the next batch — earlier answers may make later questions irrelevant.
+Resolve `workflow/config/pending-setup.yaml`'s open items using the exact pattern `workflow/router.md`'s "Pending Setup Resolution" section already defines — this phase does not re-derive that pattern, it applies it:
 
-Use `setup/references/config-map.md` to know which interview answers populate which config fields.
+1. If `pending-setup.yaml` does not exist: skip to the defensive-fallback branch of Step 3.x below (should not normally happen — `init` always writes it).
+2. Load the file. Filter `items` where `status: open`.
+3. If no open items: nothing to resolve here — proceed to Phase 3 with whatever config values already exist.
+4. **Inspect-based resolution first** — for each open item, read its `hint` field and inspect the repo (`package.json` scripts, `.github/workflows/*.yml`, `Makefile`, `README.md`/`CONTRIBUTING.md`). If the answer is determinable: update the target config field, set `resolved_by: inspect`, `status: resolved`, record the value in `resolution`.
+5. **Batched user prompt** — for items still open after inspection: surface them as a single batched question block (one question per item, 2–4 at a time if the list is long — do not ask one at a time and do not ask everything in one wall of text). Apply each answer to the config, set `resolved_by: user`, `status: resolved`, record in `resolution`. Update `pending-setup.yaml`.
+6. `waived` items: never surface, never block on them.
+7. Items still open after steps 4–5: same as `router.md` — do not hard-stop. Leave the field as `<USER-TODO>` and note the open item in this skill's final Output report; Phase 4's validators treat a remaining `<USER-TODO>` as a warning, not a failure (see Phase 4 below), so an unresolved item does not block reaching Phase 5.
+8. If the target repo needs a config field `pending-setup.yaml` doesn't already cover (rare — `init`'s stub-writing covers the common cases), fall back to `setup/references/config-map.md` and ask about it directly, following the same batching discipline.
 
-Interview topic order:
+**User-confirmed constraint — the final call on any judgment-based or ambiguous item belongs exclusively to this pass, never to `init`'s mechanical output.** `init` only ever finalizes genuinely deterministic values (a git-inferred default branch; the Cursor/non-macOS-Copilot adapter's `os.platform()` check) — anything requiring inspection judgment or a real choice (domain name, verification commands, which value is "correct" when ambiguous) reaches this repo only as an open `pending-setup.yaml` item, never as an `init`-finalized guess. If a config field looks pre-filled with something other than a real `<USER-TODO>` placeholder and it isn't one of those two deterministic cases, treat it as suspicious and confirm with the user before trusting it — do not assume `init` made a silent judgment call, since it never should.
 
-1. Repo identity: name, primary purpose, primary user/consumer.
-2. Source-of-truth: where are requirements tracked? Where are decisions recorded?
-3. Key paths: what are the most important directories and what lives in each?
-4. Protected paths: what must never be changed without explicit approval?
-5. Verification: what commands confirm the repo is healthy? (build, test, lint)
-6. Branch and release policy: how does code reach production? Any release gating?
-7. Domain: industry, regulated environment, key glossary terms.
-8. Risks and non-goals: what must the AI agent never do in this repo?
-9. Agent tool: which AI agent tool will be used in this repo day-to-day?
-   Options: Claude Code, Codex (AGENTS.md), Copilot, Cursor, Windsurf, Other.
-   Record the answer — it determines where the adapter gets placed in Phase 5.
+Agent tool identity (which adapter to place, beyond what `init` already placed for Cursor/non-macOS-Copilot) is asked here if still relevant — Step 5a.1 below still governs placement for the other four tools.
 
 ### Phase 3 — Write Configs
 
-Using the interview answers and the mapping in `setup/references/config-map.md`, write or update these files in the target repo:
+Fill in the remaining `<USER-TODO>`/`<PLACEHOLDER>` fields in the config files `init` already wrote, using resolved `pending-setup.yaml` items and the mapping in `setup/references/config-map.md`. These files already exist with real structure — do not overwrite them wholesale from the placeholder template, which would silently drop whatever `init` or a prior session already resolved.
 
 | File | What it controls |
 |---|---|
@@ -80,30 +77,34 @@ Using the interview answers and the mapping in `setup/references/config-map.md`,
 
 Replace all `<PLACEHOLDER>` values. Do not invent values the user did not provide — leave a clearly marked `<USER-TODO: describe X>` instead.
 
-`workflow/config/repo-profile.yaml` already exists at this point, pre-populated by
-`agentsmyth init` with `agentsmyth_version` and `definitions_root` — the CLI links the
-repo to the global definitions install before this skill starts; see the Global Install Note
-below Step 5b. Read the existing file and fill in the remaining fields (`repository.mode`,
-`branch_policy`, `paths`, etc.) around those two — do not overwrite the file wholesale from
-the placeholder template, which would silently drop the `definitions_root` pointer.
+All five `workflow/config/*.yaml` files already exist at this point, written by `agentsmyth init`
+(`agentsmyth_version`, `definitions_root`, and every field the shipped templates default to a
+real value — see the Global Install Note below Step 5b for the linking details). Read each
+existing file and fill in only what's still `<USER-TODO>`/`<PLACEHOLDER>` — do not overwrite
+any file wholesale from the placeholder template, which would silently drop `definitions_root`
+and every other value `init` or a prior session already resolved.
 
 Note: `workflow/agent-behavior.yaml` is shipped as a workflow invariant (it encodes lifecycle task classes, artifact chain, evidence policy, and waiver schema) and is **not** written or edited by setup. A consumer should rarely need to modify it.
 
-#### Step 3.x — Write pending-setup.yaml
+#### Step 3.x — Maintain pending-setup.yaml
 
-After all configs are written, collect every field that was left as `<USER-TODO:...>`.
-For each one, add an entry to `workflow/config/pending-setup.yaml`:
+`pending-setup.yaml` already exists at this point (written by `init`'s mechanical scaffold) and
+was the input to Phase 2's resolution pass — this step is about keeping it accurate, not
+creating it from scratch. Two cases:
 
-- `id`: `PS-1`, `PS-2`, ... — increment sequentially, never reuse or renumber
-- `config`: the filename of the config this field belongs to (e.g. `verification.yaml`)
-- `field`: dot-notation path to the field, relative to the config file's schema root (e.g. `commands[0].command`)
-- `question`: the question that would resolve this item
-- `hint`: where the agent might find the answer via repo inspection (check `package.json`
-  scripts for test/build commands; check `.github/workflows/` for CI and deploy targets;
-  check `Makefile` for task commands; check `README.md` for documentation paths)
-- `status`: `open`
-
-If no fields were left as `<USER-TODO:...>`, skip this step entirely — do not create the file.
+- **Normal case**: Phase 2 already updated every item it resolved (`status: resolved`,
+  `resolved_by`, `resolution`). Nothing further to do here.
+- **A config field needs resolution that `pending-setup.yaml` didn't already cover** (rare —
+  `init`'s stub-writing covers `domain.name`, `domain.summary`, `verification.yaml`'s first
+  command, and `repository.default_branch` when git inference fails; anything else surfaces
+  here instead): add a new entry using the next sequential `id` (never reuse or renumber),
+  following the same shape — `config`, `field` (dot-notation, relative to the config file's
+  schema root), `question`, `hint`, `status: open` — then resolve it the same way Phase 2
+  resolves any other item (inspect first, batch-ask if still open) before writing the real
+  value into its target config field.
+- **Defensive fallback**: if `pending-setup.yaml` does not exist at all (should not normally
+  happen — see the Global Install Note), create it following the shape below for every field
+  left as `<USER-TODO:...>` after Phase 3.
 
 Example:
 
@@ -178,9 +179,9 @@ Before placing anything, check whether the chosen tool's **global** gate is alre
 | Copilot (macOS only) | `~/Library/Application Support/Code/User/prompts/agentsmyth.instructions.md` | `<!-- agentsmyth global gate BEGIN -->` / `<!-- agentsmyth global gate END -->` |
 | Cursor | none — no global mechanism exists for this tool | not applicable |
 
-If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS).
+If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS). `agentsmyth init` already places both of these mechanically and deterministically before this skill starts (see Step 5a.2 below) — check whether the target path already exists before treating either as unplaced.
 
-Based on the agent tool recorded in Phase 2 interview question 9, and only when the check above did not find an active global gate for it, place the adapter at the path the tool reads automatically:
+Based on the agent tool identified during Phase 2's resolution pass, and only when the check above did not find an active global gate for it and the target path isn't already populated by `init` (Cursor / non-macOS Copilot), place the adapter at the path the tool reads automatically:
 
 | Agent tool | Source adapter | Target path in repo | Notes |
 |---|---|---|---|
@@ -212,6 +213,29 @@ Before writing the adapter to its target path, render all `{{TOKEN}}` values:
 
 Write the **rendered output** — not the raw template — to the tool-native path.
 
+#### Step 5a.2 — Re-render the `init`-placed Cursor / non-macOS-Copilot adapter, if present
+
+`agentsmyth init` places `.cursor/rules/agentsmyth.mdc` unconditionally and
+`.github/copilot-instructions.md` on non-macOS platforms, mechanically, before this skill ever
+runs — see R5 in `workflow/artifacts/briefs/wp-r9b-scaffold-init-resolution-v1.md`. At `init`
+time, most config values aren't resolved yet, so that file's `{{REPO_NAME}}`,
+`{{REPO_PURPOSE}}`, and `{{DOMAIN_NAME}}` tokens (the only ones sourced from `domain.yaml`,
+which stays `<PLACEHOLDER>` until this skill's Phase 2/3) render as the
+`<!-- TODO: see pending-setup.yaml -->` fallback.
+
+If `.cursor/rules/agentsmyth.mdc` or `.github/copilot-instructions.md` exists and still contains
+that TODO fallback marker after Phase 2/3 resolve the config values it depends on: re-render it
+using the same Token substitution rules above and **overwrite it in place**. This is a safe
+overwrite, not a violation of the "never overwrite" discipline elsewhere in this skill — the
+file's prior content was deterministically generated by `init`, never user-authored. Do not
+re-render (and do not touch) either file if it no longer contains the TODO marker, or if it
+wasn't placed by `init` in the first place (e.g. a user's own pre-existing Cursor rule) — Step
+5a.1's normal append-on-collision handling governs that case instead.
+
+This step does not apply to the other four tools (Claude Code, Codex, Windsurf, macOS Copilot)
+— `init` never places their adapters; Step 5a.1's resolution-and-global-check flow is unchanged
+for them.
+
 #### Step 5b — Expand workflow bundle
 
 Read `workflow/config/repo-profile.yaml` (written in Phase 3). Check whether it has
@@ -221,13 +245,18 @@ before Phase 1 of this skill ever runs.
 
 - If `definitions_root` **is** set: skills, router, lifecycle, rules, glossary, schemas, and
   validators are **not** expanded locally — they resolve from the global install at runtime.
-  From `.agentsmyth/workflow-bundle.md`, expand only the `<!-- FILE: -->` blocks under
-  `workflow/artifacts/` and `workflow/learnings/`.
+  `workflow/artifacts/` and `workflow/learnings/` already exist — `init`'s mechanical scaffold
+  created both (7 empty phase directories; README, `curated.md`, and an empty `sessions/`)
+  before this skill started. Nothing to expand for either.
 - If `definitions_root` is **not** set (defensive fallback — should not normally happen,
   since `init` always links before this skill starts): read
   `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content
   to that path relative to the repo root. Create parent directories as needed. Do not expand
   files under `workflow/config/` — those were already written by the agent in Phase 3.
+  `workflow/artifacts/` and `workflow/learnings/` should already exist too (same reason as
+  above — `init` runs before this skill regardless of link state); if somehow absent, create
+  the same 7 empty phase directories and copy `workflow/learnings/{README.md,curated.md}` from
+  `.agentsmyth/assets/workflow/learnings/` plus an empty `sessions/` dir.
 
 After expansion, the following must always exist in the repo, regardless of link state:
 

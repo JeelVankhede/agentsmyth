@@ -99,11 +99,22 @@ Then install in a target repo as in Option B.
 
 ### What `init` does
 
-`npx agentsmyth init` creates `.agentsmyth/` in the target repo root containing:
-- `setup-bundle.md` — the setup skill the agent reads to drive onboarding
-- `workflow-bundle.md` — the full workflow (router, lifecycle, all skills) the agent expands
-- `validators/` — health-check scripts
-- `assets/` — adapter shims and default config files
+`npx agentsmyth init` performs the full mechanical scaffold itself — no AI agent involved yet:
+- Links the repo to a global lifecycle-definitions install (`~/.agentsmyth/workflow/`, run via
+  `agentsmyth prepare` automatically on first use).
+- Writes all five `workflow/config/*.yaml` files (real structure, `<USER-TODO>` placeholders
+  where a value can't be inferred) and `workflow/config/pending-setup.yaml` (every open item,
+  with a question and an inspection hint).
+- Creates `workflow/artifacts/` (the 7 empty lifecycle phase directories) and
+  `workflow/learnings/` (README, `curated.md`, empty `sessions/`).
+- Places an adapter file mechanically for the two tools no global gate can ever reach — Cursor
+  (`.cursor/rules/agentsmyth.mdc`, always) and Copilot on a non-macOS platform
+  (`.github/copilot-instructions.md`) — never overwriting an existing file at either path.
+- Creates `.agentsmyth/` in the target repo root containing:
+  - `setup-bundle.md` — the setup skill the agent reads to finish onboarding
+  - `workflow-bundle.md` — the full workflow (router, lifecycle, all skills) the agent expands
+  - `validators/` — health-check scripts
+  - `assets/` — adapter shims and default config files
 
 `.agentsmyth/` is added to `.gitignore` automatically. It is temporary — the agent removes it after setup.
 
@@ -115,13 +126,18 @@ Open your AI agent in the target repo and say:
 run the agentsmyth setup
 ```
 
-The agent reads `setup-bundle.md`, inspects the repo, interviews you about domain and config, writes `workflow/config/*.yaml`, places the adapter at your tool's native path, expands the workflow tree under `workflow/`, and removes `.agentsmyth/` when done.
+The agent reads `setup-bundle.md` and runs a **resolution pass**, not a from-scratch interview:
+it resolves `pending-setup.yaml`'s open items (inspecting the repo first, asking only what's
+left), fills in the remaining `<USER-TODO>` fields in the config files `init` already wrote,
+places the adapter for whichever of the other three tools (Claude Code, Codex, Windsurf) you
+use — Copilot is already covered either by the global gate (macOS) or by `init`'s mechanical
+placement (non-macOS) — and removes `.agentsmyth/` when done.
 
 ### What ends up in the target repo
 
 ```
 workflow/
-  config/          ← agent fills these during setup
+  config/          ← init writes stubs; the agent resolves what's left
   router.md
   lifecycle.md
   rules.md
