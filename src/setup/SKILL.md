@@ -168,7 +168,19 @@ For each item in `.agentsmyth/assets/`, apply the collision rule:
 
 #### Step 5a.1 — Place adapter at tool-native path
 
-Based on the agent tool recorded in Phase 2 interview question 9, place the adapter at the path the tool reads automatically:
+Before placing anything, check whether the chosen tool's **global** gate is already installed and active — `agentsmyth prepare` (which `init` always runs before this skill starts) installs a global gate for most tools automatically, and writing a per-repo copy on top of an active global one is pure duplication. Read the tool's global file at the path below and check whether it already contains that tool's begin/end marker pair:
+
+| Agent tool | Global file | Begin / end marker |
+|---|---|---|
+| Claude Code | `~/.claude/CLAUDE.md` | `<!-- agentsmyth global gate BEGIN -->` / `<!-- agentsmyth global gate END -->` |
+| Codex | `~/.codex/AGENTS.md` | `# agentsmyth global gate BEGIN` / `# agentsmyth global gate END` |
+| Windsurf | `~/.codeium/windsurf/memories/global_rules.md` | `# agentsmyth global gate BEGIN` / `# agentsmyth global gate END` |
+| Copilot (macOS only) | `~/Library/Application Support/Code/User/prompts/agentsmyth.instructions.md` | `<!-- agentsmyth global gate BEGIN -->` / `<!-- agentsmyth global gate END -->` |
+| Cursor | none — no global mechanism exists for this tool | not applicable |
+
+If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS).
+
+Based on the agent tool recorded in Phase 2 interview question 9, and only when the check above did not find an active global gate for it, place the adapter at the path the tool reads automatically:
 
 | Agent tool | Source adapter | Target path in repo | Notes |
 |---|---|---|---|
@@ -179,7 +191,7 @@ Based on the agent tool recorded in Phase 2 interview question 9, place the adap
 | Windsurf | `adapters/windsurf/.windsurfrules` | `.windsurfrules` (root) | Append if file exists. |
 | Other / Unknown | `adapters/claude/CLAUDE.md` | Ask user where their agent reads instructions from, then place it there. |
 
-This step is what enforces the workflow gate. Without the adapter at the tool-native path, the agent will not load the mandatory gate instructions on session start.
+This step is what enforces the workflow gate. Without the adapter at the tool-native path (or an active global gate covering it), the agent will not load the mandatory gate instructions on session start.
 
 ##### Token substitution
 

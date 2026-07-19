@@ -82,8 +82,8 @@ items:
   - id: OI-14
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to open a PR for the Wave 4 chain (target main)"
-    status: open
+    next_action: "Decide whether/when to open a PR for the Wave 4 chain (target main). Done: confirmed via git log/merge-base that the Wave 4 lifecycle artifacts (commit e40dc5b) were bundled into and merged with PR #29 (feat/power-skill-sandbox), not shipped as a separate PR -- no action needed."
+    status: done
     first_seen_run: power-skills-wave4-v1
   - id: OI-15
     source: follow-up
@@ -100,8 +100,8 @@ items:
   - id: OI-17
     source: follow-up
     owner: user
-    next_action: "Merge PR #29 (feat/power-skill-sandbox), then retarget/merge PR #30 to main"
-    status: open
+    next_action: "Merge PR #29 (feat/power-skill-sandbox), then retarget/merge PR #30 to main. Done: confirmed via gh pr list -- both #29 and #30 (feat/wp-r5-repo-shape-taxonomy) are merged."
+    status: done
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-18
     source: follow-up
@@ -166,8 +166,8 @@ items:
   - id: OI-28
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #37 (feat/lifecycle-process-hardening) into main"
-    status: open
+    next_action: "Decide whether/when to merge PR #37 (feat/lifecycle-process-hardening) into main. Done: merged (commit c6b9b7f)."
+    status: done
     first_seen_run: lifecycle-process-hardening-v1
   - id: OI-29
     source: follow-up
