@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+/**
+ * Forge / steel theme — ember accent (#EF9F27 dark / #BA7517 light), used sparingly.
+ * Token source: Agentsmyth Docs.dc.html, section 1a (style tile).
+ */
+
+:root {
+  --vp-font-family-base: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --vp-font-family-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* light — steel-on-paper */
+  --vp-c-brand-1: #ba7517;
+  --vp-c-brand-2: #a3660f;
+  --vp-c-brand-3: #8f590d;
+  --vp-c-brand-soft: rgba(186, 117, 23, 0.12);
+
+  --vp-c-bg: #fbfbfa;
+  --vp-c-bg-alt: #ffffff;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #f2f1ee;
+  --vp-c-border: #e7e5e1;
+  --vp-c-divider: #e7e5e1;
+  --vp-c-gutter: #e7e5e1;
+
+  --vp-c-text-1: #1a1c1e;
+  --vp-c-text-2: #5a6069;
+  --vp-c-text-3: #8a8f98;
+
+  --forge-ember: #ba7517;
+  --forge-ember-soft: rgba(186, 117, 23, 0.16);
+  --forge-steel-shine: rgba(20, 20, 20, 0.5);
+  /* the hero gradient's "hottest" stop, theme-aware on purpose: a near-white
+     highlight reads as molten heat against a dark page, but that same
+     near-white value against this light page's near-white background is
+     almost invisible — confirmed by actually screenshotting the animation
+     mid-sweep, where the text visibly disappeared. Light mode reuses the
+     ember tone itself here instead, which is always legible against paper. */
+  --forge-hero-highlight: var(--forge-ember);
+}
+
+.dark {
+  /* dark — ember on steel */
+  --vp-c-brand-1: #ef9f27;
+  --vp-c-brand-2: #d98d1f;
+  --vp-c-brand-3: #c17f1c;
+  --vp-c-brand-soft: rgba(239, 159, 39, 0.12);
+
+  --vp-c-bg: #0b0c0e;
+  --vp-c-bg-alt: #0f1113;
+  --vp-c-bg-elv: #141619;
+  --vp-c-bg-soft: #16181c;
+  --vp-c-border: #23262b;
+  --vp-c-divider: #23262b;
+  --vp-c-gutter: #23262b;
+
+  --vp-c-text-1: #e8eaed;
+  --vp-c-text-2: #9ba1a9;
+  --vp-c-text-3: #6b7280;
+
+  --vp-code-bg: #16181c;
+  --vp-custom-block-tip-bg: rgba(239, 159, 39, 0.06);
+  --vp-custom-block-tip-border: #ef9f27;
+  --vp-custom-block-tip-text: #d7c3a0;
+
+  --forge-ember: #ef9f27;
+  --forge-ember-soft: rgba(239, 159, 39, 0.18);
+  --forge-steel-shine: rgba(255, 255, 255, 0.5);
+  --forge-hero-highlight: #fff8ec;
+}
+
+/* ============================================================
+   Typography
+   ============================================================ */
+
+.vp-doc h1,
+.vp-doc h2,
+.VPHero .name,
+.VPHero .text {
+  letter-spacing: -0.02em;
+}
+
+.VPHero .text {
+  font-size: clamp(40px, 6.5vw, 68px) !important;
+  line-height: 1.05 !important;
+  /* Always-visible baseline. This must exist independent of the gradient
+     treatment below: `-webkit-text-fill-color: transparent` makes the glyph
+     fill itself invisible, relying entirely on a clipped background gradient
+     showing through in its place. If that clip fails to render for any
+     reason (the exact class of bug that made "Forge, don't vibe." disappear
+     entirely on the home page), there is no fallback color underneath it —
+     the text is not dim or unstyled, it is gone. A solid, opaque color here
+     guarantees the title is always legible even if the effect below never
+     applies. */
+  color: var(--vp-c-text-1);
+}
+
+.VPHero .tagline {
+  font-size: clamp(16px, 2vw, 19px) !important;
+  line-height: 1.6 !important;
+  max-width: 560px;
+}
+
+/* molten gradient sweep across the hero headline — the "forge" of "Forge, don't vibe."
+   Gated behind @supports so the transparent-fill trick only ever applies when
+   the browser can actually render the clipped gradient in its place; every
+   other browser keeps the solid, guaranteed-visible color set above. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .VPHero .text {
+      /* --forge-hero-highlight (defined per-theme above, near-white in dark
+         mode / the ember tone itself in light mode) replaces what was
+         previously an undefined --forge-fire-white reference — deleted in an
+         earlier cleanup pass without checking this usage, which silently
+         invalidated this entire background declaration (an invalid value
+         here doesn't warn or fall back, it just makes the whole gradient not
+         apply) and, combined with the transparent text-fill below, made the
+         title fully invisible, not dim. A first fix hardcoded a literal
+         near-white value here instead of restoring a variable, which fixed
+         dark mode but broke light mode the same way for a different reason:
+         confirmed via screenshot that a near-white sweep is nearly invisible
+         against this light theme's near-white page background mid-animation.
+         Theme-aware, not a single literal, is the actual fix. */
+      background: linear-gradient(100deg, var(--vp-c-text-1) 30%, var(--forge-ember) 48%, var(--forge-hero-highlight) 54%, var(--vp-c-text-1) 70%);
+      background-size: 260% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      animation: forge-sweep 7s ease-in-out infinite, hero-glow-flicker 2.6s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes forge-sweep {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* text lit by an unsteady fire, not a static glow — irregular stops, not a smooth sine */
+@keyframes hero-glow-flicker {
+  0%   { filter: drop-shadow(0 0 14px var(--forge-ember-soft)); }
+  18%  { filter: drop-shadow(0 0 22px var(--forge-ember-soft)); }
+  33%  { filter: drop-shadow(0 0 9px var(--forge-ember-soft)); }
+  47%  { filter: drop-shadow(0 0 19px var(--forge-ember-soft)); }
+  61%  { filter: drop-shadow(0 0 11px var(--forge-ember-soft)); }
+  76%  { filter: drop-shadow(0 0 24px var(--forge-ember-soft)); }
+  100% { filter: drop-shadow(0 0 14px var(--forge-ember-soft)); }
+}
+
+/* ============================================================
+   Hero entrance — the fire/ember backdrop itself is now a canvas particle
+   simulation (ForgeBackground.vue, rendered site-wide via the layout-top
+   slot), not CSS. What's left here is just the hero content's own
+   entrance animation.
+   ============================================================ */
+
+.VPHome .VPHero {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .VPHero .container > * {
+    animation: forge-fade-up 0.7s ease both;
+  }
+  .VPHero .actions { animation-delay: 0.12s; }
+  .VPHero .tagline { animation-delay: 0.06s; }
+}
+
+@keyframes forge-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Content reveal — top-level blocks in the doc body fade/rise into place
+   as they cross into the viewport (see Layout.vue's IntersectionObserver).
+   Pre-`reveal-in` state must never cause a layout shift or hide content
+   from anyone without JS/the observer, so the "hidden" state is a small
+   opacity+offset, not display:none, and the class is only ever added by
+   script that already checked prefers-reduced-motion.
+   ============================================================ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   Interactive polish — buttons, feature cards, code, sidebar
+   ============================================================ */
+
+.VPButton {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+/* steel shine — a glint of light sweeping across a polished, heated-metal surface on hover */
+.VPButton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent, var(--forge-steel-shine), transparent);
+  transform: skewX(-22deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+
+.VPButton:hover::after {
+  left: 130%;
+}
+
+.VPButton.brand:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px var(--forge-ember-soft);
+  filter: brightness(1.05);
+}
+
+.VPButton.alt:hover {
+  transform: translateY(-2px);
+  border-color: var(--forge-ember);
+}
+
+.VPFeature {
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+  /* a faint brushed-steel highlight along the top edge, like light catching a milled panel */
+  background-image: linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 45%);
+}
+
+.VPFeatures .item:hover .VPFeature,
+.VPFeature:hover {
+  transform: translateY(-5px);
+  border-color: var(--forge-ember) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--forge-ember-soft);
+}
+
+/* metallic rim on hover: cool steel highlight top-left, warm ember catch bottom-right */
+.VPFeature::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--forge-steel-shine) 0%, transparent 35%, transparent 65%, var(--forge-ember-soft) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.VPFeature:hover::before {
+  opacity: 1;
+}
+
+/* inline code: ember tint, matches Agentsmyth Docs.dc.html's "Components" tile */
+.vp-doc :not(pre) > code {
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+  transition: background-color 0.2s ease;
+}
+
+/* code blocks: subtle ember-tinted top rule instead of a flat default box */
+.vp-doc div[class*='language-'] {
+  position: relative;
+  border: 1px solid var(--vp-c-border);
+  transition: border-color 0.25s ease;
+}
+
+.vp-doc div[class*='language-']:hover {
+  border-color: color-mix(in srgb, var(--forge-ember) 35%, var(--vp-c-border));
+}
+
+.vp-doc div[class*='language-'] .copy {
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.vp-doc div[class*='language-'] .copy.copied::before,
+.vp-doc div[class*='language-'] .copy:hover::before {
+  color: var(--forge-ember);
+}
+
+/* sidebar active item: left ember rule + amber tint, matches the mockups' sidebar treatment */
+.VPSidebarItem.is-active > .item > .indicator {
+  background-color: var(--vp-c-brand-1);
+}
+
+.VPSidebarItem .item {
+  transition: background-color 0.15s ease, color 0.15s ease;
+  border-radius: 6px;
+}
+
+.VPSidebarItem.level-2:hover .item,
+.VPSidebarItem.level-1:hover .item {
+  background-color: var(--vp-c-brand-soft);
+}
+
+/* nav bar brand mark: a low, still-hot glow at rest, brightening on hover — the mark never fully cools */
+.VPNavBarTitle .logo {
+  transition: transform 0.25s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .VPNavBarTitle .logo {
+    animation: mark-breathe 3.6s ease-in-out infinite;
+  }
+}
+
+@keyframes mark-breathe {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--forge-ember-soft)); }
+  50% { filter: drop-shadow(0 0 6px var(--forge-ember-soft)); }
+}
+
+.VPNavBarTitle:hover .logo {
+  filter: drop-shadow(0 0 9px var(--forge-ember-soft)) !important;
+  transform: rotate(-4deg);
+}
+
+/* custom-block callouts: slightly warmer surface than default, matches the mockups' amber-tint cards */
+.custom-block.tip {
+  border-color: var(--forge-ember);
+}
+
+/* ============================================================
+   Ambient page texture — charcoal grain + a distant ember bleed, dark-mode only,
+   deliberately faint so it never competes with reading contrast
+   ============================================================ */
+
+.dark body {
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(239, 159, 39, 0.05), transparent 32%),
+    radial-gradient(circle at 88% 92%, rgba(239, 159, 39, 0.04), transparent 30%),
+    repeating-radial-gradient(circle at 22% 35%, rgba(255, 255, 255, 0.012) 0px, rgba(255, 255, 255, 0.012) 1px, transparent 1px, transparent 3px),
+    repeating-radial-gradient(circle at 76% 68%, rgba(255, 255, 255, 0.009) 0px, rgba(255, 255, 255, 0.009) 1px, transparent 1px, transparent 4px);
+  background-attachment: fixed;
+}
+
+/* ============================================================
+   Scrollbar — steel track, ember thumb (WebKit/Blink; Firefox gets the standard fallback)
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vp-c-bg-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vp-c-border);
+  border-radius: 999px;
+  border: 2px solid var(--vp-c-bg-alt);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--forge-ember);
+}
+
+* {
+  scrollbar-color: var(--vp-c-border) var(--vp-c-bg-alt);
+}

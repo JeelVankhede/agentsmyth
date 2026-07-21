@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build bundles
         run: node scripts/build-bundle.mjs
 
@@ -45,3 +48,6 @@ jobs:
 
       - name: Run checkpoint-approval gate tests
         run: npm run checkpoint-approval:test
+
+      - name: Build docs site
+        run: npm run site:build
