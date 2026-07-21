@@ -40,9 +40,20 @@ Required body sections:
 11. Requirement Manifest
 12. Questions For User
 13. Architecture Notes
-14. Exit Gate
+14. Checkpoint Approval
+15. Exit Gate
 
 `manifest_ids` should include active `R` and `RI` IDs covered by the brief. **Only `R` and `RI` IDs may appear in `manifest_ids`** — `A` (assumption) and `Q` (question) IDs must never be listed there (the schema's `manifest_ids` pattern accepts only `R`/`RI`). Blocking `Q` IDs must also appear in `orchestration.blockers`.
+
+`## Checkpoint Approval` is required whenever `orchestration.user_checkpoint` is not the literal
+string `none` (it is `brief-review` by default — see Starter Block). `check-lifecycle.mjs --phase
+plan` hard-blocks the next phase if this artifact declares `status: ready-for-next-phase` without
+a matching, approved, evidenced Checkpoint Approval section — the artifact's own status field is
+not sufficient proof the user actually reviewed it, since the same agent writes both. The
+`User's own words` line must be the user's real, verbatim message approving this specific brief
+— never authored or paraphrased by the agent (see `workflow/rules.md`'s `## Approval` section).
+If the user has not yet actually responded to this brief's own content, do not write this section
+— leave `status: blocked-for-user` and wait.
 
 ## Starter Block
 
@@ -118,6 +129,12 @@ skill_trigger_log:
 - constraint:
 - tradeoff:
 - downstream:
+
+## Checkpoint Approval
+
+- Checkpoint: brief-review
+- Status: <approved — only once the user has actually responded to this brief's own content>
+- User's own words (verbatim, this turn): "<exact quote — never author this yourself>"
 
 ## Exit Gate
 

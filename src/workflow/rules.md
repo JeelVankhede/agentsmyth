@@ -31,6 +31,19 @@ These rules apply across every lifecycle phase.
   approval of a different artifact.
 - When in doubt whether the user has actually seen and responded to the artifact in question,
   present it and wait rather than marking it approved.
+- **This rule is mechanically enforced, not advisory.** Any brief, plan, or ship artifact whose
+  `orchestration.user_checkpoint` is not `none` must carry a `## Checkpoint Approval` section
+  (Checkpoint / Status / the user's own verbatim words) before the next phase's gate
+  (`check-lifecycle.mjs --phase <next>`) will pass — a missing, mismatched, unapproved, or
+  placeholder entry is a hard failure, regardless of `orchestration.status`. This rule existed in
+  prose alone before that check was added and was not sufficient on its own to prevent a real
+  violation (an agent treated answering earlier clarifying questions as blanket approval for a
+  later, distinct checkpoint it never actually surfaced) — do not treat the prose rule as
+  satisfied just because the mechanical check might catch a slip; the mechanical check is a
+  backstop for failure, not a substitute for actually waiting.
+- Do not self-author the `## Checkpoint Approval` evidence. Copy the user's real words verbatim
+  from the conversation. If no real user message exists approving this specific artifact, the
+  checkpoint is not resolved — write `status: blocked-for-user` and present the artifact instead.
 
 ## Git Safety
 

@@ -238,6 +238,42 @@ items:
   - id: OI-40
     source: follow-up
     owner: wp-r12
-    next_action: "check-release-readiness.mjs has two compounding bugs, found while closing out wp-r11-docs-site-v1's ship artifact. (1) declaredRecommendation() does a naive substring search over the whole Ship Status section in RECOMMENDATION_WORDS priority order ['hold-with-waiver','hold','ship'] -- any mention of the word 'hold' anywhere in that section (e.g. citing Verify's own prior recommendation for context, which is legitimate prose) gets misdetected as the artifact's own declared recommendation, silently skipping the blockers and P0/P1 checks that only run when 'ship' is correctly detected. (2) Even once that's fixed, the P0/P1 cross-check treats any non-zero P0/P1 count in a review's Severity Summary as an open, unwaived blocker, with no way to recognize a finding explicitly marked resolved (e.g. 'confirmed and fixed post-Test') -- this directly contradicts lifecycle-ship/SKILL.md's own Workflow step 6a (resolved-fix vs. open-risk classification, added by an earlier chain specifically to prevent fabricating waivers for already-fixed findings), which check-release-readiness.mjs was apparently never updated to implement. User explicitly assigned this fix to wp-r12 rather than wp-r11 (out of wp-r11's scope, and to avoid repeating the same-branch scope mistake made with the bin/agentsmyth.mjs packaging fix)."
-    status: open
+    next_action: "check-release-readiness.mjs has two compounding bugs, found while closing out wp-r11-docs-site-v1's ship artifact. (1) declaredRecommendation() does a naive substring search over the whole Ship Status section in RECOMMENDATION_WORDS priority order ['hold-with-waiver','hold','ship'] -- any mention of the word 'hold' anywhere in that section (e.g. citing Verify's own prior recommendation for context, which is legitimate prose) gets misdetected as the artifact's own declared recommendation, silently skipping the blockers and P0/P1 checks that only run when 'ship' is correctly detected. (2) Even once that's fixed, the P0/P1 cross-check treats any non-zero P0/P1 count in a review's Severity Summary as an open, unwaived blocker, with no way to recognize a finding explicitly marked resolved (e.g. 'confirmed and fixed post-Test') -- this directly contradicts lifecycle-ship/SKILL.md's own Workflow step 6a (resolved-fix vs. open-risk classification, added by an earlier chain specifically to prevent fabricating waivers for already-fixed findings), which check-release-readiness.mjs was apparently never updated to implement. User explicitly assigned this fix to wp-r12 rather than wp-r11 (out of wp-r11's scope, and to avoid repeating the same-branch scope mistake made with the bin/agentsmyth.mjs packaging fix). Done: fixed in wp-r12-local-install-fixes-v1 Phase 2 -- declaredRecommendation() now parses the actual \"- Recommendation:\" line (with a fallback for pre-schema-convention prose artifacts), and the P0/P1 cross-check recognizes findings explicitly marked resolved (\"(fixed)\", \"confirmed and fixed\") in the established bold-inline position. Verified against all real shipped Ship artifacts (found and fixed a second, previously-unknown instance of the same bug: power-skills-wave2-v1.md) and the existing o-ship-with-open-p1 violation fixture."
+    status: done
     first_seen_run: wp-r11-docs-site-v1
+  - id: OI-41
+    source: follow-up
+    owner: user/repo maintainer
+    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-42
+    source: follow-up
+    owner: user
+    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-43
+    source: follow-up
+    owner: whoever picks up the next small fix, or Reflect follow-up
+    next_action: "wp-r12-local-install-fixes-v1's Review (Finding #1, P3): the exemplar.md files for lifecycle-think/lifecycle-plan/lifecycle-ship were never updated to demonstrate the new '## Checkpoint Approval' section, even though each skill's sibling output-schema.md was. Low risk (the actual check-lifecycle.mjs gate doesn't depend on the exemplar), but a future agent following only the exemplar as a template could omit the section."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-44
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-45
+    source: follow-up
+    owner: workflow owner
+    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-46
+    source: follow-up
+    owner: user
+    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1

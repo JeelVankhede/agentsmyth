@@ -40,9 +40,20 @@ Required body sections:
 11. Verification Plan
 12. Architecture Notes
 13. Open Questions
-14. Exit Gate
+14. Checkpoint Approval
+15. Exit Gate
 
 Every active `R` and `RI` from the brief must appear in `manifest_ids`, Requirement Coverage, Phases, and Verification Plan.
+
+`## Checkpoint Approval` is required whenever `orchestration.user_checkpoint` is not the literal
+string `none` (it is `plan-review` by default — see Starter Block). `check-lifecycle.mjs --phase
+build` hard-blocks Build from starting if this artifact declares `status: ready-for-next-phase`
+without a matching, approved, evidenced Checkpoint Approval section. Answering earlier
+clarifying questions during Think does **not** satisfy this — the user must have actually seen
+and responded to this Plan's own content specifically (see `workflow/rules.md`'s `## Approval`
+section). The `User's own words` line must be the user's real, verbatim message, never authored
+or paraphrased by the agent. If the user has not yet reviewed this plan, leave
+`status: blocked-for-user` and present it to them instead of proceeding to Build.
 
 ## Starter Block
 
@@ -119,6 +130,12 @@ orchestration:
 - downstream:
 
 ## Open Questions
+
+## Checkpoint Approval
+
+- Checkpoint: plan-review
+- Status: <approved — only once the user has actually responded to this plan's own content>
+- User's own words (verbatim, this turn): "<exact quote — never author this yourself>"
 
 ## Exit Gate
 

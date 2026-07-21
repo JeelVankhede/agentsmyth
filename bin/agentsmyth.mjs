@@ -445,7 +445,7 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
 
   const cursorDest = join(repoDir, '.cursor', 'rules', 'agentsmyth.mdc');
   if (!existsSync(cursorDest)) {
-    const cursorSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'cursor', 'rules', 'index.mdc'), 'utf8');
+    const cursorSrc = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'cursor', 'rules', 'index.mdc'), 'utf8');
     mkdirSync(dirname(cursorDest), { recursive: true });
     writeFileSync(cursorDest, renderAdapterTemplate(cursorSrc, tokens));
   }
@@ -453,7 +453,7 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   if (platform() !== 'darwin') {
     const copilotDest = join(repoDir, '.github', 'copilot-instructions.md');
     if (!existsSync(copilotDest)) {
-      const copilotSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'copilot-instructions.md'), 'utf8');
+      const copilotSrc = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'copilot', 'copilot-instructions.md'), 'utf8');
       mkdirSync(dirname(copilotDest), { recursive: true });
       writeFileSync(copilotDest, renderAdapterTemplate(copilotSrc, tokens));
     }
@@ -487,7 +487,7 @@ function runPrepare(pkgRootDir) {
   const gatesMissed = [];
 
   // Claude Code: ~/.claude/CLAUDE.md
-  const claudeGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
+  const claudeGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.claude', 'CLAUDE.md'),
     claudeGate + '\n',
@@ -497,7 +497,7 @@ function runPrepare(pkgRootDir) {
   gatesInstalled.push('Claude Code (~/.claude/CLAUDE.md)');
 
   // Codex: ~/.codex/AGENTS.md
-  const codexGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
+  const codexGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codex', 'AGENTS.md'),
     codexGate + '\n',
@@ -507,7 +507,7 @@ function runPrepare(pkgRootDir) {
   gatesInstalled.push('Codex (~/.codex/AGENTS.md)');
 
   // Windsurf: ~/.codeium/windsurf/memories/global_rules.md
-  const windsurfGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
+  const windsurfGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codeium', 'windsurf', 'memories', 'global_rules.md'),
     windsurfGate + '\n',
@@ -519,7 +519,7 @@ function runPrepare(pkgRootDir) {
   // Copilot (macOS + VS Code only)
   const copilotPath = join(homedir(), 'Library', 'Application Support', 'Code', 'User', 'prompts', 'agentsmyth.instructions.md');
   if (process.platform === 'darwin') {
-    const copilotGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
+    const copilotGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
     installGateSection(
       copilotPath,
       copilotGate + '\n',
@@ -531,7 +531,8 @@ function runPrepare(pkgRootDir) {
     gatesMissed.push('Copilot (macOS + VS Code only — not installed on this platform)');
   }
 
-  // Cursor: no global file — print paste-text
+  // Cursor: no global gate file — print paste-text (unrelated to the invocation command below,
+  // which uses Cursor's own separate global custom-commands mechanism).
   const cursorPasteText = [
     '',
     'Cursor (no global file — paste this into Settings → Rules):',
@@ -542,12 +543,63 @@ function runPrepare(pkgRootDir) {
     '──────────────────────────────────────────────────────────',
   ].join('\n');
 
+  // Global invocation command: one per adapter, in that tool's own real global-command
+  // mechanism (confirmed via research, not assumed identical across tools — each format/location
+  // is genuinely different). Gives the user an explicit "/agentsmyth" (or Codex's own
+  // "/prompts:agentsmyth") action to start/resume the lifecycle in the current repo, alongside
+  // the passive gates above rather than replacing them — the gates can't fire in a repo that
+  // hasn't been `init`'d yet, this can. Strictly additive, same rule as
+  // `placeDeterministicAdapters()`'s per-repo files: never overwrite a file the user (or a prior
+  // run) already placed at the target path.
+  const commandsInstalled = [];
+
+  function writeInvocationCommand(label, srcRelPath, destPath) {
+    if (existsSync(destPath)) return; // never overwrite — matches placeDeterministicAdapters()
+    const content = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', ...srcRelPath), 'utf8');
+    mkdirSync(dirname(destPath), { recursive: true });
+    writeFileSync(destPath, content);
+    commandsInstalled.push(label);
+  }
+
+  writeInvocationCommand(
+    'Claude Code (/agentsmyth)',
+    ['claude', 'invocation-skill.md'],
+    join(homedir(), '.claude', 'skills', 'agentsmyth', 'SKILL.md')
+  );
+  writeInvocationCommand(
+    'Codex (/prompts:agentsmyth)',
+    ['codex', 'invocation-prompt.md'],
+    join(homedir(), '.codex', 'prompts', 'agentsmyth.md')
+  );
+  writeInvocationCommand(
+    'Cursor (/agentsmyth)',
+    ['cursor', 'invocation-command.md'],
+    join(homedir(), '.cursor', 'commands', 'agentsmyth.md')
+  );
+  writeInvocationCommand(
+    'Windsurf (/agentsmyth)',
+    ['windsurf', 'invocation-workflow.md'],
+    join(homedir(), '.codeium', 'windsurf', 'global_workflows', 'agentsmyth.md')
+  );
+  if (process.platform === 'darwin') {
+    writeInvocationCommand(
+      'Copilot (/agentsmyth, VS Code)',
+      ['copilot', 'invocation-prompt.md'],
+      join(homedir(), 'Library', 'Application Support', 'Code', 'User', 'prompts', 'agentsmyth.prompt.md')
+    );
+  }
+
   console.log('');
   console.log('Global gates installed:');
   for (const g of gatesInstalled) console.log(`  ✓ ${g}`);
   for (const g of gatesMissed) console.log(`  - ${g}`);
   console.log(cursorPasteText);
   console.log('');
+  if (commandsInstalled.length > 0) {
+    console.log('Global invocation commands installed:');
+    for (const c of commandsInstalled) console.log(`  ✓ ${c}`);
+    console.log('');
+  }
   console.log('agentsmyth prepare complete.');
   console.log('');
   console.log('Next: run "agentsmyth init" in any repository — it will link to');

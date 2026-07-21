@@ -46,5 +46,8 @@ jobs:
       - name: Run init/prepare interoperability tests
         run: npm run init-prepare-interop:test
 
+      - name: Run checkpoint-approval gate tests
+        run: npm run checkpoint-approval:test
+
       - name: Build docs site
         run: npm run site:build

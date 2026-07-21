@@ -40,6 +40,69 @@ if (args.includes('--phase')) {
 
   const validPhases = ['think', ...Object.keys(UPSTREAM)];
 
+// Parses a "## Checkpoint Approval" body section, if present. Deliberately requires a real,
+// quoted user statement rather than trusting orchestration.status alone — an artifact's own
+// status/user_checkpoint fields are written by the same agent whose work they're supposed to
+// gate, so a status of "ready-for-next-phase" on its own proves nothing about whether the user
+// actually saw and approved this specific artifact. See workflow/rules.md's "## Approval"
+// section, which stated this rule in prose before this mechanical check existed and was not
+// sufficient on its own to prevent a real violation (an agent treated answering earlier
+// clarifying questions as blanket approval for a later, distinct plan-review checkpoint it
+// never actually surfaced) — this function is the hard-blocking backstop for that prose rule,
+// not a replacement for it. Cannot itself prove authenticity of the quoted text (nothing
+// file-based can, since the same agent authors the file) — see workflow/rules.md's explicit
+// instruction that the agent must never author this evidence itself, only copy the user's real
+// words verbatim.
+function checkpointApprovalSection(body) {
+  const match = body.match(/## Checkpoint Approval\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/);
+  if (!match) return null;
+  const section = match[1];
+  const checkpoint = section.match(/^-\s*Checkpoint:\s*(.+)$/im)?.[1]?.trim();
+  const status = section.match(/^-\s*Status:\s*(.+)$/im)?.[1]?.trim();
+  const evidenceMatch = section.match(/^-\s*User'?s? own words[^:]*:\s*([\s\S]*?)(?=\n-\s|\n*$)/im);
+  const evidence = evidenceMatch?.[1]?.trim().replace(/^"|"$/g, '');
+  if (!checkpoint || !status) return null;
+  return { checkpoint, status, evidence };
+}
+
+const PLACEHOLDER_EVIDENCE = /^(tbd|n\/a|na|-|none|pending|todo|<[^>]*>)$/i;
+
+// Hard-blocking gate: if the upstream artifact declares a real (non-"none") user_checkpoint,
+// it must carry a matching, approved, evidenced "## Checkpoint Approval" section before the
+// next phase may begin — regardless of what orchestration.status says. Pushes to `errors`
+// directly (same array the phase-readiness check above uses) so a missing/invalid checkpoint
+// approval blocks phase progression exactly like a not-ready status does.
+function requireCheckpointApproval(parsed, partFile, targetPhase, errors, details) {
+  const checkpoint = parsed.frontmatter.orchestration?.user_checkpoint;
+  if (!checkpoint || checkpoint === 'none') return;
+
+  const approval = checkpointApprovalSection(parsed.body);
+  if (!approval) {
+    errors.push(
+      `${targetPhase}: upstream ${partFile} declares user_checkpoint "${checkpoint}" but has no ` +
+      `"## Checkpoint Approval" section — real user approval cannot be verified. Do not self-author ` +
+      `this evidence (workflow/rules.md's Approval section); present the artifact to the user and wait.`
+    );
+  } else if (approval.checkpoint !== checkpoint) {
+    errors.push(
+      `${targetPhase}: upstream ${partFile}'s "## Checkpoint Approval" section names checkpoint ` +
+      `"${approval.checkpoint}", but orchestration.user_checkpoint is "${checkpoint}" — mismatch.`
+    );
+  } else if (approval.status !== 'approved') {
+    errors.push(
+      `${targetPhase}: upstream ${partFile}'s checkpoint "${checkpoint}" is not marked approved ` +
+      `(status: "${approval.status}").`
+    );
+  } else if (!approval.evidence || approval.evidence.length < 10 || PLACEHOLDER_EVIDENCE.test(approval.evidence)) {
+    errors.push(
+      `${targetPhase}: upstream ${partFile}'s checkpoint "${checkpoint}" has no real evidence quote ` +
+      `— empty or placeholder text is not acceptable.`
+    );
+  } else {
+    details.push(`${targetPhase}: ${partFile} checkpoint "${checkpoint}" → approved ✓`);
+  }
+}
+
   if (!validPhases.includes(targetPhase)) {
     console.error(`check-lifecycle: unknown phase "${targetPhase}". Valid: ${validPhases.join(', ')}`);
     process.exit(1);
@@ -138,6 +201,8 @@ if (args.includes('--phase')) {
     } else {
       details.push(`${targetPhase}: ${partFile} → ${status} ✓`);
     }
+
+    requireCheckpointApproval(parsed, partFile, targetPhase, errors, details);
   }
 
   finish(label, errors, details);
