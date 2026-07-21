@@ -43,7 +43,7 @@ orchestration:
 ## Scope
 
 - In scope: `site/.vitepress/config.ts`, 12 `site/*.md` stub pages, `package.json` + `package-lock.json` (devDependency + scripts), `.gitignore` (build-output exclusion), `.github/workflows/ci.yml` (install step + build-check step, both inside the existing `validate` job).
-- Note: `check-scope-fence` initially flagged `package-lock.json` as outside the plan's declared Touches (it was not separately named). Rather than record a waiver for what is a deterministic, zero-decision npm-managed companion file, the plan (`workflow/artifacts/plans/wp-r11-docs-site-v1.md`) was corrected in place to name it explicitly — a Touches-list documentation fix, not a scope or requirement change, and safe since no Review/Ship/Reflect artifact exists yet for this slug. `check-scope-fence` re-run clean after the correction (see Command Results).
+- Note: `check-scope-fence` initially flagged `package-lock.json` as outside the plan's declared Touches (it was not separately named). No waiver was needed or recorded for this: it is a deterministic, zero-decision npm-managed companion file, so the plan (`workflow/artifacts/plans/wp-r11-docs-site-v1.md`) was simply corrected in place to name it explicitly — a Touches-list documentation fix, not a scope or requirement change, and safe since no Review/Ship/Reflect artifact exists yet for this slug. `check-scope-fence` re-run clean after the correction (see Command Results).
 - Out of scope (confirmed untouched): `docs/**`, `src/workflow/**`, `src/setup/**`, `src/adapters/**`, any `*/validators/**`, real page body content (Phase 2), theme/CSS and the deploy workflow (Phase 3).
 
 ## Changed Files
