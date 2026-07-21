@@ -1,0 +1,33 @@
+version: 1
+kind: domain
+
+domain:
+  name: fixture-repo
+  summary: Fixture repo for testing check-setup-complete.mjs's definitions_root awareness.
+  regulated: false
+  glossary: []
+  preferred_terms: []
+  discouraged_terms: []
+
+constraints:
+  product: []
+  safety: []
+  provider_neutrality: []
+
+requirement_discovery:
+  implicit_requirement_sources: []
+  assumptions:
+    require_ids: true
+    id_prefix: A
+    must_be_visible_in_brief: true
+  questions:
+    require_ids: true
+    id_prefix: Q
+    blocking_questions_go_to_orchestration_blockers: true
+
+communication:
+  default_audience: engineering
+  tone: direct
+  include_user_followups_when_blocked: true
+
+extensions: {}

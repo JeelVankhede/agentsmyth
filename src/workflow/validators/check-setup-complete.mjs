@@ -144,7 +144,35 @@ if (userTodos.length > 0) {
 
 // ── Check: full workflow tree presence ──────────────────────────────────────
 
-const requiredPaths = [
+// Mirrors resolveRepoRoot()'s own regex style (no YAML parser available at this point in the
+// file, same constraint as that function) rather than importing lib.mjs's version — same reason
+// resolveRepoRoot() itself isn't imported: lib.mjs's module-level code can process.exit(1) if a
+// custom definitions_root doesn't exist yet, an unacceptable side effect during setup
+// verification itself, when things may deliberately not be fully configured yet.
+function definitionsRootIsSet() {
+  const text = read('workflow/config/repo-profile.yaml');
+  if (!text) return false;
+  return Boolean(text.match(/^\s*definitions_root:\s*(\S.*)$/m)?.[1]?.trim());
+}
+
+// Always required, regardless of whether skills/router/validators/schemas resolve from a global
+// definitions_root install or exist locally — see src/setup/SKILL.md Step 5b, which documents
+// this exact pair as the only two definitions-adjacent paths that "must always exist... regardless
+// of link state."
+const alwaysRequiredPaths = [
+  'workflow/artifacts',
+  'workflow/learnings',
+];
+
+// Required locally only in the defensive, no-definitions_root fallback (src/setup/SKILL.md Step
+// 5b's second branch — "should not normally happen," since `agentsmyth init` always sets
+// definitions_root before the agent-driven setup skill starts, but still a real, supported path).
+// When definitions_root IS set, Step 5b's first branch deliberately does not expand any of these
+// locally — they resolve from the global install at runtime. Previously this list was checked
+// unconditionally, which meant setup could never actually pass via the intended, default
+// definitions_root-linked path — found via a real consumer's first end-to-end use of the
+// /agentsmyth invocation skill (wp-r12-local-install-fixes-v1's own R4).
+const definitionsTreePaths = [
   'workflow/router.md',
   'workflow/lifecycle.md',
   'workflow/rules.md',
@@ -159,9 +187,11 @@ const requiredPaths = [
   'workflow/validators/check-config.mjs',
   'workflow/validators/check-artifacts.mjs',
   'workflow/schemas/lifecycle-artifact.schema.yaml',
-  'workflow/artifacts',
-  'workflow/learnings',
 ];
+
+const requiredPaths = definitionsRootIsSet()
+  ? alwaysRequiredPaths
+  : [...alwaysRequiredPaths, ...definitionsTreePaths];
 
 for (const p of requiredPaths) {
   if (!exists(p)) {

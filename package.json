@@ -38,6 +38,7 @@
     "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs",
     "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs",
     "checkpoint-approval:test": "node test/run-checkpoint-approval-tests.mjs",
+    "setup-validator-definitions-root:test": "node test/run-setup-validator-definitions-root-tests.mjs",
     "site:dev": "vitepress dev site",
     "site:build": "vitepress build site"
   },
