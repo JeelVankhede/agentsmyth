@@ -23,12 +23,55 @@ function namedSection(body, name) {
   return match ? match[1] : null;
 }
 
+// Reads the actual declared value off the "- Recommendation: <value>" line specifically — the
+// output-schema.md Starter Block's own canonical format, which every artifact written to schema
+// uses — rather than scanning the whole Ship Status section for any occurrence of a recommendation
+// word. A section can legitimately mention "hold" elsewhere for context (e.g. "Verification
+// recommendation: hold, now resolved by Ship below") without that being the artifact's own declared
+// recommendation — a prior whole-section substring scan misdetected exactly that case, silently
+// skipping every check below it gates (found while closing out wp-r11-docs-site-v1's ship
+// artifact). Falls back to the old whole-section scan only when the canonical line is genuinely
+// absent, for the small number of pre-schema-convention artifacts that declared their
+// recommendation in free prose (e.g. "Ready to ship. All requirements met...") instead of the
+// structured bullet — regressing those would violate RI1 for no benefit, since they have no
+// competing "hold" mention to misdetect in the first place. Checks RECOMMENDATION_WORDS
+// longest-first so "hold-with-waiver" doesn't get truncated to "hold" within the matched text.
 function declaredRecommendation(section) {
+  const lineMatch = section.match(/^-\s*Recommendation:\s*(.+)$/im);
+  if (lineMatch) {
+    const value = lineMatch[1].toLowerCase();
+    for (const word of RECOMMENDATION_WORDS) {
+      if (value.includes(word)) return word;
+    }
+    return null;
+  }
   const lower = section.toLowerCase();
   for (const word of RECOMMENDATION_WORDS) {
     if (lower.includes(word)) return word;
   }
   return null;
+}
+
+// Recognizes a Review finding explicitly marked resolved in the one real, already-established
+// position this repo's shipped review artifacts actually use: immediately after the severity
+// label inside a bold-inline Findings-list entry (e.g. "**P1, confirmed and fixed post-Test**" or
+// "**P2 (fixed) — ..."). Deliberately narrow, not a general Findings-list parser: this repo has at
+// least two other real Findings formats in use (a "### P1 — ..." heading style, and a bare
+// "- P2 `path` [RI1] — ..." dash-bullet style per lifecycle-review's own exemplar) that this
+// function does not attempt to parse — for those, or for any bold-inline entry lacking one of the
+// two established resolved-markers below, callers must keep requiring a waiver, matching prior
+// (safe) behavior. A looser match (e.g. "contains the word fix anywhere in the finding's body")
+// was rejected: every finding, resolved or not, legitimately carries a "Fix:"/"Fix recommendation:"
+// field, which would make a body-wide match always true and defeat the check entirely — confirmed
+// against the real `o-ship-with-open-p1` violation fixture's "Fix recommendation: fixture only."
+// line, which must keep this function returning false for that fixture's genuinely-open finding.
+const RESOLVED_MARKERS = /\(fixed\)|confirmed and fixed/i;
+
+function severityResolvedInBoldFindings(body, severity) {
+  const spanPattern = new RegExp(`\\*\\*${severity}\\b[^*]*\\*\\*`, 'g');
+  const spans = body.match(spanPattern);
+  if (!spans || spans.length === 0) return false; // format not recognized — fall back to blocking
+  return spans.every((span) => RESOLVED_MARKERS.test(span));
 }
 
 function parseTableRows(tableText) {
@@ -97,11 +140,19 @@ for (const file of artifactFiles) {
       const severitySection = namedSection(reviewParsed.body, 'Severity Summary');
       if (severitySection) {
         const counts = openP0P1Counts(severitySection);
-        const hasOpenP0P1 = counts.P0 !== 0 || counts.P1 !== 0;
-        if (hasOpenP0P1) {
+        // A non-zero count is only a real blocker if it isn't fully accounted for by findings
+        // explicitly marked resolved in the one recognized position (see
+        // severityResolvedInBoldFindings) — a "confirmed and fixed" P1 is a completed,
+        // independently-verified fix per lifecycle-ship/SKILL.md's own step 6a, not an open risk
+        // requiring a waiver. Per-severity, not a blanket "any P0/P1 resolved clears both".
+        const unresolvedSeverities = ['P0', 'P1'].filter((sev) => {
+          if (counts[sev] === 0) return false;
+          return !severityResolvedInBoldFindings(reviewParsed.body, sev);
+        });
+        if (unresolvedSeverities.length > 0) {
           const waived = /## Waivers\s*\n[\s\S]*?\bP[01]\b/i.test(reviewParsed.body) || /## Waivers\s*\n[\s\S]*?\bP[01]\b/i.test(parsed.body);
           if (!waived) {
-            errors.push(`${file} declares "ship" but upstream review Severity Summary shows an open P0/P1 (P0: ${counts.P0}, P1: ${counts.P1}) with no matching Waivers entry`);
+            errors.push(`${file} declares "ship" but upstream review Severity Summary shows an open P0/P1 (P0: ${counts.P0}, P1: ${counts.P1}) with no matching Waivers entry and no recognized resolved-finding marker for: ${unresolvedSeverities.join(', ')}`);
           }
         }
       }
