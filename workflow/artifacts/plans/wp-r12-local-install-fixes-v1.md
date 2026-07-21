@@ -2,7 +2,7 @@
 slug: wp-r12-local-install-fixes
 version: 1
 artifact: plan
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-21
 updated: 2026-07-21
 manifest_ids: [R1, R2, R3, R4, R5, RI1, RI2, RI3, RI4, RI5]
@@ -10,9 +10,9 @@ upstream:
   - workflow/artifacts/briefs/wp-r12-local-install-fixes-v1.md
 orchestration:
   phase: plan
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: build
-  blockers: [plan-review-pending]
+  blockers: []
   user_checkpoint: plan-review
 ---
 
@@ -161,7 +161,7 @@ Single branch `wp-r12-local-install-fixes`, already created off `origin/main` (n
 - constraint: `src/workflow/validators/` is in-scope for Phase 2 only, per the brief's own Constraints section — Build must not touch any other validator file even if a similar bug is noticed in passing (record it as a new open item instead, per this repo's own established pattern this session).
 - tradeoff: Phase 3 ships without live-tool verification (A4) — accepted because the alternative (blocking on manual multi-tool testing this environment cannot perform) would leave R4 undone indefinitely for a real, user-requested gap; the tradeoff is fully disclosed in Verify/Ship rather than silently assumed working.
 - downstream: Reflect should assess whether Phase 2's "narrow position, conservative fallback" design pattern for teaching a validator to recognize an established artifact convention (rather than building a general-purpose parser) is worth naming as a reusable principle for future validator-hardening work — this is the same shape of decision `check-waivers.mjs`'s own negation heuristic already made (deliberately narrow, documented false-positive risk accepted).
-- decision: This Plan's own `## Checkpoint Approval` section below is deliberately left **not** marked approved. Phases 1-3 were built and shipped before the user ever saw this Plan's own content presented for `plan-review` — the exact violation R5 (Phase 4) exists to catch. Retroactively marking it "approved" now, after the fact, without the user having actually reviewed this Plan, would repeat the same failure in a new form (see `workflow/rules.md`'s Approval section: "not inferred from ... an earlier approval of a different artifact"). This Plan is presented to the user now, honestly, for real review.
+- decision: This Plan's own `## Checkpoint Approval` section was initially left **not** marked approved, since Phases 1-3 were built and shipped before the user ever saw this Plan's own content presented for `plan-review` — the exact violation R5 (Phase 4) exists to catch. Retroactively marking it "approved" without the user actually reviewing this Plan would have repeated the same failure in a new form (see `workflow/rules.md`'s Approval section: "not inferred from ... an earlier approval of a different artifact"). The Plan was then genuinely presented (a summary of all 4 phases) and the user responded "Yes" to a direct approval question this same turn — the Checkpoint Approval section and `orchestration.status` were updated to reflect that real event, not backdated to before it happened.
 
 ## Open Questions
 
@@ -170,12 +170,12 @@ None — all resolved at Think. (R5's own authorization is separate from this Pl
 ## Checkpoint Approval
 
 - Checkpoint: plan-review
-- Status: not yet approved — pending real user review of this Plan (Phases 1-4) as a whole
-- User's own words (verbatim, this session): none exist yet for this Plan specifically. R5 (Phase 4's own addition) has real, quoted authorization in the brief's Checkpoint Approval section ("I WANT THIS IS PLACE AS A HARD FAILURE...", "Fix it in this only"), but that is authorization for building the checkpoint-approval mechanism, not a review of this Plan's content as a Plan. Phases 1-3 were built and shipped (committed, on this branch, not merged anywhere) before this Plan was ever presented for review — this is the real, undisguised state, not a placeholder.
+- Status: approved
+- User's own words (verbatim, this turn): the agent presented a summary of all 4 phases (packaging fix, check-release-readiness.mjs fixes, 5-adapter invocation command, checkpoint-approval hard gate) and asked directly: "Do you approve this Plan as built? If yes, I'll record your actual response as the real evidence in the Plan's Checkpoint Approval section and the `build` gate will correctly pass." The user responded: "Yes".
 
 ## Exit Gate
 
 - [x] Every active R and RI mapped to a phase.
 - [x] Every phase has a binary exit gate.
 - [x] Verification plan covers every R and RI.
-- [ ] User approved or waiver recorded. — **not yet true.** See Checkpoint Approval above. This Plan (including the already-built Phases 1-3) is presented to the user now for real, current review.
+- [x] User approved or waiver recorded. — approved this turn, see Checkpoint Approval above.
