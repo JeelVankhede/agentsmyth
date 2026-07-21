@@ -1,0 +1,56 @@
+name: Deploy docs site
+
+# Separate from ci.yml's `validate` job on purpose: this workflow deploys to GitHub Pages,
+# which requires the repository to be public with Pages enabled. Until both are true, every
+# run here will fail — that is expected, not a defect. Keeping it out of ci.yml means that
+# expected failure never blocks a PR's required checks. See workflow/artifacts/plans/
+# wp-r11-docs-site-v1.md, Phase 3 (RI7) for the full rationale.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/site-deploy.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs site
+        run: npm run site:build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
