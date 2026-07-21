@@ -277,3 +277,33 @@ items:
     next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-47
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main."
+    status: open
+    first_seen_run: wp-r13-setup-validator-definitions-root-v1
+  - id: OI-48
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main."
+    status: open
+    first_seen_run: wp-r13-setup-validator-definitions-root-v1
+  - id: OI-49
+    source: follow-up
+    owner: whoever picks up the next small fix
+    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the 3 test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Re-indent the definitions_root: line in all 3 fixtures."
+    status: open
+    first_seen_run: wp-r13-setup-validator-definitions-root-v1
+  - id: OI-50
+    source: follow-up
+    owner: workflow owner
+    next_action: "lifecycle-build/SKILL.md's scope-before-work rule (PR #44) is prose-only, same category of limitation workflow/rules.md's Approval section had before the checkpoint-approval gate (R5, wp-r12-local-install-fixes-v1) existed. Watch whether the strengthened wording is actually followed in future Build phases; if it keeps getting skipped, it likely needs the same two-layer treatment (a mechanical check backing the prose), not just clearer wording."
+    status: open
+    first_seen_run: wp-r13-setup-validator-definitions-root-v1
+  - id: OI-51
+    source: follow-up
+    owner: user
+    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged."
+    status: open
+    first_seen_run: wp-r13-setup-validator-definitions-root-v1
