@@ -117,8 +117,8 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
 1. Verify upstream brief, plan, active phase, manifest IDs, and approval state.
 2. Run and record `git status --short --branch` for the repository before edits.
 3. Compare current branch and dirty state against the plan branch strategy.
-4. Create or update `workflow/artifacts/tasks/<slug>-v<N>.md`.
-5. Record active phase scope, touched areas, planned checks, and any pre-existing unrelated changes.
+4. Create or update `workflow/artifacts/tasks/<slug>-v<N>.md` — **before any file in the active phase is touched**, not as a retrospective summary written after implementation is already done. Think and Plan both scope before work happens; Build must not be the exception.
+5. Record active phase scope, touched areas, planned checks, and any pre-existing unrelated changes in that same pre-work pass — this is the scoping step, not documentation-after-the-fact.
 6. Modify only files covered by the active phase touches unless the plan is revised first.
 6a. When a diff folds, merges, or renames-with-restructure code touching control flow, run
     `conditional-preservation-check` before recording the change as complete, to confirm no
@@ -165,6 +165,7 @@ Use the `## Architecture Notes` section in the task body to capture at minimum:
 ## Determinism Rules
 
 - Before writing code, confirm that either (a) `restore-context` ran this session for the active slug, or (b) the Plan artifact was read in full via the file-read tool this turn. Plan content recalled from earlier in the conversation does not satisfy this requirement.
+- Do not implement first and write the task artifact afterward as a summary. The task artifact's Active Phase, Scope, and planned Changed Files must exist before the first file edit in the active phase — the same scope-before-work discipline Think and Plan already follow. Writing comprehensive Implementation Log/Command Results detail is fine as work progresses; skipping straight to code with no scoped artifact yet is not, regardless of how complete the artifact looks once finally written.
 - Execute exactly one approved plan phase at a time.
 - Do not silently expand scope; new requirements return to Think/Plan or require an explicit plan update.
 - Do not invent commands, results, branches, PRs, tickets, releases, or external updates.
