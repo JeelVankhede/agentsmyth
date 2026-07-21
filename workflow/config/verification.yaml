@@ -10,7 +10,17 @@ evidence_types:
   - release
   - waiver
 
-commands: []
+commands:
+  - id: validate
+    command: npm run validate
+    cwd: .
+    required: true
+    phases: [review, ship]
+  - id: violations-test
+    command: npm run violations:test
+    cwd: .
+    required: true
+    phases: [review, ship]
 
 command_policy:
   allow_discovered_commands: true

@@ -49,6 +49,20 @@ Each supported tool gets a thin adapter placed at the path that tool reads autom
 | Cursor | `.cursor/rules/index.mdc` |
 | Windsurf | `.windsurfrules` |
 
+## The adapters are advisory; the pre-commit hook is not
+
+Adapters are prompt content — an AI tool has to read and choose to obey them. Nothing stops an
+agent from skipping the lifecycle anyway, and no adapter mechanism is common to all five tools
+(none of them expose a way to block a tool call before it happens).
+
+`git commit` is the one thing every tool's output passes through regardless of which tool
+produced it. `init` installs a local `pre-commit` hook (appended to any hook you already have,
+never overwritten) that runs `agentsmyth check --staged`: safe paths (`workflow/`, `docs/`,
+adapter dirs, Markdown) and small single-file diffs pass automatically; anything else must be
+named in a real lifecycle task artifact's Changed Files, or the commit is rejected. This is
+local-only by design — no CI template ships with agentsmyth. The only bypass is git's native
+`--no-verify`.
+
 ## The source-of-truth hierarchy
 
 When two sources disagree, agentsmyth does not guess. It has a ranked chain, and higher always wins:

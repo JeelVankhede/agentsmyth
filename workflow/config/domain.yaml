@@ -2,8 +2,8 @@ version: 1
 kind: domain
 
 domain:
-  name: generic
-  summary: Generic workflow template for a repository.
+  name: agentsmyth
+  summary: Portable AI lifecycle workflow shipped as an npm package — a template and workflow contract that gates consumer repos through a 7-phase engineering lifecycle (brief, plan, task, review, verify, ship, reflect) enforced via on-disk artifacts and validators.
   regulated: false
   glossary: []
   preferred_terms: []

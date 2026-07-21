@@ -1,0 +1,31 @@
+---
+description: agentsmyth workflow gate for agentsmyth
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# agentsmyth Workflow Gate — agentsmyth
+
+> **Domain:** agentsmyth | Portable AI lifecycle workflow shipped as an npm package — a template and workflow contract that gates consumer repos through a 7-phase engineering lifecycle (brief, plan, task, review, verify, ship, reflect) enforced via on-disk artifacts and validators.
+
+Read `workflow/router.md` before any task (if absent, read `definitions_root` from
+`workflow/config/repo-profile.yaml` and load `<definitions_root>/router.md` instead — this
+repo is linked to a global install). Load `workflow/agent-behavior.yaml` the same way.
+
+Never skip this gate. Never mark a phase complete without evidence.
+
+Default branch: `main` | All changes via non-default branch required.
+
+**Protected:** - `.git/**` — repository metadata
+- `.env*` — potential secrets
+- `**/*secret*` — potential secrets
+
+**Verify:** - `npm run validate`
+- `npm run violations:test`
+
+**Constraints:** - [product-1] Do not introduce domain-specific behavior unless the user request or repo context requires it.
+- [product-2] Treat compatibility, source authority, verification, and release impact as implicit requirements when material.
+- [safety-1] Do not expose secrets, credentials, private tokens, API keys, or sensitive local paths in lifecycle artifacts.
+- [safety-2] Do not perform destructive actions without explicit user approval.
+- [safety-3] Do not claim external state without evidence.
+- [safety-4] Do not include environment variable values, connection strings, or authentication material in any artifact section.
