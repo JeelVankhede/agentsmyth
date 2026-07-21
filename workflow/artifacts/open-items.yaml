@@ -259,3 +259,21 @@ items:
     next_action: "wp-r12-local-install-fixes-v1's Review (Finding #1, P3): the exemplar.md files for lifecycle-think/lifecycle-plan/lifecycle-ship were never updated to demonstrate the new '## Checkpoint Approval' section, even though each skill's sibling output-schema.md was. Low risk (the actual check-lifecycle.mjs gate doesn't depend on the exemplar), but a future agent following only the exemplar as a template could omit the section."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-44
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-45
+    source: follow-up
+    owner: workflow owner
+    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-46
+    source: follow-up
+    owner: user
+    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
