@@ -2,7 +2,7 @@
 slug: wp-r12-local-install-fixes
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-21
 updated: 2026-07-21
 manifest_ids: [R1, R2, R3, R4, R5, RI1, RI2, RI3, RI4, RI5]
@@ -17,7 +17,7 @@ upstream:
   - workflow/artifacts/verify/wp-r12-local-install-fixes-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -106,8 +106,8 @@ none
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending — this Ship artifact is presented to the user now, in the same response this artifact is written, for real review before being marked approved.
-- User's own words (verbatim, this turn): none yet — see the task-level response for the actual question being asked.
+- Status: approved
+- User's own words (verbatim, this turn): the agent presented the Ship artifact (recommendation `ship`, PR #42 with real passing CI, all 10 manifest IDs shipped) and asked directly: "Do you approve this Ship decision? If yes, I'll record it as the real ship-review evidence, same as we did for the Plan." The user responded: "Yes".
 
 ## Exit Gate
 
@@ -116,8 +116,8 @@ none
 - [x] No active unwaived blocker remains.
 - [x] PR/CI status explicit (PR #42, CI pass, run cited) and source-of-truth explicitly not applicable.
 - [x] Rollback trigger, action, owner, and limits defined.
-- [ ] Checkpoint Approval — pending real user review, see above.
+- [x] Checkpoint Approval — approved this turn, see above.
 
 ## Next Phase
 
-Reflect, pending Checkpoint Approval above. `orchestration.next_phase: reflect`.
+Reflect. `orchestration.next_phase: reflect`.
