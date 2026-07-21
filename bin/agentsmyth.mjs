@@ -445,7 +445,7 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
 
   const cursorDest = join(repoDir, '.cursor', 'rules', 'agentsmyth.mdc');
   if (!existsSync(cursorDest)) {
-    const cursorSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'cursor', 'rules', 'index.mdc'), 'utf8');
+    const cursorSrc = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'cursor', 'rules', 'index.mdc'), 'utf8');
     mkdirSync(dirname(cursorDest), { recursive: true });
     writeFileSync(cursorDest, renderAdapterTemplate(cursorSrc, tokens));
   }
@@ -453,7 +453,7 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   if (platform() !== 'darwin') {
     const copilotDest = join(repoDir, '.github', 'copilot-instructions.md');
     if (!existsSync(copilotDest)) {
-      const copilotSrc = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'copilot-instructions.md'), 'utf8');
+      const copilotSrc = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'copilot', 'copilot-instructions.md'), 'utf8');
       mkdirSync(dirname(copilotDest), { recursive: true });
       writeFileSync(copilotDest, renderAdapterTemplate(copilotSrc, tokens));
     }
@@ -487,7 +487,7 @@ function runPrepare(pkgRootDir) {
   const gatesMissed = [];
 
   // Claude Code: ~/.claude/CLAUDE.md
-  const claudeGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
+  const claudeGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'claude', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.claude', 'CLAUDE.md'),
     claudeGate + '\n',
@@ -497,7 +497,7 @@ function runPrepare(pkgRootDir) {
   gatesInstalled.push('Claude Code (~/.claude/CLAUDE.md)');
 
   // Codex: ~/.codex/AGENTS.md
-  const codexGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
+  const codexGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'codex', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codex', 'AGENTS.md'),
     codexGate + '\n',
@@ -507,7 +507,7 @@ function runPrepare(pkgRootDir) {
   gatesInstalled.push('Codex (~/.codex/AGENTS.md)');
 
   // Windsurf: ~/.codeium/windsurf/memories/global_rules.md
-  const windsurfGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
+  const windsurfGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'windsurf', 'global-gate.md'), 'utf8').trim();
   installGateSection(
     join(homedir(), '.codeium', 'windsurf', 'memories', 'global_rules.md'),
     windsurfGate + '\n',
@@ -519,7 +519,7 @@ function runPrepare(pkgRootDir) {
   // Copilot (macOS + VS Code only)
   const copilotPath = join(homedir(), 'Library', 'Application Support', 'Code', 'User', 'prompts', 'agentsmyth.instructions.md');
   if (process.platform === 'darwin') {
-    const copilotGate = readFileSync(join(pkgRootDir, 'src', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
+    const copilotGate = readFileSync(join(pkgRootDir, 'src', 'assets', 'adapters', 'copilot', 'global-gate.md'), 'utf8').trim();
     installGateSection(
       copilotPath,
       copilotGate + '\n',
