@@ -29,14 +29,16 @@ artifacts for this slug.
 
 ## Ship Status
 
-All 4 planned phases complete, reviewed, and verified. Nothing has been committed yet — per this
-user's own global standing rule ("NEVER commit changes unless the user explicitly asks") and
-CLAUDE.md golden rule 8 (branch, don't push to main), committing this work is an explicit,
-separate user decision, not something Ship performs on its own. The working tree on branch
-`mandatory-lifecycle-pre-commit-hook` currently holds this task's changes uncommitted, alongside
-unrelated pre-existing uncommitted edits from an earlier session in this same conversation (the
-`check-lifecycle.mjs` validator-resolution bug fix and `workflow/config/*.yaml` domain/verification
-fills) — see the Task artifact's Branch/Repo Status table for the full breakdown.
+Recommendation: **ship**.
+
+All 4 planned phases complete, reviewed, and verified. Committed as `7ee8326` on branch
+`mandatory-lifecycle-pre-commit-hook`, per explicit user approval to bundle this task's changes
+together with the earlier session's unrelated fixes (`check-lifecycle.mjs` validator-resolution
+fix, `.cursor/rules/agentsmyth.mdc` re-render, `verification.yaml` schema fix) into one commit.
+This repo's own opt-in dev pre-commit hook (`.githooks/pre-commit`) ran during the commit and
+caught one real defect in this task's own Verify artifact (a Skipped Checks table missing the
+required `manifest_ids` column) — fixed and re-validated before the commit succeeded. Not yet
+pushed or merged; remains local to this branch pending further user instruction.
 
 ## Requirement Coverage
 
@@ -86,13 +88,7 @@ are current` output.
 
 ## Blocked Handoff
 
-- Blocker ID: `commit-approval`
-- Reason: nothing in this chain commits changes; the user's own standing rule requires an
-  explicit ask before any commit.
-- Owner: user
-- Exact next action: user decides whether/how to commit — e.g. commit just this task's Changed
-  Files, or also fold in the earlier session's unrelated `bin/agentsmyth.mjs`
-  validator-resolution fix and config fills that are also sitting uncommitted on this branch.
+None — commit completed (`7ee8326`) per explicit user approval of scope.
 
 ## Architecture Notes
 
