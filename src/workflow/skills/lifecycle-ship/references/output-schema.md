@@ -36,8 +36,17 @@ Required body sections:
 7. Risk And Rollback
 8. Blocked Handoff
 9. Architecture Notes
-10. Exit Gate
-11. Next Phase
+10. Checkpoint Approval
+11. Exit Gate
+12. Next Phase
+
+`## Checkpoint Approval` is required whenever `orchestration.user_checkpoint` is not the literal
+string `none` (it is `ship-review` by default — see Starter Block). `check-lifecycle.mjs --phase
+reflect` hard-blocks Reflect from starting if this artifact declares `status:
+ready-for-next-phase` without a matching, approved, evidenced Checkpoint Approval section. The
+`User's own words` line must be the user's real, verbatim message approving this specific ship
+decision, never authored or paraphrased by the agent (see `workflow/rules.md`'s `## Approval`
+section).
 
 Schema acceptance criteria:
 
@@ -124,6 +133,12 @@ none
 - decision:
 - constraint:
 - downstream:
+
+## Checkpoint Approval
+
+- Checkpoint: ship-review
+- Status: <approved — only once the user has actually responded to this ship decision>
+- User's own words (verbatim, this turn): "<exact quote — never author this yourself>"
 
 ## Exit Gate
 
