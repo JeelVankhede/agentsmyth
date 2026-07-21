@@ -2,7 +2,7 @@
 slug: wp-r13-setup-validator-definitions-root
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-21
 updated: 2026-07-21
 manifest_ids: [R1, R2, RI1, RI2]
@@ -14,7 +14,7 @@ upstream:
   - workflow/artifacts/verify/wp-r13-setup-validator-definitions-root-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -86,8 +86,8 @@ none.
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending — presented to the user in the same response this Ship artifact is written, for real review before being marked approved.
-- User's own words (verbatim, this turn): none yet — see the task-level response for the actual question being asked.
+- Status: approved
+- User's own words (verbatim, this turn): the agent stated, "WP-R13 Ship is written — recommendation ship, all 4 manifest IDs shipped, PR #43 with real passing CI. Do you approve this Ship decision?" The user responded: "yes".
 
 ## Exit Gate
 
@@ -96,8 +96,8 @@ none.
 - [x] No active unwaived blocker.
 - [x] PR/CI explicit (PR #43, CI pass, run cited).
 - [x] Rollback trigger, action, owner defined.
-- [ ] Checkpoint Approval — pending real user review, see above.
+- [x] Checkpoint Approval — approved this turn, see above.
 
 ## Next Phase
 
-Reflect, pending Checkpoint Approval above.
+Reflect.
