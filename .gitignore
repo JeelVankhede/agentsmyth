@@ -5,6 +5,9 @@
 /src/assets/adapters/
 # workflow/schemas/ is synced from src/workflow/schemas/ by build-bundle.mjs
 /workflow/schemas/
+# VitePress site build output — site/ source (config + .md) is committed, build output is not
+/site/.vitepress/dist/
+/site/.vitepress/cache/
 
 # npm pack output
 *.tgz

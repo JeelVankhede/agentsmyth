@@ -36,10 +36,13 @@
     "setup-refs:test": "node test/run-setup-refs-tests.mjs",
     "conformance:test": "node test/run-conformance-tests.mjs",
     "root-resolution:test": "node test/run-root-resolution-drift-tests.mjs",
-    "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs"
+    "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs",
+    "site:dev": "vitepress dev site",
+    "site:build": "vitepress build site"
   },
   "devDependencies": {
     "@clack/prompts": "^1.7.0",
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "vitepress": "^1.6.4"
   }
 }
