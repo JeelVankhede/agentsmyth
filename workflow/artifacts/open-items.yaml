@@ -193,3 +193,21 @@ items:
     next_action: "Update Notion WP-R9b page status to Done (and WP-R9a/WP-R9c pages, if not already done) once this chain merges -- also update page 06 (Roadmap & Work Packages) Triage Summary. Done: WP-R9a/R9b/R9c all set to Done with PR links (#38/#40/#39); found and fixed R9a/R9c were also stale (still In Progress despite being merged) -- both corrected. Page 06's Triage Summary and Overall Sequencing narrative updated to match."
     status: done
     first_seen_run: wp-r9b-scaffold-init-resolution-v1
+  - id: OI-33
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-release-readiness.mjs's two compounding bugs (substring-priority declaredRecommendation() misdetection; P0/P1 cross-check with no resolved-fix-vs-open-risk distinction) are fixed as of wp-r12-local-install-fixes-v1's Phase 2 (this branch). Note for cross-branch reconciliation: the same bug was independently found and documented as OI-40 on the not-yet-merged feat/wp-r11-docs-site branch (found while closing out that WP's own Ship artifact, before this fix existed) -- once both branches merge, confirm OI-40's entry there is marked done/superseded by this fix rather than left as a stale duplicate open item."
+    status: done
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-34
+    source: follow-up
+    owner: user/repo maintainer
+    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1
+  - id: OI-35
+    source: follow-up
+    owner: user
+    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships."
+    status: open
+    first_seen_run: wp-r12-local-install-fixes-v1

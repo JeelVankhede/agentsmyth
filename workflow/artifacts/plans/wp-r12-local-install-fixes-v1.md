@@ -60,6 +60,11 @@ Three independent, well-diagnosed fixes to `bin/agentsmyth.mjs` and `src/workflo
 | `bin/agentsmyth.mjs` | modify | R1 | 6 call sites: `src/adapters` → `src/assets/adapters`. Already done. |
 | `src/workflow/validators/check-release-readiness.mjs` | modify | R2, R3, RI1 | `declaredRecommendation()` rewritten; new resolved-finding recognition added to the P0/P1 cross-check. |
 | `bin/agentsmyth.mjs` | modify | R4, RI2, RI3, RI4, RI5 | `runPrepare()` gains 5 new file writes (one per adapter), each rendering the shared instructional content into that tool's own required format. |
+| `src/adapters/claude/invocation-skill.md` | new | R4, RI4 | Claude Code personal Skill content (build-synced to `src/assets/adapters/claude/`). |
+| `src/adapters/codex/invocation-prompt.md` | new | R4, RI4, RI5 | Codex custom-prompt content. |
+| `src/adapters/cursor/invocation-command.md` | new | R4, RI4 | Cursor global-command content. |
+| `src/adapters/windsurf/invocation-workflow.md` | new | R4, RI4 | Windsurf global-workflow content. |
+| `src/adapters/copilot/invocation-prompt.md` | new | R4, RI4 | Copilot (VS Code) prompt-file content. |
 | `workflow/artifacts/open-items.yaml` | modify | R2, R3 | OI-40 marked done once Phase 2 ships; new follow-ups added if Phase 3 surfaces any (e.g. Codex deprecation watch). |
 
 ## Source-of-Truth Strategy
@@ -92,7 +97,7 @@ Three phases, each independently verifiable, in the order the brief's own Risks 
 ### Phase 3 — 5-adapter global invocation command
 
 - **Manifest IDs:** R4, RI2, RI3, RI4, RI5
-- Touches: `bin/agentsmyth.mjs`
+- Touches: `bin/agentsmyth.mjs`, `src/adapters/claude/invocation-skill.md`, `src/adapters/codex/invocation-prompt.md`, `src/adapters/cursor/invocation-command.md`, `src/adapters/windsurf/invocation-workflow.md`, `src/adapters/copilot/invocation-prompt.md`
 - Work: In `runPrepare()`, after the existing global-gate installs, add 5 new writes (Claude, Codex, Cursor, Windsurf, Copilot — Copilot gated by the same `process.platform === 'darwin'` condition the existing Copilot gate already uses), each rendering one shared instructional-content string into that adapter's own required file format/frontmatter (see brief R4 acceptance for exact paths). Content: bootstrap-if-`workflow/config/`-absent (mirroring the existing passive-gate instruction's own wording), then load `~/.agentsmyth/workflow/router.md` + `agent-behavior.yaml`. Never overwrite an existing file at the target path (same "strictly additive" rule `placeDeterministicAdapters()` already follows for Cursor/Copilot per-repo files) — treat a pre-existing user-authored file at that path as user content, skip silently.
 - **Exit gate:** a scratch-repo run of `agentsmyth prepare` (isolated `$HOME`) writes all 5 new files with correct paths and content; `git status` in the scratch consumer repo shows zero new repo-level files; re-running `prepare` a second time does not duplicate or corrupt any of the 5 files (idempotency check, same pattern `installGateSection()` already uses for the existing gates).
 
