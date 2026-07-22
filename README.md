@@ -118,6 +118,23 @@ Then install in a target repo as in Option B.
 
 `.agentsmyth/` is added to `.gitignore` automatically. It is temporary — the agent removes it after setup.
 
+### Mandatory local lifecycle gate
+
+`init` also installs a **local git pre-commit hook** (`.git/hooks/pre-commit`, or your configured
+`core.hooksPath` file if you already use one) — automatically, with no separate opt-in step. It
+runs `agentsmyth check --staged` before every commit: staged files under `workflow/`, `docs/`,
+`.cursor/`, `.claude/`, `.github/`, or any Markdown file are always safe; a single small
+(≤15-line) non-safe file is treated as trivial; anything else must be named in a real (non-draft,
+non-blocked) lifecycle task artifact's "Changed Files" section, or the commit is rejected with the
+exact uncovered paths.
+
+This is deliberately **local-only** — no CI workflow is added to or required by your repo. It's
+enforced at the one point every supported AI tool's output passes through regardless of which
+tool produced it: `git commit`. The only bypass is git's own `git commit --no-verify` — no new
+flag or config toggle is introduced. If you already have a custom `pre-commit` hook, `init`
+appends this check to the end of it rather than overwriting; re-running `init` is idempotent and
+won't duplicate the check.
+
 ### Running setup
 
 Open your AI agent in the target repo and say:

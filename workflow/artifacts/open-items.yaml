@@ -307,3 +307,9 @@ items:
     next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged."
     status: open
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
+  - id: OI-52
+    source: follow-up
+    owner: user (to schedule)
+    next_action: "bin/agentsmyth.mjs's init/headlessBootstrap write definitions_root as the fully home-expanded absolute path (join(homedir(), '.agentsmyth', 'workflow')) into every consumer repo's committed repo-profile.yaml, instead of the portable '~/.agentsmyth/workflow' string the read side (lib.mjs's _expandTilde, resolveValidator()) already knows how to expand at resolution time. This means any teammate on a different machine, or any CI runner, whose home directory doesn't match whoever ran init gets 'global definitions root not found' — reproduced directly on this repo's own PR #45 CI run (fixed there only by removing definitions_root entirely from this repo's own dev-workspace config, not by fixing the general write-side bug). Needs its own brief/plan/task/review/verify/ship chain: fix writeDefinitionsRoot()'s two call sites to write the tilde-prefixed portable string, and decide whether/how to migrate already-init'd consumer repos' existing absolute-path repo-profile.yaml files."
+    status: open
+    first_seen_run: mandatory-lifecycle-pre-commit-hook-v1

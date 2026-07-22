@@ -1,5 +1,5 @@
 ---
-description: agentsmyth workflow gate for {{REPO_NAME}}
+description: agentsmyth workflow gate — mandatory reading before any task
 globs: ["**/*"]
 alwaysApply: true
 ---

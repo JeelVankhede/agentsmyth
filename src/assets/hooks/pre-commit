@@ -1,0 +1,17 @@
+#!/bin/sh
+# >>> agentsmyth:mandatory-lifecycle-gate >>>
+# Installed by `agentsmyth init` — mandatory, local-only lifecycle coverage check.
+# Blocks a commit when staged, non-safe files aren't covered by any real lifecycle task
+# artifact. This is a fast proxy, not the full lifecycle gate (see check-commit-coverage.mjs).
+# Bypass deliberately, when you mean to: git commit --no-verify
+if command -v agentsmyth >/dev/null 2>&1; then
+  agentsmyth check --staged
+  status=$?
+else
+  npx --yes @jeelvankhede/agentsmyth check --staged
+  status=$?
+fi
+if [ "$status" -ne 0 ]; then
+  exit "$status"
+fi
+# <<< agentsmyth:mandatory-lifecycle-gate <<<

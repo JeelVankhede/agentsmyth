@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import {
+  defsPath,
+  dataPath,
   finish,
   listFiles,
   loadYaml,
@@ -8,14 +10,16 @@ import {
   validateSchema,
 } from './lib.mjs';
 
-const repoRoot = process.cwd();
-const workflowRoot = 'workflow';
-
 const errors = [];
 const details = [];
 const schemas = schemaRegistry();
 
-for (const schemaPath of listFiles(`${workflowRoot}/schemas`).filter((file) => file.endsWith('.yaml'))) {
+// Schemas live on the definitions side (defsPath) — a repo linked to a global install
+// (definitions_root set, the default `init` flow) never gets its own local workflow/schemas/;
+// only workflow/config/, workflow/artifacts/, and workflow/learnings/ stay repo-local (dataPath).
+// This file previously hardcoded a single `workflow/` root for both, which produced false
+// "no matching schema" failures for every repo linked to a global install.
+for (const schemaPath of listFiles(defsPath('schemas')).filter((file) => file.endsWith('.yaml'))) {
   const schema = loadYaml(schemaPath);
   if (!schema.$schema) errors.push(`${schemaPath} missing $schema`);
   if (!schema.$id) errors.push(`${schemaPath} missing $id`);
@@ -26,14 +30,14 @@ for (const schemaPath of listFiles(`${workflowRoot}/schemas`).filter((file) => f
   }
 }
 
-for (const configPath of listFiles(`${workflowRoot}/config`).filter((file) => file.endsWith('.yaml'))) {
+for (const configPath of listFiles(dataPath('config')).filter((file) => file.endsWith('.yaml'))) {
   const config = loadYaml(configPath);
   if (!config.kind) {
     errors.push(`${configPath} missing kind`);
     continue;
   }
 
-  const schemaPath = `${workflowRoot}/schemas/${config.kind}.schema.yaml`;
+  const schemaPath = defsPath('schemas', `${config.kind}.schema.yaml`);
   if (!pathExists(schemaPath)) {
     errors.push(`${configPath} has no matching schema ${schemaPath}`);
     continue;

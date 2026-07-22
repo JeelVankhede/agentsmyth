@@ -1,0 +1,24 @@
+version: 1
+kind: pending-setup
+
+# Written by agentsmyth headless bootstrap.
+# Run the agentsmyth setup skill to resolve these items.
+items:
+  - id: PS-1
+    config: domain.yaml
+    field: "domain.name"
+    question: "What is the name of the domain or product this repo serves?"
+    hint: "Check README.md or package.json description"
+    status: resolved
+  - id: PS-2
+    config: domain.yaml
+    field: "domain.summary"
+    question: "Describe the domain in one sentence for lifecycle artifacts."
+    hint: "Check README.md"
+    status: resolved
+  - id: PS-3
+    config: verification.yaml
+    field: "commands[0].command"
+    question: "What command confirms the repo is healthy (build, test, lint)?"
+    hint: "Check Makefile, package.json scripts, or CI config"
+    status: resolved

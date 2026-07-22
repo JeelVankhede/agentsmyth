@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { confirmPrompt } from './prompts.mjs';
 
@@ -56,6 +56,31 @@ if (!command || command === 'help') {
 // forwarding all args and propagating the exit code. Falls back to npx if the
 // binary is not on PATH (common when installed via npm without global linking).
 
+// Resolves a validator file with the same two-root priority lib.mjs uses internally
+// (definitions_root in repo-profile.yaml -> AGENTSMYTH_HOME -> repo-local workflow/), plus a
+// final fallback to pkgRoot/src/workflow/ for the dev/source-repo case (pkgRoot IS the repo
+// root there, so src/workflow/validators/ exists directly — never true for a real npm install,
+// since package.json's "files" field never ships src/workflow/). Shared by every `--<mode>` of
+// the `check` command so each new validator (check-lifecycle.mjs, check-commit-coverage.mjs, ...)
+// gets the same resolution instead of re-deriving it.
+function resolveValidator(checkRoot, profilePath, validatorFilename) {
+  let definitionsRoot = null;
+  try {
+    const m = readFileSync(profilePath, 'utf8').match(/^\s*definitions_root:\s*(.+)$/m);
+    definitionsRoot = m ? m[1].trim() : null;
+  } catch { /* fall through */ }
+  if (definitionsRoot?.startsWith('~/')) definitionsRoot = join(homedir(), definitionsRoot.slice(2));
+
+  const candidates = [
+    definitionsRoot && join(definitionsRoot, 'validators', validatorFilename),
+    process.env.AGENTSMYTH_HOME && join(process.env.AGENTSMYTH_HOME, 'validators', validatorFilename),
+    join(checkRoot, 'workflow', 'validators', validatorFilename),
+    join(pkgRoot, 'src', 'workflow', 'validators', validatorFilename),
+  ].filter(Boolean);
+  const resolved = candidates.find((p) => existsSync(p));
+  return { resolved, candidates };
+}
+
 if (command === 'check') {
   // Resolve the existing repo root first — git top-level for single-repo/monorepo,
   // workspace_root for polyrepo-member — so a subdirectory invocation finds the real
@@ -98,18 +123,24 @@ if (command === 'check') {
     }
   } catch { /* non-fatal */ }
 
-  // Resolve the validator path via the installed package's lib.mjs resolver
-  const validatorsDir = join(pkgRoot, 'src', 'workflow', 'validators');
-  const validatorPath = join(validatorsDir, 'check-lifecycle.mjs');
-
-  // If running from a global install, the validator lives at pkgRoot; fall back
-  // to the local workflow/validators/ if check-lifecycle.mjs was placed there.
-  const localValidator = join(checkRoot, 'workflow', 'validators', 'check-lifecycle.mjs');
-  const resolvedValidator = existsSync(validatorPath) ? validatorPath : localValidator;
-
+  // `--staged` routes to the fast pre-commit coverage proxy (invoked by the mandatory local git
+  // hook) instead of the full lifecycle gate validator.
   const args = process.argv.slice(3);
+  const stagedIdx = args.indexOf('--staged');
+  const validatorFilename = stagedIdx !== -1 ? 'check-commit-coverage.mjs' : 'check-lifecycle.mjs';
+  const forwardedArgs = stagedIdx !== -1 ? [...args.slice(0, stagedIdx), ...args.slice(stagedIdx + 1)] : args;
+
+  const { resolved: resolvedValidator, candidates } = resolveValidator(checkRoot, profilePath, validatorFilename);
+
+  if (!resolvedValidator) {
+    console.error(`agentsmyth: could not locate ${validatorFilename} in any of:`);
+    for (const c of candidates) console.error(`  ${c}`);
+    console.error('Run "agentsmyth prepare" to install the global lifecycle definitions.');
+    process.exit(1);
+  }
+
   try {
-    execFileSync(process.execPath, [resolvedValidator, ...args], { stdio: 'inherit', cwd: checkRoot });
+    execFileSync(process.execPath, [resolvedValidator, ...forwardedArgs], { stdio: 'inherit', cwd: checkRoot });
   } catch (e) {
     process.exit(e.status ?? 1);
   }
@@ -460,6 +491,62 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   }
 }
 
+const HOOK_BEGIN_MARKER = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
+
+// Installs the mandatory local pre-commit lifecycle gate — called only from `init` (never
+// `runPrepare()`, which writes zero repo-level files by design). Tool-agnostic by construction:
+// this hooks git itself, the one action every supported AI tool's output must pass through
+// regardless of which tool produced the diff. Idempotent (re-running `init` doesn't duplicate
+// the marker block) and never clobbers a user's own pre-existing hook (RI2) — appends instead.
+// Never fails `init` itself: a non-git directory or unwritable hooks path degrades to a warning
+// (RI4), since `init` must still be usable to scaffold config/artifacts even without git.
+function installPreCommitHook(repoDir, pkgRootDir) {
+  let hooksPath;
+  try {
+    const configured = execFileSync('git', ['config', 'core.hooksPath'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    hooksPath = configured ? (isAbsolute(configured) ? configured : join(repoDir, configured)) : join(repoDir, '.git', 'hooks');
+  } catch {
+    hooksPath = join(repoDir, '.git', 'hooks');
+  }
+
+  if (!existsSync(join(repoDir, '.git')) && !existsSync(hooksPath)) {
+    console.warn('agentsmyth: not a git repository (or hooks path unavailable) — skipping mandatory pre-commit hook install.');
+    console.warn('  Lifecycle coverage will not be enforced at commit time until this repo is a git repo.');
+    return;
+  }
+
+  try {
+    mkdirSync(hooksPath, { recursive: true });
+  } catch (err) {
+    console.warn(`agentsmyth: could not create hooks directory at ${hooksPath} — skipping pre-commit hook install.`);
+    console.warn(`  ${err.message}`);
+    return;
+  }
+
+  const target = join(hooksPath, 'pre-commit');
+  const template = readFileSync(join(pkgRootDir, 'src', 'assets', 'hooks', 'pre-commit'), 'utf8');
+
+  try {
+    if (!existsSync(target)) {
+      writeFileSync(target, template, { mode: 0o755 });
+      return;
+    }
+    const existing = readFileSync(target, 'utf8');
+    if (existing.includes(HOOK_BEGIN_MARKER)) {
+      return; // already installed — idempotent across repeated init/upgrade runs
+    }
+    const block = template.slice(template.indexOf(HOOK_BEGIN_MARKER));
+    const appended = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
+    writeFileSync(target, appended, { mode: 0o755 });
+  } catch (err) {
+    console.warn(`agentsmyth: could not write pre-commit hook at ${target} — skipping.`);
+    console.warn(`  ${err.message}`);
+  }
+}
+
 // Installs/refreshes the global lifecycle definitions at ~/.agentsmyth/workflow/ and the 5
 // adapters' global gate files. Writes zero repo-level files — callers that need a repo linked
 // to the resulting global tree must independently compute the global workflow dir and call
@@ -710,6 +797,10 @@ headlessBootstrap(cwd, pkgRoot);
 // headlessBootstrap() so the config values it renders from (default branch, protected paths,
 // etc.) already exist.
 placeDeterministicAdapters(cwd, pkgRoot);
+
+// Mandatory local lifecycle gate (R1): installed unconditionally, no separate opt-in step.
+// Tool-agnostic — enforces at the git-commit layer, not any single AI tool's own mechanism.
+installPreCommitHook(cwd, pkgRoot);
 
 // Copy bundles
 mkdirSync(targetDir, { recursive: true });
