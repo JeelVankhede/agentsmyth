@@ -164,8 +164,16 @@ function spawnCli(args, { cwd, home, input }) {
   check('F4-version-stamped', 'the stub has agentsmyth_version stamped', /^agentsmyth_version:/m.test(profileContent));
 
   const followUp = spawnCli(['check', '--phase', 'think', '--slug', 'wpr7-test'], { cwd: repo, home });
+  // deepen-setup-interview-v1 (R1) folded check-setup-complete.mjs into `agentsmyth check`, so
+  // the overall exit code is now correctly non-zero here — this scratch repo only ran the
+  // headless-bootstrap fallback and never actually completed setup (domain.yaml/source-of-truth.yaml
+  // still carry real placeholders). This scenario's own intent is narrower than overall exit
+  // code: does check-lifecycle.mjs itself still resolve and run cleanly from the global tree,
+  // independent of the separate, new, and correctly-firing setup-completeness gate.
   check('F5-resolves', 'a subsequent check-lifecycle invocation resolves cleanly from the global tree',
-    followUp.status === 0 && /check-lifecycle --phase think: ok/.test(followUp.stdout));
+    /check-lifecycle --phase think: ok/.test(followUp.stdout));
+  check('F6-setup-incomplete-flagged', 'the same invocation also surfaces the (correct, expected) setup-completeness failure',
+    followUp.status !== 0 && /check-setup-complete: failed/.test(followUp.stderr));
 }
 
 // ── Scenario G: `check`'s headless bootstrap auto-runs prepare when no global install

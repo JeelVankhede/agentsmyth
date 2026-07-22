@@ -4,7 +4,14 @@ kind: source-of-truth
 source_of_truth:
   mode: optional
   default_required: false
-  providers: []
+  providers:
+    - id: primary
+      type: "<PLACEHOLDER>"
+      enabled: true
+      read: true
+      update: false
+      owner: user
+      location: "<PLACEHOLDER>"
 
 read_policy:
   read_when_user_provides_source: true

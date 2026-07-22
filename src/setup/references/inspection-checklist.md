@@ -17,9 +17,16 @@ Run these inspections before starting the interview. Record what you find; use i
 ## Config and Tooling
 
 - [ ] Check for CI config: `.github/workflows/`, `.circleci/`, `Jenkinsfile`, `.gitlab-ci.yml`, `Makefile`.
+  `agentsmyth init`'s headless bootstrap already does this presence-based detection automatically
+  (`.github/workflows/` → `github-actions`, `.circleci/config.yml` → `circleci`, `.gitlab-ci.yml` →
+  `gitlab-ci`, `Jenkinsfile` → `jenkins`) and sets `release.yaml`'s `gates.ci.required`/`provider`
+  accordingly — re-confirm it matches reality rather than re-deriving it from scratch.
 - [ ] Check for linting: `.eslintrc*`, `.prettierrc*`, `ruff.toml`, `.golangci.yml`, `.rubocop.yml`.
 - [ ] Check for test runners: `jest.config.*`, `pytest.ini`, `go test`, `rspec`.
-- [ ] Check for a `Makefile` or `scripts/` with common commands.
+- [ ] Check for a `Makefile` or `scripts/` with common commands. `agentsmyth init` already
+  enumerates `package.json`'s `test`/`build`/`lint` scripts (or the equivalent `Makefile` targets
+  if no `package.json` exists) into `verification.yaml`'s `commands[]` automatically — confirm the
+  detected set is complete rather than assuming only one command matters.
 
 ## Branch and Git Policy
 

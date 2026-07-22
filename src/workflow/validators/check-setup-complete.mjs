@@ -149,7 +149,17 @@ if (userTodos.length > 0) {
 // resolveRepoRoot() itself isn't imported: lib.mjs's module-level code can process.exit(1) if a
 // custom definitions_root doesn't exist yet, an unacceptable side effect during setup
 // verification itself, when things may deliberately not be fully configured yet.
+//
+// Also true when AGENTSMYTH_HOME is set — this is the same env var lib.mjs's own two-root
+// resolver already treats as equivalent to definitions_root (definitions_root -> AGENTSMYTH_HOME
+// -> repo-local fallback), and scripts/validate-template.mjs already uses it exactly this way to
+// point this repo's own dogfood checks at src/workflow/ instead of workflow/. Without this,
+// folding this validator into `agentsmyth check` (which this repo's own `AGENTSMYTH_HOME=src/workflow
+// node bin/agentsmyth.mjs check` invocation now exercises) falsely treated agentsmyth's own dev
+// workspace as an unlinked consumer repo needing a full local workflow/ tree it was never meant
+// to have — found live while folding this validator into `agentsmyth check` for the first time.
 function definitionsRootIsSet() {
+  if (process.env.AGENTSMYTH_HOME) return true;
   const text = read('workflow/config/repo-profile.yaml');
   if (!text) return false;
   return Boolean(text.match(/^\s*definitions_root:\s*(\S.*)$/m)?.[1]?.trim());
