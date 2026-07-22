@@ -98,8 +98,12 @@ function spawnCli(args, { cwd, home, input }) {
     /Installing global definitions/.test(result.stdout));
   check('C3-global-tree', 'the global tree was actually installed',
     existsSync(join(home, '.agentsmyth', 'workflow', 'router.md')));
-  check('C4-definitions-root', 'repo-profile.yaml has definitions_root set to the global tree',
-    existsSync(profilePath) && readFileSync(profilePath, 'utf8').includes(`definitions_root: ${join(home, '.agentsmyth', 'workflow')}`));
+  // fix-definitions-root-portability-v1 (OI-52): same fix as Scenario F's F3 — bare `init` must
+  // also write the portable literal, not an expanded absolute path.
+  const initProfileContent = existsSync(profilePath) ? readFileSync(profilePath, 'utf8') : '';
+  check('C4-definitions-root', 'repo-profile.yaml has the portable ~/.agentsmyth/workflow, not an expanded absolute path',
+    initProfileContent.includes('definitions_root: ~/.agentsmyth/workflow') &&
+    !initProfileContent.includes(`definitions_root: ${join(home, '.agentsmyth', 'workflow')}`));
   check('C5-no-local-skills', 'no local workflow/skills/ was created',
     !existsSync(join(repo, 'workflow', 'skills')));
   check('C6-no-local-router', 'no local workflow/router.md was created',
@@ -159,8 +163,13 @@ function spawnCli(args, { cwd, home, input }) {
 
   check('F1-exit', 'check (headless bootstrap) exits 0', result.status === 0);
   check('F2-stub-written', 'a stub repo-profile.yaml was written', existsSync(profilePath));
-  check('F3-definitions-root', 'the stub has definitions_root set to the global tree',
-    profileContent.includes(`definitions_root: ${join(home, '.agentsmyth', 'workflow')}`));
+  // fix-definitions-root-portability-v1 (OI-52): the stub must carry the portable literal
+  // ~/.agentsmyth/workflow, never an expanded, machine-specific absolute path — otherwise any
+  // other contributor or CI runner whose home directory differs gets "global definitions root
+  // not found". Was previously asserting the expanded form (the bug itself), inverted here.
+  check('F3-definitions-root', 'the stub has the portable ~/.agentsmyth/workflow, not an expanded absolute path',
+    profileContent.includes('definitions_root: ~/.agentsmyth/workflow') &&
+    !profileContent.includes(`definitions_root: ${join(home, '.agentsmyth', 'workflow')}`));
   check('F4-version-stamped', 'the stub has agentsmyth_version stamped', /^agentsmyth_version:/m.test(profileContent));
 
   const followUp = spawnCli(['check', '--phase', 'think', '--slug', 'wpr7-test'], { cwd: repo, home });

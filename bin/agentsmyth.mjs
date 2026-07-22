@@ -10,6 +10,14 @@ const pkgRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cwd = process.cwd();
 const command = process.argv[2];
 
+// Written into definitions_root as a hardcoded, forward-slash literal — never derived via
+// join('~', ...), which would silently produce a backslash-joined value on Windows and break
+// every reader's `startsWith('~/')` check (lib.mjs's _expandTilde, resolveValidator() here, and
+// the same pattern already proven for repository.workspace_root). homedir() itself is already
+// cross-platform-correct (macOS/Linux/Windows) on the read side — this constant just makes sure
+// the write side never bakes in one specific machine's expanded path (OI-52).
+const PORTABLE_DEFINITIONS_ROOT = '~/.agentsmyth/workflow';
+
 // Deliberately duplicated from lib.mjs's _resolveRepoRoot, third copy alongside
 // lib.mjs's own and check-setup-complete.mjs's: this is the CLI entrypoint and shells out to
 // validators as a separate process rather than importing lib.mjs directly, so it can't share
@@ -367,7 +375,9 @@ function headlessBootstrap(repoDir, pkgRootDir) {
   // Write definitions_root into the stub repo-profile.yaml — reuses the same
   // insertion logic `init` and `prepare`-linked repos already rely on, rather than
   // duplicating the repository:/learnings_sessions_root: anchor-matching here.
-  writeDefinitionsRoot(repoDir, globalWorkflowDir, pkgVersion);
+  // The portable literal (not globalWorkflowDir, the expanded path used above for existsSync
+  // checks) is what gets committed — see PORTABLE_DEFINITIONS_ROOT's own comment (OI-52).
+  writeDefinitionsRoot(repoDir, PORTABLE_DEFINITIONS_ROOT, pkgVersion);
 
   const pendingPath = join(configDir, 'pending-setup.yaml');
   if (!existsSync(pendingPath)) {
