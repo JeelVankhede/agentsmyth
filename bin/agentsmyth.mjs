@@ -130,6 +130,25 @@ if (command === 'check') {
   const validatorFilename = stagedIdx !== -1 ? 'check-commit-coverage.mjs' : 'check-lifecycle.mjs';
   const forwardedArgs = stagedIdx !== -1 ? [...args.slice(0, stagedIdx), ...args.slice(stagedIdx + 1)] : args;
 
+  // Setup-completeness gate (folded in so an agent can't silently skip past incomplete setup —
+  // previously check-setup-complete.mjs was only ever invoked manually via src/setup/SKILL.md
+  // Phase 4, so nothing forced it to run). Its own checks are self-gating: a genuinely complete
+  // repo (no placeholders, .agentsmyth/ gone, adapter present) passes trivially, so running it on
+  // every invocation is safe, not just during active setup. Scoped out of `--staged` — that path
+  // is deliberately the fast, narrow pre-commit proxy; setup-completeness is a different concern
+  // and would slow down every commit for no benefit once a repo is genuinely set up.
+  let setupCompleteFailed = false;
+  if (stagedIdx === -1) {
+    const { resolved: resolvedSetupComplete } = resolveValidator(checkRoot, profilePath, 'check-setup-complete.mjs');
+    if (resolvedSetupComplete) {
+      try {
+        execFileSync(process.execPath, [resolvedSetupComplete], { stdio: 'inherit', cwd: checkRoot });
+      } catch {
+        setupCompleteFailed = true;
+      }
+    }
+  }
+
   const { resolved: resolvedValidator, candidates } = resolveValidator(checkRoot, profilePath, validatorFilename);
 
   if (!resolvedValidator) {
@@ -139,12 +158,13 @@ if (command === 'check') {
     process.exit(1);
   }
 
+  let lifecycleFailed = false;
   try {
     execFileSync(process.execPath, [resolvedValidator, ...forwardedArgs], { stdio: 'inherit', cwd: checkRoot });
   } catch (e) {
-    process.exit(e.status ?? 1);
+    lifecycleFailed = true;
   }
-  process.exit(0);
+  process.exit(setupCompleteFailed || lifecycleFailed ? 1 : 0);
 }
 
 // ─── prepare ───────────────────────────────────────────────────────────────
@@ -173,8 +193,88 @@ if (command !== 'init') {
 // ─── shared helpers ────────────────────────────────────────────────────────
 
 // Writes stub config files + pending-setup.yaml when workflow/config/ is absent.
+// ─── Inference helpers for headlessBootstrap()'s widened pending-setup coverage ────────────
+// Cheap existsSync/directory-listing-only detection (no new dependency, no YAML parsing of
+// arbitrary CI files) — see workflow/artifacts/plans/deepen-setup-interview-v1.md's Approach for
+// the full inference-vs-question design rationale (Phase 2: inference only, never a new
+// question; Phase 3: a real, waivable pending-setup item where inference can't safely resolve).
+
+function detectCiProvider(repoDir) {
+  const workflowsDir = join(repoDir, '.github', 'workflows');
+  if (existsSync(workflowsDir)) {
+    try {
+      if (readdirSync(workflowsDir).length > 0) return 'github-actions';
+    } catch { /* unreadable, treat as absent */ }
+  }
+  const fileCandidates = [
+    ['.circleci/config.yml', 'circleci'],
+    ['.gitlab-ci.yml', 'gitlab-ci'],
+    ['Jenkinsfile', 'jenkins'],
+  ];
+  for (const [path, provider] of fileCandidates) {
+    if (existsSync(join(repoDir, path))) return provider;
+  }
+  return null;
+}
+
+function detectSensitivePaths(repoDir) {
+  return ['secrets', 'credentials', 'certs', 'keys'].filter((name) => existsSync(join(repoDir, name)));
+}
+
+function detectVerificationCommands(repoDir) {
+  const pkgJsonPath = join(repoDir, 'package.json');
+  if (existsSync(pkgJsonPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+      // Exclude `npm init`'s own default test stub — a real, common false positive: a fresh
+      // package.json with no actual test suite still has a "test" script, and treating it as a
+      // resolved verification command would be worse than asking, not better.
+      const found = ['test', 'build', 'lint']
+        .filter((script) => pkg.scripts?.[script] && !pkg.scripts[script].includes('no test specified'))
+        .map((script) => `npm run ${script}`);
+      if (found.length > 0) return found;
+    } catch { /* malformed package.json, fall through to Makefile */ }
+  }
+  const makefilePath = join(repoDir, 'Makefile');
+  if (existsSync(makefilePath)) {
+    try {
+      const text = readFileSync(makefilePath, 'utf8');
+      const found = ['test', 'build', 'lint'].filter((target) => new RegExp(`^${target}:`, 'm').test(text)).map((target) => `make ${target}`);
+      if (found.length > 0) return found;
+    } catch { /* unreadable, fall through */ }
+  }
+  return [];
+}
+
+// "Auto-resolved" category (see headlessBootstrap()'s own comment on the 3-tier design): every
+// category here always ends up with a real value (found names, or an honest empty array if
+// nothing matched) — never a stuck placeholder, since a repo legitimately lacking a distinct
+// docs/ root, say, is a valid outcome, not a resolution failure worth hard-blocking on.
+function detectKeyPaths(repoDir) {
+  let entries = [];
+  try {
+    entries = readdirSync(repoDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch { /* leave empty */ }
+  return {
+    sourceRoots: ['src', 'lib', 'app', 'pkg', 'cmd'].filter((n) => entries.includes(n)),
+    testRoots: ['test', 'tests', 'spec'].filter((n) => entries.includes(n)),
+    docsRoots: ['docs'].filter((n) => entries.includes(n)),
+  };
+}
+
 // Infers what it can (default branch); marks the rest <USER-TODO> in pending-setup.yaml.
 // Never overwrites existing files. Returns the inferred default branch string.
+//
+// pending-setup coverage is deliberately 3-tier (deepen-setup-interview-v1), not uniform:
+//   1. Hard-gated: a literal <PLACEHOLDER> is left in the config, check-setup-complete.mjs
+//      (folded into `agentsmyth check`) hard-fails until it's resolved. Used only where no
+//      value at all would misrepresent reality (domain identity, the primary verification
+//      command when nothing is inferable, source-of-truth).
+//   2. Soft-tracked: a pending-setup.yaml item exists but no config placeholder backs it — the
+//      config keeps a safe, honest default; check-pending-setup.mjs reports it as open but never
+//      hard-blocks (release-process existence, additional risk/non-goal constraints).
+//   3. Auto-resolved: inference always produces a final answer (real values or an honest empty
+//      list), no question needed at all in the fully-determined case (key paths).
 function headlessBootstrap(repoDir, pkgRootDir) {
   // Link to a global definitions install, same treatment as bare `init`: auto-run
   // `prepare` when missing, surface any failure clearly, and exit before touching any repo
@@ -210,17 +310,57 @@ function headlessBootstrap(repoDir, pkgRootDir) {
     } catch { /* leave as USER-TODO */ }
   }
 
+  const ciProvider = detectCiProvider(repoDir);
+  const sensitivePaths = detectSensitivePaths(repoDir);
+  const verificationCommands = detectVerificationCommands(repoDir);
+  const keyPaths = detectKeyPaths(repoDir);
+  const keyPathsFoundNothing = keyPaths.sourceRoots.length === 0 && keyPaths.testRoots.length === 0 && keyPaths.docsRoots.length === 0;
+
   const pkgVersion = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
   const templateDir = join(pkgRootDir, 'src', 'assets', 'workflow', 'config');
   for (const name of ['domain.yaml', 'release.yaml', 'repo-profile.yaml', 'source-of-truth.yaml', 'verification.yaml']) {
     const dest = join(configDir, name);
     if (existsSync(dest)) continue;
     let content = readFileSync(join(templateDir, name), 'utf8');
+
     if (name === 'repo-profile.yaml') {
       content = content.replace('default_branch: <PLACEHOLDER>', `default_branch: ${defaultBranch}`);
       // Stamp the package version so `agentsmyth check` can detect skew
       content = `agentsmyth_version: ${pkgVersion}\n` + content;
+
+      // Phase 2 (inference-only): widen the generic protected-path floor with any sensitive
+      // directories actually found — purely additive, never removes the existing 3 defaults.
+      if (sensitivePaths.length > 0) {
+        const extra = sensitivePaths.map((p) => `    - pattern: ${p}/**\n      reason: detected sensitive directory`).join('\n');
+        content = content.replace(
+          `    - pattern: '**/*secret*'\n      reason: potential secrets\n`,
+          `    - pattern: '**/*secret*'\n      reason: potential secrets\n${extra}\n`
+        );
+      }
+
+      // Auto-resolved tier: always ends with a real value (found names, or an honest empty
+      // array) — never leaves the placeholder sentinel stuck.
+      content = content.replace('source_roots: ["<PLACEHOLDER>"]', `source_roots: [${keyPaths.sourceRoots.map((p) => `"${p}"`).join(', ')}]`);
+      content = content.replace('test_roots: ["<PLACEHOLDER>"]', `test_roots: [${keyPaths.testRoots.map((p) => `"${p}"`).join(', ')}]`);
+      content = content.replace('docs_roots: ["<PLACEHOLDER>"]', `docs_roots: [${keyPaths.docsRoots.map((p) => `"${p}"`).join(', ')}]`);
     }
+
+    // Phase 2 (inference-only): CI-gate reality. If no CI config is found, the existing silent
+    // default (required: false, provider: none) is already an accurate reflection — left as-is.
+    if (name === 'release.yaml' && ciProvider) {
+      content = content.replace('  ci:\n    required: false\n    provider: none', `  ci:\n    required: true\n    provider: ${ciProvider}`);
+    }
+
+    // Phase 2 (inference-only): enumerate every detected script/target rather than only the
+    // first one — the previous behavior (PS-3 alone) only ever captured one command.
+    if (name === 'verification.yaml' && verificationCommands.length > 0) {
+      const entries = verificationCommands.map((cmd) => {
+        const id = cmd.replace(/^(npm run |make )/, '');
+        return `  - id: ${id}\n    command: "${cmd}"\n    cwd: .\n    required: true\n    phases: [review, ship]`;
+      }).join('\n');
+      content = content.replace('commands: []', `commands:\n${entries}`);
+    }
+
     writeFileSync(dest, content);
   }
 
@@ -239,11 +379,70 @@ function headlessBootstrap(repoDir, pkgRootDir) {
       `    hint: "Run: git symbolic-ref refs/remotes/origin/HEAD"`,
       `    status: open`,
     ].join('\n') : null;
+    // PS-3 only fires when inference found no verification command at all — a repo whose
+    // package.json/Makefile already yielded real commands[] entries has nothing left to ask.
+    const verificationItem = verificationCommands.length === 0 ? [
+      `  - id: PS-3`,
+      `    config: verification.yaml`,
+      `    field: "commands[0].command"`,
+      `    question: "What command confirms the repo is healthy (build, test, lint)?"`,
+      `    hint: "Check Makefile, package.json scripts, or CI config"`,
+      `    status: open`,
+    ].join('\n') : null;
+    // Auto-resolved tier (PS-5): the config already carries real values or an honest [] for
+    // every category by this point — this item is purely advisory (never hard-blocks via
+    // check-setup-complete.mjs), surfaced only in the fully-blind case as a nudge to double-check
+    // the directory-name heuristic didn't just miss an unconventional layout.
+    const keyPathsItem = keyPathsFoundNothing ? [
+      `  - id: PS-5`,
+      `    config: repo-profile.yaml`,
+      `    field: "paths.source_roots[] / paths.test_roots[] / paths.docs_roots[]"`,
+      `    question: "What are this repo's key directories — source root, test root, docs root (if distinct from repo root)? An empty list for any category that doesn't apply is fine."`,
+      `    hint: "Check top-level directories for src/, lib/, app/, pkg/, cmd/ (source); test/, tests/, spec/ (tests); docs/ (docs)."`,
+      `    status: open`,
+    ].join('\n') : null;
+    // Hard-gated tier (PS-6): source-of-truth.yaml ships with a placeholder providers[0] entry;
+    // resolving means either filling it in or reverting to providers: [] (a valid, common answer
+    // for repos with no formal tracking) — either way, check-setup-complete.mjs blocks until this
+    // is actively resolved, not silently defaulted.
+    const sourceOfTruthItem = [
+      `  - id: PS-6`,
+      `    config: source-of-truth.yaml`,
+      `    field: "source_of_truth.providers[0].type / source_of_truth.providers[0].location"`,
+      `    question: "Where are requirements or decisions tracked for this repo, if anywhere (issue tracker, ADR folder, wiki, Notion, etc.)? 'Nowhere formal' is a valid answer — resolve by reverting providers to an empty list."`,
+      `    hint: "Check README.md/CONTRIBUTING.md for a linked project management tool, or a docs/adr/ or docs/decisions/ folder."`,
+      `    status: open`,
+    ].join('\n');
+    // Soft-tracked tier (PS-7): no config placeholder backs this — release.yaml keeps its safe
+    // default (required: false) until this item is answered or waived; check-pending-setup.mjs
+    // reports it as open but check-setup-complete.mjs does not hard-fail on it.
+    const releaseProcessItem = [
+      `  - id: PS-7`,
+      `    config: release.yaml`,
+      `    field: "release.required"`,
+      `    question: "Does this repo have a formal release process — versioned publish, tagged deploy, etc.? 'No formal process' is valid and common."`,
+      `    hint: "Check package.json version/publish scripts, CHANGELOG.md, or tagged releases (git tag -l)."`,
+      `    status: open`,
+    ].join('\n');
+    // Soft-tracked tier (PS-8): same as PS-7 — domain.yaml's existing generic constraints stay
+    // as real (non-placeholder) content; this only prompts for an optional addition.
+    const risksItem = [
+      `  - id: PS-8`,
+      `    config: domain.yaml`,
+      `    field: "constraints.product[] / constraints.safety[]"`,
+      `    question: "Anything specific the AI agent should never do in this repo, beyond the generic defaults already listed? 'No additional constraints' is a valid answer."`,
+      `    hint: "Consider sensitive modules, migrations, payment/auth code, or anything requiring human review before automated changes."`,
+      `    status: open`,
+    ].join('\n');
     const items = [
       [`  - id: PS-1`, `    config: domain.yaml`, `    field: "domain.name"`, `    question: "What is the name of the domain or product this repo serves?"`, `    hint: "Check README.md or package.json description"`, `    status: open`].join('\n'),
       [`  - id: PS-2`, `    config: domain.yaml`, `    field: "domain.summary"`, `    question: "Describe the domain in one sentence for lifecycle artifacts."`, `    hint: "Check README.md"`, `    status: open`].join('\n'),
-      [`  - id: PS-3`, `    config: verification.yaml`, `    field: "commands[0].command"`, `    question: "What command confirms the repo is healthy (build, test, lint)?"`, `    hint: "Check Makefile, package.json scripts, or CI config"`, `    status: open`].join('\n'),
+      ...(verificationItem ? [verificationItem] : []),
       ...(branchItem ? [branchItem] : []),
+      ...(keyPathsItem ? [keyPathsItem] : []),
+      sourceOfTruthItem,
+      releaseProcessItem,
+      risksItem,
     ];
     writeFileSync(pendingPath,
       `version: 1\nkind: pending-setup\n\n` +

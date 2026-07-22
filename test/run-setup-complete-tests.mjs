@@ -52,6 +52,37 @@ const emptyStderr = runAgainstFixture('domain-empty.yaml');
 check('empty-name', 'empty fixture correctly reports domain.name empty', emptyStderr.includes(NAME_ERROR));
 check('empty-summary', 'empty fixture correctly reports domain.summary empty', emptyStderr.includes(SUMMARY_ERROR));
 
+// deepen-setup-interview-v1 (R1): definitionsRootIsSet() must also treat AGENTSMYTH_HOME as
+// equivalent to a repo-profile.yaml definitions_root field — matching lib.mjs's own two-root
+// resolver (definitions_root -> AGENTSMYTH_HOME -> repo-local fallback) — otherwise folding this
+// validator into `agentsmyth check` falsely treats this repo's own dev workspace (which uses
+// AGENTSMYTH_HOME=src/workflow, never a committed definitions_root) as an unlinked consumer repo
+// needing a full local workflow/ tree it was never meant to have. Found live this session.
+function runWithHomeEnv(extraEnv) {
+  const tmp = mkdtempSync(join(tmpdir(), 'setup-complete-defsroot-test-'));
+  mkdirSync(join(tmp, 'workflow', 'config'), { recursive: true });
+  mkdirSync(join(tmp, 'workflow', 'artifacts'), { recursive: true });
+  mkdirSync(join(tmp, 'workflow', 'learnings'), { recursive: true });
+  copyFileSync(
+    join(repoRoot, 'test', 'fixtures', 'setup-complete', 'domain-valid.yaml'),
+    join(tmp, 'workflow', 'config', 'domain.yaml')
+  );
+  // No repo-profile.yaml definitions_root field at all — same shape as this repo's own config.
+  const result = spawnSync(process.execPath, [validator], {
+    cwd: tmp, encoding: 'utf8', env: { ...process.env, ...extraEnv },
+  });
+  rmSync(tmp, { recursive: true, force: true });
+  return result.stderr ?? '';
+}
+
+const noHomeStderr = runWithHomeEnv({ AGENTSMYTH_HOME: '' });
+check('no-agentsmyth-home', 'without AGENTSMYTH_HOME, no definitions_root: still requires the full local workflow/ tree',
+  noHomeStderr.includes('workflow/router.md is missing'));
+
+const withHomeStderr = runWithHomeEnv({ AGENTSMYTH_HOME: 'src/workflow' });
+check('with-agentsmyth-home', 'AGENTSMYTH_HOME set is treated as equivalent to a linked definitions_root — no full local tree required',
+  !withHomeStderr.includes('workflow/router.md is missing'));
+
 console.log(`\n${passed}/${passed + failed} setup-complete regex checks passed`);
 
 if (failed > 0) {

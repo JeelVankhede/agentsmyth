@@ -27,9 +27,9 @@ paths:
       reason: potential secrets
   public_contracts: []
   generated_outputs: []
-  test_roots: []
-  docs_roots: []
-  source_roots: []
+  test_roots: ["<PLACEHOLDER>"]
+  docs_roots: ["<PLACEHOLDER>"]
+  source_roots: ["<PLACEHOLDER>"]
 
 ownership:
   default_owner: user

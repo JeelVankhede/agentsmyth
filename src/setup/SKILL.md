@@ -294,23 +294,16 @@ Delete `.agentsmyth/` in its entirety.
 rm -rf .agentsmyth
 ```
 
-#### Step 5e — Offer lifecycle pre-commit gate (opt-in)
+#### Step 5e — Lifecycle pre-commit gate (already installed, nothing to do here)
 
-After `.agentsmyth/` is removed, ask the user once:
-
-> "Would you like to enable the agentsmyth lifecycle gate? It adds a pre-commit hook that
-> blocks commits where the upstream lifecycle artifact is not ready (e.g. committing a Build
-> artifact without a ready Plan). Trivial commits are skipped automatically.
-> You can bypass it at any time with `git commit --no-verify`."
-
-If the user says yes:
-
-```bash
-chmod +x workflow/validators/hooks/pre-commit
-git config core.hooksPath workflow/validators/hooks
-```
-
-If the user says no, skip without comment. Do not install the hook silently.
+`agentsmyth init` already installed a mandatory, automatic pre-commit hook before this skill
+ever ran (`installPreCommitHook()`, writing `.git/hooks/pre-commit` or the repo's configured
+`core.hooksPath` file) — there is no opt-in question to ask and nothing to install here. The hook
+runs `agentsmyth check --staged` on every commit: safe paths (`workflow/`, `docs/`, adapter
+dirs, Markdown) and small single-file diffs pass automatically; anything else must be covered by
+a real lifecycle task artifact, or the commit is rejected. The only bypass is git's own
+`git commit --no-verify` — no new flag or config toggle exists. If the repo already had a custom
+`pre-commit` hook, `init` appended this check to the end of it rather than overwriting.
 
 This is the final step.
 
