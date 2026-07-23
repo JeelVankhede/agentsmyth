@@ -6,10 +6,6 @@ title: Install
 
 Installing agentsmyth is the least interesting thing you will do with it, which is the point. The command drops a staging folder and exits. Nothing is configured yet. The real work starts when you point your agent at it.
 
-::: warning Pre-launch note
-The public package is not on the npm registry yet. Until it is, use the local tarball method below. The `npx @jeelvankhede/agentsmyth` commands are the intended public path and will work once the package is published.
-:::
-
 ## The one you will use
 
 ```bash
@@ -26,7 +22,7 @@ npx github:JeelVankhede/agentsmyth init
 
 ## From a local tarball
 
-The method that works before launch, and the one to use if you are testing a build:
+Useful offline, or if you are testing an unreleased build:
 
 ```bash
 npm install --save-dev file:/path/to/jeelvankhede-agentsmyth-<version>.tgz

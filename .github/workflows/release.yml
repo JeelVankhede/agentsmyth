@@ -1,3 +1,4 @@
+# npm Trusted Publishing (OIDC). https://docs.npmjs.com/trusted-publishers
 name: Release
 
 on:
@@ -9,35 +10,55 @@ on:
         type: choice
         options: [patch, minor, major]
 
+permissions:
+  id-token: write
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: production
     permissions:
+      id-token: write
       contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_PUSH_TOKEN || github.token }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify
+        run: |
+          npm ci
+          node scripts/build-bundle.mjs
+          node scripts/validate-template.mjs
+          node scripts/validate-example.mjs
+          npm run violations:test
+          npm run conformance:test
+          npm run root-resolution:test
+          npm run setup-checks:test
+          npm run setup-refs:test
+          npm run init-prepare-interop:test
+          npm run checkpoint-approval:test
+          npm run setup-validator-definitions-root:test
 
       - name: Bump version
         id: version
         run: |
           npm version ${{ inputs.bump }} --no-git-tag-version
-          echo "value=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Build bundles
-        run: node scripts/build-bundle.mjs
-
-      - name: Validate templates
-        run: node scripts/validate-template.mjs
-
-      - name: Validate examples
-        run: node scripts/validate-example.mjs
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumped to v$VERSION"
 
       - name: Pack tarball
         run: npm pack
@@ -47,15 +68,27 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
-          git commit -m "chore(release): bump version to ${{ steps.version.outputs.value }}"
-          git push origin main
+          git commit -m "chore(release): bump version to ${{ steps.version.outputs.version }}"
 
-      - name: Create tag and GitHub Release
+      - name: Tag
+        run: git tag -a "${{ steps.version.outputs.version }}" -m "${{ steps.version.outputs.version }}"
+
+      - name: Publish to npm (OIDC)
+        run: npm publish --access public
+
+      - name: Push main and tag
+        run: |
+          git push origin HEAD:main
+          git push origin "${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.value }}
+          tag_name: ${{ steps.version.outputs.version }}
           files: |
             *.tgz
             dist/setup-bundle.md
             dist/workflow-bundle.md
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN || github.token }}
