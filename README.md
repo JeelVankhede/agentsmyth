@@ -69,7 +69,15 @@ Six YAML files in `workflow/config/` capture repo-specific context written by th
 
 ## Setup
 
-### Option A — Run directly from GitHub (no install)
+### Option A — npx (recommended)
+
+```bash
+npx @jeelvankhede/agentsmyth@latest init
+```
+
+That's the whole install for most people. `npx` fetches the published package, runs `init`, and leaves.
+
+### Option B — Run directly from GitHub (no install)
 
 ```bash
 npx github:JeelVankhede/agentsmyth init
@@ -77,7 +85,7 @@ npx github:JeelVankhede/agentsmyth init
 
 This fetches the latest package from the repo and runs `init` without installing anything permanently.
 
-### Option B — Install from a GitHub Release tarball
+### Option C — Install from a GitHub Release tarball
 
 Download the `.tgz` from the [Releases](../../releases) page, then:
 
@@ -86,7 +94,7 @@ npm install --save-dev file:./jeelvankhede-agentsmyth-<version>.tgz
 npx agentsmyth init
 ```
 
-### Option C — Local development build
+### Option D — Local development build
 
 From this repo root:
 
@@ -95,7 +103,7 @@ npm run build       # rebuild dist/ bundles
 npm pack            # produces jeelvankhede-agentsmyth-<version>.tgz
 ```
 
-Then install in a target repo as in Option B.
+Then install in a target repo as in Option C.
 
 ### What `init` does
 

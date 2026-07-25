@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-07-23
+
+### Added
+- First public release: package published to the public npm registry, GitHub repository made public.
+- `release.yml` publishes to npm via Trusted Publishing (OIDC) — no long-lived npm token stored in CI.
+
+### Changed
+- 7-phase lifecycle (`brief -> plan -> task -> review -> verify -> ship -> reflect`), 34 skills, 5 tool adapters
+  (Claude Code, Codex, Copilot, Cursor, Windsurf), mechanical `init` scaffold with resolution-pass `setup`,
+  system-level (`prepare`) and per-repo (`init`) install split, single-repo/monorepo/polyrepo support, and a
+  mandatory local pre-commit lifecycle gate — all verified in sandbox testing outside this repo before this release.
+- README and docs site updated to lead with `npx @jeelvankhede/agentsmyth@latest init` as the primary install path.
+
 ## [0.1.1] - 2026-07-05
 
 ### Changed
