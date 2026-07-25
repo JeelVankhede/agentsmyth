@@ -8,14 +8,15 @@ A workflow that only asks nicely gets ignored the moment things get busy. Valida
 
 ## Setup validators (the uncompromising ones)
 
-These gate Phase 4 of setup's resolution pass. There are no waivers here. Both must exit clean before setup can finish.
+These gate Phase 4 of setup's resolution pass. There are no waivers here. `check-setup-complete` and `check-config` must both exit clean before setup can finish.
 
 | Validator | Refuses to pass if |
 |---|---|
 | `check-setup-complete` | Setup left required steps unfinished |
 | `check-config` | Any config file is malformed or missing a required field |
+| `check-pending-setup` | Non-blocking — reports open/resolved/waived counts from `pending-setup.yaml` and only fails on malformed entries, never on open items themselves |
 
-Schema validation runs underneath both, checking every config against its YAML contract.
+Schema validation runs underneath the first two, checking every config against its YAML contract.
 
 ## Lifecycle validators (the everyday ones)
 

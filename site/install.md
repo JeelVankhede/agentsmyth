@@ -31,16 +31,18 @@ npx agentsmyth init
 
 ## What init actually does
 
-`init` does three things in order: it makes sure a shared copy of the workflow exists on your machine, installing the definitions tree once under `~/.agentsmyth/` the first time you run it. It creates the `.agentsmyth/` staging folder at your repo root. And it links this repo to the shared copy by recording `definitions_root` in your `repo-profile.yaml`. Only your repo-specific files are written into the repo. Here is what lands in the staging folder:
+`init` makes sure a shared copy of the workflow exists on your machine, installing the definitions tree once under `~/.agentsmyth/` the first time you run it, and links this repo to that shared copy by recording `definitions_root` in your `repo-profile.yaml`. It also writes directly to your repo root, before any agent is involved: all five `workflow/config/*.yaml` files, `workflow/artifacts/` (7 empty phase directories), `workflow/learnings/`, and, for Cursor and non-macOS Copilot, an adapter file. It never overwrites an existing file at any path it touches — every one of these writes is skipped if something is already there. It also installs a mandatory local git pre-commit hook, automatically, with no opt-in step; `git commit --no-verify` is the only bypass.
+
+Alongside all of that, it creates the `.agentsmyth/` staging folder at your repo root. Here is what lands in it:
 
 | Inside `.agentsmyth/` | What it is |
 |---|---|
 | `setup-bundle.md` | The setup skill your agent reads to drive onboarding |
-| `workflow-bundle.md` | The workflow compiled into one file, used to seed local artifacts and learnings |
+| `workflow-bundle.md` | The full workflow (router, lifecycle, all skills) the agent expands into `workflow/` after setup |
 | `validators/` | Health-check scripts that refuse a broken install |
 | `assets/` | Adapter shims and the default config files |
 
-`.agentsmyth/` is added to your `.gitignore` automatically, and it is temporary: the agent deletes it once setup is done. The command never writes to your repo root directly, so a collision with an existing `AGENTS.md` or `workflow/` is impossible until the agent makes deliberate, file-by-file decisions later.
+`.agentsmyth/` is added to your `.gitignore` automatically, and it is temporary: the agent deletes it once setup is done.
 
 ## prepare on its own
 

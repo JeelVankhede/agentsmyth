@@ -29,7 +29,6 @@ The agent fills in whatever is still `<USER-TODO>` in the five YAML configs unde
 | `source-of-truth.yaml` | Authoritative sources for requirements and decisions |
 | `verification.yaml` | Test strategy, coverage expectations, CI commands |
 | `release.yaml` | Release process, environments, deploy targets |
-| `agent-behavior.yaml` | Enforcement stance and waiver policy — a shared invariant, not written per repo |
 
 `agent-behavior.yaml` is special: it lives in the shared definitions tree, identical for every repo. Setup does not write it and neither do you. It is the constitution the other five configs operate under.
 
@@ -47,9 +46,9 @@ If either fails, the agent reads the error, fixes the root cause, and re-runs. I
 ## Phase 5: Copy and clean up
 
 - Before placing anything per-repo, it checks whether your tool's **global gate** is already active. If it is, the per-repo adapter is skipped — writing one would be pure duplication. Cursor and non-macOS Copilot are the two exceptions, since no global mechanism reaches them; `init` already placed those adapters mechanically before this phase starts.
-- No existing `AGENTS.md`? It writes one. Already have one? It appends the agentsmyth section under its own heading and never overwrites yours.
+- Using Codex? No existing `AGENTS.md`? It writes one. Already have one? It appends the agentsmyth section under its own heading and never overwrites yours.
 - It writes only your repo-specific files — config, an empty artifacts tree, and learnings — then deletes `.agentsmyth/`.
 
-::: tip One last, opt-in offer
-After cleanup, the agent asks once whether you want a pre-commit hook that blocks commits where the upstream lifecycle artifact isn't ready — a Build without an approved Plan, for example. Say no and it is skipped without comment. Say yes later and `git commit --no-verify` always gets you out of it.
+::: tip Mandatory lifecycle gate, already installed
+`init` installed a mandatory pre-commit hook before this skill ever ran — there is no opt-in question to ask and nothing left to do here. It blocks commits where the upstream lifecycle artifact isn't ready, for example a Build without an approved Plan. The only bypass is `git commit --no-verify`.
 :::

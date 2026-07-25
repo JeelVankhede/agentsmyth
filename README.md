@@ -58,21 +58,22 @@ agentsmyth supports five AI tools out of the box. During setup, the agent places
 | Claude Code | `.claude/CLAUDE.md` |
 | Codex | `AGENTS.md` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/index.mdc` |
+| Cursor | `.cursor/rules/agentsmyth.mdc` |
 | Windsurf | `.windsurfrules` |
 
 ### Config Files
 
-Six YAML files in `workflow/config/` capture repo-specific context written by the agent during setup:
+Five YAML files in `workflow/config/` capture repo-specific context written by the agent during setup:
 
 | File | Purpose |
 |---|---|
 | `domain.yaml` | Project domain, tech stack, key terminology |
 | `repo-profile.yaml` | Repo shape, primary language, monorepo/single-repo |
 | `source-of-truth.yaml` | Authoritative sources for requirements and decisions |
-| `agent-behavior.yaml` | Enforcement rules, compliance stance, waiver policy |
 | `release.yaml` | Release process, environments, deployment targets |
 | `verification.yaml` | Testing strategy, coverage expectations, CI commands |
+
+`agent-behavior.yaml` lives in the shared definitions tree at `~/.agentsmyth/workflow/`, is identical for every repo, and is never written by setup or edited by consumers.
 
 ## Setup
 
