@@ -292,8 +292,8 @@ items:
   - id: OI-49
     source: follow-up
     owner: whoever picks up the next small fix
-    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the 3 test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Re-indent the definitions_root: line in all 3 fixtures."
-    status: open
+    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Done 2026-07-26: only the linked/ fixture actually set definitions_root (defensive-fallback/ and defensive-fallback-broken/ correctly omit it entirely) — re-indented it into repository: there; node test/run-setup-validator-definitions-root-tests.mjs still passes 3/3."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-50
     source: follow-up
