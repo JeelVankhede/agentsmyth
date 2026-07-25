@@ -313,3 +313,27 @@ items:
     next_action: "bin/agentsmyth.mjs's init/headlessBootstrap write definitions_root as the fully home-expanded absolute path (join(homedir(), '.agentsmyth', 'workflow')) into every consumer repo's committed repo-profile.yaml, instead of the portable '~/.agentsmyth/workflow' string the read side (lib.mjs's _expandTilde, resolveValidator()) already knows how to expand at resolution time. This means any teammate on a different machine, or any CI runner, whose home directory doesn't match whoever ran init gets 'global definitions root not found' — reproduced directly on this repo's own PR #45 CI run (fixed there only by removing definitions_root entirely from this repo's own dev-workspace config, not by fixing the general write-side bug). Needs its own brief/plan/task/review/verify/ship chain: fix writeDefinitionsRoot()'s two call sites to write the tilde-prefixed portable string, and decide whether/how to migrate already-init'd consumer repos' existing absolute-path repo-profile.yaml files."
     status: open
     first_seen_run: mandatory-lifecycle-pre-commit-hook-v1
+  - id: OI-53
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #51 (fix/site-docs-remediation) into main."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-54
+    source: requirement
+    owner: whoever picks up the T-D14 sweep
+    next_action: "site/under-hood.md:49 still carries the stale .cursor/rules/index.mdc value (fixed everywhere else in scope by R5 of site-docs-remediation-v1). Explicitly out of scope for that brief (one of four pages named in the future Tier 3/T-D14 sweep: README restructure, four-page sweep, /in-action disclaimer placement, per-page meta descriptions, conceptual diagrams) — fix it as part of that future brief."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-55
+    source: follow-up
+    owner: workflow owner
+    next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-56
+    source: follow-up
+    owner: workflow owner
+    next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs."
+    status: open
+    first_seen_run: site-docs-remediation-v1
