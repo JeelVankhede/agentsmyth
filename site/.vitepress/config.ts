@@ -1,14 +1,17 @@
 import { defineConfig } from 'vitepress';
 
+const base = '/agentsmyth/';
+
 export default defineConfig({
   title: 'agentsmyth',
   description: 'A portable AI engineering lifecycle',
+  base,
   cleanUrls: true,
   appearance: 'dark',
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
   ],
   themeConfig: {
     logo: '/logo.svg',
