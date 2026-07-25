@@ -24,7 +24,7 @@ orchestration:
   status: ready-for-next-phase
   next_phase: reflect
   blockers: []
-  user_checkpoint: none
+  user_checkpoint: ship-review
 ---
 
 ## Inputs
@@ -84,6 +84,12 @@ none
 - decision: `ship` is appropriate — all configured gates satisfied; no active unwaived blockers.
 - constraint: Release config has no PR gate for this repo; this is a deliberate config decision, not a gap.
 - downstream: Reflect should note that validator coverage (skipped check in Test artifact) remains open for Phase 7.
+
+## Checkpoint Approval
+
+- Checkpoint: ship-review
+- Status: approved
+- User's own words (verbatim, this turn): "Yes, ship it."
 
 ## Exit Gate
 
