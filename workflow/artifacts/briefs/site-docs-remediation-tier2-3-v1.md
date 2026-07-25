@@ -2,7 +2,7 @@
 slug: site-docs-remediation-tier2-3
 version: 1
 artifact: brief
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-07-26
 updated: 2026-07-26
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, RI1, RI2]
@@ -12,7 +12,7 @@ upstream:
   - "notion - WP-R12 — Docs Correctness & Gap Remediation (page 3a8972bdebbb81bbb893e09918994c03)"
 orchestration:
   phase: think
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
@@ -85,7 +85,7 @@ Every technical claim below was verified by direct read this session — anchors
   - No config-file-count or `agent-behavior.yaml`-placement drift (classes 1–2) found on any of the four pages — neither topic is mentioned on any of them. No hard validator-count claim (class 4) appears on any of the four pages either.
 - **R7** (T-D15): `/in-action` — move the "Illustrative walkthrough" disclaimer (`site/in-action.md:7`, currently an above-the-fold `::: warning` callout) to a small line directly under the H1 or to the page footer; do not delete it (it stays on the Do-Not-Touch list as "the fact `/in-action` is labelled as fabricated at all" — only its *position* moves). Separately, vary the rate-limiting example: confirmed both `/in-action` (`site/in-action.md:11,18,60-66`) and `/run-it` (`site/run-it.md:24,42`) use the identical "add rate limiting to the public API endpoints" scenario — one of the two needs a different example.
 - **R8** (T-D16): Add per-page `description` frontmatter across the site and one OG image. Confirmed current state: `site/.vitepress/config.ts:7` sets one global `description: 'A portable AI engineering lifecycle'` with no per-page overrides anywhere (checked `site/index.md`'s frontmatter directly — no `description` key present), so every page currently shares the identical meta description and there is no OG image configured in `head`.
-- **R9** (T-D17): Two conceptual diagrams: (a) the source-of-truth hierarchy (`AGENTS.md`/`CLAUDE.md` → `router.md` → `agent-behavior.yaml` → phase skills) on `/under-hood`, and (b) the global-tree-vs-repo split (what lives in `~/.agentsmyth/workflow/` vs. per-repo `workflow/`) on `/under-hood` plus one other page the Plan phase selects. Both ideas are currently carried entirely by prose with no visual.
+- **R9** (T-D17): Two conceptual diagrams, in **Mermaid** (user's answer to Q1, this turn — renders inline from Markdown, stays in sync with text): (a) the source-of-truth hierarchy (`AGENTS.md`/`CLAUDE.md` → `router.md` → `agent-behavior.yaml` → phase skills) on `/under-hood`, and (b) the global-tree-vs-repo split (what lives in `~/.agentsmyth/workflow/` vs. per-repo `workflow/`) on `/under-hood` plus one other page the Plan phase selects. Both ideas are currently carried entirely by prose with no visual. Plan must confirm VitePress's Mermaid support (built-in or via a plugin such as `vitepress-plugin-mermaid`) before Build, since none is currently configured in `site/.vitepress/config.ts`.
 - **R10** (new finding, logged per this Work Package's own "log anything found as a new T-D row" methodology — not in the original Notion backlog): `bin/agentsmyth.mjs:129`'s version-skew warning reads `"Run agentsmyth prepare to update the global definitions and re-stamp repo-profile.yaml"` — the "re-stamp repo-profile.yaml" half is false. `runPrepare()` writes zero repo-level files by design (confirmed by its own code comment at `bin/agentsmyth.mjs:762`, and by reading the full function body at `:767-830`, none of which touches any path under the calling repo). There is no code path that re-stamps an existing repo's `agentsmyth_version` after initial `init`/headless-bootstrap — the warning will keep firing on every `agentsmyth check` even after `prepare` is re-run, contradicting its own text. Fix: correct the warning message in `bin/agentsmyth.mjs` to accurately describe that `prepare` refreshes the *global* tree only, and that the warning itself is cosmetic/informational (it does not block anything) rather than implying a fix action that doesn't exist. This is a `src/`-adjacent (actually `bin/`) code change, not a docs-only change — flagged explicitly since it's a narrower exception to this brief's otherwise docs-only scope.
 
 ## Constraints
@@ -102,9 +102,9 @@ Every technical claim below was verified by direct read this session — anchors
 
 ## Open Questions
 
-- **Q1**: R9's diagram implementation format (Mermaid embedded in Markdown vs. a static SVG/PNG asset) — blocking for Plan's Phase scoping of R9, not blocking for the other nine requirements.
+- **Q1** (resolved): R9's diagram implementation format. **Answered: Mermaid**, per user's own words this turn — renders inline from Markdown, stays in sync with text easily.
   - Owner: user
-  - Blocking: yes, for R9 only
+  - Blocking: no (resolved)
 
 ## Requirement Manifest
 
@@ -143,11 +143,11 @@ Every technical claim below was verified by direct read this session — anchors
 
 ### Open Questions (Q)
 
-- Q1: see Open Questions section above (R9 diagram format).
+- Q1: resolved — see Open Questions section above (R9 diagram format: Mermaid).
 
 ## Questions For User
 
-- Q1: For the two new diagrams (R9), do you want Mermaid (renders inline from Markdown, easy to keep in sync with text changes) or static image assets (more design control, matches the hand-crafted logo/brand assets already in `assets/brand/`)? This determines Plan's Phase scoping for R9 — everything else in this brief can proceed regardless of your answer.
+None remaining — Q1 (R9 diagram format) answered this turn: Mermaid.
 
 ## Architecture Notes
 
@@ -159,10 +159,12 @@ Every technical claim below was verified by direct read this session — anchors
 
 ## Checkpoint Approval
 
-(awaiting user review of this brief)
+- Checkpoint: brief-review
+- Status: approved
+- User's own words (verbatim, this turn): "Yes, approved"
 
 ## Exit Gate
 
-- [x] Every active R and RI has acceptance criteria (R6 explicitly notes its own acceptance is pending the parallel audit's findings, not yet unconditionally satisfied).
-- [x] Blocking Q IDs appear in orchestration.blockers — **pending**: Q1 needs to be added to `orchestration.blockers` before this brief can be marked `ready-for-next-phase`; not yet added since the brief is still `blocked-for-user` pending initial review regardless.
-- [ ] User approved or waiver recorded — pending this turn.
+- [x] Every active R and RI has acceptance criteria (R6 finalized with the completed sweep's concrete findings).
+- [x] Blocking Q IDs appear in orchestration.blockers — none; Q1 was answered this turn (Mermaid) before the brief was finalized, so no blocking Q remains.
+- [x] User approved or waiver recorded (see Checkpoint Approval above).
