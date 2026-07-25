@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 262 90" width="262" height="90">
+  <g transform="translate(8 17)">
+    <circle cx="28" cy="28" r="23.625" fill="none" stroke="#17171A" stroke-width="4.375" stroke-dasharray="14.875 6.335" stroke-linecap="butt" transform="rotate(-90 28 28)"/>
+    <path fill="#17171A" transform="scale(0.875)" d="M10 26 L15 22 H49 V29 H41 C38.5 29 37 31 37.5 33 L39 37 L42 39 V43 H22 V39 L25 37 L26.5 33 C27 31 25.5 29 23 29 H15 Z"/>
+  </g>
+  <text x="80" y="52" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="34" font-weight="500" letter-spacing="-0.6" fill="#17171A">agentsmyth</text>
+  <text x="82" y="72" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="11" font-weight="400" letter-spacing="2.2" text-transform="uppercase" fill="#17171A" opacity="0.65">FORGE, DON&#8217;T VIBE</text>
+</svg>
