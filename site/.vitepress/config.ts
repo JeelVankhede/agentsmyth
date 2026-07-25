@@ -11,7 +11,8 @@ export default defineConfig({
     ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
   ],
   themeConfig: {
-    logo: '/logo.svg',
+    logo: { src: '/logo.svg', width: 24, height: 24 },
+    siteTitle: 'agentsmyth',
     nav: [
       { text: 'Guide', link: '/introduction' },
       { text: 'In action', link: '/in-action' },
