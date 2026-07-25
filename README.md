@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/lockup-dark.svg">
+    <img src="assets/brand/lockup-light.svg" alt="agentsmyth" width="380">
+  </picture>
+</p>
+
 # agentsmyth
 
 Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.
