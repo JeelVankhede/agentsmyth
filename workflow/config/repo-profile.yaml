@@ -1,4 +1,4 @@
-agentsmyth_version: 0.1.2
+agentsmyth_version: 1.0.0
 version: 1
 kind: repo-profile
 
@@ -9,6 +9,7 @@ repository:
   workflow_root: workflow
   artifacts_root: workflow/artifacts
   learnings_sessions_root: workflow/learnings/sessions
+  definitions_root: ~/.agentsmyth/workflow
 
 branch_policy:
   require_non_default_branch_for_changes: true
