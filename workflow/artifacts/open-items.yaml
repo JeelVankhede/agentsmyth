@@ -262,8 +262,8 @@ items:
   - id: OI-44
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main. Done: PR #42 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R12 — Local Install Fixes' database row updated to Done, PR #42, shipped 2026-07-21."
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-45
     source: follow-up
@@ -274,20 +274,20 @@ items:
   - id: OI-46
     source: follow-up
     owner: user
-    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged."
-    status: open
+    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb81ba9968ce824ca126e4, Status -> Done, PR #42, Shipped Date 2026-07-21)."
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-47
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main. Done: PR #43 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R13' database row updated to Done, PR #43, shipped 2026-07-21."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-48
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main. Done: PR #44 confirmed merged 2026-07-21 (gh pr view)."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-49
     source: follow-up
@@ -304,8 +304,8 @@ items:
   - id: OI-51
     source: follow-up
     owner: user
-    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged."
-    status: open
+    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb814397ecfb3f523febc5, Status -> Done, PR #43, Shipped Date 2026-07-21)."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-52
     source: follow-up
@@ -335,5 +335,23 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-57
+    source: follow-up
+    owner: user
+    next_action: "Notion has two distinct Work Packages both numbered/titled 'WP-R12': 'WP-R12 — Local Install Fixes (Packaging Bug + Missing Invocation Skill)' (shipped, PR #42, now marked Done) and 'WP-R12 — Docs Correctness & Gap Remediation' (the site-docs-remediation-v1 work, Tier 1 shipped PR #51, Tiers 2/3 outstanding). Discovered 2026-07-26 while reconciling open items. Decide whether to renumber the newer one (e.g. to a free WP-R14+ slot) to remove the collision, or leave as-is with a disambiguating note."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-58
+    source: requirement
+    owner: whoever picks up Tier 2
+    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 2 (T-D9 new Uninstall/removal page, T-D10 new Troubleshooting page, T-D11 new Updating page or install-page section, T-D12 footer/LICENSE/CHANGELOG links) is unblocked (does not depend on D-1/D-2) but not yet started. Needs its own brief/plan/build chain — genuinely new content, not anchored correctness fixes like Tier 1."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-59
+    source: requirement
+    owner: whoever picks up Tier 3
+    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 3 (T-D13 README restructure with badges/doc-site link, T-D14 four-page contradiction sweep on /lifecycle /under-hood /artifacts /power-skills [OI-54 is the one already-known instance on /under-hood], T-D15 /in-action disclaimer reposition + vary the duplicated rate-limiting example, T-D16 per-page meta descriptions + OG image, T-D17 two conceptual diagrams) is unblocked but not yet started. Needs its own brief/plan/build chain — positioning and polish work, not anchored correctness fixes."
     status: open
     first_seen_run: site-docs-remediation-v1
