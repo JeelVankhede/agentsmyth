@@ -6,5 +6,7 @@
     }
   </style>
   <circle class="ink-stroke" cx="32" cy="32" r="27" fill="none" stroke="#17171A" stroke-width="5" stroke-dasharray="17 7.24" stroke-linecap="butt" transform="rotate(-90 32 32)"/>
-  <path class="ink" fill="#17171A" d="M10 26 L15 22 H49 V29 H41 C38.5 29 37 31 37.5 33 L39 37 L42 39 V43 H22 V39 L25 37 L26.5 33 C27 31 25.5 29 23 29 H15 Z"/>
+  <g transform="translate(2.5 -0.5)">
+    <path class="ink" fill="#17171A" d="M10 26 L15 22 H49 V29 H41 C38.5 29 37 31 37.5 33 L39 37 L42 39 V43 H22 V39 L25 37 L26.5 33 C27 31 25.5 29 23 29 H15 Z"/>
+  </g>
 </svg>
