@@ -59,5 +59,9 @@ export default defineConfig({
     search: {
       provider: 'local',
     },
+    footer: {
+      message: '<a href="https://github.com/JeelVankhede/agentsmyth/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/JeelVankhede/agentsmyth/blob/main/CHANGELOG.md">Changelog</a>',
+      copyright: 'agentsmyth',
+    },
   },
 });

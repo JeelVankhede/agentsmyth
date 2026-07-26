@@ -5,7 +5,7 @@ artifact: task
 status: in-progress
 created: 2026-07-26
 updated: 2026-07-26
-manifest_ids: [R10, R1, R2, R3, RI1, RI2]
+manifest_ids: [R10, R1, R2, R3, R4, RI1, RI2]
 upstream:
   - workflow/artifacts/briefs/site-docs-remediation-tier2-3-v1.md
   - workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md
@@ -21,17 +21,17 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 2 - Three new "Use it" pages
-- Manifest IDs: R1, R2, R3, RI1, RI2
-- Exit gate: all three pages render; sidebar shows 3 new entries under "Use it"; `npm run site:build` passes.
+- Phase: Phase 3 - Footer LICENSE/CHANGELOG links
+- Manifest IDs: R4, RI1
+- Exit gate: both links present in rendered output, resolve without a 404.
 
 ## Plan Phases Overview
 
 | Phase | Status | Manifest IDs |
 |---|---|---|
 | Phase 1 - bin/agentsmyth.mjs warning fix | complete | R10 |
-| Phase 2 - Three new "Use it" pages | active | R1, R2, R3, RI1, RI2 |
-| Phase 3 - Footer LICENSE/CHANGELOG links | pending | R4, RI1 |
+| Phase 2 - Three new "Use it" pages | complete | R1, R2, R3, RI1, RI2 |
+| Phase 3 - Footer LICENSE/CHANGELOG links | active | R4, RI1 |
 | Phase 4 - site/artifacts.md upstream-shape fix | pending | R6, RI1 |
 | Phase 5 - /in-action disclaimer and example fix | pending | R7, RI1 |
 | Phase 6 - Per-page meta descriptions and OG image | pending | R8, RI1 |
@@ -56,6 +56,7 @@ orchestration:
 - `site/troubleshooting.md` — new page: four scenarios (validator won't clear, agent doesn't pick up setup-bundle.md, hook rejecting a commit, version-skew warning) — IDs: R2
 - `site/updating.md` — new page: no-auto-refresh behavior, manual `prepare` requirement, `definitions_root` stability, version-skew warning is informational — IDs: R3
 - `site/.vitepress/config.ts` — added 3 sidebar entries under "Use it" (Updating, Troubleshooting, Uninstall and removal) — IDs: R1, R2, R3, RI2
+- `site/.vitepress/config.ts` — added `themeConfig.footer` with links to `LICENSE` and `CHANGELOG.md` (GitHub blob URLs, since VitePress doesn't serve repo-root raw files as site pages) — IDs: R4
 
 ## Implementation Log
 
@@ -64,6 +65,7 @@ orchestration:
 - Matched the site's existing prose style (confirmed against `site/setup.md`: short declarative sentences, occasional aphorism, `::: tip` sparingly, tables only where genuinely tabular) rather than introducing a new voice.
 - Chose a standalone `site/updating.md` page over folding R3 into `site/install.md` (the plan's stated alternative) — parity with the other two new pages and a cleaner sidebar entry outweighed the alternative's slight discoverability benefit of living next to install instructions; `/updating` is linked from `/troubleshooting`'s version-skew answer either way.
 - Cross-linked the three new pages to each other and to `/validators` where a claim depended on content documented elsewhere, rather than duplicating it.
+- Added `themeConfig.footer` (VitePress renders `message`/`copyright` via `v-html`, so real `<a>` tags work) linking `LICENSE` and `CHANGELOG.md` via their GitHub blob URLs, since VitePress's static build doesn't serve repo-root raw files as site routes.
 
 ## Verification Items
 
@@ -73,6 +75,7 @@ orchestration:
 | R10 | `npm run build` | passes, bundle unaffected (this file isn't part of the workflow bundle) |
 | R1, R2, R3 | `npm run site:build` | passes, 3 new `.html` files produced |
 | R1, R2, R3, RI2 | Sidebar entries | 3 new "Use it" entries present in built page site-data |
+| R4 | `npm run site:build` + grep footer href | both `LICENSE`/`CHANGELOG.md` links present, correct GitHub blob URLs |
 
 ## Command Results
 
@@ -84,6 +87,8 @@ orchestration:
 | `npm run site:build` | R1, R2, R3 | pass | client+server bundles and page render both succeeded |
 | `ls site/.vitepress/dist/ \| grep -E "uninstall\|troubleshooting\|updating"` | R1, R2, R3 | pass | all 3 `.html` files present |
 | `grep -o "Uninstall and removal\|Troubleshooting\|Updating" site/.vitepress/dist/uninstall.html` | RI2 | pass | all 3 nav labels found embedded in built page output |
+| `npm run site:build` | R4 | pass | |
+| `grep -o 'href="[^"]*LICENSE[^"]*"\|href="[^"]*CHANGELOG[^"]*"' site/.vitepress/dist/index.html` | R4 | pass | both hrefs point at confirmed-existing repo-root files (`LICENSE`, `CHANGELOG.md`); no live network fetch performed in this sandboxed environment to confirm HTTP 200, but URL construction is correct by direct file-existence check |
 
 ## Dispatch Log
 
@@ -109,3 +114,4 @@ none
 |---|---|---|---|
 | Phase 1 - bin/agentsmyth.mjs warning fix | complete | 2026-07-26 | R10 verified via grep + build |
 | Phase 2 - Three new "Use it" pages | complete | 2026-07-26 | R1, R2, R3 verified via site:build + dist inspection; nav count now 15 (was 12) |
+| Phase 3 - Footer LICENSE/CHANGELOG links | complete | 2026-07-26 | R4 verified via site:build + href grep |
