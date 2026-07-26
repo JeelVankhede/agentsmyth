@@ -5,7 +5,7 @@ artifact: task
 status: in-progress
 created: 2026-07-26
 updated: 2026-07-26
-manifest_ids: [R10, R1, R2, R3, R4, R6, RI1, RI2]
+manifest_ids: [R10, R1, R2, R3, R4, R6, R7, RI1, RI2]
 upstream:
   - workflow/artifacts/briefs/site-docs-remediation-tier2-3-v1.md
   - workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md
@@ -21,9 +21,9 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 4 - site/artifacts.md upstream-shape fix
-- Manifest IDs: R6, RI1
-- Exit gate: `grep -n "brief: workflow/artifacts" site/artifacts.md` returns zero hits.
+- Phase: Phase 5 - /in-action disclaimer and example fix
+- Manifest IDs: R7, RI1
+- Exit gate: disclaimer no longer renders as a blocking above-the-fold callout; fabrication label still present; the two pages' example scenarios differ.
 
 ## Plan Phases Overview
 
@@ -32,7 +32,8 @@ orchestration:
 | Phase 1 - bin/agentsmyth.mjs warning fix | complete | R10 |
 | Phase 2 - Three new "Use it" pages | complete | R1, R2, R3, RI1, RI2 |
 | Phase 3 - Footer LICENSE/CHANGELOG links | complete | R4, RI1 |
-| Phase 4 - site/artifacts.md upstream-shape fix | active | R6, RI1 |
+| Phase 4 - site/artifacts.md upstream-shape fix | complete | R6, RI1 |
+| Phase 5 - /in-action disclaimer and example fix | active | R7, RI1 |
 | Phase 4 - site/artifacts.md upstream-shape fix | pending | R6, RI1 |
 | Phase 5 - /in-action disclaimer and example fix | pending | R7, RI1 |
 | Phase 6 - Per-page meta descriptions and OG image | pending | R8, RI1 |
@@ -59,6 +60,8 @@ orchestration:
 - `site/.vitepress/config.ts` — added 3 sidebar entries under "Use it" (Updating, Troubleshooting, Uninstall and removal) — IDs: R1, R2, R3, RI2
 - `site/.vitepress/config.ts` — added `themeConfig.footer` with links to `LICENSE` and `CHANGELOG.md` (GitHub blob URLs, since VitePress doesn't serve repo-root raw files as site pages) — IDs: R4
 - `site/artifacts.md` — fixed example frontmatter's `upstream` field from an object (`brief:`/`plan:` keys) to the schema-correct array-of-strings form; also added the missing `status`/`created`/`updated` example fields (T-D14 sweep's minor finding, fixed opportunistically) — IDs: R6
+- `site/in-action.md` — repositioned the "Illustrative walkthrough" disclaimer from an above-the-fold `::: warning` callout to a small line directly under the H1, keeping the fabrication label intact — IDs: R7
+- `site/run-it.md` — changed the example scenario from "add rate limiting to the public API endpoints" (identical to `/in-action`'s) to "add pagination to the search results endpoint", updating both the initial example and the later "continue the X work" callback for internal consistency — IDs: R7
 
 ## Implementation Log
 
@@ -69,6 +72,8 @@ orchestration:
 - Cross-linked the three new pages to each other and to `/validators` where a claim depended on content documented elsewhere, rather than duplicating it.
 - Added `themeConfig.footer` (VitePress renders `message`/`copyright` via `v-html`, so real `<a>` tags work) linking `LICENSE` and `CHANGELOG.md` via their GitHub blob URLs, since VitePress's static build doesn't serve repo-root raw files as site routes.
 - Fixed `site/artifacts.md`'s example `upstream` field per the completed T-D14 sweep's real finding — matches `src/workflow/schemas/artifact-frontmatter.schema.yaml`'s array-of-strings requirement and every real artifact on disk.
+- Chose to change `run-it.md`'s example rather than `in-action.md`'s: `in-action.md`'s entire walkthrough narrative (7 gates, artifact filenames like `rate-limiting-v1.md`, findings specific to a rate limiter) is built around the rate-limiting scenario, while `run-it.md`'s use is incidental (one command-line example plus a callback). Changing the incidental one avoids rewriting a page's whole narrative for a duplication fix.
+- Used `<small><em>...</em></small>` instead of VitePress's `::: warning` container for the repositioned disclaimer — the brief's R7 requirement asked for "a small line," and the warning container's visual weight (colored box, icon) is exactly the above-the-fold prominence being removed; plain small italic text reads as a footnote, not an alert.
 
 ## Verification Items
 
@@ -80,6 +85,8 @@ orchestration:
 | R1, R2, R3, RI2 | Sidebar entries | 3 new "Use it" entries present in built page site-data |
 | R4 | `npm run site:build` + grep footer href | both `LICENSE`/`CHANGELOG.md` links present, correct GitHub blob URLs |
 | R6 | `grep -n "brief: workflow/artifacts" site/artifacts.md` | zero hits |
+| R7 | Read `site/in-action.md`: disclaimer position + fabrication label presence | small text under H1, not a blocking callout; label present |
+| R7 | Read `site/in-action.md` and `site/run-it.md`: example scenarios | differ (rate limiting vs. pagination) |
 
 ## Command Results
 
@@ -95,6 +102,9 @@ orchestration:
 | `grep -o 'href="[^"]*LICENSE[^"]*"\|href="[^"]*CHANGELOG[^"]*"' site/.vitepress/dist/index.html` | R4 | pass | both hrefs point at confirmed-existing repo-root files (`LICENSE`, `CHANGELOG.md`); no live network fetch performed in this sandboxed environment to confirm HTTP 200, but URL construction is correct by direct file-existence check |
 | `grep -n "brief: workflow/artifacts" site/artifacts.md` | R6 | pass (zero hits, exit 1) | |
 | `npm run site:build` | R6 | pass | |
+| `npm run site:build` | R7 | pass | |
+| `grep -n "Illustrative walkthrough\|fabricated" site/in-action.md` | R7 | pass | disclaimer present as small under-H1 text, fabrication label intact |
+| `grep -n "rate limiting\|pagination" site/run-it.md site/in-action.md` | R7 | pass | confirms the two pages no longer share an identical example scenario |
 
 ## Dispatch Log
 
@@ -122,3 +132,4 @@ none
 | Phase 2 - Three new "Use it" pages | complete | 2026-07-26 | R1, R2, R3 verified via site:build + dist inspection; nav count now 15 (was 12) |
 | Phase 3 - Footer LICENSE/CHANGELOG links | complete | 2026-07-26 | R4 verified via site:build + href grep |
 | Phase 4 - site/artifacts.md upstream-shape fix | complete | 2026-07-26 | R6 verified via grep + site:build |
+| Phase 5 - /in-action disclaimer and example fix | complete | 2026-07-26 | R7 verified via grep + manual read; fabrication label preserved, only position/example changed |

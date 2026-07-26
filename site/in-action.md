@@ -4,9 +4,7 @@ title: agentsmyth in action
 
 # agentsmyth in action
 
-::: warning Illustrative walkthrough
-This page is an illustrative, fabricated-but-faithful example — the repo, the feature, and the specific findings below are not a real transcript. Every artifact shape, gate, and rule shown is exactly how the workflow actually produces them.
-:::
+<small><em>Illustrative walkthrough — the repo, the feature, and the specific findings below are fabricated but faithful, not a real transcript. Every artifact shape, gate, and rule shown is exactly how the workflow actually produces them.</em></small>
 
 One feature walking the whole road, from a one-line request to a reflected-on ship. The repo is a fictional payments API, the agent is Claude Code, the change is real-sized: add rate limiting to the public endpoints.
 

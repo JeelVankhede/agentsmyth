@@ -21,7 +21,7 @@ That instruction is the entire handoff. The agent reads `setup-bundle.md`, inspe
 From here, you just work, and the workflow catches the work:
 
 ```text
-add rate limiting to the public API endpoints
+add pagination to the search results endpoint
 ```
 
 The agent's adapter routes that request to `workflow/router.md`, which classifies it before doing anything:
@@ -39,7 +39,7 @@ For anything Standard or Complex, the agent moves through the phases in order, p
 This is where loop engineering earns its keep. Come back tomorrow, or send in a different agent, and say:
 
 ```text
-continue the rate-limiting work
+continue the pagination work
 ```
 
 The agent does not ask you to re-explain. It reads the artifact chain on disk, restores the full context, and continues from the exact gate you stopped at. The session that created the work is long gone. The record it left behind is not.
