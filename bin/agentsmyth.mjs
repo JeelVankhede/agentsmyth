@@ -126,7 +126,8 @@ if (command === 'check') {
     const profileVersion = versionMatch ? versionMatch[1] : null;
     if (profileVersion && profileVersion !== currentPkgVersion) {
       console.warn(`agentsmyth: version skew detected — repo-profile.yaml was written by v${profileVersion}, CLI is v${currentPkgVersion}`);
-      console.warn('  Run "agentsmyth prepare" to update the global definitions and re-stamp repo-profile.yaml.');
+      console.warn('  Run "agentsmyth prepare" to refresh the global lifecycle definitions to the current version.');
+      console.warn('  This warning is informational — it does not block anything, and prepare does not update this repo\'s own repo-profile.yaml.');
       console.warn('');
     }
   } catch { /* non-fatal */ }

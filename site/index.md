@@ -1,6 +1,7 @@
 ---
 layout: home
 title: Overview
+description: agentsmyth is a portable AI engineering lifecycle that turns any repo's coding agent into one that leaves durable, evidence-backed artifacts behind instead of chat smoke.
 hero:
   text: "Forge, don't vibe."
   tagline: A portable AI engineering lifecycle. Drop it into any repo — your agent drives it and leaves durable artifacts behind, not chat smoke.

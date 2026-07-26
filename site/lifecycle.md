@@ -1,14 +1,15 @@
 ---
 title: The lifecycle
+description: "The seven-phase engineering lifecycle agentsmyth enforces: Think, Plan, Build, Review, Test, Ship, Reflect."
 ---
 
 # The lifecycle
 
 Every request that enters an agentsmyth repo walks the same road. Seven phases, in order, with a gate between each one. A phase does not open until the phase before it has left an artifact proving it finished.
 
-```text
-Think → Plan → Build → Review → Test → Ship → Reflect
- brief    plan   task    review   verify  ship    reflect
+```mermaid
+flowchart LR
+  A["Think<br/>brief"] --> B["Plan<br/>plan"] --> C["Build<br/>task"] --> D["Review<br/>review"] --> E["Test<br/>verify"] --> F["Ship<br/>ship"] --> G["Reflect<br/>reflect"]
 ```
 
 ## The router decides first

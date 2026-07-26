@@ -69,9 +69,19 @@ function _readDefinitionsRoot() {
 // defsRoot: where skills, schemas, validators, and agent-behavior.yaml live.
 // dataRoot: where config (user-filled), artifacts, and learnings live (always repo-local).
 // Backward-compat theorem: no definitions_root + no AGENTSMYTH_HOME → defsRoot === dataRoot.
-const _defsRoot = _expandTilde(_readDefinitionsRoot())
-  ?? (process.env.AGENTSMYTH_HOME ? _expandTilde(process.env.AGENTSMYTH_HOME) : null)
-  ?? join(repoRoot, _wf);
+// AGENTSMYTH_WF / AGENTSMYTH_HOME are explicit per-invocation overrides (source-repo build and
+// test scripts set one or the other to point checks at src/workflow) — when a caller sets
+// either, they are explicitly naming the directory to validate against, so that must win
+// outright over this repo's own committed definitions_root. definitions_root points at the
+// machine-local ~/.agentsmyth/workflow, which does not exist on a fresh checkout (e.g. CI):
+// letting it outrank an explicit override meant every source-level check was silently
+// depending on this repo's own consumer-style config, working only by accident on a machine
+// that happened to already have that path prepared.
+const _defsRoot = process.env.AGENTSMYTH_WF
+  ? join(repoRoot, _wf)
+  : (process.env.AGENTSMYTH_HOME ? _expandTilde(process.env.AGENTSMYTH_HOME) : null)
+    ?? _expandTilde(_readDefinitionsRoot())
+    ?? join(repoRoot, _wf);
 const _dataRoot = join(repoRoot, _wf);
 
 // Guard: if a non-default definitions root was explicitly requested but does not exist,

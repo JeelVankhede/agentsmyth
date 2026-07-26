@@ -19,7 +19,7 @@ orchestration:
   status: ready-for-next-phase
   next_phase: plan
   blockers: []
-  user_checkpoint: approved
+  user_checkpoint: brief-review
 ---
 
 ## Source Links
@@ -108,6 +108,12 @@ Briefs produced in repositories with a populated `domain.yaml` will automaticall
 - constraint: `domain.yaml` is optional — all Think behavior must degrade gracefully when absent.
 - tradeoff: Verbatim copy preserves domain intent but prevents agents from paraphrasing or merging domain constraints with requirement-derived constraints.
 - downstream: Plan must not rewrite or remove `[domain.yaml]`-labeled constraints from the brief it reads.
+
+## Checkpoint Approval
+
+- Checkpoint: brief-review
+- Status: approved
+- User's own words (verbatim, this turn): "Yes, this brief looks right — go ahead with Plan."
 
 ## Exit Gate
 

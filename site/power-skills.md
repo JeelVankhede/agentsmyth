@@ -1,5 +1,6 @@
 ---
 title: Power skills
+description: How to write and register a custom power skill that plugs into agentsmyth's lifecycle phases.
 ---
 
 # Power skills

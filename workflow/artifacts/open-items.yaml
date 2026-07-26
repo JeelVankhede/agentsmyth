@@ -262,54 +262,96 @@ items:
   - id: OI-44
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main. Done: PR #42 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R12 — Local Install Fixes' database row updated to Done, PR #42, shipped 2026-07-21."
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-45
     source: follow-up
     owner: workflow owner
-    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience."
+    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience. ASSESSED 2026-07-26: recommend yes, but scoped narrower than 'general git conflict handling' -- this session (site-docs-remediation-v1) independently found a second live instance of the exact same failure class, at the Notion level rather than git: two entirely separate Notion Work Packages both titled/numbered 'WP-R12' (OI-57), created independently with no shared numbering check. Git-level branch divergence (this WP's original case) at least surfaces as a mergeable/conflicting diff; a duplicate-ID collision across two independently-authored records (open-items.yaml entries, Notion WP numbers) is worse because nothing flags it at all -- both sides can add non-overlapping content under the same identifier and no tool notices. Recommendation: add a narrow reconciliation sub-step to step 4a (or a sibling check) that greps for duplicate identifiers (OI-N in open-items.yaml, WP-RN against the Notion roadmap) specifically when a branch-base-advance is detected, rather than broadening it into generic merge-conflict-resolution guidance. Not yet implemented -- this is the recommendation, not the fix."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-46
     source: follow-up
     owner: user
-    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged."
-    status: open
+    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb81ba9968ce824ca126e4, Status -> Done, PR #42, Shipped Date 2026-07-21)."
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-47
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main. Done: PR #43 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R13' database row updated to Done, PR #43, shipped 2026-07-21."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-48
     source: follow-up
     owner: user
-    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main."
-    status: open
+    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main. Done: PR #44 confirmed merged 2026-07-21 (gh pr view)."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-49
     source: follow-up
     owner: whoever picks up the next small fix
-    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the 3 test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Re-indent the definitions_root: line in all 3 fixtures."
-    status: open
+    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Done 2026-07-26: only the linked/ fixture actually set definitions_root (defensive-fallback/ and defensive-fallback-broken/ correctly omit it entirely) — re-indented it into repository: there; node test/run-setup-validator-definitions-root-tests.mjs still passes 3/3."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-50
     source: follow-up
     owner: workflow owner
-    next_action: "lifecycle-build/SKILL.md's scope-before-work rule (PR #44) is prose-only, same category of limitation workflow/rules.md's Approval section had before the checkpoint-approval gate (R5, wp-r12-local-install-fixes-v1) existed. Watch whether the strengthened wording is actually followed in future Build phases; if it keeps getting skipped, it likely needs the same two-layer treatment (a mechanical check backing the prose), not just clearer wording."
+    next_action: "lifecycle-build/SKILL.md's scope-before-work rule (PR #44) is prose-only, same category of limitation workflow/rules.md's Approval section had before the checkpoint-approval gate (R5, wp-r12-local-install-fixes-v1) existed. Watch whether the strengthened wording is actually followed in future Build phases; if it keeps getting skipped, it likely needs the same two-layer treatment (a mechanical check backing the prose), not just clearer wording. ASSESSED 2026-07-26: recommend yes, escalate to a mechanical check, with one nuance the check must handle. On site-docs-remediation-v1, Build's task artifact (workflow/artifacts/tasks/site-docs-remediation-v1.md) was in fact written to document nine file edits that were already staged in the working tree before that Build phase began -- on its face, exactly the failure pattern this rule exists to prevent. But the edits predated this agent's involvement in that turn entirely (resumed from earlier session state, not written and then retroactively documented by the same agent in one continuous pass), so 'scope before work' had no earlier point to intervene at. A naive mechanical check comparing the task artifact's created/updated timestamp against the first file modification in git history (OI-50's own original suggestion) would flag this as a violation when it structurally could not have been avoided. Recommendation: the check needs to distinguish 'artifact written after implementation within the same agent session/turn' (a real violation) from 'agent resumes a session where implementation already predates its own involvement' (unavoidable, should not fail) -- e.g. by checking whether the offending file diffs were already present in git status at the very first tool call of the session, not just comparing raw timestamps."
     status: open
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-51
     source: follow-up
     owner: user
-    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged."
-    status: open
+    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb814397ecfb3f523febc5, Status -> Done, PR #43, Shipped Date 2026-07-21)."
+    status: done
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-52
     source: follow-up
     owner: user (to schedule)
-    next_action: "bin/agentsmyth.mjs's init/headlessBootstrap write definitions_root as the fully home-expanded absolute path (join(homedir(), '.agentsmyth', 'workflow')) into every consumer repo's committed repo-profile.yaml, instead of the portable '~/.agentsmyth/workflow' string the read side (lib.mjs's _expandTilde, resolveValidator()) already knows how to expand at resolution time. This means any teammate on a different machine, or any CI runner, whose home directory doesn't match whoever ran init gets 'global definitions root not found' — reproduced directly on this repo's own PR #45 CI run (fixed there only by removing definitions_root entirely from this repo's own dev-workspace config, not by fixing the general write-side bug). Needs its own brief/plan/task/review/verify/ship chain: fix writeDefinitionsRoot()'s two call sites to write the tilde-prefixed portable string, and decide whether/how to migrate already-init'd consumer repos' existing absolute-path repo-profile.yaml files."
-    status: open
+    next_action: "bin/agentsmyth.mjs's init/headlessBootstrap write definitions_root as the fully home-expanded absolute path (join(homedir(), '.agentsmyth', 'workflow')) into every consumer repo's committed repo-profile.yaml, instead of the portable '~/.agentsmyth/workflow' string the read side (lib.mjs's _expandTilde, resolveValidator()) already knows how to expand at resolution time. This means any teammate on a different machine, or any CI runner, whose home directory doesn't match whoever ran init gets 'global definitions root not found' — reproduced directly on this repo's own PR #45 CI run (fixed there only by removing definitions_root entirely from this repo's own dev-workspace config, not by fixing the general write-side bug). Needs its own brief/plan/task/review/verify/ship chain: fix writeDefinitionsRoot()'s two call sites to write the tilde-prefixed portable string, and decide whether/how to migrate already-init'd consumer repos' existing absolute-path repo-profile.yaml files. Done: already shipped as its own full lifecycle chain (workflow/artifacts/*/fix-definitions-root-portability-v1.md), PR #47 'fix(cli): portable definitions_root (OI-52)', merged 2026-07-22. bin/agentsmyth.mjs:19 now defines PORTABLE_DEFINITIONS_ROOT = '~/.agentsmyth/workflow' as a hardcoded literal, and writeDefinitionsRoot()'s single remaining call site (line 380) uses it. Confirmed by direct source read 2026-07-26 — this entry was stale, not an actual open gap."
+    status: done
     first_seen_run: mandatory-lifecycle-pre-commit-hook-v1
+  - id: OI-53
+    source: follow-up
+    owner: user
+    next_action: "Decide whether/when to merge PR #51 (fix/site-docs-remediation) into main."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-54
+    source: requirement
+    owner: whoever picks up the T-D14 sweep
+    next_action: "site/under-hood.md:49 still carries the stale .cursor/rules/index.mdc value (fixed everywhere else in scope by R5 of site-docs-remediation-v1). Explicitly out of scope for that brief (one of four pages named in the future Tier 3/T-D14 sweep: README restructure, four-page sweep, /in-action disclaimer placement, per-page meta descriptions, conceptual diagrams) — fix it as part of that future brief."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-55
+    source: follow-up
+    owner: workflow owner
+    next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-56
+    source: follow-up
+    owner: workflow owner
+    next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-57
+    source: follow-up
+    owner: user
+    next_action: "Notion has two distinct Work Packages both numbered/titled 'WP-R12': 'WP-R12 — Local Install Fixes (Packaging Bug + Missing Invocation Skill)' (shipped, PR #42, now marked Done) and 'WP-R12 — Docs Correctness & Gap Remediation' (the site-docs-remediation-v1 work, Tier 1 shipped PR #51, Tiers 2/3 outstanding). Discovered 2026-07-26 while reconciling open items. Decide whether to renumber the newer one (e.g. to a free WP-R14+ slot) to remove the collision, or leave as-is with a disambiguating note."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-58
+    source: requirement
+    owner: whoever picks up Tier 2
+    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 2 (T-D9 new Uninstall/removal page, T-D10 new Troubleshooting page, T-D11 new Updating page or install-page section, T-D12 footer/LICENSE/CHANGELOG links) is unblocked (does not depend on D-1/D-2) but not yet started. Needs its own brief/plan/build chain — genuinely new content, not anchored correctness fixes like Tier 1."
+    status: open
+    first_seen_run: site-docs-remediation-v1
+  - id: OI-59
+    source: requirement
+    owner: whoever picks up Tier 3
+    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 3 (T-D13 README restructure with badges/doc-site link, T-D14 four-page contradiction sweep on /lifecycle /under-hood /artifacts /power-skills [OI-54 is the one already-known instance on /under-hood], T-D15 /in-action disclaimer reposition + vary the duplicated rate-limiting example, T-D16 per-page meta descriptions + OG image, T-D17 two conceptual diagrams) is unblocked but not yet started. Needs its own brief/plan/build chain — positioning and polish work, not anchored correctness fixes."
+    status: open
+    first_seen_run: site-docs-remediation-v1

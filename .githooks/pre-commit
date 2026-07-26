@@ -20,3 +20,54 @@ node scripts/validate-example.mjs
 
 echo "agentsmyth pre-commit: reminder — if you changed src/workflow/, src/setup/, or src/adapters/,"
 echo "run 'npm run build' so dist/ and generated assets stay in sync before pushing."
+# >>> agentsmyth:mandatory-lifecycle-gate >>>
+# Installed by `agentsmyth init` — mandatory, local-only lifecycle gate. Two checks:
+# 1. Coverage: staged, non-safe files must be covered by a real lifecycle task artifact
+#    (agentsmyth check --staged / check-commit-coverage.mjs) — a fast, narrow proxy.
+# 2. Phase-gate readiness: any staged lifecycle artifact file (workflow/artifacts/<dir>/<slug>-vN.md)
+#    must have its entering phase's gate actually satisfied (agentsmyth check --phase/--slug),
+#    e.g. committing a Plan without its own Checkpoint Approval recorded is rejected.
+# Bypass deliberately, when you mean to: git commit --no-verify
+if command -v agentsmyth >/dev/null 2>&1; then
+  AGENTSMYTH_BIN="agentsmyth"
+else
+  AGENTSMYTH_BIN="npx --yes @jeelvankhede/agentsmyth"
+fi
+
+$AGENTSMYTH_BIN check --staged
+status=$?
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+ARTIFACT_FILES=$(printf '%s\n' "$STAGED" | grep -E '^workflow/artifacts/[^/]+/.+-v[0-9]+\.md$' || true)
+
+if [ -n "$ARTIFACT_FILES" ]; then
+  phase_for_dir() {
+    case "$1" in
+      briefs)   echo "plan"    ;;
+      plans)    echo "build"   ;;
+      tasks)    echo "review"  ;;
+      reviews)  echo "test"    ;;
+      verify)   echo "ship"    ;;
+      ship)     echo "reflect" ;;
+      *)        echo ""       ;;  # reflect (no downstream gate) and anything unrecognized
+    esac
+  }
+
+  IFS='
+'
+  for file in $ARTIFACT_FILES; do
+    dir=$(printf '%s' "$file" | cut -d/ -f3)
+    base=$(basename "$file" .md)
+    slug=$(printf '%s' "$base" | sed 's/-v[0-9][0-9]*$//')
+    phase=$(phase_for_dir "$dir")
+    [ -z "$phase" ] && continue
+    if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
+      status=1
+    fi
+  done
+fi
+
+if [ "$status" -ne 0 ]; then
+  exit "$status"
+fi
+# <<< agentsmyth:mandatory-lifecycle-gate <<<

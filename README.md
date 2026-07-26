@@ -7,72 +7,25 @@
 
 # agentsmyth
 
-Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.
+A portable AI engineering lifecycle. Drop it into any repo — your agent drives it and leaves durable artifacts behind, not chat smoke.
 
-`agentsmyth` gives AI agents a durable engineering workflow for a single repository. It turns requests into lifecycle artifacts, keeps decisions inspectable, and makes verification, release, handoff, and reflection evidence explicit.
+[![npm version](https://img.shields.io/npm/v/%40jeelvankhede%2Fagentsmyth)](https://www.npmjs.com/package/@jeelvankhede/agentsmyth)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](package.json)
 
-## What Is Included
+**[Read the full docs →](https://jeelvankhede.github.io/agentsmyth/)**
 
-- Setup skill in `src/setup/` — one-time porting that configures a new target repo.
-- Lifecycle router and phase contracts in `src/workflow/router.md` and `src/workflow/lifecycle.md`.
-- Phase skills in `src/workflow/skills/`.
-- Artifact Starter Blocks in each skill's `references/output-schema.md`.
-- Behavior config in `src/workflow/agent-behavior.yaml`.
-- YAML schema contracts in `src/workflow/schemas/`.
-- Optional tool adapters in `src/adapters/` — one per supported AI tool.
+Picture the last thing an AI agent built for you — now try to answer which requirement it satisfied, what you decided against, and what evidence proved it worked, without scrolling back. If you can't, you didn't lose the code; you lost everything around it.
 
-The `src/` tree is compiled into `dist/` bundles by `npm run build`. Consumers receive `workflow/` (the compiled, expanded install) — not the raw `src/`.
+## What it refuses to be
 
-## Lifecycle
+Knowing what a tool is not is usually more honest than knowing what it is.
 
-```text
-brief -> plan -> task -> review -> verify -> ship -> reflect
-```
-
-Each Standard or Complex change leaves a readable artifact chain under `workflow/artifacts/`. The artifacts preserve requirement IDs, blockers, architecture notes, command evidence, skipped-check risk, release status, and follow-up decisions.
-
-## Project Knowledge
-
-### Lifecycle Phases
-
-agentsmyth enforces a 7-phase artifact chain. Each Standard or Complex task produces one artifact per phase under `workflow/artifacts/<slug>/`:
-
-| Phase | What happens |
-|---|---|
-| `brief` | Requirements captured, scope and complexity classified |
-| `plan` | Architecture decisions, implementation plan, verification criteria |
-| `task` | Active implementation tracked against the plan |
-| `review` | Code review against the plan's manifest and requirements |
-| `verify` | Commands run, evidence recorded against the verification plan |
-| `ship` | Release checklist, risk sign-off, deployment evidence |
-| `reflect` | Post-ship learnings, open follow-ups |
-
-Trivial changes (typo fixes, small config edits) are exempt from the full chain. The router (`workflow/router.md`) classifies each request on arrival.
-
-### Adapters
-
-agentsmyth supports five AI tools out of the box. During setup, the agent places the correct adapter at the tool's native path:
-
-| Tool | Adapter path |
-|---|---|
-| Claude Code | `.claude/CLAUDE.md` |
-| Codex | `AGENTS.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/index.mdc` |
-| Windsurf | `.windsurfrules` |
-
-### Config Files
-
-Six YAML files in `workflow/config/` capture repo-specific context written by the agent during setup:
-
-| File | Purpose |
-|---|---|
-| `domain.yaml` | Project domain, tech stack, key terminology |
-| `repo-profile.yaml` | Repo shape, primary language, monorepo/single-repo |
-| `source-of-truth.yaml` | Authoritative sources for requirements and decisions |
-| `agent-behavior.yaml` | Enforcement rules, compliance stance, waiver policy |
-| `release.yaml` | Release process, environments, deployment targets |
-| `verification.yaml` | Testing strategy, coverage expectations, CI commands |
+- **Not a framework.** It adds no library, no import, no build step to your code.
+- **Not an agent.** It brings no model. It rides the agent you already run: Claude Code, Codex, Copilot, Cursor, or Windsurf.
+- **Not a scaffolder.** It does not generate your project. It attaches a lifecycle to the project you have.
+- **Not opinionated about your domain.** The workflow learns your domain during setup, from your repo and your answers, not from a template's guesses.
+- **Not a paywall.** Every skill ships free. There is no gated tier, no premium content fetched from a server. Community-first, by decision.
 
 ## Setup
 
@@ -193,7 +146,72 @@ node workflow/validators/check-config.mjs
 node workflow/validators/check-pending-setup.mjs   # shows any open items
 ```
 
+## How it works
+
+### Lifecycle
+
+```text
+brief -> plan -> task -> review -> verify -> ship -> reflect
+```
+
+Each Standard or Complex change leaves a readable artifact chain under `workflow/artifacts/`. The artifacts preserve requirement IDs, blockers, architecture notes, command evidence, skipped-check risk, release status, and follow-up decisions. Trivial changes (typo fixes, small config edits) are exempt from the full chain — the router (`workflow/router.md`) classifies each request on arrival.
+
+| Phase | What happens |
+|---|---|
+| `brief` | Requirements captured, scope and complexity classified |
+| `plan` | Architecture decisions, implementation plan, verification criteria |
+| `task` | Active implementation tracked against the plan |
+| `review` | Code review against the plan's manifest and requirements |
+| `verify` | Commands run, evidence recorded against the verification plan |
+| `ship` | Release checklist, risk sign-off, deployment evidence |
+| `reflect` | Post-ship learnings, open follow-ups |
+
+### Adapters
+
+agentsmyth supports five AI tools out of the box. During setup, the agent places the correct adapter at the tool's native path:
+
+| Tool | Adapter path |
+|---|---|
+| Claude Code | `.claude/CLAUDE.md` |
+| Codex | `AGENTS.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Cursor | `.cursor/rules/agentsmyth.mdc` |
+| Windsurf | `.windsurfrules` |
+
+### Config Files
+
+Five YAML files in `workflow/config/` capture repo-specific context written by the agent during setup:
+
+| File | Purpose |
+|---|---|
+| `domain.yaml` | Project domain, tech stack, key terminology |
+| `repo-profile.yaml` | Repo shape, primary language, monorepo/single-repo |
+| `source-of-truth.yaml` | Authoritative sources for requirements and decisions |
+| `release.yaml` | Release process, environments, deployment targets |
+| `verification.yaml` | Testing strategy, coverage expectations, CI commands |
+
+`agent-behavior.yaml` lives in the shared definitions tree at `~/.agentsmyth/workflow/`, is identical for every repo, and is never written by setup or edited by consumers.
+
+## Guardrails
+
+- Do not make a provider, CI system, package manager, deployment process, or external source mandatory unless config or the user requires it.
+- Do not claim commands, external updates, releases, PRs, CI, or handoffs without evidence.
+- Treat skipped checks and waivers as visible risk.
+- Treat validators as contract checks. They support review, but they do not replace code tests, manual QA, release evidence, or human judgment.
+
 ## Development (this repo)
+
+This section is about `agentsmyth`'s own source repository, not what gets installed into a consumer repo.
+
+- Setup skill in `src/setup/` — one-time porting that configures a new target repo.
+- Lifecycle router and phase contracts in `src/workflow/router.md` and `src/workflow/lifecycle.md`.
+- Phase skills in `src/workflow/skills/`.
+- Artifact Starter Blocks in each skill's `references/output-schema.md`.
+- Behavior config in `src/workflow/agent-behavior.yaml`.
+- YAML schema contracts in `src/workflow/schemas/`.
+- Optional tool adapters in `src/adapters/` — one per supported AI tool.
+
+The `src/` tree is compiled into `dist/` bundles by `npm run build`. Consumers receive `workflow/` (the compiled, expanded install) — not the raw `src/`.
 
 Build bundles and run all checks:
 
@@ -212,10 +230,4 @@ node src/workflow/validators/check-artifacts.mjs
 node src/workflow/validators/check-domain-placeholders.mjs
 ```
 
-## Guardrails
-
-- Source lives in `src/`; dev workspace is `workflow/` at repo root. Never confuse them.
-- Do not make a provider, CI system, package manager, deployment process, or external source mandatory unless config or the user requires it.
-- Do not claim commands, external updates, releases, PRs, CI, or handoffs without evidence.
-- Treat skipped checks and waivers as visible risk.
-- Treat validators as contract checks. They support review, but they do not replace code tests, manual QA, release evidence, or human judgment.
+Source lives in `src/`; dev workspace is `workflow/` at repo root. Never confuse them.

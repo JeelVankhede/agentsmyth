@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import {
+// AGENTSMYTH_WF must be set before lib.mjs's top-level two-root resolver runs, so it has to
+// happen before the module is evaluated -- a static import is hoisted ahead of any code in this
+// file, so the env var has to be set first and the module pulled in dynamically instead (see
+// scripts/validate-template.mjs, which gets the same effect by spawning validators as
+// subprocesses with a custom env rather than importing them in-process).
+if (!process.env.AGENTSMYTH_WF && !process.env.AGENTSMYTH_HOME) process.env.AGENTSMYTH_WF = 'src/workflow';
+const {
   artifactContracts,
   finish,
   headings,
@@ -9,7 +15,7 @@ import {
   readText,
   schemaRegistry,
   validateSchema,
-} from '../validators/lib.mjs';
+} = await import('../validators/lib.mjs');
 
 const errors = [];
 const details = [];

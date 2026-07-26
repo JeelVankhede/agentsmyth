@@ -1,5 +1,6 @@
 ---
 title: Under the hood
+description: How agentsmyth actually works — the source-of-truth hierarchy, adapters, and the shared global install.
 ---
 
 # Under the hood
@@ -24,6 +25,24 @@ The same skills live in four different places, and confusing them means editing 
 | Installed | `workflow/` in your repo | Your config, artifacts, and learnings — definitions resolve from the shared tree |
 
 `scripts/build-bundle.mjs` compiles source into bundle. `prepare` expands bundle into the shared definitions tree. `init` links your repo to it. You edit source, and never the bundle or the definitions tree by hand.
+
+```mermaid
+flowchart TB
+  subgraph Global["~/.agentsmyth/workflow/ — one copy, shared by every repo on the machine"]
+    G1["router.md, lifecycle.md, rules.md, glossary.md"]
+    G2["skills/"]
+    G3["validators/"]
+    G4["schemas/"]
+  end
+  subgraph Repo["workflow/ — per repo"]
+    R1["config/ — your five YAML configs"]
+    R2["artifacts/ — your lifecycle artifact chain"]
+    R3["learnings/ — your raw and curated learnings"]
+  end
+  Repo -- "definitions_root in repo-profile.yaml" --> Global
+```
+
+The split is deliberate: everything that's identical across every repo lives once, globally. Everything specific to this repo — its config, its artifact history, its learnings — lives locally and never gets shared.
 
 ## What the install leaves in your repo
 
@@ -62,6 +81,19 @@ adapter dirs, Markdown) and small single-file diffs pass automatically; anything
 named in a real lifecycle task artifact's Changed Files, or the commit is rejected. This is
 local-only by design — no CI template ships with agentsmyth. The only bypass is git's native
 `--no-verify`.
+
+## What loads, in what order
+
+Before a phase skill ever runs, four things load in a fixed sequence — the same sequence every supported tool's global gate installs:
+
+```mermaid
+flowchart LR
+  A["Adapter<br/>(CLAUDE.md, etc.)"] --> B["router.md"]
+  B --> C["agent-behavior.yaml"]
+  C --> D["Phase skill<br/>(Think, Plan, Build, ...)"]
+```
+
+The adapter is what every tool reads automatically; everything after it is the same regardless of which tool got you there.
 
 ## The source-of-truth hierarchy
 

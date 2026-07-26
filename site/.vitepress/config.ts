@@ -1,20 +1,33 @@
 import { defineConfig } from 'vitepress';
+import { withMermaid } from 'vitepress-plugin-mermaid';
 
 const base = '/agentsmyth/';
+const siteUrl = 'https://jeelvankhede.github.io/agentsmyth/';
+const ogImage = `${siteUrl}og-image.png`;
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'agentsmyth',
   description: 'A portable AI engineering lifecycle',
   base,
   cleanUrls: true,
   appearance: 'dark',
+  mermaid: {
+    htmlLabels: false,
+  },
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     ['link', { rel: 'icon', href: `${base}favicon.svg`, type: 'image/svg+xml' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'agentsmyth' }],
+    ['meta', { property: 'og:image', content: ogImage }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: ogImage }],
   ],
   themeConfig: {
-    logo: { src: '/logo.svg', width: 24, height: 24 },
+    logo: { light: '/logo-light.svg', dark: '/logo-dark.svg', alt: 'agentsmyth', width: 24, height: 24 },
     siteTitle: 'agentsmyth',
     nav: [
       { text: 'Guide', link: '/introduction' },
@@ -35,6 +48,9 @@ export default defineConfig({
           { text: 'Install', link: '/install' },
           { text: 'Run it', link: '/run-it' },
           { text: 'Setup: the resolution pass', link: '/setup' },
+          { text: 'Updating', link: '/updating' },
+          { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'Uninstall and removal', link: '/uninstall' },
         ],
       },
       {
@@ -56,5 +72,9 @@ export default defineConfig({
     search: {
       provider: 'local',
     },
+    footer: {
+      message: '<a href="https://github.com/JeelVankhede/agentsmyth/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/JeelVankhede/agentsmyth/blob/main/CHANGELOG.md">Changelog</a>',
+      copyright: 'agentsmyth',
+    },
   },
-});
+}));
