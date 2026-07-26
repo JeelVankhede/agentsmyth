@@ -12,7 +12,7 @@ export default withMermaid(defineConfig({
   cleanUrls: true,
   appearance: 'dark',
   mermaid: {
-    flowchart: { htmlLabels: false },
+    htmlLabels: false,
   },
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
