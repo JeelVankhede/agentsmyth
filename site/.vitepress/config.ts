@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitepress';
+import { withMermaid } from 'vitepress-plugin-mermaid';
 
 const base = '/agentsmyth/';
 const siteUrl = 'https://jeelvankhede.github.io/agentsmyth/';
 const ogImage = `${siteUrl}og-image.png`;
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'agentsmyth',
   description: 'A portable AI engineering lifecycle',
   base,
@@ -73,4 +74,4 @@ export default defineConfig({
       copyright: 'agentsmyth',
     },
   },
-});
+}));
