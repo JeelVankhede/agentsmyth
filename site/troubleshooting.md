@@ -13,7 +13,7 @@ Four situations that come up in practice, and what's actually happening in each.
 
 ## The agent doesn't pick up `.agentsmyth/setup-bundle.md`
 
-After `init`, the CLI prints: `Next step: open your AI agent and say: "run the agentsmyth setup"`. Saying that phrase is what's supposed to trigger the agent into finding and reading `.agentsmyth/setup-bundle.md` — but how reliably that happens depends on the tool. Claude Code has a dedicated `/agentsmyth` invocation skill that looks for the staging folder directly, no ambiguity. Every other tool relies on its own passive global gate (installed by `agentsmyth prepare` into that tool's global config) plus the agent's own judgment to notice `.agentsmyth/` sitting in the repo root. If the agent doesn't pick it up on its own, point it at the file directly: "read `.agentsmyth/setup-bundle.md` and follow it."
+After `init`, the CLI prints: `Next step: open your AI agent and say: "run the agentsmyth setup"`. That freeform phrase relies on the agent's own judgment to notice `.agentsmyth/` sitting in the repo root — it doesn't always land. Every supported tool also gets an explicit, typed command from `agentsmyth prepare`: `/agentsmyth` in Claude Code, Cursor, Windsurf, and Copilot (VS Code), or `/prompts:agentsmyth` in Codex. Type it instead of the freeform sentence — it's a fixed command the tool resolves directly, not natural language the agent has to interpret and choose to act on. If neither works, point the agent at the file directly: "read `.agentsmyth/setup-bundle.md` and follow it."
 
 ## The hook is rejecting a legitimate commit
 
