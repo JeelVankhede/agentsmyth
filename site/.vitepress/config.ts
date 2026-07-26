@@ -35,6 +35,9 @@ export default defineConfig({
           { text: 'Install', link: '/install' },
           { text: 'Run it', link: '/run-it' },
           { text: 'Setup: the resolution pass', link: '/setup' },
+          { text: 'Updating', link: '/updating' },
+          { text: 'Troubleshooting', link: '/troubleshooting' },
+          { text: 'Uninstall and removal', link: '/uninstall' },
         ],
       },
       {
