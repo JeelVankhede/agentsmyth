@@ -33,10 +33,13 @@ Every artifact opens with YAML frontmatter, and it is schema-enforced. A validat
 slug: rate-limiting
 version: 1
 artifact: task
+status: in-progress
+created: 2026-05-12
+updated: 2026-05-12
 manifest_ids: [R1, R2, RI1]
 upstream:
-  brief: workflow/artifacts/briefs/rate-limiting-v1.md
-  plan: workflow/artifacts/plans/rate-limiting-v1.md
+  - workflow/artifacts/briefs/rate-limiting-v1.md
+  - workflow/artifacts/plans/rate-limiting-v1.md
 orchestration:
   phase: build
   status: in-progress
