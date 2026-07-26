@@ -88,7 +88,7 @@ Before a phase skill ever runs, four things load in a fixed sequence — the sam
 
 ```mermaid
 flowchart LR
-  A["Adapter<br/>(CLAUDE.md / AGENTS.md / etc.)"] --> B["router.md"]
+  A["Adapter<br/>(CLAUDE.md, etc.)"] --> B["router.md"]
   B --> C["agent-behavior.yaml"]
   C --> D["Phase skill<br/>(Think, Plan, Build, ...)"]
 ```
