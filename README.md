@@ -105,11 +105,17 @@ won't duplicate the check.
 
 ### Running setup
 
-Open your AI agent in the target repo and say:
+`agentsmyth prepare` (which `init` runs automatically) installs a typed command in every
+supported tool: `/agentsmyth` in Claude Code, Cursor, Windsurf, and Copilot (VS Code), or
+`/prompts:agentsmyth` in Codex. Open your AI agent in the target repo and type it:
 
 ```
-run the agentsmyth setup
+/agentsmyth
 ```
+
+Plain-English phrasing like "run the agentsmyth setup" usually works too, but an agent can skip
+a freeform instruction it doesn't recognize as a trigger — a typed command is resolved directly
+by the tool instead, so it can't be silently skipped the same way.
 
 The agent reads `setup-bundle.md` and runs a **resolution pass**, not a from-scratch interview:
 it resolves `pending-setup.yaml`'s open items (inspecting the repo first, asking only what's
@@ -120,21 +126,26 @@ placement (non-macOS) — and removes `.agentsmyth/` when done.
 
 ### What ends up in the target repo
 
+`init` links the repo to a shared, machine-wide definitions install rather than copying the
+workflow tree into every repo — this is the default outcome, not an opt-in:
+
 ```
 workflow/
   config/          ← init writes stubs; the agent resolves what's left
-  router.md
-  lifecycle.md
-  rules.md
-  glossary.md
-  skills/          ← full phase skill tree
-  validators/      ← post-setup health checks
-  schemas/
   artifacts/       ← lifecycle artifact chain lives here
   learnings/
 .claude/CLAUDE.md  ← or AGENTS.md / .cursor/rules/ etc. depending on your tool
 docs/knowledge-map/repo-mental-map.md
+
+~/.agentsmyth/workflow/   router.md, lifecycle.md, rules.md, glossary.md, skills/,
+                          validators/, schemas/ — one shared copy per machine
 ```
+
+Router, lifecycle, rules, glossary, skills, validators, and schemas resolve from
+`~/.agentsmyth/workflow/` at runtime instead of being copied per repo — see
+[Under the hood](https://jeelvankhede.github.io/agentsmyth/under-hood) for why. A repo-local copy
+of all of those only appears in the defensive fallback case (no global install could be linked),
+which should not normally happen.
 
 ### Post-setup validation
 
@@ -221,13 +232,15 @@ npm run validate    # validate-template + validate-example + render-adapters
 npm run violations:test  # confirm all violation fixtures are rejected
 ```
 
-Run individual dev validators (source-level validators need `AGENTSMYTH_WF=src/workflow`):
+Run individual dev validators — every validator imports the shared resolver in
+`src/workflow/validators/lib.mjs`, which needs `AGENTSMYTH_WF=src/workflow` to check source
+directly instead of falling back to a global install that may not exist on your machine:
 
 ```bash
 AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-starter-blocks.mjs
 AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-lifecycle.mjs
-node src/workflow/validators/check-artifacts.mjs
-node src/workflow/validators/check-domain-placeholders.mjs
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-artifacts.mjs
+AGENTSMYTH_WF=src/workflow node src/workflow/validators/check-domain-placeholders.mjs
 ```
 
 Source lives in `src/`; dev workspace is `workflow/` at repo root. Never confuse them.
