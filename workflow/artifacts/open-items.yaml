@@ -197,14 +197,16 @@ items:
     source: follow-up
     owner: user
     next_action: "Decide whether/when to merge PR #41 (feat/wp-r11-docs-site) into main."
-    status: open
+    status: done
     first_seen_run: wp-r11-docs-site-v1
+    resolution: "Merged 2026-07-21 (confirmed via gh pr view 41 --json state,mergedAt)."
   - id: OI-34
     source: follow-up
     owner: user
     next_action: "Make the agentsmyth repo public and enable GitHub Pages (source: GitHub Actions) so site-deploy.yml can actually run and R8/RI5's live-deployment clause closes -- both already fully documented as Blocked Handoff in workflow/artifacts/ship/wp-r11-docs-site-v1.md."
-    status: open
+    status: done
     first_seen_run: wp-r11-docs-site-v1
+    resolution: "Repo is public (gh repo view: isPrivate false) and Pages is live at jeelvankhede.github.io/agentsmyth (gh api repos/.../pages confirms build_type workflow, html_url set)."
   - id: OI-35
     source: follow-up
     owner: user/repo maintainer
@@ -323,8 +325,9 @@ items:
     source: requirement
     owner: whoever picks up the T-D14 sweep
     next_action: "site/under-hood.md:49 still carries the stale .cursor/rules/index.mdc value (fixed everywhere else in scope by R5 of site-docs-remediation-v1). Explicitly out of scope for that brief (one of four pages named in the future Tier 3/T-D14 sweep: README restructure, four-page sweep, /in-action disclaimer placement, per-page meta descriptions, conceptual diagrams) — fix it as part of that future brief."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Fixed: site/under-hood.md's adapter table now shows .cursor/rules/agentsmyth.mdc, the real installed path (confirmed against bin/agentsmyth.mjs's cursorDest constant) -- index.mdc is only the source filename before install renames it."
   - id: OI-55
     source: follow-up
     owner: workflow owner
@@ -341,17 +344,20 @@ items:
     source: follow-up
     owner: user
     next_action: "Notion has two distinct Work Packages both numbered/titled 'WP-R12': 'WP-R12 — Local Install Fixes (Packaging Bug + Missing Invocation Skill)' (shipped, PR #42, now marked Done) and 'WP-R12 — Docs Correctness & Gap Remediation' (the site-docs-remediation-v1 work, Tier 1 shipped PR #51, Tiers 2/3 outstanding). Discovered 2026-07-26 while reconciling open items. Decide whether to renumber the newer one (e.g. to a free WP-R14+ slot) to remove the collision, or leave as-is with a disambiguating note."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Renumbered: 'WP-R12 — Docs Correctness & Gap Remediation' renamed to 'WP-R14 — Docs Correctness & Gap Remediation' in Notion (WP-R13 was the prior highest number). Page Notes, Exit Gate, and the linked backlog page's Tier 2/3 headers updated to reflect Tier 1-3 all shipped on PR #51, merge to main still pending. No collision remains -- confirmed via a fresh query of the Work Packages database."
   - id: OI-58
     source: requirement
     owner: whoever picks up Tier 2
     next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 2 (T-D9 new Uninstall/removal page, T-D10 new Troubleshooting page, T-D11 new Updating page or install-page section, T-D12 footer/LICENSE/CHANGELOG links) is unblocked (does not depend on D-1/D-2) but not yet started. Needs its own brief/plan/build chain — genuinely new content, not anchored correctness fixes like Tier 1."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Shipped this session: site/uninstall.md (T-D9), site/troubleshooting.md (T-D10), site/updating.md (T-D11), and footer LICENSE/CHANGELOG links in site/.vitepress/config.ts (T-D12) all confirmed present on disk."
   - id: OI-59
     source: requirement
     owner: whoever picks up Tier 3
     next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 3 (T-D13 README restructure with badges/doc-site link, T-D14 four-page contradiction sweep on /lifecycle /under-hood /artifacts /power-skills [OI-54 is the one already-known instance on /under-hood], T-D15 /in-action disclaimer reposition + vary the duplicated rate-limiting example, T-D16 per-page meta descriptions + OG image, T-D17 two conceptual diagrams) is unblocked but not yet started. Needs its own brief/plan/build chain — positioning and polish work, not anchored correctness fixes."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "All seven sub-items confirmed shipped: T-D13 README restructure (badges, doc-site link, lockup all present), T-D14 four-page sweep (checked /lifecycle, /artifacts, /power-skills against real repo state -- no further staleness found beyond OI-54, now fixed), T-D15 (in-action.md disclaimer under H1, run-it.md example varied to pagination -- no duplication), T-D16 (description: frontmatter on all pages, og-image.png + meta tags in config.ts), T-D17 (2 mermaid diagrams on /under-hood, 1 on /lifecycle, all confirmed rendering correctly via screenshot)."
