@@ -1,5 +1,6 @@
 ---
 title: Updating
+description: What does and doesn't happen automatically when agentsmyth ships a new version.
 ---
 
 # Updating

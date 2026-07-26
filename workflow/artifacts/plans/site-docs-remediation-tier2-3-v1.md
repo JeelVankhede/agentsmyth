@@ -114,7 +114,7 @@ Land the smallest, most independent phases first (R10, then the Tier 2 new pages
 ### Phase 6 - Per-page meta descriptions and OG image
 
 - **Manifest IDs:** R8, RI1
-- Touches: every `site/*.md` page (frontmatter `description` field), `site/.vitepress/config.ts` (`head`, OG image tag)
+- Touches: every `site/*.md` page (frontmatter `description` field), `site/.vitepress/config.ts` (`head`, OG image tag), `site/public/og-image.png` (new OG image asset)
 - Work: Add a distinct `description` frontmatter value per page (including the three new Phase 2 pages). Add an OG image asset and its `head` meta tags.
 - **Exit gate:** each page's rendered `<meta name="description">` differs from the site-wide default; an `og:image` meta tag exists in build output.
 
@@ -173,6 +173,7 @@ After all eight phases: `npm run build` (bundle, confirms Phase 1's `bin/agentsm
 - constraint: R9's new devDependency is scoped to `site/`'s build tooling only, not the shipped npm package — does not conflict with the repo's CLI zero-runtime-dependency golden rule.
 - tradeoff: Grouping R1/R2/R3 into one Phase 2 (rather than three separate phases) trades some Build-phase granularity for fewer total phases, since all three are the same shape of work (new "Use it" page) with no cross-dependency risk between them.
 - downstream: Review should confirm Phase 7's README diff is purely a reorder-and-rename, not a rewrite, of any Do-Not-Touch content. Ship should note this branch's PR #51 (Tier 1) merge status before deciding whether Tier 2/3 becomes a second PR against `main` or an update to the still-open #51.
+- amendment (2026-07-26, during Build Phase 6): Touches list updated to explicitly name `site/public/og-image.png` — an implementation detail always implied by "OG image asset" but not spelled out as a path at Plan time. No requirement, scope, or approved checkpoint changed; `check-scope-fence` flagged the unnamed path and this amendment resolved it without needing a waiver.
 
 ## Open Questions
 

@@ -1,5 +1,6 @@
 ---
 title: Vibe, engineering, loop
+description: From vibe coding to vibe engineering to loop engineering — where agentsmyth's discipline comes from.
 ---
 
 # Vibe, engineering, loop

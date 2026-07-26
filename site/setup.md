@@ -1,5 +1,6 @@
 ---
 title: "Setup: the resolution pass"
+description: agentsmyth's one-time setup resolution pass — how the agent fills in what init could not.
 ---
 
 # Setup: the resolution pass

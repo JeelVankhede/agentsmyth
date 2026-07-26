@@ -1,5 +1,6 @@
 ---
 title: The lifecycle
+description: "The seven-phase engineering lifecycle agentsmyth enforces: Think, Plan, Build, Review, Test, Ship, Reflect."
 ---
 
 # The lifecycle

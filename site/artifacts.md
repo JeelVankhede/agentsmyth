@@ -1,5 +1,6 @@
 ---
 title: Artifacts
+description: How agentsmyth's seven lifecycle phases each read and write a durable, schema-enforced artifact instead of leaving decisions in chat.
 ---
 
 # Artifacts

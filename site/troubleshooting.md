@@ -1,5 +1,6 @@
 ---
 title: Troubleshooting
+description: "Fixes for common agentsmyth problems: a stuck validator, an unresponsive agent, a rejected commit, version skew."
 ---
 
 # Troubleshooting

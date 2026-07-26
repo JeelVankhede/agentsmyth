@@ -1,5 +1,6 @@
 ---
 title: Under the hood
+description: How agentsmyth actually works — the source-of-truth hierarchy, adapters, and the shared global install.
 ---
 
 # Under the hood

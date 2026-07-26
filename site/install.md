@@ -1,5 +1,6 @@
 ---
 title: Install
+description: How to install agentsmyth via npx, what init actually writes to your repo, and what prepare installs globally.
 ---
 
 # Install

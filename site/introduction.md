@@ -1,5 +1,6 @@
 ---
 title: Introduction
+description: Why agentsmyth exists — three questions about AI-assisted engineering it's built to answer.
 ---
 
 # Introduction

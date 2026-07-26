@@ -5,7 +5,7 @@ artifact: task
 status: in-progress
 created: 2026-07-26
 updated: 2026-07-26
-manifest_ids: [R10, R1, R2, R3, R4, R6, R7, RI1, RI2]
+manifest_ids: [R10, R1, R2, R3, R4, R6, R7, R8, RI1, RI2]
 upstream:
   - workflow/artifacts/briefs/site-docs-remediation-tier2-3-v1.md
   - workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md
@@ -21,9 +21,9 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 5 - /in-action disclaimer and example fix
-- Manifest IDs: R7, RI1
-- Exit gate: disclaimer no longer renders as a blocking above-the-fold callout; fabrication label still present; the two pages' example scenarios differ.
+- Phase: Phase 6 - Per-page meta descriptions and OG image
+- Manifest IDs: R8, RI1
+- Exit gate: each page's rendered `<meta name="description">` differs from the site-wide default; an `og:image` meta tag exists in build output.
 
 ## Plan Phases Overview
 
@@ -33,7 +33,8 @@ orchestration:
 | Phase 2 - Three new "Use it" pages | complete | R1, R2, R3, RI1, RI2 |
 | Phase 3 - Footer LICENSE/CHANGELOG links | complete | R4, RI1 |
 | Phase 4 - site/artifacts.md upstream-shape fix | complete | R6, RI1 |
-| Phase 5 - /in-action disclaimer and example fix | active | R7, RI1 |
+| Phase 5 - /in-action disclaimer and example fix | complete | R7, RI1 |
+| Phase 6 - Per-page meta descriptions and OG image | active | R8, RI1 |
 | Phase 4 - site/artifacts.md upstream-shape fix | pending | R6, RI1 |
 | Phase 5 - /in-action disclaimer and example fix | pending | R7, RI1 |
 | Phase 6 - Per-page meta descriptions and OG image | pending | R8, RI1 |
@@ -62,6 +63,9 @@ orchestration:
 - `site/artifacts.md` — fixed example frontmatter's `upstream` field from an object (`brief:`/`plan:` keys) to the schema-correct array-of-strings form; also added the missing `status`/`created`/`updated` example fields (T-D14 sweep's minor finding, fixed opportunistically) — IDs: R6
 - `site/in-action.md` — repositioned the "Illustrative walkthrough" disclaimer from an above-the-fold `::: warning` callout to a small line directly under the H1, keeping the fabrication label intact — IDs: R7
 - `site/run-it.md` — changed the example scenario from "add rate limiting to the public API endpoints" (identical to `/in-action`'s) to "add pagination to the search results endpoint", updating both the initial example and the later "continue the X work" callback for internal consistency — IDs: R7
+- All 15 `site/*.md` pages — added a distinct `description:` frontmatter field per page — IDs: R8
+- `site/public/og-image.png` (new, 1200×630) — generated from `assets/brand/lockup-dark.svg` (the existing brand lockup: anvil-ring mark, "agentsmyth" wordmark, "FORGE, DON'T VIBE" tagline, all in the confirmed light ink `#F5F4F0`) composited onto the site's actual dark-theme background color `#0b0c0e` (confirmed via `site/.vitepress/theme/style.css:49`'s `--vp-c-bg`) — IDs: R8
+- `site/.vitepress/config.ts` — added `og:image`/`og:image:width`/`og:image:height`/`twitter:image`/`twitter:card` meta tags pointing at the new OG image via its confirmed production URL (`https://jeelvankhede.github.io/agentsmyth/og-image.png`, confirmed via `gh api repos/JeelVankhede/agentsmyth/pages`) — IDs: R8
 
 ## Implementation Log
 
@@ -74,6 +78,7 @@ orchestration:
 - Fixed `site/artifacts.md`'s example `upstream` field per the completed T-D14 sweep's real finding — matches `src/workflow/schemas/artifact-frontmatter.schema.yaml`'s array-of-strings requirement and every real artifact on disk.
 - Chose to change `run-it.md`'s example rather than `in-action.md`'s: `in-action.md`'s entire walkthrough narrative (7 gates, artifact filenames like `rate-limiting-v1.md`, findings specific to a rate limiter) is built around the rate-limiting scenario, while `run-it.md`'s use is incidental (one command-line example plus a callback). Changing the incidental one avoids rewriting a page's whole narrative for a duplication fix.
 - Used `<small><em>...</em></small>` instead of VitePress's `::: warning` container for the repositioned disclaimer — the brief's R7 requirement asked for "a small line," and the warning container's visual weight (colored box, icon) is exactly the above-the-fold prominence being removed; plain small italic text reads as a footnote, not an alert.
+- R8's OG image: no SVG-to-PNG rasterization tool was available in this environment (`rsvg-convert`, `imagemagick`, `sharp`, `resvg` all absent), and the auto-mode permission classifier initially blocked an unauthorized `npx sharp-cli` fetch as an unrequested external package install. Surfaced this to the user rather than shipping a broken SVG-as-`og:image` (most social platforms — Twitter/X, LinkedIn, Discord — don't render SVG for link previews) or silently skipping the requirement. User explicitly authorized a one-time `npx` invocation (no persisted devDependency). Composited a 1200×630 canvas from the existing, already-brand-approved `lockup-dark.svg` rather than designing new artwork — reuses a confirmed-correct asset instead of inventing new visual design mid-Build.
 
 ## Verification Items
 
@@ -87,6 +92,8 @@ orchestration:
 | R6 | `grep -n "brief: workflow/artifacts" site/artifacts.md` | zero hits |
 | R7 | Read `site/in-action.md`: disclaimer position + fabrication label presence | small text under H1, not a blocking callout; label present |
 | R7 | Read `site/in-action.md` and `site/run-it.md`: example scenarios | differ (rate limiting vs. pagination) |
+| R8 | `grep '<meta name="description"' site/.vitepress/dist/*.html` | each page's description differs from the site-wide default and from every other page |
+| R8 | `grep 'og:image' site/.vitepress/dist/index.html` | present, points at the real deployed PNG URL |
 
 ## Command Results
 
@@ -105,6 +112,11 @@ orchestration:
 | `npm run site:build` | R7 | pass | |
 | `grep -n "Illustrative walkthrough\|fabricated" site/in-action.md` | R7 | pass | disclaimer present as small under-H1 text, fabrication label intact |
 | `grep -n "rate limiting\|pagination" site/run-it.md site/in-action.md` | R7 | pass | confirms the two pages no longer share an identical example scenario |
+| `npx --yes sharp-cli -i og-image.svg -o og-image.png resize 1200 630` | R8 | pass | one-time invocation, user-authorized; output confirmed 1200×630 8-bit RGBA PNG via `file` |
+| `npm run site:build` | R8 | pass | |
+| Per-page `grep '<meta name="description"' site/.vitepress/dist/*.html` (all 15 pages) | R8 | pass | every page's description is distinct from the site-wide default and from every other page (spot-checked full list, not just a sample) |
+| `grep -o 'property="og:image"[^>]*' site/.vitepress/dist/index.html` | R8 | pass | `content="https://jeelvankhede.github.io/agentsmyth/og-image.png"` |
+| `gh api repos/JeelVankhede/agentsmyth/pages --jq '.html_url'` | R8 | pass | confirmed real production URL (`https://jeelvankhede.github.io/agentsmyth/`) before hardcoding it into `og:image` |
 
 ## Dispatch Log
 
@@ -133,3 +145,4 @@ none
 | Phase 3 - Footer LICENSE/CHANGELOG links | complete | 2026-07-26 | R4 verified via site:build + href grep |
 | Phase 4 - site/artifacts.md upstream-shape fix | complete | 2026-07-26 | R6 verified via grep + site:build |
 | Phase 5 - /in-action disclaimer and example fix | complete | 2026-07-26 | R7 verified via grep + manual read; fabrication label preserved, only position/example changed |
+| Phase 6 - Per-page meta descriptions and OG image | complete | 2026-07-26 | R8 verified via site:build + full 15-page description check + og:image URL confirmation; OG image generation required user authorization for a one-time npx invocation after tooling was unavailable |

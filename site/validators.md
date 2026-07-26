@@ -1,5 +1,6 @@
 ---
 title: Validators
+description: The Node scripts that enforce agentsmyth's lifecycle contracts and refuse to pass on drift.
 ---
 
 # Validators

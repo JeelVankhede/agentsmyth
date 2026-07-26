@@ -1,5 +1,6 @@
 ---
 title: Uninstall and removal
+description: How to fully remove agentsmyth from a repo, including the pre-commit hook and the shared global install.
 ---
 
 # Uninstall and removal

@@ -1,5 +1,6 @@
 ---
 title: Run it
+description: What happens after setup — handing off daily work to your agent and resuming it later.
 ---
 
 # Run it

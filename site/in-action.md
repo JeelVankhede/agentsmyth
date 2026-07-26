@@ -1,5 +1,6 @@
 ---
 title: agentsmyth in action
+description: A full walkthrough of agentsmyth's seven-phase lifecycle on one real-sized feature, from request to reflect.
 ---
 
 # agentsmyth in action
