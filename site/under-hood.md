@@ -65,7 +65,7 @@ Each supported tool gets a thin adapter placed at the path that tool reads autom
 | Claude Code | `.claude/CLAUDE.md` |
 | Codex | `AGENTS.md` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/agentsmyth.mdc` |
+| Cursor | `.cursor/rules/index.mdc` |
 | Windsurf | `.windsurfrules` |
 
 ## The adapters are advisory; the pre-commit hook is not
