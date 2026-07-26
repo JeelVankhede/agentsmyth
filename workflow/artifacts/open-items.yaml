@@ -319,8 +319,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Decide whether/when to merge PR #51 (fix/site-docs-remediation) into main."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Merged (confirmed via gh pr view 51 --json state,mergedAt). Follow-up reconciliation PR #52 also merged."
   - id: OI-54
     source: requirement
     owner: whoever picks up the T-D14 sweep
