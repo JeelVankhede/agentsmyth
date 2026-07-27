@@ -137,8 +137,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Run Sandbox Testing Plan (Notion page 10, https://app.notion.com/p/39b972bdebbb818fac26f3be928dc403) Scenarios A-E for real — WP-R7 was the blocking gap (P1-01: adapter gates couldn't find workflow/router.md once linked) and both the gap and the page itself are now fixed. Page 10 is the ticket; no new artifact needed."
-    status: open
+    status: done
     first_seen_run: init-prepare-interop-v1
+    resolution: "Page 10 closed out 2026-07-23: all 8 Evidence Log rows (Scenarios A-E) manually run and re-verified by Jeel across multiple real repos, all previously-found issues fixed. This entry was stale — the sandbox testing chain finished, but the item was never marked done here. Found during the 2026-07-27 Notion-vs-repo reconciliation sweep."
   - id: OI-24
     source: follow-up
     owner: user

@@ -119,13 +119,19 @@ if (command === 'check') {
   }
 
   // Version-skew check (R6): warn if agentsmyth_version in repo-profile doesn't match the CLI.
+  // A missing field counts as skew too (Sandbox Testing Scenario E, decided 2026-07-27): a repo
+  // that predates version-stamping shouldn't silently evade detection forever.
   const currentPkgVersion = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).version;
   try {
     const profileContent = readFileSync(profilePath, 'utf8');
     const versionMatch = profileContent.match(/^agentsmyth_version:\s*(\S+)/m);
     const profileVersion = versionMatch ? versionMatch[1] : null;
-    if (profileVersion && profileVersion !== currentPkgVersion) {
-      console.warn(`agentsmyth: version skew detected — repo-profile.yaml was written by v${profileVersion}, CLI is v${currentPkgVersion}`);
+    if (profileVersion !== currentPkgVersion) {
+      if (profileVersion) {
+        console.warn(`agentsmyth: version skew detected — repo-profile.yaml was written by v${profileVersion}, CLI is v${currentPkgVersion}`);
+      } else {
+        console.warn(`agentsmyth: version skew detected — repo-profile.yaml has no agentsmyth_version stamp (pre-dates version-stamping), CLI is v${currentPkgVersion}`);
+      }
       console.warn('  Run "agentsmyth prepare" to refresh the global lifecycle definitions to the current version.');
       console.warn('  This warning is informational — it does not block anything, and prepare does not update this repo\'s own repo-profile.yaml.');
       console.warn('');
