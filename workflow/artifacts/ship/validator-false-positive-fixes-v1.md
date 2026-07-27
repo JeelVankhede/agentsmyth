@@ -34,7 +34,7 @@ orchestration:
 - Recommendation: ship
 - Review result: pass
 - Verification recommendation: ship
-- PR / CI: not applicable — not configured as a required gate; not yet requested by the user (per standing instruction, PR creation always needs explicit confirmation, separate from this recommendation)
+- PR / CI: PR #56 opened against `main`, user-requested this turn; not a configured required gate, but done anyway per explicit instruction
 - Source-of-truth: not required
 - Release: not required (`release.yaml`: `release.required: false`)
 
@@ -56,7 +56,7 @@ Branch gate (the one required gate): evidence below.
 - Branch: `fix/validator-false-positives`, created from `main` (post-PR #54 merge).
 - `git status --short --branch`: 11 modified files, 6 new files/directories, all matching the task artifact's declared Changed Files — no unrelated dirty state.
 - `git rev-list --left-right --count origin/main...fix/validator-false-positives` (run this phase, step 4a): `0	0` — branch has not diverged from `origin/main`; no rebase/merge decision needed.
-- **Not yet committed.** All Build/Review/Test work exists as uncommitted working-tree changes on this branch. Per this repo's own standing instruction (commit/push only when the user asks, and PR creation always needs separate explicit confirmation even after an authorized commit), committing is the next action pending user go-ahead — not assumed as part of this Ship recommendation.
+- **Committed, pushed, PR opened** — all three explicitly authorized by the user this turn ("Appoved, commit and raise PR"). Commit `d5578a9` on `fix/validator-false-positives`; pushed to `origin`; PR [#56](https://github.com/JeelVankhede/agentsmyth/pull/56) opened against `main`.
 
 ## Release Readiness
 
