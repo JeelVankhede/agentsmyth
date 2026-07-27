@@ -105,14 +105,18 @@ Three sequentially dependency-ordered Build sub-phases (`-p1`, `-p2`, `-p3`), ea
 ### Phase 1 - Scaffold (Build `-p1`)
 
 - **Manifest IDs:** R2, R3, R4, R5, RI1, RI2, RI3, RI4
-- Touches: `site/.vitepress/config.ts`, `site/index.md` … `site/in-action.md` (12 stub files, frontmatter + title only, per `references/output-schema.md`-style stubs — no real body content yet), `package.json`, `package-lock.json` (deterministic npm-managed companion to the `package.json` devDependency addition), `.gitignore`, `.github/workflows/ci.yml`.
+- Touches: `site/` (directory-level — added retroactively 2026-07-27: the original "`site/index.md` … `site/in-action.md` (12 stub files)" ellipsis shorthand only mechanically declared the first and last of the 12 stub paths, not all 12, which `check-scope-fence.mjs` never enumerates from an ellipsis; found while fixing OI-37's scope-fence boundary bug, which had been separately masking the gap), `site/.vitepress/config.ts`, `package.json`, `package-lock.json` (deterministic npm-managed companion to the `package.json` devDependency addition), `.gitignore`, `.github/workflows/ci.yml`.
 - Work: Initialize VitePress under `site/`; add `vitepress` devDependency and `site:dev`/`site:build` scripts; write `config.ts` with nav/sidebar matching the four groups already prototyped in `Agentsmyth Docs Site.dc.html` (Start here / Use it / How it works / See it whole); stub all 12 `.md` files with correct titles/frontmatter so the site navigates; add `.gitignore` entries for `site/.vitepress/dist/` and `site/.vitepress/cache/`; add one step to `ci.yml`'s existing `validate` job running `npm run site:build`.
 - **Exit gate:** `npm run site:build` exits 0 (command output cited in the task artifact); `npm run site:dev` renders all 12 nav entries locally; `git diff --stat` shows zero lines changed under `docs/`; `git diff .github/workflows/ci.yml` shows the new step inside the existing `validate:` job's `steps:` list and no new top-level job.
 
 ### Phase 2 - Content Migration (Build `-p2`)
 
 - **Manifest IDs:** R6, RI6
-- Touches: all 12 `site/*.md` files (body content).
+- Touches: `site/` (directory-level — added retroactively 2026-07-27: the original
+  "all 12 `site/*.md` files" wording used a mid-string wildcard `check-scope-fence.mjs`'s
+  glob matcher does not parse, since it only recognizes a trailing `*` or `/`; found while
+  fixing OI-37's scope-fence boundary bug, which had been separately masking the gap) — body
+  content for all 12 pages.
 - Work: Port each section's corrected text from `Agentsmyth Docs Site.dc.html` (this session's audited copy, not the original Notion draft) into its `site/*.md` file; convert Notion-style toggles to VitePress `::: details` and callouts to `::: tip`/`::: warning`; Section 12 (`site/in-action.md`) keeps the illustrative walkthrough with an explicit "illustrative" label (Q2 resolution).
 - **Exit gate:** all 12 `site/*.md` files contain non-stub body content; `grep -r -- "--system\|the setup interview" site/` returns zero matches; every internal nav/cross-section link resolves (no 404 on `site:build`'s link-checking, or a manual link pass if link-checking isn't built in); `site/setup.md`'s title and phase names match this session's corrected copy in `Agentsmyth Docs Site.dc.html`, verified by direct text comparison.
 
@@ -188,6 +192,19 @@ Skipped/unavailable checks: a live GitHub Pages deployment cannot be verified un
 ## Open Questions
 
 None. Both brief-stage open questions (Q1 deploy target, Q2 Section 12 content) were resolved by the user before Plan started; no new Plan-stage questions were raised.
+
+## Checkpoint Approval
+
+- Checkpoint: plan-review
+- Status: approved
+- User's own words (verbatim, this turn, 2026-07-27): "Plan is approved"
+
+Backfilled 2026-07-27: this section did not exist as a formal requirement when this plan was
+originally approved (this chain shipped via PR #41 before `wp-r12-local-install-fixes-v1`'s R5
+added the `check-lifecycle.mjs` checkpoint gate). No contemporaneous verbatim quote for this
+specific plan's own approval was found recorded elsewhere in this file. The user explicitly
+authorized this backfilled approval text this turn, after being told plainly that no such
+record exists, rather than have it fabricated.
 
 ## Exit Gate
 

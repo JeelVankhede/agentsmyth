@@ -13,7 +13,7 @@ orchestration:
   status: ready-for-next-phase
   next_phase: build
   blockers: []
-  user_checkpoint: approved
+  user_checkpoint: plan-review
 ---
 
 # WP-R7 — System-Install ↔ Per-Repo Init Interoperability - Plan
@@ -228,7 +228,11 @@ Ship unless configured otherwise") and the brief's Non-Goals.
   2026-07-17: a repo-wide `--system` grep swept up two stale references this list hadn't
   enumerated at Plan time — `lib.mjs:81`'s RI1 guard message and one `render-adapters.mjs`
   comment — same RI2 message-cleanup intent, not a scope expansion; see the task artifact's
-  Phase 5 Implementation Log for the full grep evidence)
+  Phase 5 Implementation Log for the full grep evidence),
+  `workflow/artifacts/plans/init-prepare-interop-v1.md` (added retroactively 2026-07-27: this
+  file's own task artifact already documented this exact self-amendment as "for traceability,
+  not implementation," but the path was never added here — found while fixing OI-37's
+  scope-fence boundary bug, which had been masking the gap)
 - Work:
   - Re-read the skew-check block (post-Phase-1 line numbers) and confirm it still fires
     correctly comparing `repo-profile.yaml`'s stamped `agentsmyth_version` against the
@@ -453,6 +457,19 @@ No risk here lacks a mitigation; none require a waiver.
 
 None. All decisions were resolved by the user during Think; nothing new surfaced during
 Plan.
+
+## Checkpoint Approval
+
+- Checkpoint: plan-review
+- Status: approved
+- User's own words (verbatim, 2026-07-17, from this chain's own original session): "Working branch: feat/init-prepare-interop, rest of plan looks good"
+
+Backfilled 2026-07-27: this section did not exist as a formal requirement when this plan was
+originally approved. The quote above is the real, contemporaneous approval already recorded in
+this plan's own Exit Gate below (not a new or retroactive approval) — moved into the structured
+section the `check-lifecycle.mjs` checkpoint gate (added later, by `wp-r12-local-install-fixes-v1`'s
+R5) now requires. `orchestration.user_checkpoint` corrected from the literal string `approved`
+(a status, not a checkpoint name) to `plan-review`, matching this repo's actual convention.
 
 ## Exit Gate
 

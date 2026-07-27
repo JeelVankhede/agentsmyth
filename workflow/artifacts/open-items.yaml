@@ -174,8 +174,9 @@ items:
     source: follow-up
     owner: user/agent
     next_action: "check-waivers.mjs's unstructured-claim heuristic has now tripped on a lifecycle artifact's own descriptive prose (not a real waiver claim) at least three times across 3 different chains -- once describing a fix named 'resolved-fix vs. waiver classification', once describing an example 'waived RI5-a's partial scope', and now (wp-r11-docs-site-v1) on 'rather than record a waiver' in a task artifact's scope note, which caused a genuine GitHub Actions CI failure on PR #41, not just a local false positive. It already exempts reflect/ entirely for a similar reason (retrospective narrative, not an active claim). Consider whether task/review artifacts' own Implementation Log / Changed Files prose describing waiver-related work (not making a waiver claim) needs a similar, narrower exemption, and/or broaden the negation regex to cover 'rather than' constructions. Priority raised given the real CI-failure impact."
-    status: open
+    status: done
     first_seen_run: lifecycle-process-hardening-v1
+    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): check-waivers.mjs's negation regex gained a \\brather than\\b.{0,20}\\bwaiv alternative. Re-derived the real historical false positive via git log -S back to commit f99c388 and reproduced it before fixing. New conformance fixture + check (r14-rather-than) locks the fix; existing genuine-claim fixtures (waivers-dir, table-claim) confirmed still caught. Full chain (brief/plan/task/review/verify) complete, verify recommendation: ship. Not yet merged -- PR not opened at time of this entry, per explicit user instruction not to close on merge status when the work itself is done and verified."
   - id: OI-30
     source: follow-up
     owner: user
@@ -224,14 +225,16 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "check-scope-fence.mjs's phase-boundary regex expects Work:/Exit gate: labels directly preceded by whitespace, but this repo's own convention prefixes them with a '- ' bullet dash which \\s* does not match -- for a plan's last declared phase specifically, the Touches capture runs unbounded to the end of the document, sweeping in unrelated backtick-quoted prose as a false covering-directory match. Found and manually worked around (not fixed, out of scope) at least twice in wp-r11-docs-site-v1 (-p5, -p7)."
-    status: open
+    status: done
     first_seen_run: wp-r11-docs-site-v1
+    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): phaseTouches()'s boundary lookahead now tolerates an optional bullet dash before Work:/Exit gate:/Why first:. Reproduced the false negative first (a fixture using this repo's real '- Work:'/'- Exit gate:' convention silently passed before the fix), then fixed it. Running the fixed validator against the full real workflow/artifacts tree surfaced 28 previously-hidden violations across 5 historical, already-shipped artifacts -- paused and asked the user rather than deciding unilaterally; user directed correcting the plans' Touches lists, done individually per file (see task artifact's Implementation Log for the 3 distinct root causes found: self-referencing plan edits, a task-side basename duplication, and unparseable Touches shorthand). check-scope-fence.mjs --dir workflow/artifacts confirmed clean (0 issues) afterward. Full chain complete, verify recommendation: ship."
   - id: OI-38
     source: follow-up
     owner: workflow owner
     next_action: "check-skipped-accounting.mjs requires a 6th 'Manifest IDs' column in the Skipped Checks table that references/output-schema.md's own Starter Block template does not show (only 5 columns: Check | Why Skipped | Risk | Owner | Blocks Ship). Hit in wp-r11-docs-site-v1's verify artifact; fixed inline by adding the column, but the template/validator mismatch itself remains unfixed."
-    status: open
+    status: done
     first_seen_run: wp-r11-docs-site-v1
+    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): output-schema.md's Skipped Checks table and prose bullet both updated to the real 6-column shape (added Manifest IDs). Repo-wide grep found and fixed a second stale instance in the same skill's exemplar.md, not anticipated at Plan time. New conformance check (r16-skipped-checks-columns) locks the fix. Full chain complete, verify recommendation: ship."
   - id: OI-39
     source: follow-up
     owner: whoever does the pre-launch pass
