@@ -42,9 +42,18 @@ function activePhaseNumber(taskBody) {
 // meant a file could pass by being mentioned anywhere in the plan (another phase's Touches,
 // Architecture Notes prose, Risk Register, etc.) instead of any phase's actual declared scope.
 // Fixed after Review found this (workflow/artifacts/reviews/power-skills-spine-v1.md P1 finding).
+//
+// The boundary lookahead also tolerates an optional "- " bullet-dash directly before the
+// Work/Exit gate/Why first label, matching this repo's own plan convention (see the Starter
+// Block in lifecycle-plan/references/output-schema.md: "- Touches:", "- Work:",
+// "- **Exit gate:**"). Without it, a bullet-dash-prefixed label on a phase's own Work/Exit gate
+// line fails to match the boundary, and — for a plan's LAST phase specifically, where there is no
+// following "### Phase" heading to fall back on — the Touches capture instead runs to the end of
+// the phase block, silently absorbing any backtick-quoted path mentioned in that phase's own
+// Work/Exit gate prose as though it were a declared Touches target (OI-37).
 function phaseTouches(block) {
   const touchesMatch = block.match(
-    /Touches:\*{0,2}\s*([\s\S]*?)(?=\n\s*\*{0,2}(?:Work|Exit gate|Why first)\*{0,2}:|\n### |$)/i
+    /Touches:\*{0,2}\s*([\s\S]*?)(?=\n\s*(?:-\s*)?\*{0,2}(?:Work|Exit gate|Why first)\*{0,2}:|\n### |$)/i
   );
   if (!touchesMatch) return [];
   const touches = [];

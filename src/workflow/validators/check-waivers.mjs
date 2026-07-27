@@ -8,7 +8,8 @@
 // Refusal condition #1, a waiver referenced in prose but never moved into the structured table
 // does not count as recorded. This is a heuristic, not a parser: it deliberately excludes the
 // literal enum value "hold-with-waiver" (used throughout the lifecycle system as a legitimate
-// status, not a claim) and common negations ("no waiver", "without a waiver"). Calibrated against
+// status, not a claim) and common negations ("no waiver", "without a waiver", "rather than ... a
+// waiver"). Calibrated against
 // this repo's own real artifacts at write time (0 false positives across workflow/artifacts/**)
 // but can still misfire on prose not seen during calibration — that risk was accepted explicitly
 // when this check was added (see workflow/artifacts/reviews/power-skills-spine-v1.md).
@@ -107,7 +108,7 @@ function unstructuredWaiverMentions(body) {
     if (rawLine.trim().startsWith('|') && !/\bwaived\s+[`'"A-Za-z0-9]/i.test(rawLine)) continue;
     const line = rawLine.replace(/hold-with-waiver/gi, ''); // legitimate enum value, not a claim
     if (!/\bwaiv(?:er|ed|ing)\b/i.test(line)) continue;
-    if (/\bno\b.{0,15}\bwaiv|\bwithout\b.{0,10}\bwaiv|\bnot\b.{0,10}\bwaiv|waiver-completeness-check|check-waivers/i.test(line)) continue;
+    if (/\bno\b.{0,15}\bwaiv|\bwithout\b.{0,10}\bwaiv|\bnot\b.{0,10}\bwaiv|\brather than\b.{0,20}\bwaiv|waiver-completeness-check|check-waivers/i.test(line)) continue;
     if (!/\b(R|RI)\d+\b|\bgate\b/i.test(line)) continue;
     if (hasStructuredRow) continue; // already recorded elsewhere in this same document
     flagged.push(rawLine.trim());

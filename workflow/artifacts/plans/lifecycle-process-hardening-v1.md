@@ -13,7 +13,7 @@ orchestration:
   status: ready-for-next-phase
   next_phase: build
   blockers: []
-  user_checkpoint: approved
+  user_checkpoint: plan-review
 ---
 
 # Lifecycle Process Hardening - Plan
@@ -103,7 +103,11 @@ verification) runs last, needing every other phase's diff to exist.
 - **Manifest IDs:** R1, RI4
 - Touches: `src/workflow/validators/check-coverage-range-shorthand.mjs`,
   `scripts/validate-template.mjs`, `test/fixtures/lifecycle-violations/v-id-range-shorthand/`,
-  `test/run-violation-tests.mjs`
+  `test/run-violation-tests.mjs`, `workflow/artifacts/plans/lifecycle-process-hardening-v1.md`,
+  `workflow/artifacts/briefs/lifecycle-process-hardening-v1.md` (added retroactively 2026-07-27:
+  Build's own rescope note above required updating this plan and the brief in place, which the
+  original Touches never declared — found while fixing OI-37's scope-fence boundary bug, which
+  had been masking the gap)
 - **Rescoped during Build, before any code was written** (see task artifact's Phase 1
   Implementation Log and Blockers for the full evidence trail): a repo-wide free-text scan, as
   originally planned, would have flagged ~46 real occurrences of this shorthand across nearly
@@ -209,7 +213,11 @@ verification) runs last, needing every other phase's diff to exist.
 
 - **Manifest IDs:** R7
 - Touches: `src/workflow/validators/check-manifest-coverage.mjs`,
-  `src/workflow/validators/check-coverage-ledger.mjs`
+  `src/workflow/validators/check-coverage-ledger.mjs`,
+  `workflow/artifacts/plans/lifecycle-process-hardening-v1.md`,
+  `workflow/artifacts/briefs/lifecycle-process-hardening-v1.md` (added retroactively 2026-07-27,
+  same reason as Phase 1 above: adding R7 to this plan and the brief was real Build work this
+  phase's original Touches never declared)
 - Why: Phase 6's own RI1 jargon grep against the rebuilt `dist/` output found 3 real matches
   unrelated to this chain's own diff — code comments in these two files (added by the
   already-merged `manifest-id-parser-hardening` chain, PR #36) reference an internal chain
@@ -297,6 +305,19 @@ No risk here lacks a mitigation; none require a waiver.
 ## Open Questions
 
 None.
+
+## Checkpoint Approval
+
+- Checkpoint: plan-review
+- Status: approved
+- User's own words (verbatim, 2026-07-18, from this chain's own original session): "Continue" (after this plan's phase breakdown and R1 false-positive risk handling were presented); separately, "Fix it in this chain and then run review" (R7 addition, after Phase 6 surfaced the pre-existing jargon leak).
+
+Backfilled 2026-07-27: this section did not exist as a formal requirement when this plan was
+originally approved. Both quotes above are the real, contemporaneous approvals already recorded
+in this plan's own Exit Gate below (not new or retroactive) — moved into the structured section
+the `check-lifecycle.mjs` checkpoint gate (added later, by `wp-r12-local-install-fixes-v1`'s R5)
+now requires. `orchestration.user_checkpoint` corrected from the literal string `approved` (a
+status, not a checkpoint name) to `plan-review`, matching this repo's actual convention.
 
 ## Exit Gate
 

@@ -65,9 +65,9 @@ none
 
 ## Skipped Checks
 
-| Check | Why Skipped | Risk | Owner | Blocks Ship |
-|---|---|---|---|---|
-| `node workflow/validators/check-lifecycle.mjs` | Validator is a placeholder and not yet implemented. | `[domain.yaml]` label requirement in output-schema.md cannot be machine-checked at this time. | Phase 7 (validator implementation) | no |
+| Check | Why Skipped | Risk | Owner | Blocks Ship | Manifest IDs |
+|---|---|---|---|---|---|
+| `node workflow/validators/check-lifecycle.mjs` | Validator is a placeholder and not yet implemented. | `[domain.yaml]` label requirement in output-schema.md cannot be machine-checked at this time. | Phase 7 (validator implementation) | no | R2 |
 
 ## Architecture Notes
 

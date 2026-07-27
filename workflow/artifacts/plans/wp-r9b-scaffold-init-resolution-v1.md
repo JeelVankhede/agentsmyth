@@ -238,7 +238,12 @@ have landed.
 ### Phase 5 - Doc sweep and full regression
 
 - **Manifest IDs:** R4, RI1, RI2
-- Touches: `README.md`; any other doc file the grep sweep in Work below surfaces
+- Touches: `README.md`, `docs/knowledge-map/repo-mental-map.md` (added retroactively 2026-07-27:
+  the original free-text "any other doc file the grep sweep in Work below surfaces" was a
+  deliberate no-enumeration-in-advance disclaimer, but `check-scope-fence.mjs` only recognizes
+  a backtick-quoted path, not narrative prose, so the file the sweep actually found needs its
+  own explicit token; found while fixing OI-37's scope-fence boundary bug, which had been
+  separately masking the gap); any other doc file the grep sweep in Work below surfaces
 - Why last: a doc sweep is only accurate once Phases 1–4's behavior is final; full regression
   only means something once every code phase has landed.
 - Work:
@@ -325,6 +330,19 @@ chains this session).
 
 None. All Q/A items from the brief are resolved; the user's Phase-4 constraint is captured
 verbatim in Work and the Risk Register.
+
+## Checkpoint Approval
+
+- Checkpoint: plan-review
+- Status: approved
+- User's own words (verbatim, this turn, 2026-07-27): "Plan is approved"
+
+Backfilled 2026-07-27: this section did not exist as a formal requirement when this plan was
+originally approved (this chain shipped via PR #40 before `wp-r12-local-install-fixes-v1`'s R5
+added the `check-lifecycle.mjs` checkpoint gate). No contemporaneous verbatim quote for this
+specific plan's own approval was found recorded elsewhere in this file. The user explicitly
+authorized this backfilled approval text this turn, after being told plainly that no such
+record exists, rather than have it fabricated.
 
 ## Exit Gate
 

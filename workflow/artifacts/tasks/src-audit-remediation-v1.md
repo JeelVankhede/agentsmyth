@@ -108,9 +108,13 @@ validators reject that suffix until R11 lands, which this chain both proves and 
 
 ### Review-fix pass (all review points closed, no deferrals)
 
-- `check-lifecycle.mjs` — phase gate now requires ALL same-version `-p<P>` parts ready (P2/R11); locked by `conformance:test` r11-aggregate.
-- `check-waivers.mjs` — table rows carrying an explicit action claim ("waived <X>") are now scanned, enum/compound cells still skipped (P3/R10); locked by r10-table.
-- `check-skill-triggers.mjs` — presence now required for Think artifacts; 8 briefs backfilled so no regression (P3/R6).
+Recap of validators already listed above with their full paths — referenced here by basename
+only for readability; corrected 2026-07-27 to cite the same full paths (found while fixing
+OI-37's scope-fence boundary bug, which had been masking this bare-name mismatch).
+
+- `src/workflow/validators/check-lifecycle.mjs` — phase gate now requires ALL same-version `-p<P>` parts ready (P2/R11); locked by `conformance:test` r11-aggregate.
+- `src/workflow/validators/check-waivers.mjs` — table rows carrying an explicit action claim ("waived <X>") are now scanned, enum/compound cells still skipped (P3/R10); locked by r10-table.
+- `src/workflow/validators/check-skill-triggers.mjs` — presence now required for Think artifacts; 8 briefs backfilled so no regression (P3/R6).
 - `test/run-setup-refs-tests.mjs` — token→field semantic pin (P3/R8); locked by token-semantics.
 - `test/run-conformance-tests.mjs` + fixtures (`table-claim/`, `multipart/`) — new r13-format, r11-aggregate, r10-table assertions guarding the body-format and gate contracts (P3/R12-R13).
 

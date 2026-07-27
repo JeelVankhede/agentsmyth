@@ -44,7 +44,7 @@ Schema acceptance criteria:
 - Manifest Coverage has one row per active `R` and `RI`.
 - Manual QA states `not applicable` when unused.
 - Generated Output Evidence states `not applicable` when unused.
-- Skipped Checks names reason, risk, owner, and Ship impact.
+- Skipped Checks names reason, risk, owner, Ship impact, and the manifest IDs it covers.
 - Findings says `none` when no findings exist.
 - Sign-Off includes verifier, date, and recommendation.
 - Recommendation is exactly `ship`, `hold`, or `hold-with-waiver`.
@@ -104,8 +104,8 @@ none
 
 ## Skipped Checks
 
-| Check | Why Skipped | Risk | Owner | Blocks Ship |
-|---|---|---|---|---|
+| Check | Why Skipped | Risk | Owner | Blocks Ship | Manifest IDs |
+|---|---|---|---|---|---|
 
 ## Architecture Notes
 

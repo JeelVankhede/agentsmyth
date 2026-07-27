@@ -101,5 +101,28 @@ check('coverage-ledger-sublabel', 'hyphenated sub-label credits base ID; compoun
   /manifest ID R7 is marked dropped\/removed with no matching Waivers entry/.test(cls.out) &&
   !/manifest ID RI5 is marked dropped/.test(cls.out));
 
+// R14 (OI-29) — check-waivers.mjs's negation regex must exempt "rather than ... a waiver"
+// prose, the exact construction that caused a genuine CI failure on PR #41 (see
+// workflow/artifacts/open-items.yaml OI-29), while still catching a real prose claim.
+const rt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waiver-rather-than'], { AGENTSMYTH_HOME: 'src/workflow' });
+check('r14-rather-than', '"rather than ... a waiver" prose is not flagged as an unstructured claim',
+  rt.status === 0);
+
+// R16 (OI-38) — lifecycle-test's Skipped Checks Starter Block must show all 6 columns
+// check-skipped-accounting.mjs actually requires (driven by verification.yaml's
+// skipped_checks.required_fields), not the stale 5-column shape that omitted Manifest IDs.
+const schemaText = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-test/references/output-schema.md'), 'utf8');
+const skippedChecksHeader = schemaText.match(/## Skipped Checks\n\n(\| [^\n]+ \|)/)?.[1] ?? '';
+check('r16-skipped-checks-columns', 'Skipped Checks Starter Block table has all 6 required columns',
+  /Manifest IDs/.test(skippedChecksHeader) && skippedChecksHeader.split('|').length - 2 === 6);
+
+// R15 (OI-37) — check-scope-fence.mjs's phaseTouches() boundary regex must recognize a
+// bullet-dash-prefixed "- Work:"/"- Exit gate:" label (this repo's own plan convention),
+// not just a whitespace-only-prefixed one, so a phase's Touches capture stays bounded
+// instead of silently absorbing a later, unrelated backtick-quoted path as covered.
+const sfb = run(V('check-scope-fence'), ['--dir', 'test/fixtures/conformance/scope-fence-bullet-boundary']);
+check('r15-scope-fence-bullet', 'bullet-dash-prefixed phase boundary keeps Touches correctly bounded',
+  sfb.status !== 0 && /outside Phase 1's declared Touches/.test(sfb.out));
+
 console.log(`\n${passed}/${passed + failed} conformance checks passed`);
 process.exit(failed === 0 ? 0 : 1);
