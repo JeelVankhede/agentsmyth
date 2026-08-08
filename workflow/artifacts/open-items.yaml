@@ -366,3 +366,33 @@ items:
     status: done
     first_seen_run: site-docs-remediation-v1
     resolution: "All seven sub-items confirmed shipped: T-D13 README restructure (badges, doc-site link, lockup all present), T-D14 four-page sweep (checked /lifecycle, /artifacts, /power-skills against real repo state -- no further staleness found beyond OI-54, now fixed), T-D15 (in-action.md disclaimer under H1, run-it.md example varied to pagination -- no duplication), T-D16 (description: frontmatter on all pages, og-image.png + meta tags in config.ts), T-D17 (2 mermaid diagrams on /under-hood, 1 on /lifecycle, all confirmed rendering correctly via screenshot)."
+  - id: OI-60
+    source: follow-up
+    owner: user
+    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note."
+    status: open
+    first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-61
+    source: follow-up
+    owner: user
+    next_action: "Commit branch feat/wp-r17-readme-positioning and merge to main BEFORE firing the WP-R15 release dispatch, so 1.0.1 ships with all three patch-release WPs (R15/R16/R17) together rather than splitting into 1.0.1/1.0.2. Branch was left uncommitted at end of WP-R17 (ship approved, commit not separately authorized)."
+    status: open
+    first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-62
+    source: follow-up
+    owner: user
+    next_action: "1.0.1 release-level acceptance items (owned by the parent '1.0.1 — Patch Release Work Plan', not WP-R17 per brief A3): add a real CHANGELOG.md 1.0.1 entry covering R15/R16/R17; mark WP-R16 and WP-R17 Done in the Notion Work Packages DB (both currently show stale 'Ready'); update the Release Log + page 05 once the automated release.yml dispatch succeeds."
+    status: open
+    first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-63
+    source: follow-up
+    owner: workflow owner
+    next_action: "Shipped Plan/Test skill starter blocks are out of sync with their validators: src/workflow/skills/lifecycle-plan/references/output-schema.md omits the '## Assumptions Verified' section check-assumptions requires when the brief declares A IDs; src/workflow/skills/lifecycle-test/references/output-schema.md shows a 5-column Skipped Checks table but check-skipped-accounting requires 6 (adds manifest_ids). Copying either verbatim fails npm run validate — hit both on wp-r17. Fix at src/ and rebuild. Recurrence-adjacent to OI-56."
+    status: open
+    first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-64
+    source: follow-up
+    owner: user
+    next_action: "Low-priority link hygiene: the agentpreflight competitor link in README.md points to agent-preflight.szybnev.cc (a personal-domain homepage — the one-word npm project matching the name; distinct from the unrelated hyphenated github.com/aminglab/agent-preflight). Less durable than the three github.com repo links. Replace with a more canonical URL if it rots or a clearer canonical home appears."
+    status: open
+    first_seen_run: wp-r17-readme-positioning-v1
