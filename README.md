@@ -27,6 +27,16 @@ Knowing what a tool is not is usually more honest than knowing what it is.
 - **Not opinionated about your domain.** The workflow learns your domain during setup, from your repo and your answers, not from a template's guesses.
 - **Not a paywall.** Every skill ships free. There is no gated tier, no premium content fetched from a server. Community-first, by decision.
 
+## Where it fits
+
+You are not choosing between agentsmyth and nothing. **[GitHub Spec Kit](https://github.com/github/spec-kit)** (GitHub-backed), **[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)**, **[claude-task-master](https://github.com/eyaltoledano/claude-task-master)**, and **[agentpreflight](https://agent-preflight.szybnev.cc/)** already give an AI agent structure to work inside, and every one of them is free. The honest question is what agentsmyth does that they don't.
+
+They shape the **prompt** — the instructions, personas, and task breakdowns you feed the agent. agentsmyth shapes the **lifecycle**, mechanically. Each phase reads and writes a durable artifact on disk, and a schema validator gates the move to the next phase: no approved brief, no plan; no plan, no build; a missing requirement ID or a claim with no evidence fails the check and the phase does not advance. That structure does not rely on the model remembering to follow it, because it is enforced outside the model — in files you can read and a validator that exits non-zero. Prompted structure degrades the moment the context window turns over or a different agent picks up the work; on-disk, validated structure does not. That is the whole bet.
+
+### Why there's no paid tier
+
+agentsmyth is free, and that is a decision, not a placeholder for a paywall arriving later. Every tool named above is free too, and a workflow made of Markdown skills can't meaningfully be content-gated anyway — an agent has to read the plaintext at inference time, so "locking" it buys friction and nothing else. So the whole workflow ships in the open, community-first. If a paid surface ever appears it will be a real service — hosted validation, support — never a wall around the skills you already have.
+
 ## Setup
 
 ### Option A — npx (recommended)
