@@ -376,20 +376,23 @@ items:
     source: follow-up
     owner: user
     next_action: "Commit branch feat/wp-r17-readme-positioning and merge to main BEFORE firing the WP-R15 release dispatch, so 1.0.1 ships with all three patch-release WPs (R15/R16/R17) together rather than splitting into 1.0.1/1.0.2. Branch was left uncommitted at end of WP-R17 (ship approved, commit not separately authorized)."
-    status: open
+    status: done
     first_seen_run: wp-r17-readme-positioning-v1
+    resolution: "PR #57 (WP-R17) merged to main 2026-08-08T16:20Z, before the successful release dispatch (publish 19:17Z). 1.0.1 shipped with all three WPs (R15/R16/R17) together — no 1.0.1/1.0.2 split."
   - id: OI-62
     source: follow-up
     owner: user
     next_action: "1.0.1 release-level acceptance items (owned by the parent '1.0.1 — Patch Release Work Plan', not WP-R17 per brief A3): add a real CHANGELOG.md 1.0.1 entry covering R15/R16/R17; mark WP-R16 and WP-R17 Done in the Notion Work Packages DB (both currently show stale 'Ready'); update the Release Log + page 05 once the automated release.yml dispatch succeeds."
-    status: open
+    status: done
     first_seen_run: wp-r17-readme-positioning-v1
+    resolution: "CHANGELOG.md 1.0.1 entry shipped in PR #58; release date set to 2026-08-08 in PR #61. Notion: WP-R15/R16/R17 all marked Done; Release Log '1.0.1' row filled (date, scope, Shipped Work links); page 05 notes the automated release path is now proven. WP-R15 (release pipeline) itself also shipped — needed npm@11 pin (PR #59) and package.json metadata + engines>=20 (PR #60) before the OIDC publish went green."
   - id: OI-63
     source: follow-up
     owner: workflow owner
     next_action: "Shipped Plan/Test skill starter blocks are out of sync with their validators: src/workflow/skills/lifecycle-plan/references/output-schema.md omits the '## Assumptions Verified' section check-assumptions requires when the brief declares A IDs; src/workflow/skills/lifecycle-test/references/output-schema.md shows a 5-column Skipped Checks table but check-skipped-accounting requires 6 (adds manifest_ids). Copying either verbatim fails npm run validate — hit both on wp-r17. Fix at src/ and rebuild. Recurrence-adjacent to OI-56."
-    status: open
+    status: done
     first_seen_run: wp-r17-readme-positioning-v1
+    resolution: "Promoted to a tracked work package: WP-R19 — Plan/Test Starter-Block ↔ Validator Sync (Notion), Target Version 1.1.0, Status Ready. The fix itself ships under WP-R19; this open-item's job (get it scheduled) is complete."
   - id: OI-64
     source: follow-up
     owner: user
