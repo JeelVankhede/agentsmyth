@@ -390,8 +390,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Shipped Plan/Test skill starter blocks are out of sync with their validators: src/workflow/skills/lifecycle-plan/references/output-schema.md omits the '## Assumptions Verified' section check-assumptions requires when the brief declares A IDs; src/workflow/skills/lifecycle-test/references/output-schema.md shows a 5-column Skipped Checks table but check-skipped-accounting requires 6 (adds manifest_ids). Copying either verbatim fails npm run validate — hit both on wp-r17. Fix at src/ and rebuild. Recurrence-adjacent to OI-56."
-    status: open
+    status: done
     first_seen_run: wp-r17-readme-positioning-v1
+    resolution: "Promoted to a tracked work package: WP-R19 — Plan/Test Starter-Block ↔ Validator Sync (Notion), Target Version 1.1.0, Status Ready. The fix itself ships under WP-R19; this open-item's job (get it scheduled) is complete."
   - id: OI-64
     source: follow-up
     owner: user
