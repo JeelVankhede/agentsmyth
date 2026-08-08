@@ -13,7 +13,7 @@
     "validators/"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "keywords": [
     "ai",
@@ -26,6 +26,14 @@
   ],
   "author": "Jeel Vankhede",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeelVankhede/agentsmyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JeelVankhede/agentsmyth/issues"
+  },
+  "homepage": "https://jeelvankhede.github.io/agentsmyth/",
   "scripts": {
     "build": "node scripts/build-bundle.mjs && node scripts/build-cli.mjs",
     "pack:local": "npm run build && npm pack",
