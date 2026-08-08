@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - <SET AT RELEASE: the day release.yml publishes>
+
+### Added
+- Forge-ring brand asset set (`src/assets/brand/`) — lockup and icon marks now ship with the package.
+
+### Changed
+- README leads with competitive positioning: names the four direct alternatives
+  (GitHub Spec Kit, BMAD-METHOD, claude-task-master, agentpreflight) and states the
+  differentiator — mechanical, schema-validated phase gates tied to on-disk artifacts,
+  not just prompted structure — plus an explicit community-first, no-paid-tier rationale.
+- First release published through the automated `release.yml` Trusted Publishing (OIDC)
+  path end-to-end, rather than a manual `npm publish`.
+
+### Fixed
+- `agentsmyth check` now treats a `repo-profile.yaml` with no `agentsmyth_version` field
+  as version skew instead of silently exempting it — the exact pre-stamping case the check
+  exists to catch. Warning message corrected to name the real cause (no stamp vs. stamp mismatch).
+- Three validator false-positive / mismatch bugs (OI-29, OI-37, OI-38) in scope-fence and
+  waiver checks that rejected valid artifacts.
+- Consumer-side validators now honor `AGENTSMYTH_WF` / `AGENTSMYTH_HOME` environment
+  overrides ahead of `repo-profile.yaml`'s `definitions_root`.
+
+### Docs
+- Documentation site: added Uninstall, Troubleshooting, and Updating pages; restructured the
+  README to lead with the pitch; added Mermaid architecture diagrams, per-page meta descriptions
+  and an OG image, footer LICENSE/CHANGELOG links, and a sweep of content-correctness fixes
+  across site and README.
+
 ## [1.0.0] - 2026-07-23
 
 ### Added
