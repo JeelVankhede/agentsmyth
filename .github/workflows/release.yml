@@ -37,6 +37,12 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      # Node 20 bundles npm 10.x, which does not perform the OIDC token exchange
+      # for Trusted Publishing (requires npm >= 11.5.1). Without this, `npm publish`
+      # runs unauthenticated and the registry returns a masked E404. Upgrade first.
+      - name: Upgrade npm for OIDC Trusted Publishing
+        run: npm install -g npm@latest
+
       - name: Verify
         run: |
           npm ci
