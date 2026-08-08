@@ -39,9 +39,11 @@ jobs:
 
       # Node 20 bundles npm 10.x, which does not perform the OIDC token exchange
       # for Trusted Publishing (requires npm >= 11.5.1). Without this, `npm publish`
-      # runs unauthenticated and the registry returns a masked E404. Upgrade first.
+      # runs unauthenticated and the registry returns a masked E404.
+      # Pin to npm 11: it has OIDC support and still runs on Node 20
+      # (node ^20.17.0 || >=22). npm 12 drops Node 20 (requires node ^22 || ^24).
       - name: Upgrade npm for OIDC Trusted Publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Verify
         run: |
