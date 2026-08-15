@@ -5,14 +5,14 @@ artifact: brief
 status: blocked-for-user
 created: 2026-08-15
 updated: 2026-08-15
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7]
 upstream:
   - user-request
 orchestration:
   phase: think
   status: blocked-for-user
   next_phase: plan
-  blockers: [Q1, Q2]
+  blockers: []
   user_checkpoint: brief-review
 skill_trigger_log:
   - skill: repo-alignment-scan
@@ -116,9 +116,13 @@ section already commits to but does not enumerate as requirements.
   found what a human would have, or that a rejection reason was a *good* one. The product claim
   must stay on the first set. Mitigation: state this explicitly in the shipped docs (RI6) rather
   than letting the validator's existence imply the stronger claim.
-- **RK-C (medium): cost and latency on Complex Think.** Fan-out plus a challenge pass multiplies
-  token spend on exactly the tasks that are already largest. Mitigation: the phase cap bounds
-  fan-out; `council.enabled` gives a kill switch.
+- **RK-C (medium → raised by the Q2 decision): cost and latency on Complex Think.** Fan-out plus a
+  challenge pass multiplies token spend on exactly the tasks that are already largest. The Q2
+  decision sharpens this: with a council-specific default of 3, an unconfigured consumer incurs the
+  multiplied cost without an explicit choice, so the config no longer functions as informed consent.
+  Mitigation: `council.enabled` and the `dispatch.enabled` kill switch (Q1) both still suppress it,
+  and RI7 makes the default discoverable — but discoverability is weaker than consent, and this
+  risk should be re-examined at Review with real token measurements rather than estimates.
 - **RK-D (medium): the challenge pass degenerates into agreement.** A challenger with the same
   context as the researcher tends to ratify it. Mitigation: the challenge pass must run with fresh
   context, and `rejected-with-reason` must be a first-class outcome rather than an exception path.
@@ -144,9 +148,11 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
   a Complex task produces both. Both assertions locked by fixtures.
 
 - **R2** — Research agents are read-only and capped by the resolved
-  `dispatch.max_parallel_workstreams`.
+  `dispatch.max_parallel_workstreams`; when no cap is configured, the council falls back to a
+  council-specific default of 3 (Q2 decision).
   Acceptance: `check-council.mjs` fails an artifact whose recorded fan-out exceeds the resolved cap;
-  no council member is granted write access in its dispatch record.
+  no council member is granted write access in its dispatch record; with no cap configured, the
+  effective cap resolves to 3 and the artifact records that the council default was used.
 
 - **R3** — A challenge pass reviews research output before consolidation, with findings attributed
   to their source member and never folded in anonymously.
@@ -168,9 +174,11 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
   `examples/` briefs with no edits to any of them.
 
 - **R7** — `agent-behavior.yaml` gains a config field to disable the council, defaulting to on for
-  Complex only.
+  Complex only. `tuning.dispatch.enabled: disabled` takes precedence over `council.enabled` and
+  suppresses the council outright (Q1 decision).
   Acceptance: setting the field off makes a Complex Think run single-agent and log a refusal with
-  reason; the default value is on-for-Complex.
+  reason; the default value is on-for-Complex; a fixture with `dispatch.enabled: disabled` and
+  `council.enabled: true` produces no council and a logged refusal citing the kill switch.
 
 - **R8** — The single-agent Think path stays functional and exercised in CI for one release; not
   deleted in 1.1.0.
@@ -212,6 +220,14 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
   Acceptance: the non-claims appear in the validator's own README entry and in the council skill's
   reference docs, as prose, not as an implication.
 
+- **RI7** — Make the council-specific default fan-out of 3 (Q2) visible rather than silent. Because
+  a fresh consumer with no `dispatch.max_parallel_workstreams` now gets up to 4 council members on
+  every Complex Think without having configured anything, the default must be discoverable at the
+  point it costs money.
+  Acceptance: `phase-caps.md` documents the council's departure from the global default-to-1 rule
+  and says why; the brief artifact records `cap_source: council-default` (vs. `configured`) so a
+  reader can tell which applied; the council skill's docs name the token-cost implication in prose.
+
 ### Assumptions (A)
 
 - **A1** — WP-R8 lands before or with this package. R21 must modify `agent-behavior.yaml` and four
@@ -230,7 +246,14 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
 
 ### Open Questions (Q)
 
-- **Q1** — When a repo sets `tuning.dispatch.enabled: disabled` (shipped in WP-R8) but
+- **Q1 — RESOLVED 2026-08-15 (user decision): kill switch wins.** `tuning.dispatch.enabled:
+  disabled` suppresses the council outright; it logs a refusal and Think runs single-agent.
+  Resolution order is: dispatch kill switch → `council.enabled` → `task_class: complex`. Folded into
+  R7's acceptance criteria. Accepted cost, stated by the user's own selection: a repo that disabled
+  dispatch for write-safety reasons also loses a read-only feature it might have wanted.
+  Original question and analysis retained below.
+
+  When a repo sets `tuning.dispatch.enabled: disabled` (shipped in WP-R8) but
   `council.enabled` is on, does the council fire?
   These two currently contradict each other. `dispatch-subagents/SKILL.md` states that a `disabled`
   resolution means "do not dispatch in any phase **even with explicit user authorization** — a repo
@@ -242,7 +265,17 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
   around is not a kill switch. Needs your decision because it changes R7's config semantics.
   Owner: user. Blocking: yes.
 
-- **Q2** — What is the council's effective fan-out when no cap is configured?
+- **Q2 — RESOLVED 2026-08-15 (user decision): council-specific default of 3.** When no cap is
+  configured, the council resolves its effective cap to 3 rather than the global default of 1.
+  Folded into R2's acceptance criteria. **This was decided against the recommendation below**, and
+  the tradeoff is recorded rather than smoothed over: a fresh consumer now gets up to 4 council
+  members on every Complex Think having configured nothing, and the shipped rule "never increase the
+  cap in response to a request" is weakened in spirit if not in letter. The user selected this with
+  that cost stated. RI7 was added to make the default visible at the point it costs money, which is
+  the mitigation available without re-opening the decision. Original question and analysis retained
+  below.
+
+  What is the council's effective fan-out when no cap is configured?
   `phase-caps.md` says that if neither global config nor repo tuning declares
   `max_parallel_workstreams`, the default is 1 — no parallelism. A "council" of one researcher plus
   one challenger is not obviously the intended product, but silently defaulting the council higher
@@ -262,16 +295,20 @@ Q1 and Q2 are blocking — both change what gets built, not merely how. Q3 is no
 
 ## Questions For User
 
-Two decisions are needed before Plan can start. Both are genuine authority calls, not research
-gaps — I have a recommendation for each and the basis for it.
+Both blocking questions were answered on 2026-08-15 and are recorded above. No open questions
+remain that block Plan.
 
-1. **Q1 — kill-switch precedence.** If a repo has turned dispatch off entirely, may the council
-   still fire? I recommend no: `dispatch.enabled: disabled` suppresses the council and logs a
-   refusal. The alternative makes WP-R8's kill switch routable-around by any later feature.
+| ID | Decision | Matched recommendation | Folded into |
+|---|---|---|---|
+| Q1 | Kill switch wins — `dispatch.enabled: disabled` suppresses the council | yes | R7 |
+| Q2 | Council-specific default fan-out of 3 when no cap configured | no | R2, RI7 |
+| Q3 | Deferred to Plan (non-blocking) | n/a | — |
 
-2. **Q2 — default fan-out.** With no configured cap the documented default is 1, which makes a
-   default-install "council" degenerate. I recommend keeping 1 and documenting that a real council
-   requires configuring a cap, rather than carving out a council-specific default.
+**Still outstanding: approval of this brief as a whole.** Q1 and Q2 were scoped decisions, not a
+review of the brief's requirements, risks, or manifest. `user_checkpoint: brief-review` remains
+unsatisfied and `## Checkpoint Approval` is deliberately absent — per `workflow/rules.md`'s Approval
+section, that section may only be written from the user's own verbatim approval of this artifact's
+content, never authored on their behalf.
 
 ## Architecture Notes
 
