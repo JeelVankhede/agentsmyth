@@ -421,8 +421,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Reopen the residual half of OI-63. It tracked two starter-block/validator mismatches and was closed as 'promoted to WP-R19'. The Test half (Skipped Checks manifest_ids column) has since been fixed in src by another route; the Plan half is NOT — `## Assumptions Verified`, which check-assumptions requires whenever a brief declares A IDs, is still absent from src/workflow/skills/lifecycle-plan/references/output-schema.md. Verified by grep 2026-08-15. WP-R19's remaining scope is smaller than its description implies."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Fixed under WP-R19 on feat/wp-r19-starter-block-validator-sync (stacked on WP-R8/PR #62). src/workflow/skills/lifecycle-plan/references/output-schema.md now carries `## Assumptions Verified` in both the required-body-sections list (as conditional item 4) and the Starter Block, plus a rule paragraph stating it is required when the brief declares A IDs and omitted when it declares none. Locked by two new conformance checks (r19-assumptions-section, r19-assumptions-columns) so the doc and check-assumptions.mjs cannot drift apart again. Test half of OI-63 confirmed already fixed (6-column Skipped Checks table, guarded by r16-skipped-checks-columns). Suite: 17/17 conformance, 29/29 violations, npm run validate exit 0."
   - id: OI-69
     source: follow-up
     owner: user
