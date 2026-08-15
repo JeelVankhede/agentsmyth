@@ -14,7 +14,7 @@ This is a power skill, not a lifecycle phase. It is passive/scored: the agent ev
 ## Invocation Context
 
 Use this skill when the recorded `skill_scoring` trigger for `domain.clean-code-architect`
-evaluates true: `complexity_score >= 50`.
+evaluates true: `complexity_score >= thresholds.domain.clean-code-architect`.
 
 Do not invoke it for low-complexity changes where the structural-quality analysis cost exceeds the
 benefit — a one-line fix does not need a layering review.

@@ -68,6 +68,7 @@ properties:
         env:
           type: object
           additionalProperties:
+            x_enforcement: warn-until-1.2.0
             type: string
         timeout_seconds:
           type: integer

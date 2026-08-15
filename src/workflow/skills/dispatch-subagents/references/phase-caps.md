@@ -2,7 +2,14 @@
 
 Caps are hard maximums. Do not exceed them.
 
-The global maximum is set by `dispatch.max_parallel_workstreams` in `workflow/agent-behavior.yaml`. No phase cap may exceed this value. Read `agent-behavior.yaml` to get the current cap before dispatching.
+The maximum is set by `dispatch.max_parallel_workstreams`. **Resolve the effective value before
+dispatching**: read `workflow/agent-behavior.yaml` for the global value, then check
+`workflow/config/repo-profile.yaml` for `tuning.dispatch.max_parallel_workstreams` — if the repo
+declares one, that is the value. No phase cap may exceed the resolved value.
+
+`tuning.dispatch.enabled` is resolved the same way and is checked **first**. If it resolves to
+`disabled`, do not dispatch in any phase, regardless of explicit user authorization — the repo has
+turned delegation off, and authorization does not override that. A repo may not set `required`.
 
 | Phase | Role | Allowed work |
 |---|---|---|
@@ -14,8 +21,8 @@ The global maximum is set by `dispatch.max_parallel_workstreams` in `workflow/ag
 | Ship | none | no dispatch |
 | Reflect | none | no dispatch |
 
-Phases with `none` role have a cap of 0 — dispatch is never allowed regardless of authorization or agent-behavior.yaml values. Test's cap is 0 for general Test work and `dispatch.max_parallel_workstreams` (capped at 3 regardless of config) only for the narrow `verification-parallelizer` profile — see `decision-tree-by-phase.md`'s E1 section.
+Phases with `none` role have a cap of 0 — dispatch is never allowed regardless of authorization, agent-behavior.yaml values, or repo tuning. Test's cap is 0 for general Test work and the resolved `dispatch.max_parallel_workstreams` (capped at 3 regardless of config) only for the narrow `verification-parallelizer` profile — see `decision-tree-by-phase.md`'s E1 section.
 
-For all other phases, the cap is `dispatch.max_parallel_workstreams` from `agent-behavior.yaml`. If the config is absent, default to 1 (no parallelism).
+For all other phases, the cap is the resolved `dispatch.max_parallel_workstreams`. If neither the global config nor repo tuning declares one, default to 1 (no parallelism).
 
-Requested worker counts above the cap must be reduced to the cap or refused. Never increase the cap in response to a user request — that requires editing `agent-behavior.yaml` and is a config change, not a dispatch decision.
+Requested worker counts above the cap must be reduced to the cap or refused. Never increase the cap in response to a user request — raising it requires editing `agent-behavior.yaml` globally or `tuning.dispatch.max_parallel_workstreams` in the repo profile, and either is a config change, not a dispatch decision.

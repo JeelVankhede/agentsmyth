@@ -22,3 +22,21 @@ items:
     question: "What command confirms the repo is healthy (build, test, lint)?"
     hint: "Check Makefile, package.json scripts, or CI config"
     status: resolved
+  - id: PS-4
+    config: repo-profile.yaml
+    field: "intent.repo_character"
+    question: "What kind of repo is this — frontend-app, backend-service, library, cli, monorepo, infrastructure, or mixed? This supplies the default answer for every concern below."
+    hint: "Infer from package.json dependencies (react/vue/next → frontend-app; express/fastify/nest → backend-service), a bin field or cmd/ dir (cli), workspaces/packages/ (monorepo), or terraform/k8s manifests (infrastructure). Do not ask if the repo answers this plainly."
+    status: open
+  - id: PS-5
+    config: repo-profile.yaml
+    field: "intent.surface_map"
+    question: "Where do UI, API, schema, and hot-path files actually live in this repo? Any category that does not apply can be left empty."
+    hint: "Infer from real directories — components/, views/, screens/ (ui); routes/, api/, controllers/ (api); migrations/, models/, schema/ (schema). Only ask about categories inference cannot settle."
+    status: open
+  - id: PS-6
+    config: repo-profile.yaml
+    field: "intent.concerns"
+    question: "How much scrutiny does each concern area deserve here — architecture, code_quality, api_contracts, data_schema, ui_ux, performance, repo_alignment, constraints_safety? Each is not-applicable, light, standard, or strict. Propose a full map derived from repo_character and ask only for confirmation or corrections."
+    hint: "standard reproduces current behavior for every area, so it is the safe default. repo_alignment and constraints_safety cannot be not-applicable. ui_ux is commonly not-applicable for a cli or library; data_schema for a repo with no persistence."
+    status: open

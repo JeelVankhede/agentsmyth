@@ -25,6 +25,17 @@ the task.
 6. `waived` items: never surface. Never block on them.
 7. Items still open after steps 4–5: proceed with the task. Note them in the session
    summary. Do not hard-stop.
+8. **Intent items** (`field: "intent.*"`, seeded at `init` and appended on version upgrade) resolve
+   the same way, with two additions. Resolve them in the order written: `repo_character` and
+   `surface_map` are usually settleable by inspection alone, and their answers supply a recommended
+   default for `concerns` — so the one genuinely human question arrives with a proposed answer
+   rather than cold. Never ask for a bare `concerns` map with no recommendation attached.
+   Once resolved, derive the corresponding `tuning:` values, write them, and list each derived
+   dotted key in `intent.derived_keys` so a later upgrade can tell a derived value from a hand-set
+   one. Never overwrite a `tuning:` value that is not listed there.
+   These items are **non-blocking like every other pending-setup item**: until they resolve, every
+   value falls back to the global install and behavior is unchanged. Never gate lifecycle work on
+   them, and never treat an unresolved intent item as a reason to pause a phase.
 
 ## Inputs To Inspect
 

@@ -54,4 +54,29 @@ the CLI can resolve the validator from either the repo-local or global definitio
 - `check-open-items.mjs` checks `workflow/artifacts/open-items.yaml` against its schema when present; exits 0 with an informative message when absent.
 - `check-constraint-conflicts.mjs` checks every constraint-ID citation in a brief's `## Open Questions (Q)` section resolves to a real ID present in `domain.yaml`'s bracket-prefixed constraint arrays.
 
+`check-config.mjs` does two things beyond plain schema validation, both for per-repo behavior
+tuning (WP-R8). It enforces the **checkpoint union rule** — a repo's
+`tuning.pause_resume.user_checkpoint_required_for` must contain every checkpoint the global
+`agent-behavior.yaml` requires, since that list is append-only and resolves by union rather than
+override; a repo may add checkpoints, never remove one. And it checks **`intent.derived_keys`
+provenance**: every dotted key listed there must still exist under `tuning:`, so a later upgrade can
+tell a derived value it may safely re-derive from a hand-set one it must not overwrite. A stale
+entry means the two have drifted, which nothing else in the system would notice.
+
+Neither check carries a list of tunable keys. The enumeration lives solely in
+`repo-profile.schema.yaml`, under closed objects — anything not named there is rejected as an
+unknown property. Keeping one enumeration in one place is deliberate: a second copy here would be
+free to drift from the first.
+
+`check-schema-keywords.mjs` fails when a shipped schema uses a JSON Schema keyword that
+`validateSchema` does not implement. It exists because three engine gaps surfaced by accident in a
+single work package: `maximum` was parsed and ignored (a schema declaring `maximum: 10` accepted
+99), schema-valued `additionalProperties` was parsed and ignored (three open maps were never
+validated at all), and `if`/`then` was parsed and ignored (seven conditional branches in
+`lifecycle-artifact.schema.yaml` were decoration). In every case an author wrote a declaration in
+good faith, it silently had no effect, and nothing reported it — the declaration looked like a
+contract and was not one. A documented list of supported keywords would drift the moment someone
+edited the engine; this check cannot. Adding a keyword to `validateSchema` means adding it to this
+validator's `SUPPORTED` set, and that deliberate step is the point.
+
 These validators are conservative contract checks. They do not replace code tests, manual QA, source-of-truth verification, release evidence, or human review.

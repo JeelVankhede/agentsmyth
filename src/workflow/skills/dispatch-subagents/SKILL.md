@@ -21,6 +21,14 @@ Use this skill only when:
 
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
+**Check `dispatch.enabled` before authorization, not after.** Resolve it global-then-repo-local:
+read `workflow/agent-behavior.yaml`, then let `tuning.dispatch.enabled` in
+`workflow/config/repo-profile.yaml` override it when present. If the resolved value is `disabled`,
+do not dispatch in any phase even with explicit user authorization — a repo that has turned
+delegation off has made a standing decision that a per-session authorization does not reverse. Say
+so plainly and continue locally. `optional` is the default and preserves authorization-gated
+behavior. A repo cannot set `required`; the schema rejects it.
+
 ## What To Load
 
 **Foundation** (confirm in context; load if not already present):

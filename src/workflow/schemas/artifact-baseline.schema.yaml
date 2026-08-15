@@ -1,0 +1,45 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: artifact-baseline.schema.yaml
+title: Artifact Validation Baseline
+description: >-
+  Records artifact-validation violations that already existed when check-artifacts.mjs was first
+  wired into the gate, so historical artifacts are grandfathered while every new violation fails.
+  A ratchet, not an exemption list - entries may be removed, never usefully added, because an entry
+  that no longer matches a real violation is itself an error. Each entry suppresses one specific
+  file-and-message pair, so a NEW violation in an OLD file still fails: grandfathering covers the
+  debt that existed, never the file that carries it.
+type: object
+additionalProperties: false
+required:
+  - version
+  - kind
+  - recorded
+  - entries
+properties:
+  version:
+    const: 1
+  kind:
+    const: artifact-baseline
+  recorded:
+    type: string
+    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+    description: The date this baseline was captured. Entries added after this date should be treated as suspicious in review - the ratchet is supposed to tighten.
+  note:
+    type: string
+  entries:
+    type: array
+    description: One entry per grandfathered violation. Both fields must match exactly for the violation to be suppressed.
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - file
+        - message
+      properties:
+        file:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+          description: The violation text with the leading file path removed, matched exactly.
