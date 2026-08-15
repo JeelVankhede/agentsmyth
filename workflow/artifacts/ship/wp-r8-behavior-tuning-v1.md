@@ -2,7 +2,7 @@
 slug: wp-r8-behavior-tuning
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-08-15
 updated: 2026-08-15
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
@@ -14,7 +14,7 @@ upstream:
   - workflow/artifacts/verify/wp-r8-behavior-tuning-v2.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -37,62 +37,67 @@ orchestration:
 ## Ship Status
 
 - Recommendation: **ship** — every required gate has evidence and no unwaived blocker remains.
-  `orchestration.blockers` is empty by design: what holds this artifact at `blocked-for-user` is the
-  unapproved `ship-review` checkpoint, which `check-lifecycle --phase reflect` enforces separately
-  and which only the user can clear. Two decisions below are the user's, and neither is a defect in
-  the work.
+  The `ship-review` checkpoint was approved by the user on 2026-08-15 (verbatim below), which
+  released the three outstanding decisions: apply the Notion corrections, commit, and raise a PR.
+  All three are done and evidenced.
 - Review result: `pass` (v4).
 - Verification recommendation: `ship` (verify v2).
-- PR / CI: not required by config; none created.
-- Source-of-truth: **blocked** — copy-ready handoff below. Not required by config
-  (`providers: []`), but the WP-R8 Notion page is materially out of date with what shipped.
+- PR / CI: PR #62 open against `release/1.1.0`. Not required by config; created on user request.
+- Source-of-truth: **updated** — all four Notion corrections applied on user request and verified
+  by re-fetching the page.
 - Release: not required by config. No version bump, tag, or publish is in scope for this work
   package; 1.1.0 is released as a whole, not per work package.
 
-The technical work is complete and verified. What stands between here and Reflect is
-authorization, not engineering:
+All three actions the user authorized are complete:
 
-1. **The `ship-review` checkpoint is unapproved.** Per `rules.md`'s Approval section and
-   `check-lifecycle --phase reflect`, this artifact cannot declare `ready-for-next-phase` until the
-   user has responded to this specific ship decision in their own words.
-2. **Nothing is committed.** All 49 paths are uncommitted working-tree state. Commit authorization
-   has not been given at any point in this chain, and the branch strategy the user set
-   (everything merges into `release/1.1.0`, `main` gets one merge at the end) has a step here that
-   is theirs to trigger.
+1. **Notion corrections applied** — four edits, verified by re-fetching the page.
+2. **Committed** — two commits on `feat/wp-r8-behavior-tuning`, working tree clean.
+3. **PR raised** — https://github.com/JeelVankhede/agentsmyth/pull/62, base `release/1.1.0`.
+
+`release/1.1.0` did not exist on the remote and had to be pushed first to serve as the PR base;
+it is now a shared ref tracking `origin/release/1.1.0`.
 
 ## Requirement Coverage
 
-Every requirement's code is complete and verified locally. "Shipped" below means implemented,
-verified, and present in the working tree — not committed, not merged, not published. That
-distinction is the whole of blocker 2 and is stated once here rather than repeated per row.
+"Shipped" below means implemented, verified, committed, and included in PR #62 against
+`release/1.1.0` — **not merged and not published**. 1.1.0 is released as a whole, not per work
+package, so no version bump or publish is in scope here. The qualifier is stated once rather than
+repeated per row.
 
 | Manifest ID | Status | Evidence | Notes |
 |---|---|---|---|
-| R1 | shipped (uncommitted) | verify v2 — `check-config: ok`; unknown key rejected | — |
-| R2 | shipped (uncommitted) | fixture `w-tuning-unknown-key` rejected by name | Enumeration lives in the schema, not a validator constant — see Source-of-Truth. |
-| R3 | shipped (uncommitted) | fixtures `y`, `z` rejected | Union rule for `user_checkpoint_required_for`. |
-| R4 | shipped (uncommitted) | `required:` array untouched; MQ-3 consumer exits 0 | The minor-bump guarantee. |
-| R5 | shipped (uncommitted) | intent block accepted; `aa`/`ab` floor fixtures rejected | Not represented on the Notion page at all. |
-| R6 | shipped (uncommitted) | m9 flips a symbolic threshold; `ad` fixture rejected | Adds a sixth tunable, `skill_scoring.thresholds`. |
-| R7 | shipped (uncommitted) | MQ-1 — fresh `init` emits PS-1…PS-11 | Verified against the packed tarball. |
-| R8 | shipped (uncommitted) | MQ-2 — skew appends PS-9/10/11, idempotent, exit 0 | Non-blocking upgrade path. |
-| RI1 | shipped (uncommitted) | six tunables traced to consumption points | — |
-| RI2 | shipped (uncommitted) | m9/m10/m11, mutation-tested (verify v2 MQ-6) | Was verify v1's single fail. |
-| RI3 | shipped (uncommitted) | ratchet wired into `validate`; MQ-4 | 96 grandfathered, 0 new, 0 stale. |
-| RI4 | shipped (uncommitted) | 29/29 violation fixtures | — |
-| RI5 | shipped (uncommitted) | `x-tuning-locked-key` rejected | — |
-| RI6 | shipped (uncommitted) | `config-map.md`, `validators/README.md`, `repo-mental-map.md` | Repo docs current; Notion is not. |
-| RI7 | shipped (uncommitted) | `aa`/`ab` rejected | Both concern floors enforced. |
-| RI8 | shipped (uncommitted) | `ac-intent-stale-provenance` rejected | — |
-| RI9 | shipped (uncommitted) | MQ-3 — 1.0.0-era config exits 0 with deferred warnings | — |
+| R1 | shipped (in PR #62) | verify v2 — `check-config: ok`; unknown key rejected | — |
+| R2 | shipped (in PR #62) | fixture `w-tuning-unknown-key` rejected by name | Enumeration lives in the schema, not a validator constant — see Source-of-Truth. |
+| R3 | shipped (in PR #62) | fixtures `y`, `z` rejected | Union rule for `user_checkpoint_required_for`. |
+| R4 | shipped (in PR #62) | `required:` array untouched; MQ-3 consumer exits 0 | The minor-bump guarantee. |
+| R5 | shipped (in PR #62) | intent block accepted; `aa`/`ab` floor fixtures rejected | Not represented on the Notion page at all. |
+| R6 | shipped (in PR #62) | m9 flips a symbolic threshold; `ad` fixture rejected | Adds a sixth tunable, `skill_scoring.thresholds`. |
+| R7 | shipped (in PR #62) | MQ-1 — fresh `init` emits PS-1…PS-11 | Verified against the packed tarball. |
+| R8 | shipped (in PR #62) | MQ-2 — skew appends PS-9/10/11, idempotent, exit 0 | Non-blocking upgrade path. |
+| RI1 | shipped (in PR #62) | six tunables traced to consumption points | — |
+| RI2 | shipped (in PR #62) | m9/m10/m11, mutation-tested (verify v2 MQ-6) | Was verify v1's single fail. |
+| RI3 | shipped (in PR #62) | ratchet wired into `validate`; MQ-4 | 96 grandfathered, 0 new, 0 stale. |
+| RI4 | shipped (in PR #62) | 29/29 violation fixtures | — |
+| RI5 | shipped (in PR #62) | `x-tuning-locked-key` rejected | — |
+| RI6 | shipped (in PR #62) | `config-map.md`, `validators/README.md`, `repo-mental-map.md` | Repo docs and the Notion page are both current. |
+| RI7 | shipped (in PR #62) | `aa`/`ab` rejected | Both concern floors enforced. |
+| RI8 | shipped (in PR #62) | `ac-intent-stale-provenance` rejected | — |
+| RI9 | shipped (in PR #62) | MQ-3 — 1.0.0-era config exits 0 with deferred warnings | — |
 
 17/17 covered. None deferred, blocked, or waived.
 
 ## PR / CI Readiness
 
-**Not applicable by config.** `release.yaml` sets `pull_request.required: false` with
-`create_policy: user_requested_or_configured`, and `ci.required: false` with `provider: none`.
-No PR has been created and no CI run has been triggered or claimed.
+**PR open on user request.** `release.yaml` sets `pull_request.required: false` with
+`create_policy: user_requested_or_configured` — the user requested it, so the second half of that
+policy applies.
+
+- **PR #62** — https://github.com/JeelVankhede/agentsmyth/pull/62
+- Base `release/1.1.0`, head `feat/wp-r8-behavior-tuning`.
+- Two commits: `ffdefbc` (implementation + tests) and `36e3ff8` (lifecycle artifacts).
+- **CI: none.** `ci.required: false`, `provider: none`. No CI run has been triggered, observed, or
+  claimed. A pre-commit hook ran the full workflow-contract validation locally on both commits;
+  that is local evidence, not CI.
 
 Branch evidence (the one gate that *is* required — `branch.required: true`, evidence "git status
 and branch name"):
@@ -100,11 +105,11 @@ and branch name"):
 | Ref | Commit | Note |
 |---|---|---|
 | `origin/main` | `3401a28` | Remote default branch. |
-| `release/1.1.0` | `3401a28` | **Local only** — not present on the remote. |
-| `feat/wp-r8-behavior-tuning` | `3401a28` | Current branch. 0 commits ahead of `origin/main`. |
+| `origin/release/1.1.0` | `3401a28` | Pushed during Ship — did not exist on the remote before, and had to, to serve as the PR base. |
+| `feat/wp-r8-behavior-tuning` | `36e3ff8` | Current branch, pushed. 2 commits ahead of `release/1.1.0`. |
 | local `main` | `514d478` | Stale, behind `origin/main`. Unrelated to this chain; noted so it is not mistaken for divergence caused by this work. |
 
-- Working tree: 49 paths — 28 modified, 21 untracked (the count includes this artifact).
+- Working tree at Ship entry: 49 paths — 28 modified, 21 untracked. Now committed; tree clean.
 - Divergence check (workflow step 4a): `git fetch origin` then
   `git rev-list --left-right --count origin/main...HEAD` → `0 0`. The base has **not** advanced
   since work started, so there is no merge/rebase decision point to surface.
@@ -121,13 +126,13 @@ and branch name"):
 |---|---|---|---|
 | branch | yes | pass | Table above; non-default branch, no divergence. |
 | generated_output | when changed | pass | Changed and rebuilt. `npm run build` → `build-bundle: ok`; `render-adapters: adapter shims are current`. Evidence is the verify artifact, per config. |
-| pull_request | no | not applicable | `create_policy: user_requested_or_configured`; neither. |
+| pull_request | no | pass | User-requested. PR #62 against `release/1.1.0`. |
 | ci | no | not applicable | `provider: none`. |
 | release | no | not applicable | Version bump and publish belong to the 1.1.0 release as a whole. |
 | deployment | no | not applicable | No runtime service — repo invariant. |
 | docs | no | pass anyway | `config-map.md`, `validators/README.md`, `repo-mental-map.md` all updated (RI6). |
 | package | no | not applicable | No version bump in this work package. `package.json` was touched only to register test scripts. |
-| source_of_truth | when configured | blocked | No provider configured, so not required — but see below. |
+| source_of_truth | when configured | pass | Not required (`providers: []`), but all four Notion corrections were applied on user request and verified. |
 | rollback | when release or external handoff is in scope | in scope | External handoff (Notion) is in scope; rollback defined below. |
 
 No required gate is failing. `npm run validate` exits 0 across 25 validators and the ten test
@@ -135,13 +140,15 @@ suites total 128 assertions, all green.
 
 ## Source-of-Truth Status
 
-**blocked** — external write requires user request or config, and neither exists.
-`source-of-truth.yaml` has `providers: []` and
-`require_user_request_or_config_for_external_write: true`. The Notion workspace is therefore not a
-configured source of truth, and I have not written to it.
+**updated** — 2026-08-15, on explicit user request, which satisfies
+`require_user_request_or_config_for_external_write: true`. Notion remains unconfigured in
+`source-of-truth.yaml` (`providers: []`), so this was never a required gate; it was applied because
+the page was wrong.
 
-That said, the WP-R8 Notion page is now materially wrong in four ways, not the two carried forward
-from Review. Reading the page produced the corrected list:
+Four corrections were applied to
+`https://app.notion.com/p/3a1972bdebbb81fdad2cee228a1ec707`, each verified by re-fetching the page
+afterwards rather than assumed from a success response. The page was wrong in four ways, not the
+two carried forward from Review — reading it produced the corrected list:
 
 1. **Class is `Standard`; the work was reclassified to `Complex`** during Plan and every phase
    since has been run under Complex rules (no phase skippable without a waiver — which is why Test
@@ -160,8 +167,17 @@ from Review. Reading the page produced the corrected list:
    substantial user-facing surface added after the page was last written, along with the
    setup-negotiation and upgrade-skew reconciliation behavior (R7, R8).
 
-Status: **blocked**, with the copy-ready handoff below. Not a `hold` for Ship, because config does
-not require the update.
+**Applied and verified.** Re-fetch confirms: property `Class` now reads `Complex`; the allowlist
+paragraph now names `repo-profile.schema.yaml` and states that `check-config.mjs` deliberately
+carries no key list; a sixth bullet for `skill_scoring.thresholds` is present; and an
+"Intent Layer (added during implementation, 2026-08-14)" section now documents `repo_character`,
+`surface_map`, `concerns` with both floors, `derived_keys` provenance, and the seeding/skew
+behavior.
+
+One thing deliberately left alone: the page's `Notes` property still contains the original
+Think-phase framing ("...or check-config.mjs will accept keys never intended to be tunable"). That
+is a historical record of how the task was set, not a claim about where the allowlist ended up, and
+rewriting it would erase the reasoning that led to Q1.
 
 ## Risk And Rollback
 
@@ -192,13 +208,16 @@ not require the update.
 
 ## Blocked Handoff
 
+**none** — the handoff below was applied in full on 2026-08-15 and verified. It is retained as the
+record of exactly what was changed and why.
+
 **Provider / source type:** Notion (not configured in `source-of-truth.yaml`; workspace reachable).
 **Source item:** WP-R8 — Per-Repo Behavior Tuning —
 `https://app.notion.com/p/3a1972bdebbb81fdad2cee228a1ec707`
 **Owner:** Jeel Vankhede
 **Affected manifest IDs:** R1, R2, R5, R6, R7, R8, RI6
 **Ship impact:** none — config does not require a source-of-truth update. Documentation accuracy
-only.
+only. **Status: applied 2026-08-15, verified by re-fetch.**
 **Risk if not applied:** the page instructs a future reader to put the allowlist in
 `check-config.mjs`, which is the opposite of what shipped and would reverse resolved question Q1.
 
@@ -295,11 +314,13 @@ only.
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: **pending** — the user has not yet responded to this ship decision.
-- User's own words (verbatim, this turn): _not yet given._
+- Status: approved
+- Date: 2026-08-15
+- User's own words (verbatim, this turn): "Yes, apply notion changes. Make commits and then raise a PR against release."
 
-This section must not be completed by the agent. It is filled in only after the user responds, with
-their actual message quoted.
+Approval evidence: the user's message authorized all three outstanding actions explicitly — the
+Notion corrections, the commits, and the PR against the release branch. Each was carried out and
+evidenced above (re-fetched page, commits `ffdefbc` and `36e3ff8`, PR #62).
 
 ## Exit Gate
 
@@ -307,11 +328,20 @@ their actual message quoted.
 - [x] Every R and RI has a coverage row — 17/17.
 - [x] Rollback trigger and action defined.
 - [x] All configured gates checked or marked not applicable with config reference.
-- [ ] `ship-review` checkpoint approved by the user.
-- [ ] Commit authorization given (or explicitly declined, leaving the work uncommitted by choice).
+- [x] `ship-review` checkpoint approved by the user, quoted verbatim.
+- [x] Commit authorization given; two commits made and pushed.
+- [x] Source-of-truth handoff applied and verified rather than left as copy-ready text.
 
 ## Next Phase
 
-**blocked** — pending the `ship-review` checkpoint. Reflect may start once the user approves this
-ship decision; `check-lifecycle --phase reflect` will hard-block until this artifact carries an
-approved, evidenced Checkpoint Approval section.
+**Reflect.** The `ship-review` checkpoint is approved and evidenced, so
+`check-lifecycle --phase reflect` no longer blocks.
+
+Reflect should carry: the six-instance defect class (declarations that enforced nothing, plus one
+validator wired nowhere); the mutation-testing lesson from verify v2; the 96 grandfathered artifact
+violations, which are real debt with no owner; the still-unwired `lifecycle-artifact.schema.yaml`;
+and `CLAUDE.md`'s stale "4 fixtures" line, now 29.
+
+Two release-level follow-ups outlive this work package: removing the `warn-until-1.2.0` markers
+when 1.2.0 ships, and merging `release/1.1.0` to `main` once the rest of 1.1.0 lands. Neither
+belongs to WP-R8.
