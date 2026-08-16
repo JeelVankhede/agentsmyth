@@ -2,15 +2,15 @@
 slug: wp-r21-think-council
 version: 1
 artifact: plan
-status: draft
+status: ready-for-next-phase
 created: 2026-08-16
-updated: 2026-08-16
+updated: 2026-08-17
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
 upstream:
   - workflow/artifacts/briefs/wp-r21-think-council-v1.md
 orchestration:
   phase: plan
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: build
   blockers: []
   user_checkpoint: plan-review
@@ -316,11 +316,17 @@ declarative enough to need no tests of its own beyond Phase 7's fixtures.
 ## Checkpoint Approval
 
 - Checkpoint: plan-review
-- Status: pending — this plan has not yet been presented to the user for review.
+- Status: approved
+- Date: 2026-08-17
+- User's own words (verbatim, this turn): "Plan is approved"
+- Scope of approval: the seven-phase sequencing, the Phase 1 contract freeze that WP-R22 inherits,
+  the deliberate non-overlap of Phases 2 and 3, all 24 manifest IDs' phase assignments, the
+  verification plan, and the two agent-added exit gates (Phase 4's byte-comparison of the preserved
+  single-agent path, and A5's 1.2.0 removal written as a gate item rather than left to Ship).
 
 ## Exit Gate
 
 - [x] Every active R and RI mapped to a phase.
 - [x] Every phase has a binary exit gate.
 - [x] Verification plan covers every R and RI.
-- [ ] User approved or waiver recorded.
+- [x] User approved or waiver recorded.
