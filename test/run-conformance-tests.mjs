@@ -43,6 +43,15 @@ const planStarter = (planSchema.split('## Starter Block')[1] || '').match(/```ma
 check('r13-format', 'plan starter block uses bold phase labels check-phase-map requires',
   /- \*\*Manifest IDs:\*\*/.test(planStarter) && /- \*\*Exit gate:\*\*/.test(planStarter));
 
+// R19 (OI-63/OI-68) — the plan starter block must carry the `## Assumptions Verified` table that
+// check-assumptions requires whenever the upstream brief declares A IDs. It was absent, so a plan
+// copied verbatim from the starter block failed `npm run validate`. Lock the section AND its three
+// parsed columns (id, status, evidence/question) so the pair can't drift apart again.
+check('r19-assumptions-section', 'plan starter block carries ## Assumptions Verified',
+  /^## Assumptions Verified$/m.test(planStarter));
+check('r19-assumptions-columns', 'Assumptions Verified table has the 3 columns check-assumptions parses',
+  /\| Assumption ID \| Status \| Evidence \/ Question \|/.test(planStarter));
+
 // R11 — `-p<P>` task filename is accepted (no filename error for the probe).
 const art = run(V('check-artifacts'), ['--dir', 'test/fixtures/conformance/tasks-dir']);
 check('r11-psuffix', '-p<P> task filename not rejected',

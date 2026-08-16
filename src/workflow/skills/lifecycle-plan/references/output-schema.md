@@ -30,20 +30,28 @@ Required body sections:
 1. Summary
 2. Inputs
 3. Requirement Coverage
-4. Repo Impact Map
-5. Source-of-Truth Strategy
-6. Approach
-7. Phases
-8. Dependency Order
-9. Branch Strategy
-10. Risk Register
-11. Verification Plan
-12. Architecture Notes
-13. Open Questions
-14. Checkpoint Approval
-15. Exit Gate
+4. Assumptions Verified (only when the brief declares `A` IDs — see below)
+5. Repo Impact Map
+6. Source-of-Truth Strategy
+7. Approach
+8. Phases
+9. Dependency Order
+10. Branch Strategy
+11. Risk Register
+12. Verification Plan
+13. Architecture Notes
+14. Open Questions
+15. Checkpoint Approval
+16. Exit Gate
 
 Every active `R` and `RI` from the brief must appear in `manifest_ids`, Requirement Coverage, Phases, and Verification Plan.
+
+`## Assumptions Verified` is required whenever the upstream brief declares any `A` ID, and is
+omitted entirely when it declares none. `check-assumptions.mjs` fails the plan if the section is
+missing while the brief declares assumptions, or if any declared `A` ID has no row. One row per
+brief `A` ID; `Status` is exactly `evidence-backed` or `raised-as-question`; the third column must
+be non-empty — a specific citation for `evidence-backed`, or the superseding `Q` ID for
+`raised-as-question`. The `plan-assumption-verifier` power skill writes this table.
 
 `## Checkpoint Approval` is required whenever `orchestration.user_checkpoint` is not the literal
 string `none` (it is `plan-review` by default — see Starter Block). `check-lifecycle.mjs --phase
@@ -87,6 +95,13 @@ orchestration:
 ## Requirement Coverage
 
 | Manifest ID | Covered by phases | Notes |
+|---|---|---|
+
+## Assumptions Verified
+
+<!-- Required when the upstream brief declares A IDs; omit this section entirely if it declares none. -->
+
+| Assumption ID | Status | Evidence / Question |
 |---|---|---|
 
 ## Repo Impact Map
