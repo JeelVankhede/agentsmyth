@@ -226,10 +226,212 @@ properties:
           - always
           - never
           - only_when_configured
+  tuning:
+    type: object
+    additionalProperties: false
+    description: >-
+      Optional per-repo overrides for a fixed, enumerated set of behavior knobs that otherwise
+      come from the global agent-behavior.yaml (WP-R8). This block is the ONLY route by which a
+      repo may influence lifecycle behavior, and it is deliberately narrow. The enumeration lives
+      here and only here — no validator carries a duplicate key list. Every key below is declared
+      explicitly under closed objects, so anything not named is rejected as an unknown property
+      rather than silently accepted; that is what keeps locked keys structurally unreachable
+      instead of merely undocumented. Locked and NOT overridable per-repo, by construction of this
+      schema - version, kind, canonical_source, all of lifecycle, all of task_classes (including
+      classification_signals, since tuning those is an indirect route to reclassifying all work as
+      trivial and skipping phases), the rest of pause_resume, all of evidence_policy, all of
+      change_policy, all of waivers, dispatch.require_independent_file_ownership,
+      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers.
+      Resolution - the global value is overridden by the repo-local value here, EXCEPT
+      pause_resume.user_checkpoint_required_for, which is resolved by union with the global list.
+      Governing rule - a repo-local value may make behavior stricter or leave it unchanged, never
+      looser. max_parallel_workstreams and path_glob_categories are the two exceptions, and both
+      are capacity or vocabulary rather than enforcement, so neither has a looser direction to
+      move in. Omitting this block entirely means today's behavior, unchanged.
+    properties:
+      dispatch:
+        type: object
+        additionalProperties: false
+        properties:
+          max_parallel_workstreams:
+            type: integer
+            minimum: 0
+            maximum: 10
+            description: Capacity cap on parallel sub-agent workstreams, not an enforcement rule. Independence rules still apply to every dispatch regardless of this cap. 0 disables parallelism entirely.
+          enabled:
+            enum:
+              - optional
+              - disabled
+            description: A repo may turn delegation off; it may not set `required` per-repo. `required` is deliberately absent from this enum — permitting it would be the looser direction the governing rule forbids.
+      skill_scoring:
+        type: object
+        additionalProperties: false
+        properties:
+          complexity_score:
+            type: object
+            additionalProperties: false
+            properties:
+              weights:
+                type: object
+                additionalProperties: true
+                description: Map of scoring weights. Scoring is advisory and has no runtime — a weight cannot open a gate — so the inner shape stays open. Consumed by check-trigger-predicates.mjs, which resolves the merged value.
+          path_glob_categories:
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                type: string
+            description: >-
+              Map of glob arrays giving `path~<category>_globs` trigger shorthand a repo-specific
+              meaning - pure repo vocabulary, i.e. what counts as a frontend or migration path in
+              this codebase. Consumed by check-trigger-predicates.mjs, which resolves the merged
+              value. Typed identically to agent-behavior.yaml's own path_glob_categories rather
+              than left open (WP-R8 Review F2): an open type accepted a bare string like
+              `ui_globs: "ui/**"`, which passed config validation and then failed inside
+              check-trigger-predicates.mjs as `globs.some is not a function` - a JavaScript
+              TypeError naming an internal variable, from a validator the author was not editing.
+              Catching it here names the file and the key instead.
+          thresholds:
+            type: object
+            additionalProperties:
+              type: integer
+            description: >-
+              Numeric cut-offs a trigger predicate compares complexity_score against, keyed by the
+              same names agent-behavior.yaml uses. This is how "how much design review does this
+              repo want" becomes a concrete value - lower a number and the skill fires more often.
+              Merged per entry, so naming one threshold leaves the rest at their global values.
+              The predicate STRUCTURE is not tunable and stays global: a repo moves numbers, never
+              boolean logic, so it can change how often a skill fires but can never make one
+              unreachable by rewriting its condition.
+      pause_resume:
+        type: object
+        additionalProperties: false
+        properties:
+          user_checkpoint_required_for:
+            type: array
+            description: Append-only. A repo may add checkpoints; it may never remove one present in the global list. The resolver unions the two lists rather than replacing, and check-config.mjs enforces the superset relationship — the one rule in this block that a schema cannot express on its own.
+            items:
+              type: string
+  intent:
+    type: object
+    additionalProperties: false
+    description: >-
+      Human-answerable configuration that DERIVES the mechanism values in `tuning:` (WP-R8). The
+      two blocks are different layers of the same decision, not alternatives. `tuning:` holds
+      expert-facing numbers - weights, caps, glob sets - which a setup interview cannot sensibly
+      ask a person about. `intent:` holds what a person can actually answer, and the agent derives
+      the numbers from it. Both are stored - the derived numbers are what validators and the agent
+      read, and the intent is what a later version upgrade re-negotiates against, which is why
+      discarding it would leave the next upgrade with nothing to reason from. Absent entirely, every
+      value resolves from the global install and behavior is unchanged.
+    properties:
+      repo_character:
+        enum:
+          - frontend-app
+          - backend-service
+          - library
+          - cli
+          - monorepo
+          - infrastructure
+          - mixed
+        description: The repo's overall shape. Supplies the default answer for every concern below, so the setup interview can propose a complete starting map and ask for confirmation rather than asking eight questions cold.
+      surface_map:
+        type: object
+        additionalProperties: false
+        description: Where each kind of code actually lives in THIS repo. Derives skill_scoring.path_glob_categories, giving the `path~<category>_globs` trigger shorthand a repo-specific meaning. Pure vocabulary - it cannot open a gate.
+        properties:
+          ui:
+            type: array
+            items:
+              type: string
+          api:
+            type: array
+            items:
+              type: string
+          schema:
+            type: array
+            items:
+              type: string
+          hotpath:
+            type: array
+            items:
+              type: string
+      concerns:
+        type: object
+        additionalProperties: false
+        description: >-
+          How much scrutiny each concern area deserves in this repo. These eight areas cover all ten
+          scored power skills - the complete negotiable surface. The other fourteen non-lifecycle
+          skills (scope-fence, waiver-completeness-check, evidence-auditor, verify-manifest-coverage,
+          skipped-check-accountant, release-readiness-gate, coverage-tracer, requirement-phase-mapper,
+          plan-assumption-verifier, conditional-preservation-check, verification-matrix-builder,
+          follow-up-owner-assigner, decompose-requirements, restore-context) are gate-bound or
+          utility and are deliberately absent - they are the machinery that makes the gate real, and
+          a repo that could dial them down could weaken enforcement. dispatch-subagents is governed
+          by parallelism_appetite instead. Every level is `standard` by default, which reproduces
+          today's threshold literals exactly.
+        properties:
+          architecture:
+            $ref: '#/$defs/concern_level'
+            description: Governs architecture-decision-advisor and system-design-advisor.
+          code_quality:
+            $ref: '#/$defs/concern_level'
+            description: Governs clean-code-architect and quality-gates-validator.
+          api_contracts:
+            $ref: '#/$defs/concern_level'
+            description: Governs interface-contract-designer.
+          data_schema:
+            $ref: '#/$defs/concern_level'
+            description: Governs data-schema-designer.
+          ui_ux:
+            $ref: '#/$defs/concern_level'
+            description: Governs ui-ux-designer.
+          performance:
+            $ref: '#/$defs/concern_level'
+            description: Governs performance-optimizer.
+          repo_alignment:
+            $ref: '#/$defs/concern_level_floored'
+            description: Governs repo-alignment-scan. FLOORED - `not-applicable` is not permitted. Checking that proposed work matches repo reality is not a matter of taste, and a repo cannot opt out of it.
+          constraints_safety:
+            $ref: '#/$defs/concern_level_floored'
+            description: Governs constraint-conflict-scan. FLOORED - `not-applicable` is not permitted. This scan cross-checks work against declared domain constraints and protected paths; switching it off is the one concern setting that would be a safety regression.
+      parallelism_appetite:
+        enum:
+          - none
+          - conservative
+          - balanced
+        description: Derives dispatch.enabled and dispatch.max_parallel_workstreams. `none` derives enabled=disabled. There is deliberately no level that derives enabled=required - that is the looser direction the governing rule forbids.
+      review_ceremony:
+        enum:
+          - standard
+          - thorough
+        description: Derives pause_resume.user_checkpoint_required_for, which resolves by UNION with the global list. `standard` adds nothing; `thorough` adds checkpoints. There is no level that removes one, because the union can only add.
+      derived_keys:
+        type: array
+        description: >-
+          Provenance (WP-R8 RI8). Dotted paths of the `tuning:` values the agent derived from this
+          intent block, e.g. `dispatch.max_parallel_workstreams`. A key listed here may be safely
+          re-derived when a later version changes the derivation rules. A `tuning:` value NOT listed
+          here was set by hand and must never be silently overwritten by a re-derivation. Without
+          this list an upgrade cannot tell a considered manual override from a stale derived value,
+          and would have to either clobber user edits or never update anything.
+        items:
+          type: string
   extensions:
     type: object
     additionalProperties: true
 $defs:
+  concern_level:
+    enum:
+      - not-applicable
+      - light
+      - standard
+      - strict
+  concern_level_floored:
+    enum:
+      - light
+      - standard
+      - strict
   path_rule:
     type: object
     additionalProperties: false

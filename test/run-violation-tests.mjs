@@ -151,6 +151,54 @@ const fixtures = [
     description: 'Plan Requirement Coverage row uses range shorthand ("R1-R4") as its Manifest ID cell — check-coverage-range-shorthand',
     validator: validatorPath('check-coverage-range-shorthand.mjs'),
   },
+  {
+    id: 'w',
+    dir: 'test/fixtures/lifecycle-violations/w-tuning-unknown-key',
+    description: '(WP-R8, R2) repo-profile tuning: declares a key outside the five-key allowlist — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'x',
+    dir: 'test/fixtures/lifecycle-violations/x-tuning-locked-key',
+    description: '(WP-R8, RI5) repo-profile tuning: reaches a locked key (task_classes) — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'y',
+    dir: 'test/fixtures/lifecycle-violations/y-tuning-looser-value',
+    description: '(WP-R8, R3) repo-profile tuning sets dispatch.enabled: required, the forbidden looser direction — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'z',
+    dir: 'test/fixtures/lifecycle-violations/z-tuning-checkpoint-dropped',
+    description: '(WP-R8, R3) repo-profile tuning drops a globally-required checkpoint from the append-only list — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'aa',
+    dir: 'test/fixtures/lifecycle-violations/aa-intent-floor-constraints',
+    description: '(WP-R8, RI7) intent.concerns.constraints_safety set to not-applicable, below its floor — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'ab',
+    dir: 'test/fixtures/lifecycle-violations/ab-intent-floor-alignment',
+    description: '(WP-R8, RI7) intent.concerns.repo_alignment set to not-applicable, below its floor — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'ac',
+    dir: 'test/fixtures/lifecycle-violations/ac-intent-stale-provenance',
+    description: '(WP-R8, RI8) intent.derived_keys names a key absent from tuning: — stale provenance — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
+  {
+    id: 'ad',
+    dir: 'test/fixtures/lifecycle-violations/ad-tuning-trigger-rewrite',
+    description: '(WP-R8, R6) repo-profile tuning attempts to rewrite a trigger predicate rather than its threshold — check-config',
+    validator: validatorPath('check-config.mjs'),
+  },
 ];
 
 let passed = 0;

@@ -14,7 +14,7 @@ This is a power skill, not a lifecycle phase. It is passive/scored: the agent ev
 ## Invocation Context
 
 Use this skill when the recorded `skill_scoring` trigger for `repo-alignment-scan` evaluates true:
-`complexity_score >= 40 OR new_surface OR task_class != trivial`.
+`complexity_score >= thresholds.repo-alignment-scan OR new_surface OR task_class != trivial`.
 
 Do not invoke it for Trivial work with no new surface and a low complexity score — the trigger predicate itself should evaluate false, and Think should record a `skipped` decision with that reason rather than running the skill anyway.
 

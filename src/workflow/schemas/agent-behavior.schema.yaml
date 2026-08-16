@@ -170,6 +170,7 @@ properties:
       signals:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: object
           additionalProperties: false
           required:
@@ -193,13 +194,21 @@ properties:
           weights:
             type: object
             additionalProperties: true
+      thresholds:
+        type: object
+        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings by WP-R8 so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: integer
       triggers:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: string
       path_glob_categories:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: array
           items:
             type: string
@@ -255,6 +264,7 @@ $defs:
   boolean_policy_object:
     type: object
     additionalProperties:
+      x_enforcement: warn-until-1.2.0
       oneOf:
         - type: boolean
         - type: array

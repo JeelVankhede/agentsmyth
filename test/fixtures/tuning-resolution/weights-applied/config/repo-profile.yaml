@@ -1,0 +1,62 @@
+version: 1
+kind: repo-profile
+
+repository:
+  mode: single-repository
+  root: .
+  default_branch: main
+  workflow_root: workflow
+  artifacts_root: workflow/artifacts
+  learnings_sessions_root: workflow/learnings/sessions
+
+branch_policy:
+  require_non_default_branch_for_changes: true
+  default_branch_commit_requires_user_approval: true
+  preserve_unrelated_changes: true
+  dirty_state_policy: record-and-preserve
+  stage_only_approved_scope: true
+  branch_name_pattern: <slug-or-phase>
+
+paths:
+  protected: []
+  public_contracts: []
+  generated_outputs: []
+  test_roots: []
+  docs_roots: []
+  source_roots: []
+
+ownership:
+  default_owner: user
+  codeowners_file: null
+  path_owners: []
+
+commands:
+  discovery:
+    allow_repo_inspection: true
+    prefer_configured_verification_commands: true
+    do_not_invent_commands: true
+  package_managers: []
+
+generated_output_policy:
+  require_source_mapping: true
+  require_regeneration_or_waiver_when_source_changes: true
+  manual_edits_allowed: only_when_configured
+
+# WP-R8 Test T1 regression fixture — NOT a violation fixture.
+#
+# Covers the second mergeTunedMap call site. `files_touched` is a nested {per_unit, cap} object, so
+# tuning `per_unit` alone is the exact shape blocker B-2/F1 was about: a shallow merge drops `cap`,
+# Math.min(n, undefined) yields NaN, the score stops being finite, and every score-driven predicate
+# silently goes false. Here per_unit is raised far enough that the score must clear
+# domain.clean-code-architect's global threshold of 50, flipping it to `ran` and rejecting.
+#
+# So this fixture fails for the right reason only when the merge is BOTH reaching the validator and
+# preserving unnamed sub-keys. A NaN score would leave the predicate false and the fixture passing.
+tuning:
+  skill_scoring:
+    complexity_score:
+      weights:
+        files_touched:
+          per_unit: 30
+
+extensions: {}

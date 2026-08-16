@@ -134,6 +134,24 @@ if (command === 'check') {
       }
       console.warn('  Run "agentsmyth prepare" to refresh the global lifecycle definitions to the current version.');
       console.warn('  This warning is informational — it does not block anything, and prepare does not update this repo\'s own repo-profile.yaml.');
+
+      // WP-R8 R8: a skew warning that leads nowhere is what this used to be. Now the newer
+      // version's config surfaces get proposed as pending-setup items, which the router's existing
+      // session-start pass picks up — inspect first, then one batched ask. Deliberately
+      // non-blocking: until the items resolve, every value falls back to the global install, so a
+      // repo that ignores the prompt entirely behaves exactly as it did before upgrading.
+      try {
+        const added = appendIntentPendingItems(join(checkRoot, 'workflow', 'config'));
+        if (added > 0) {
+          console.warn(`  Added ${added} per-repo tuning item(s) to workflow/config/pending-setup.yaml for this version.`);
+          console.warn('  Your agent will offer to resolve them at the start of the next session. Until then, behavior is unchanged.');
+        }
+      } catch (e) {
+        // Non-fatal: a proposal that cannot be written must never block the gate. But it is
+        // reported, not swallowed — a silent catch here already hid one real bug during Build.
+        console.warn(`  (could not write per-repo tuning items to pending-setup.yaml: ${e.message})`);
+      }
+
       console.warn('');
     }
   } catch { /* non-fatal */ }
@@ -206,6 +224,75 @@ if (command !== 'init') {
 }
 
 // ─── shared helpers ────────────────────────────────────────────────────────
+
+// ─── WP-R8: intent-layer pending-setup items ────────────────────────────────
+// The intent block (repo_character, surface_map, concerns) is what a person can actually answer;
+// the agent derives the numeric `tuning:` values from it. These items are seeded by `init` for a
+// fresh repo and appended on version skew for a repo that predates the block — both paths hand off
+// to the SAME resolution pass the router already runs at every session start (inspect first, then
+// one batched ask). No new mechanism, and nothing blocks: until these resolve, every value falls
+// back to the global install and behavior is exactly what it is today.
+//
+// Ordered so inference-resolvable items come first — the agent settles repo_character and
+// surface_map from the repo itself, which then supplies a recommended default for concerns, so the
+// only genuinely human question arrives with a proposed answer rather than cold.
+// Declared as a hoisted function, not a `const` array, deliberately: the `check` command runs
+// near the top of this file and calls appendIntentPendingItems() from there. A `const` would sit
+// in the temporal dead zone at that point and throw ReferenceError — which is exactly what
+// happened during Build, and the caller's try/catch swallowed it into a silent no-op.
+function intentItemSpecs() {
+  return [
+  {
+    field: 'intent.repo_character',
+    question: 'What kind of repo is this — frontend-app, backend-service, library, cli, monorepo, infrastructure, or mixed? This supplies the default answer for every concern below.',
+    hint: 'Infer from package.json dependencies (react/vue/next → frontend-app; express/fastify/nest → backend-service), a bin field or cmd/ dir (cli), workspaces/packages/ (monorepo), or terraform/k8s manifests (infrastructure). Do not ask if the repo answers this plainly.',
+  },
+  {
+    field: 'intent.surface_map',
+    question: 'Where do UI, API, schema, and hot-path files actually live in this repo? Any category that does not apply can be left empty.',
+    hint: 'Infer from real directories — components/, views/, screens/ (ui); routes/, api/, controllers/ (api); migrations/, models/, schema/ (schema). Only ask about categories inference cannot settle.',
+  },
+  {
+    field: 'intent.concerns',
+    question: 'How much scrutiny does each concern area deserve here — architecture, code_quality, api_contracts, data_schema, ui_ux, performance, repo_alignment, constraints_safety? Each is not-applicable, light, standard, or strict. Propose a full map derived from repo_character and ask only for confirmation or corrections.',
+    hint: 'standard reproduces current behavior for every area, so it is the safe default. repo_alignment and constraints_safety cannot be not-applicable. ui_ux is commonly not-applicable for a cli or library; data_schema for a repo with no persistence.',
+  },
+  ];
+}
+
+// Renders the intent items as pending-setup.yaml entries starting at PS-<startId>. IDs are never
+// reused or renumbered, so callers pass the next free number.
+function intentPendingItems(startId) {
+  return intentItemSpecs().map((item, index) => [
+    `  - id: PS-${startId + index}`,
+    `    config: repo-profile.yaml`,
+    `    field: "${item.field}"`,
+    `    question: "${item.question.replace(/"/g, "'")}"`,
+    `    hint: "${item.hint.replace(/"/g, "'")}"`,
+    `    status: open`,
+  ].join('\n'));
+}
+
+// Appends the intent items to an EXISTING pending-setup.yaml that has none — the upgrade path for
+// a repo set up before this version. Idempotent: a file already mentioning `field: "intent.` is
+// left alone, so re-running `check` never duplicates items or resurrects ones the user resolved
+// or waived. Returns the number of items added.
+function appendIntentPendingItems(configDir) {
+  const pendingPath = join(configDir, 'pending-setup.yaml');
+  if (!existsSync(pendingPath)) return 0;
+
+  const content = readFileSync(pendingPath, 'utf8');
+  if (content.includes('field: "intent.')) return 0;
+
+  // Continue the ID sequence from the highest existing PS-N rather than assuming a count — a repo
+  // may have had items added by an earlier upgrade or by the setup skill itself.
+  const existingIds = [...content.matchAll(/^\s*-\s*id:\s*PS-(\d+)/gm)].map((m) => Number(m[1]));
+  const nextId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+
+  const block = intentPendingItems(nextId).join('\n');
+  writeFileSync(pendingPath, `${content.replace(/\s*$/, '')}\n${block}\n`);
+  return intentItemSpecs().length;
+}
 
 // Writes stub config files + pending-setup.yaml when workflow/config/ is absent.
 // ─── Inference helpers for headlessBootstrap()'s widened pending-setup coverage ────────────
@@ -460,7 +547,11 @@ function headlessBootstrap(repoDir, pkgRootDir) {
       sourceOfTruthItem,
       releaseProcessItem,
       risksItem,
-    ];
+      // WP-R8 intent items last, so the file reads PS-1..PS-11 in order. IDs 9-11 are fixed here
+      // because PS-1..PS-8 are the full set this bootstrap can emit; the conditional ones
+      // (PS-3/4/5) leave gaps when they don't fire rather than shifting the numbering.
+      ...intentPendingItems(9),
+    ].filter(Boolean);
     writeFileSync(pendingPath,
       `version: 1\nkind: pending-setup\n\n` +
       `# Written by agentsmyth headless bootstrap.\n` +

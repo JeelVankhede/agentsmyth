@@ -14,7 +14,7 @@ This is a power skill, not a lifecycle phase. It is passive/scored: the agent ev
 ## Invocation Context
 
 Use this skill when the recorded `skill_scoring` trigger for `domain.system-design-advisor`
-evaluates true: `complexity_score >= 60 OR new_surface`.
+evaluates true: `complexity_score >= thresholds.domain.system-design-advisor OR new_surface`.
 
 Do not invoke it for a localized change with no new module/service boundary implication — this
 skill's cost is only justified when the change actually has whole-repo structural consequences.

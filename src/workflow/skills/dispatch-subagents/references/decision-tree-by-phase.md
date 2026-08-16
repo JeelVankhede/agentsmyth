@@ -50,7 +50,7 @@ If explicit authorization is absent, do not dispatch. Continue locally.
 **Test (`verification-parallelizer`, E1 only)** — refuse when:
 - A candidate verification row's evidence depends on another row's outcome or on shared, mutable
   repo state (e.g., two rows both run a command that writes to the same file)
-- Fan-out would exceed `max_parallel_workstreams` (3)
+- Fan-out would exceed the resolved `max_parallel_workstreams` (global `agent-behavior.yaml`, overridden by `tuning.dispatch.max_parallel_workstreams` in the repo profile when present)
 - A candidate row requires manual QA, generated-output regeneration, or any interactive step —
   those stay sequential in the parent's own execution
 - The parent cannot merge results into one `verification-matrix-builder` (B6) matrix without
@@ -67,7 +67,7 @@ new mechanism.
 - **When to use:** Test has 2 or more verification rows whose evidence-gathering commands are
   independently reproducible (no shared file writes, no ordering dependency) and explicit dispatch
   authorization is present.
-- **Fan-out:** up to `max_parallel_workstreams` (3) sub-agents, each assigned disjoint verification
+- **Fan-out:** up to the resolved `max_parallel_workstreams` (capped at 3 here regardless of config) sub-agents, each assigned disjoint verification
   rows — never the same manifest ID to more than one worker.
 - **Role:** `verifier-readonly` — each worker runs its assigned command(s) and reports exact
   outcome + evidence; workers do not write product files or edit the verify artifact themselves.

@@ -1,0 +1,59 @@
+version: 1
+kind: repo-profile
+
+repository:
+  mode: single-repository
+  root: .
+  default_branch: main
+  workflow_root: workflow
+  artifacts_root: workflow/artifacts
+  learnings_sessions_root: workflow/learnings/sessions
+
+branch_policy:
+  require_non_default_branch_for_changes: true
+  default_branch_commit_requires_user_approval: true
+  preserve_unrelated_changes: true
+  dirty_state_policy: record-and-preserve
+  stage_only_approved_scope: true
+  branch_name_pattern: <slug-or-phase>
+
+paths:
+  protected: []
+  public_contracts: []
+  generated_outputs: []
+  test_roots: []
+  docs_roots: []
+  source_roots: []
+
+ownership:
+  default_owner: user
+  codeowners_file: null
+  path_owners: []
+
+commands:
+  discovery:
+    allow_repo_inspection: true
+    prefer_configured_verification_commands: true
+    do_not_invent_commands: true
+  package_managers: []
+
+generated_output_policy:
+  require_source_mapping: true
+  require_regeneration_or_waiver_when_source_changes: true
+  manual_edits_allowed: only_when_configured
+
+# WP-R8 Test T1 regression fixture — NOT a violation fixture.
+#
+# Lowers one threshold so a pure-score predicate that the sandbox scenario expects to be `skipped`
+# is forced to `ran`. check-trigger-predicates.mjs must therefore REJECT this fixture. If it
+# accepts it, the repo-local tuning overlay is no longer reaching predicate evaluation — which is
+# exactly the regression this fixture exists to catch, and which no other check would notice.
+#
+# Lowering a threshold is the stricter direction (the skill fires more often), so this stays on the
+# right side of the governing stricter-or-unchanged rule.
+tuning:
+  skill_scoring:
+    thresholds:
+      domain.clean-code-architect: 0
+
+extensions: {}

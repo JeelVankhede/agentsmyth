@@ -128,15 +128,37 @@ for (const file of artifactFiles) {
   }
 
   // Cross-check upstream review for unwaived P0/P1 findings when a review exists.
+  //
+  // Read the LATEST review version, not the first candidate (WP-R8 Ship S1). `listFiles` returns
+  // sorted paths, so `[0]` was always the OLDEST review — for a chain that took several rounds,
+  // that is the one most likely to still show open P0/P1 findings. Every other part of the
+  // lifecycle resolves the newest version of an artifact (check-lifecycle's upstream resolution,
+  // check-artifacts' brief manifest map), so this was also inconsistent with the rest of the tool.
+  //
+  // The consequence was not a false alarm but an unshippable state: a chain whose first review
+  // raised a P1 could never declare "ship" no matter how thoroughly that P1 was fixed, because the
+  // validator never looked at the review that recorded the fix. The only way out was to edit a
+  // historical review artifact to insert a "(fixed)" marker — rewriting the record to satisfy a
+  // check that was reading the wrong file. Found by dogfooding, on a chain with four review
+  // versions where v1 had P1:1 and v4 had P1:0.
+  //
+  // Version comes from the filename rather than frontmatter so this stays a cheap single read;
+  // the filename-to-frontmatter version match is already enforced by check-artifacts.
   const slug = parsed.frontmatter.slug;
   const reviewCandidates = listFiles(`${artifactsDir}/reviews`).filter((f) =>
     new RegExp(`/${slug}-v[0-9]+\\.md$`).test(f)
   );
-  if (recommendation === 'ship' && reviewCandidates.length > 0) {
-    const reviewText = readText(reviewCandidates[0]);
+  const latestReview = reviewCandidates.length > 0
+    ? reviewCandidates.reduce((best, f) => {
+      const n = Number(f.match(/-v([0-9]+)\.md$/)?.[1] ?? 0);
+      return n > Number(best.match(/-v([0-9]+)\.md$/)?.[1] ?? 0) ? f : best;
+    })
+    : null;
+  if (recommendation === 'ship' && latestReview) {
+    const reviewText = readText(latestReview);
     let reviewParsed;
     try {
-      reviewParsed = parseFrontmatter(reviewText, reviewCandidates[0]);
+      reviewParsed = parseFrontmatter(reviewText, latestReview);
       const severitySection = namedSection(reviewParsed.body, 'Severity Summary');
       if (severitySection) {
         const counts = openP0P1Counts(severitySection);

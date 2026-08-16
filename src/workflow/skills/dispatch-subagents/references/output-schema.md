@@ -53,7 +53,8 @@ Use this structure for dispatch decisions:
 Acceptance criteria:
 
 - explicit authorization state is recorded in every decision
-- phase cap is checked against `agent-behavior.yaml` `dispatch.max_parallel_workstreams`
+- phase cap is checked against the resolved `dispatch.max_parallel_workstreams` — `agent-behavior.yaml`, overridden by `tuning.dispatch.max_parallel_workstreams` in `workflow/config/repo-profile.yaml` when present
+- resolved `dispatch.enabled` is checked before authorization; `disabled` refuses dispatch in every phase
 - Build delegations pass the independence checklist in `references/independence-rules.md`
 - Review delegations are read-only; any fix recommendation switches the candidate back to Build scope
 - Test, Ship, and Reflect do not spawn under any condition

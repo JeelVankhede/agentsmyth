@@ -22,6 +22,11 @@ const sourceCommands = [
 // two-root resolver (WP-R2) used exactly as designed, not a new mechanism.
 const artifactEnv = { ...process.env, AGENTSMYTH_HOME: 'src/workflow' };
 const artifactCommands = [
+  // check-artifacts was never invoked here — it ran only against test fixtures, so this repo's own
+  // artifacts went unchecked and drifted (WP-R8 Review F7). Wired in with a baseline that
+  // grandfathers the 96 violations that already existed; every new one fails, including new ones in
+  // the same files. The baseline can only shrink — a stale entry is an error.
+  ['node', ['src/workflow/validators/check-artifacts.mjs', '--baseline', 'workflow/config/artifact-baseline.yaml']],
   ['node', ['src/workflow/validators/check-waivers.mjs']],
   ['node', ['src/workflow/validators/check-coverage-ledger.mjs']],
   ['node', ['src/workflow/validators/check-coverage-range-shorthand.mjs']],
@@ -40,6 +45,7 @@ const artifactCommands = [
   // (found via audit-validator-fixture-gaps) — both check real dev-workspace/repo state directly,
   // no env override needed.
   ['node', ['src/workflow/validators/check-config.mjs']],
+  ['node', ['src/workflow/validators/check-schema-keywords.mjs']],
   ['node', ['src/workflow/validators/check-domain-placeholders.mjs']],
   ['node', ['src/workflow/validators/check-constraint-conflicts.mjs']],
   // Mechanical regression check for skill_scoring.triggers predicates against the fixed

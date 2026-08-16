@@ -45,10 +45,13 @@ properties:
       - done
   created:
     type: string
-    format: date-time
+    # Was `format: date-time`, which validateSchema does not implement and which the real corpus
+    # never matched anyway (artifacts carry both `2026-08-12` and `2026-05-28T00:00:00Z`). A
+    # pattern is enforceable today and accepts both forms — WP-R8 Review F5.
+    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ].*)?$'
   updated:
     type: string
-    format: date-time
+    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ].*)?$'
   manifest_ids:
     type: array
     uniqueItems: true

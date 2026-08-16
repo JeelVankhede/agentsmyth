@@ -176,7 +176,39 @@ fails closed with the path list rather than hanging or silently deciding either 
 
 **Version skew:** `agentsmyth check` compares the `agentsmyth_version` stamped in
 `repo-profile.yaml` against the running CLI's version and emits a plain warning pointing at
-`prepare` on mismatch — there is no automatic re-link or version-pin enforcement.
+`prepare` on mismatch — there is no automatic re-link or version-pin enforcement. Since WP-R8 the
+warning also *leads somewhere*: on skew, the newer version's per-repo config surfaces are appended
+to `workflow/config/pending-setup.yaml` as open items, which the router's existing session-start
+pass resolves (inspect first, then one batched ask). Idempotent — a file already carrying
+`field: "intent.` is left alone, so re-running `check` never duplicates items or resurrects ones
+the user resolved or waived. Deliberately non-blocking: until they resolve, every value falls back
+to the global install, so an upgraded repo that ignores the prompt behaves exactly as before. That
+non-blocking property is what keeps the change a minor bump rather than a behavior change for
+every existing consumer.
+
+---
+
+## Per-Repo Behavior Tuning (WP-R8)
+
+Two layers in `repo-profile.yaml`. **`intent:`** holds what a person can answer — `repo_character`,
+`surface_map`, and a `concerns` map covering the ten scored power skills at
+`not-applicable`/`light`/`standard`/`strict`. **`tuning:`** holds the five mechanism values the
+agent derives from it: dispatch cap and on/off, scoring weights, path-glob vocabulary, firing
+thresholds, and extra sign-off checkpoints. `intent.derived_keys[]` records which `tuning:` values
+were derived, so an upgrade can re-derive those and never clobber a hand-set one.
+
+Three rules carry the design. Resolution is **per entry, repo over global** — naming one weight or
+one glob category changes that one thing, never the whole map (whole-map replacement silently
+deleted what the author had not named, and turned a stricter-intent edit into a looser outcome).
+`user_checkpoint_required_for` is the single **union** exception, so a repo can only ever add a
+checkpoint. And the enumeration of what is tunable lives **only** in `repo-profile.schema.yaml`
+under closed objects, so everything else — `lifecycle`, `task_classes`, `evidence_policy`,
+`waivers`, `skill_scoring.triggers` — is structurally unreachable rather than merely undocumented.
+
+`skill_scoring.thresholds` was split out of the `triggers` predicate strings so the numbers became
+tunable while the boolean structure stayed locked: a repo changes how often a skill fires, never
+whether its condition can be satisfied at all. Consumer-facing detail is in
+`src/setup/references/config-map.md` § Per-Repo Behavior Tuning.
 
 ---
 

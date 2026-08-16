@@ -31,6 +31,16 @@ These rules apply across every lifecycle phase.
   approval of a different artifact.
 - When in doubt whether the user has actually seen and responded to the artifact in question,
   present it and wait rather than marking it approved.
+- **Which phases require a checkpoint** is the resolved `pause_resume.user_checkpoint_required_for`
+  list: the global list in `workflow/agent-behavior.yaml` **unioned with** any list the repo
+  declares under `tuning.pause_resume.user_checkpoint_required_for` in
+  `workflow/config/repo-profile.yaml`. Union, never replacement — a repo may add checkpoints and
+  may never remove one the global list requires (`check-config.mjs` rejects a repo list that drops
+  a globally-required entry). This list is additive in effect as well as in shape: it can only
+  cause an artifact to require a checkpoint it would not otherwise have required. It can never
+  cause an artifact to skip a checkpoint that artifact declares — the per-artifact
+  `orchestration.user_checkpoint` enforcement below is independent of it and is never relaxed by
+  repo tuning.
 - **This rule is mechanically enforced, not advisory.** Any brief, plan, or ship artifact whose
   `orchestration.user_checkpoint` is not `none` must carry a `## Checkpoint Approval` section
   (Checkpoint / Status / the user's own verbatim words) before the next phase's gate

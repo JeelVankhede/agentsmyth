@@ -14,7 +14,7 @@ This is a power skill, not a lifecycle phase. It is passive/scored: the agent ev
 ## Invocation Context
 
 Use this skill when the recorded `skill_scoring` trigger for `architecture-decision-advisor`
-evaluates true: `complexity_score >= 60 OR touches_contract OR new_surface`.
+evaluates true: `complexity_score >= thresholds.architecture-decision-advisor OR touches_contract OR new_surface`.
 
 Do not invoke it for requirements below that threshold with no contract or new-surface signal — a
 local, self-contained change does not need a whole-repo architecture call.

@@ -150,4 +150,71 @@ if (artifactFiles.length === 0) {
   details.push(`no lifecycle artifact files found under ${artifactsDir}`);
 }
 
+// ── Baseline ratchet (WP-R8 Review F7) ─────────────────────────────────────
+// This validator was never wired into `npm run validate` — it ran only against test fixtures — so
+// this repo's own artifacts went unchecked and accumulated 96 real violations. Wiring it in and
+// failing on all 96 at once would have meant either editing dozens of historical, already-shipped
+// artifacts or widening enums to bless the drift. Neither is right: the old debt is not worth
+// rewriting history over, and the drift should not become the contract.
+//
+// So: `--baseline <path>` grandfathers exactly the violations that existed when it was captured,
+// and everything else fails. Three properties make this a ratchet rather than an exemption list:
+//
+//   1. An entry suppresses one specific file-AND-message pair. A NEW violation in an OLD file
+//      still fails — grandfathering covers the debt that existed, never the file carrying it.
+//   2. A stale entry (one that no longer matches a real violation) is an ERROR. Fixing an artifact
+//      forces its entry out, so the list can only shrink, and nobody can leave dead suppressions
+//      behind to quietly cover a future regression.
+//   3. The list is checked in and schema-validated, so the debt is visible and reviewable rather
+//      than hidden in a flag.
+const baselineArgIdx = args.indexOf('--baseline');
+if (baselineArgIdx !== -1) {
+  const baselinePath = args[baselineArgIdx + 1];
+  const baseline = loadYaml(baselinePath);
+  const entries = baseline?.entries ?? [];
+
+  // An entry matches when the violation starts with the file AND the remainder equals the message
+  // exactly. Exact, not substring (WP-R8 Review F9): a substring match let a hand-broadened entry
+  // — say `is required` instead of `.frontmatter.upstream is required` — absorb a *different*
+  // violation of the same shape in the same file, while `stale` stayed 0. That silently defeats the
+  // one mechanism forcing entries out when their violation is fixed. Exact comparison makes an
+  // over-broad entry impossible to write rather than merely unlikely: broaden it and it matches
+  // nothing, which surfaces immediately as a stale entry.
+  const seen = new Set();
+  const grandfathered = [];
+  const remaining = [];
+
+  for (const error of errors) {
+    const idx = entries.findIndex((entry, i) =>
+      !seen.has(i)
+      && error.startsWith(entry.file)
+      && error.slice(entry.file.length).trim() === entry.message.trim());
+    if (idx === -1) {
+      remaining.push(error);
+    } else {
+      seen.add(idx);
+      grandfathered.push(error);
+    }
+  }
+
+  const stale = entries
+    .map((entry, i) => (seen.has(i) ? null : `${entry.file} ${entry.message}`))
+    .filter(Boolean);
+
+  errors.length = 0;
+  errors.push(...remaining);
+
+  for (const entry of stale) {
+    errors.push(
+      `${baselinePath} has a stale entry that no longer matches any violation: ${entry} — remove it. ` +
+      `Leaving it would let a future regression of the same shape pass unnoticed.`
+    );
+  }
+
+  details.push(
+    `baseline: ${grandfathered.length} pre-existing violation(s) grandfathered from ${baselinePath}, ` +
+    `${remaining.length} new violation(s), ${stale.length} stale entry/entries`
+  );
+}
+
 finish('check-artifacts', errors, details);

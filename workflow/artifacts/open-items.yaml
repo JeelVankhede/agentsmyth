@@ -399,3 +399,51 @@ items:
     next_action: "Low-priority link hygiene: the agentpreflight competitor link in README.md points to agent-preflight.szybnev.cc (a personal-domain homepage — the one-word npm project matching the name; distinct from the unrelated hyphenated github.com/aminglab/agent-preflight). Less durable than the three github.com repo links. Replace with a more canonical URL if it rots or a clearer canonical home appears."
     status: open
     first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-65
+    source: follow-up
+    owner: user
+    next_action: "Assign an owner and a schedule to the 96 grandfathered artifact violations recorded in workflow/config/artifact-baseline.yaml, or explicitly accept them as permanent debt. Two shapes dominate: `status: complete` used where the frontmatter enum allows only `done` (42 artifacts), and structural type drift in `upstream` / `user_checkpoint` (16). The ratchet guarantees the list can only shrink and that new violations fail, but nothing schedules repair of what exists."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-66
+    source: follow-up
+    owner: workflow owner
+    next_action: "Audit remaining validators for `candidates[0]` selection over a versioned (-v<N>) artifact set. check-release-readiness.mjs cross-checked the OLDEST review because listFiles returns sorted paths, which made any chain whose first review raised a P0/P1 permanently unshippable however completely that finding was later fixed (WP-R8 Ship S1, fixed in Phase 19). S1 is unlikely to be the only instance of this selection bug."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-67
+    source: follow-up
+    owner: user
+    next_action: "Add `x_enforcement: warn-until-<version>` marker removal to the 1.2.0 release checklist. The deprecation window is matched by string prefix and has no expiry mechanism — nothing fails when 1.2.0 ships with warn-until-1.2.0 markers still present, so previously-deferred type violations would remain permanently unenforced."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-68
+    source: follow-up
+    owner: workflow owner
+    next_action: "Reopen the residual half of OI-63. It tracked two starter-block/validator mismatches and was closed as 'promoted to WP-R19'. The Test half (Skipped Checks manifest_ids column) has since been fixed in src by another route; the Plan half is NOT — `## Assumptions Verified`, which check-assumptions requires whenever a brief declares A IDs, is still absent from src/workflow/skills/lifecycle-plan/references/output-schema.md. Verified by grep 2026-08-15. WP-R19's remaining scope is smaller than its description implies."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-69
+    source: follow-up
+    owner: user
+    next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-70
+    source: follow-up
+    owner: workflow owner
+    next_action: "Correct CLAUDE.md's stale 'all 4 fixtures' line in the pre-finish checklist — the violation suite is now 29 fixtures (npm run violations:test)."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-71
+    source: follow-up
+    owner: workflow owner
+    next_action: "Consider wiring lifecycle-artifact.schema.yaml, whose 16 extra section requirements remain unenforced. It is also the only consumer schema for the if/then/else support implemented in lib.mjs during WP-R8, so that engine feature currently has unit coverage but no production exercise. Deliberately out of scope for WP-R8."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-72
+    source: follow-up
+    owner: workflow owner
+    next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
