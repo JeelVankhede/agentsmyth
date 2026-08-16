@@ -2,7 +2,7 @@
 slug: wp-r21-think-council
 version: 1
 artifact: brief
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-08-15
 updated: 2026-08-16
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
@@ -10,7 +10,7 @@ upstream:
   - user-request
 orchestration:
   phase: think
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
@@ -455,8 +455,9 @@ requires user approval before Plan may start.
   increase — consistent with the shipped rule that caps are never raised in response to a request.
 
   Every run records a `termination_reason` of exactly `resolved`, `user-decision-required`,
-  `max-rounds`, or `no-progress`. `council.max_rounds` remains as a cheap backstop (proposed default
-  4, matching the table), but the taper — not the bound — is what supplies the cost guarantee.
+  `max-rounds`, or `no-progress`. `council.max_rounds` remains as a cheap backstop, **default 4**
+  (user-approved 2026-08-16, matching the table), but the taper — not the bound — is what supplies
+  the cost guarantee.
 
   *Progress is tracked per item, not by count.* Each round records **which specific item IDs it
   closed**, not merely how many remained. Counting alone is gameable by the path of least
@@ -643,21 +644,21 @@ No blocking questions remain. All three are resolved and folded into requirement
 |---|---|---|---|
 | Q1 | Kill switch wins — `dispatch.enabled: disabled` suppresses the council | yes | R7 |
 | Q2 | Council-specific default fan-out of 3 when no cap configured | no | R2, RI7, RI8 |
-| Q3 | Challenge pass is a dispatched member, counted against the cap | yes | R3 |
+| Q3 | Challenge pass is a dispatched member, capped as its own stage (corrected) | yes | R2, R3 |
 
-**Still outstanding: approval of this brief as a whole.** `user_checkpoint: brief-review` remains
-unsatisfied and `## Checkpoint Approval` is deliberately absent — per `workflow/rules.md`'s Approval
-section, that section may only be written from the user's own verbatim approval of this artifact's
-content, never authored on their behalf.
+The ten risk items RK-A…RK-J were each walked individually with the user on 2026-08-16; every
+mitigation agreed there is folded into a requirement rather than left as prose in the risk register.
+See each `RK-` entry for what changed and what remains residual.
 
-Worth your attention before approving, because these are the judgment calls I made rather than ones
-you specified:
+Three agent-originated judgment calls were put to the user before approval and all three confirmed
+2026-08-16:
 
-1. **A5** schedules removal of the preserved single-agent path in 1.2.0. If you would rather keep it
-   permanently, R8's acceptance changes.
-2. **RI8** (depth dial) is my addition, not yours. Rounds multiply the cost you already accepted in
-   Q2, and fan-out is the wrong knob to reduce it with. Drop it if you consider it scope creep.
-3. **R13's** `max_rounds` default value is unset in this brief — I'd propose 3, settled at Plan.
+1. **A5** — the preserved single-agent path is removed in 1.2.0. Confirmed ("A5: Yes"). Must reach
+   the 1.2.0 release checklist at Ship.
+2. **RI8** — the research-depth dial, an agent addition rather than a user requirement, is retained.
+   Confirmed ("RI8: Correct approach").
+3. **R13** — `council.max_rounds` default is **4**, matching the illustrative taper table. Confirmed
+   ("R13: Okay, max rounds to 4 can be default").
 
 ## Architecture Notes
 
@@ -689,8 +690,22 @@ you specified:
   verdict on a commit-blocking gate. Plan should sequence those three first and treat them as
   contract, not implementation detail.
 
+## Checkpoint Approval
+
+- Checkpoint: brief-review
+- Status: approved
+- Date: 2026-08-16
+- User's own words (verbatim, this turn): "Brief is approved"
+- Same message, verbatim, answering the three outstanding judgment calls: "A5: Yes" / "RI8: Correct
+  approach" / "R13: Okay, max rounds to 4 can be default." (recorded in full under Questions For
+  User; quoted separately here only because `check-lifecycle`'s evidence extractor terminates at the
+  first line break — see OI-73.)
+- Scope of approval: the brief as a whole — requirements R1–R15, RI1–RI9, the resolved Q1–Q3, the
+  RK-A…RK-J risk register as hardened during the 2026-08-16 walkthrough, and the three
+  agent-originated judgment calls (A5, RI8, R13 default) confirmed in the same message.
+
 ## Exit Gate
 
 - [x] Every active R and RI has acceptance criteria.
 - [x] Blocking Q IDs appear in orchestration.blockers (none remain).
-- [ ] User approved or waiver recorded.
+- [x] User approved or waiver recorded.

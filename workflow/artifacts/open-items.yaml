@@ -447,3 +447,9 @@ items:
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-73
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-lifecycle.mjs's checkpoint evidence extractor cannot record a multi-line verbatim user quote. The regex at line 62 terminates on `(?=\\n-\\s|\\n*$)`, and with the /m flag `$` matches at the first line end, so a multi-line approval truncates to its first line — which then usually trips the `length < 10` placeholder check. Hit live on wp-r21-think-council-v1: the user's real approval spanned four lines and had to be quoted as its final sentence, with the remainder recorded separately in prose. Users approve in multi-line messages routinely, so the rule 'quote the user verbatim' is currently in tension with what the validator can store. Fix the lookahead to terminate only on a following `- ` bullet at column 0, or support an indented continuation block."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
