@@ -105,7 +105,7 @@ Consumers who want the old behavior keep it via config, not via downgrade.
   same task's single-agent baseline, and every surviving `Q` carries a recommendation with at least
   one non-`recall` evidence reference.
 - Zero pre-1.1.0 briefs fail validation after the schema change, with no edits to any of them.
-- `check-council.mjs` rejects every one of its failure modes in the violations suite (RI9).
+- `check-council-record.mjs` rejects every one of its failure modes in the violations suite (RI9).
 - A council round that resolves nothing cannot be followed by another round without failing the gate.
 - The preserved single-agent path runs green in CI with the council disabled.
 
@@ -120,7 +120,7 @@ without enumerating, plus what the new requirements drag in.
 
 - **Additive only.** 1.1.0 is a minor. Every new brief frontmatter field is optional with a safe
   default; no required-schema change. Any required field escalates this to a major bump.
-- **Zero runtime dependencies.** `check-council.mjs` is hand-written Node ESM like every other
+- **Zero runtime dependencies.** `check-council-record.mjs` is hand-written Node ESM like every other
   validator. No HTTP client ships with agentsmyth.
 - **Edit source, rebuild.** All changes land in `src/`; `npm run build` regenerates bundles.
 - **Caps are hard.** Neither the council nor a round may raise `dispatch.max_parallel_workstreams`.
@@ -130,49 +130,147 @@ without enumerating, plus what the new requirements drag in.
 
 ## Risks
 
-- **RK-A (high): the carve-out weakens a shipped safety rule.** Today: "no dispatch without explicit
-  per-conversation authorization." After R21: "…except when four conditions hold." Every exception is
-  a surface for the next one. Mitigation: config-visible (`council.enabled`), recorded per-run,
-  bounded to non-repo-writing members in two named phases, and suppressed outright by the
-  `dispatch.enabled` kill switch (Q1).
-- **RK-B (high, = RK10 in the Decision Log): the validator checks process, not judgment.**
-  `check-council.mjs` can prove the council ran, findings were attributed, dispositions were recorded
-  with reasons, evidence classes were declared, and rounds made progress. It cannot prove a finding
-  was correct, that the research was good, or that a rejection reason was sound. The product claim
-  must stay on the first set. Mitigation: RI6 states the non-claims in shipped docs rather than
-  letting the validator's existence imply the stronger claim.
-- **RK-C (high, raised by Q2 and compounded by R13): cost.** Rounds × fan-out × evidence classes
-  multiply spend on exactly the tasks that are already largest, and Q2's council-specific default of
-  3 means an unconfigured consumer incurs it without an explicit choice. Mitigation: `max_rounds`
-  bound and no-progress guard (R13), a research-depth dial separate from fan-out (RI8), both kill
-  switches, and `cap_source` visibility (RI7). Re-examine at Review with **measured** token counts,
-  not estimates.
-- **RK-D (high): `recall` masquerading as evidence.** The model's own knowledge feels like fact,
-  carries no citation, and cannot be re-checked. This is the single most likely drift vector.
-  Mitigation: R10 forbids `recall` from solely supporting any recommendation or resolving any `Q`;
-  it may only raise a hypothesis that another class confirms. Mechanically enforced.
-- **RK-E (high): fabricated or rotted web citations.** A hallucinated URL is worse than no citation
-  because it reads as diligence; a real URL whose content has since changed is nearly as bad.
-  Mitigation: R10 requires an inline verbatim quote plus retrieval date, so the artifact carries the
-  claim even when the link dies. The validator can check shape and presence, not that the quote was
-  really on the page — stated plainly per RK-B.
-- **RK-F (medium): the challenge pass degenerates into agreement.** A challenger sharing the
-  researcher's context tends to ratify it. Mitigation: R3 requires fresh context and makes
-  `rejected-with-reason` a first-class outcome, not an exception path.
-- **RK-G (medium): the reconcile contract becomes boilerplate.** RI1 permits read-only surface
-  overlap *provided* the parent declares a dedupe/reconcile contract. If that is copy-paste, the
-  narrowing bought overlap for free. Mitigation: presence and non-emptiness are checkable;
-  thoughtfulness is not.
-- **RK-H (medium): the loop never converges, or converges by exhaustion.** An agent that keeps
+- **RK-A (low — resolved 2026-08-16): the carve-out weakens a shipped safety rule.** The original
+  concern was precedent: converting a bright line ("no dispatch without explicit authorization") into
+  a four-condition policy invites a fifth condition later. Largely dissolved on inspection. The
+  shipped rule protected two things — no surprise writes, no surprise cost. The repo fence (R2, R11)
+  removes the first absolutely, and Q1 hands the second to the `dispatch.enabled` kill switch, which
+  outranks the council. The principle also self-limits rather than creeping: the dangerous extension
+  would be auto-firing Build workers, but Build's output *is* repo mutation, so a non-repo-writing
+  Build worker produces nothing usable and the argument cannot be made.
+  Residual, and the reason R2 has an outward axis: the repo fence bounds the filesystem, not the
+  network. A member with fetch and tool access can act on external systems without touching the
+  repo, and under the carve-out it does so unprompted. Resolved by capability tiering — carve-out
+  members get read/fetch/search only; outward-facing actions require explicit in-conversation
+  authorization. Remaining documentation task: state the carve-out as its bounding principle
+  (*no repo mutation, in phases that produce no verdict*) rather than as an enumerated list, so a
+  future reader derives the boundary instead of extending a list.
+- **RK-B (medium, was high — mitigated 2026-08-16, = RK10 in the Decision Log): the validator checks
+  process, not judgment.** `check-council-record.mjs` can prove the council ran, findings were
+  attributed, dispositions were recorded with reasons, evidence classes were declared, and rounds
+  made progress. It cannot prove a finding was correct, that the research was good, or that a
+  rejection reason was sound.
+  What makes this a risk rather than a stated limitation is that the gap is invisible at the point
+  of use: a green check looks identical whether the research was rigorous or theatrical, and over
+  a few releases it becomes shorthand for "the thinking was sound" — at which point people stop
+  reading the brief, which is the only thing that would reveal the difference.
+  Mitigation is three-layered, because documentation alone does not reach the person trusting a
+  green check. (1) The validator is **named** `check-council-record.mjs` — it validates the record,
+  and the filename is what people actually see. (2) It **reports texture, not a bare pass** (RI3):
+  rounds, findings, unconfirmed `recall`-only hypotheses, rejections. A number that varies gets
+  read. (3) RI6 states the non-claims explicitly in the docs, as the backstop rather than the
+  primary defense.
+- **RK-C (medium, was high — restructured 2026-08-16): cost.** The original shape was a flat council
+  repeated up to `max_rounds`: 4 agents × 3 rounds ≈ 12 invocations per Complex Think against
+  today's 1, incurred by an unconfigured consumer because Q2 defaults fan-out to 3.
+  Restructured by R13's taper, which changes the economics rather than merely bounding them. Typical
+  runs are 1–2 rounds (≈4–8 invocations), the expensive breadth is spent once on round 1 where the
+  space is still unmapped, and every later round is strictly cheaper than the one before it.
+  Worst case is now roughly 10 across 4 rounds rather than 12 across 3, but the *expected* case —
+  which is what actually gets billed — drops substantially, and a single-round resolution costs 4.
+  Mitigation: the non-increasing invariant (R13), the taper-coherence check that stops a council
+  asserting convergence it did not achieve (R13), `max_rounds` as backstop, a research-depth dial
+  separate from fan-out (RI8), both kill switches, and `cap_source` visibility (RI7).
+  Residual: the multiplier is still unmeasured. Measure on the **first real council run during
+  Build**, against the single-agent baseline for the same task — during Build rather than at Review,
+  because discovering a bad multiplier after implementation and review means redesigning something
+  already built. The taper makes a pre-committed abort threshold less critical than it was, but the
+  measurement itself is not optional.
+- **RK-D (medium, was high — hardened 2026-08-16): `recall` masquerading as evidence.** The model's
+  own knowledge feels like fact, carries no citation, and cannot be re-checked. It is also the
+  cheapest class to produce, so it is where an agent under pressure to converge drifts.
+  The first mitigation — "`recall` may never solely support a recommendation" — had a hole the
+  original brief did not admit: **the agent self-declares the class**, so the rule is routed around
+  by labelling a recollection as `repo` with a plausible-looking path. A constraint the constrained
+  party can opt out of by relabelling is not a constraint.
+  Hardened by R10's resolution tier: `repo` citations must resolve (path exists, line range in
+  bounds) and `trial` findings must carry their command and non-empty observed output. That makes
+  the most attractive relabelling target mechanically expensive using pure filesystem checks and no
+  judgment.
+  Residual, stated rather than papered over: a determined agent can still cite a real file that did
+  not inform its finding, and `web` remains shape-checked only (RK-E). Resolution raises the cost of
+  fabrication; it does not eliminate it.
+- **RK-E (high — two distinct failures, one solved, one permanently residual): fabricated or rotted
+  web citations.**
+  *Rot is solved.* R10's URL + retrieval date + inline verbatim quote means the artifact carries the
+  claim even after the page moves or changes, so a dead link no longer empties the evidence.
+  *Fabrication is not, and will not be.* An invented quote is indistinguishable from a real one to
+  any check that cannot fetch the page, and agentsmyth ships no HTTP client, so it structurally
+  cannot fetch. `web` is the weakest class in the system and the only one with no mechanical floor.
+  Two mitigations raise the cost without closing it. R10 **scopes what `web` may decide**: it can
+  solely support a recommendation only on genuinely external facts, never on repo-shaped questions
+  where `repo` is available and resolves. R3 gives the challenger a **recorded duty to spot-check at
+  least one `web` citation per round**, so fabrication risks being caught rather than merely being
+  wrong.
+  Residual after both, stated and not softened: a fabricated quote on a genuinely external fact that
+  the challenger did not happen to sample will pass every check this system has. It is recorded as a
+  non-claim in RI6 alongside the others.
+- **RK-F (medium — hardened 2026-08-16): the challenge pass degenerates into agreement.** A
+  challenger sharing the researcher's framing ratifies it, yielding the cost of an adversarial pass
+  and the value of a rubber stamp — arguably worse than no challenge, since the artifact then
+  records that findings "survived challenge."
+  "Fresh context" alone was too weak to carry this. Subagents inherit framing from the **dispatch
+  prompt**, not only from conversation history: a parent that says "verify these findings about X"
+  has set the anchor before the challenger reads anything. R3 now requires the challenger to receive
+  the **raw research findings rather than the parent's consolidation** — the synthesis is the thing
+  under test — plus an explicitly adversarial charter in which `rejected-with-reason` is a success
+  outcome.
+  Detection is free but deliberately soft: zero rejections across all rounds is either a clean run or
+  a rubber stamp, and the artifact cannot distinguish them. The count surfaces in the RI3 summary
+  line as a reported signal rather than a gate, because failing on it would simply train the agent to
+  manufacture a token rejection.
+- **RK-G (medium — re-scoped 2026-08-16): silent conflict resolution.** Originally framed as
+  "the reconcile contract becomes boilerplate," which was the weaker framing: boilerplate overlap
+  mostly wastes tokens — two members read the same file, consolidation dedupes, you paid twice for
+  one answer. Annoying, not dangerous.
+  The failure that actually matters is narrower and worse. Two members reach **conflicting**
+  conclusions about the same surface and the parent silently picks one. That is a wrong answer
+  carrying a complete audit trail, and it destroys the single most valuable signal the council
+  produced — the disagreement itself — at exactly the moment it should have been surfaced.
+  Mitigation: RI1 now requires the conflict and its resolution to be recorded explicitly, which is
+  mechanically detectable since findings carry their surface and disposition. Residual unchanged:
+  presence of a reconcile note is checkable, its quality is not.
+- **RK-H (medium — hardened 2026-08-16): the loop converges by exhaustion.** An agent that keeps
   finding new questions can round forever; one that stops at `max_rounds` may present a half-answered
-  brief as finished. Mitigation: R13's bound plus a required `termination_reason`, with
-  `max-rounds` and `no-progress` both surfacing as visible risk rather than silent completion.
-- **RK-I (medium): sandbox escape.** A trial member that writes into the repo violates the basis of
-  the carve-out. Mitigation: R11 requires a declared sandbox path outside the repo root and a clean
-  repo working tree across the council; both are mechanically checkable.
-- **RK-J (low): recursion.** Council members are agents; nested dispatch fans out combinatorially.
-  The existing "do not nest subagent dispatch" Determinism Rule already forbids it and must be
-  restated for council members explicitly.
+  brief as finished.
+  The subtler and likelier failure is **gaming by count**, and it requires no bad behaviour at all —
+  only an agent doing the tractable work first, which is usually correct. A round closes three easy
+  items, `open_items_out` drops, the taper reads as coherent, and the single hard question that
+  actually blocks the work survives untouched round after round until the loop expires. The brief
+  then looks thoroughly researched and has not answered the thing that mattered.
+  Mitigation: R13 tracks **which item IDs closed** each round rather than how many, so a survivor's
+  history is legible instead of hidden inside a shrinking number. And the signal is turned into the
+  feature — an item that survives every round escalates as `user-decision-required` carrying its
+  per-round history, rather than expiring as `max-rounds`. The council's demonstrated inability to
+  close an item becomes the argument for putting it in front of the user.
+  Residual: an agent that keeps *generating* new items can still avoid termination until the bound,
+  though the per-ID history now makes that pattern visible in the artifact.
+- **RK-I (low, was medium — restructured 2026-08-16): sandbox escape.** A trial member that writes
+  into the repo violates the basis of the carve-out.
+  The original mitigation contained a concrete defect, not a theoretical one: `git status` clean does
+  **not** catch writes to gitignored paths. In this repo `dist/` and `workflow/schemas/` are
+  gitignored build outputs, and `dist/workflow-bundle.md` is what consumers install — so a member
+  could mutate shipped bundle content while the check reported green. A safety check that succeeds
+  exactly where the damage is invisible is worse than none.
+  Restructured on two axes. **Confinement** moved from per-run assertion to configuration: R11's
+  `sandbox_root` (default `~/.agentsmyth/sandbox/`, resolved like `definitions_root`) puts scratch
+  outside every repo by construction, with per-member subpaths so concurrent trials cannot collide.
+  **Integrity** is now asserted filesystem-scoped over the repo root including gitignored outputs,
+  never by `git status` alone.
+  Residual, stated rather than engineered around: a member can still write outside both the repo and
+  the configured sandbox — home directory, a sibling repo, a global config. agentsmyth is a workflow
+  contract, not a sandbox runtime; it can require the declaration and verify what it observes, but it
+  cannot confine a process it does not spawn. Recorded as a non-claim in RI6.
+- **RK-J (low — closed 2026-08-16): recursion.** Council members are agents; nested dispatch fans out
+  combinatorially — 3 researchers each spawning 3 gives 9 at depth 2, and R13's taper becomes
+  meaningless. This was never a gap in the rules: the existing "do not nest subagent dispatch"
+  Determinism Rule forbids it flatly.
+  Mitigation: RI2 restates the prohibition **in the council skill itself** rather than relying on
+  inheritance from `dispatch-subagents`, and RI4 asserts **dispatch depth 1** in the log so a
+  violation is a recorded fact rather than an inference from an unexpected bill. With R13's
+  non-increasing fan-out and R2's per-stage caps, the cost model is fully bounded.
+  Residual: nothing beyond "an agent that ignores an explicit determinism rule," which is the trust
+  floor every other rule in the system already sits on.
 
 ## Open Questions
 
@@ -188,19 +286,50 @@ requires user approval before Plan may start.
   Acceptance: a Standard task through Think produces no council block and no dispatch; a Complex task
   produces both. Both locked by fixtures.
 
-- **R2** — Research members are read-only with respect to the repo and capped by the resolved
-  `dispatch.max_parallel_workstreams`; with no cap configured the council resolves to its own default
-  of 3 (Q2).
-  Acceptance: `check-council.mjs` fails an artifact whose recorded fan-out exceeds the resolved cap;
-  no member records repo write access; with no cap configured the effective cap is 3 and the artifact
-  records `cap_source: council-default`.
+- **R2** — Council member capability is fenced on two independent axes.
 
-- **R3** — A challenge pass reviews research output before consolidation, running with fresh context,
-  attacking sourcing as well as reasoning, with every finding attributed to its source member and
-  never folded in anonymously.
-  Acceptance: `check-council.mjs` fails any finding lacking a source member; a fixture with an
-  unattributed finding is rejected; the challenger is a dispatched member counted against the cap
-  (Q3).
+  *Repo axis (absolute):* no member may modify the repository under any authorization mode. Writes
+  go to a declared sandbox outside the repo root (R11). Anything outside the repo is otherwise
+  unconstrained.
+
+  *Outward axis (authorization-dependent):* a member fired under the carve-out — i.e. without
+  per-conversation user authorization — gets read, fetch, and search capability only, and may not
+  take outward-facing actions (creating issues, posting comments, writing to external systems, or
+  any other side-effecting call). A council the user explicitly authorizes in-conversation may act
+  outward. The distinction exists because the carve-out means the council fires unprompted, and an
+  unprompted agent acting in the user's name is a different risk from one they asked for.
+
+  Fan-out is capped by the resolved `dispatch.max_parallel_workstreams`; with no cap configured the
+  council resolves to its own default of 3 (Q2). The cap governs **peak concurrent workstreams
+  within a stage**, not the round total: researchers run as one parallel stage, then challengers run
+  as a second parallel stage against their output. Each stage is capped independently, so a round of
+  3 researchers followed by 2 challengers never exceeds a cap of 3 (Q3, corrected).
+
+  Acceptance: `check-council-record.mjs` fails an artifact whose recorded per-stage fan-out exceeds
+  the resolved cap; no member records repo write access under any mode; a member recorded with
+  `authorization: carve-out` and any outward-action capability fails; with no cap configured the
+  effective cap is 3 and the artifact records `cap_source: council-default`.
+
+- **R3** — A challenge pass reviews research output before consolidation, attacking sourcing as well
+  as reasoning, with every finding attributed to its source member and never folded in anonymously.
+  **The challenger receives the raw research findings, not the parent's consolidation.** The
+  parent's synthesis is precisely the framing under test, so passing it along pre-loads the answer;
+  fresh context prevents contamination from the conversation but does nothing about contamination
+  from the instruction. The challenger is chartered adversarially: its job is to find what is wrong,
+  and `rejected-with-reason` is a success outcome for a challenger rather than an exception path.
+  The challenger carries one concrete, recorded duty beyond general critique: **spot-check at least
+  one `web` citation per round**, filed as its own finding. `web` is the only class with no
+  mechanical floor (RK-E), so sampling it is the sole mechanism by which a fabricated quote can be
+  caught rather than merely being wrong.
+  Acceptance: `check-council-record.mjs` fails any finding lacking a source member; a fixture with an
+  unattributed finding is rejected; a round containing one or more `web` findings but no recorded
+  challenger spot-check fails; the challenger's recorded input references the research findings and
+  not the parent consolidation; the challenger is a dispatched member forming its own capped stage
+  (Q3, corrected).
+  **Zero rejections across all rounds is reported, not failed.** A clean run is legitimate, and a
+  hard gate on rejection count would teach the agent to manufacture a token rejection — a worse
+  outcome than the disease. The count surfaces in the RI3 summary line so the pattern becomes
+  visible across runs.
 
 - **R4** — Every finding carries a disposition of `accepted`, `merged`, or `rejected-with-reason`;
   `rejected-with-reason` with an empty reason fails the phase gate.
@@ -208,7 +337,7 @@ requires user approval before Plan may start.
 
 - **R5** — Surviving `Q` entries carry a recommended answer plus the evidence it rests on; anything
   answerable from available evidence must not reach the user.
-  Acceptance: `check-council.mjs` fails a council-mode brief whose surviving `Q` has no
+  Acceptance: `check-council-record.mjs` fails a council-mode brief whose surviving `Q` has no
   recommendation, or whose evidence references do not resolve to recorded finding IDs. The
   "must not reach the user" half is a skill instruction, not a mechanical check — see A3.
 
@@ -232,27 +361,70 @@ requires user approval before Plan may start.
 
 - **R9** — Think classifies every active `R` and `RI` into question buckets and assigns each bucket
   the evidence class(es) that would actually settle it, before any dispatch.
-  Acceptance: `check-council.mjs` fails a council-mode brief where any active `R`/`RI` has no
+  Acceptance: `check-council-record.mjs` fails a council-mode brief where any active `R`/`RI` has no
   classification entry, or any classification entry names zero evidence classes.
 
 - **R10** — Four evidence classes — `repo`, `trial`, `web`, `recall` — each with its own citation
-  contract:
-  - `repo`: file path, and where applicable line range or command output.
-  - `trial`: the sandbox path, what was run, and the observed result.
-  - `web`: URL, retrieval date, **and an inline verbatim quote** of the claim being relied on.
-  - `recall`: marked as model knowledge, carrying no citation.
+  contract, checked at the strongest level the class permits:
 
-  `recall` may never solely support a recommendation or resolve a `Q`; it may only raise a hypothesis
-  that a finding of another class confirms.
-  Acceptance: per-class citation shape is enforced; a `web` finding without a quote or retrieval date
-  fails; a recommendation whose only evidence references are `recall` fails; a `recall` hypothesis
-  corroborated by a `repo` or `trial` finding passes.
+  | Class | Citation contract | Enforcement |
+  |---|---|---|
+  | `repo` | file path, plus line range or command output where applicable | **resolved** — path must exist, line range must be within bounds |
+  | `trial` | sandbox path, the command run, and the observed output | **shape + non-empty output** — presence auditable, result not verifiable |
+  | `web` | URL, retrieval date, and an inline verbatim quote of the claim relied on | **shape only** — the quote cannot be checked against the page |
+  | `recall` | explicitly marked as model knowledge, no citation | **cannot solely support** any recommendation or `Q` resolution |
 
-- **R11** — Trials run in a sandbox only. A trial member declares its sandbox path before running,
-  the path must lie outside the repo root, and the repo working tree must be unmodified across the
-  council's execution.
-  Acceptance: a trial finding without a declared sandbox path fails; a declared path inside the repo
-  root fails; a fixture recording repo working-tree modification during a council run fails.
+  Resolution enforcement on `repo` exists to close a specific hole: **the agent self-declares the
+  class**, so a rule constraining `recall` is routed around by labelling a recollection as `repo`
+  with a plausible path. `recall` is the cheapest class to produce — no search, no file read, no
+  sandbox — and therefore what an agent drifts toward under pressure to converge. Requiring `repo`
+  citations to resolve makes the most attractive relabelling target mechanically expensive.
+  `recall` may still raise a hypothesis, provided a finding of another class confirms it.
+
+  **`web` is scoped by question type.** A `web` citation may solely support a recommendation only for
+  genuinely *external* facts — API semantics, specification behaviour, upstream defaults, third-party
+  version support. For any *repo-shaped* question, `web` may corroborate but may not decide: the repo
+  is present and `repo` citations resolve mechanically, so the unverifiable class is confined to the
+  questions where it is the only option available.
+
+  Acceptance: a `repo` citation naming a nonexistent path, or a line range past end-of-file, fails;
+  a `trial` finding missing its command or recording empty output fails; a `web` finding without a
+  quote or retrieval date fails; a recommendation on a question classified repo-shaped (R9) whose
+  only evidence references are `web` fails; a recommendation whose only evidence references are
+  `recall` fails; a `recall` hypothesis corroborated by a `repo` or `trial` finding passes. Stated
+  non-claim: a `repo` citation pointing at a real file that did not actually inform the finding still
+  passes — resolution raises the cost of fabrication, it does not eliminate it.
+
+- **R11** — Trials run in a **configured** sandbox only, and the repo is never written.
+
+  *Sandbox location is declared in config, not chosen per run.* A `sandbox_root` key resolves
+  global-then-repo-local using the same two-root pattern already shipped for `definitions_root`:
+  `workflow/config/repo-profile.yaml` → `AGENTSMYTH_HOME`-relative default → fallback. The default
+  is `~/.agentsmyth/sandbox/`, alongside the existing global install, so "outside the repo" holds
+  **by construction** rather than by per-run assertion. It stays configurable rather than hardcoded
+  because agentsmyth ships to five tools and some sandboxed hosts will not permit writes to an
+  arbitrary home path.
+
+  *Members get disjoint subpaths.* Trials write under
+  `<sandbox_root>/<slug>/<round>/<member>/`, so concurrent members cannot collide. This is the same
+  write-disjointness principle RI1 preserves for repo surfaces, applied to scratch space: RI1 relaxes
+  *read* overlap, never write overlap.
+
+  *The sandbox is disposable; the record is durable.* R10 already requires each `trial` finding to
+  carry its command and observed output into the artifact, so the evidence survives independently of
+  the directory and the sandbox can be cleared freely.
+
+  *Repo integrity is checked separately and filesystem-scoped.* A configured sandbox says where
+  writes belong; it does not prove none landed in the repo. That assertion must not rely on
+  `git status`, which reports clean for gitignored paths — in this repo `dist/` and
+  `workflow/schemas/` are both gitignored build outputs, and `dist/workflow-bundle.md` is what
+  consumers actually install. A check that passes green precisely where the damage is invisible is
+  worse than no check.
+
+  Acceptance: a trial finding without a declared sandbox path fails; a declared path outside the
+  resolved `sandbox_root` fails; two members sharing a sandbox subpath in the same round fails; repo
+  integrity is asserted by content/hash over the repo root **including gitignored build outputs**,
+  not by `git status` alone, and a fixture mutating `dist/` during a council run fails.
 
 - **R12** — Evidence-class availability is resolved at run time and logged. A class that was wanted
   but unavailable in the host agent is recorded as `unavailable`, never silently skipped.
@@ -261,21 +433,59 @@ requires user approval before Plan may start.
   fails. A brief produced without web access is distinguishable from one produced with it by
   frontmatter alone.
 
-- **R13** — Think iterates. After consolidation it assesses remaining open items and either runs
-  another round, escalates to the user, or completes. The loop is bounded by `council.max_rounds`
-  and guarded against no-progress rounds. Every run records a `termination_reason` of exactly
-  `resolved`, `user-decision-required`, `max-rounds`, or `no-progress`.
-  Acceptance: a round records `open_items_in` and `open_items_out`; a subsequent round after a round
-  where `open_items_out >= open_items_in` fails the no-progress guard; exceeding `max_rounds` fails;
-  `termination_reason: user-decision-required` requires a non-empty Questions For User section;
-  `termination_reason: resolved` requires zero blocking `Q` IDs; `max-rounds` and `no-progress` must
-  surface as recorded risk rather than silent completion.
+- **R13** — Think iterates with a **tapering, dynamically-sized** round loop. After consolidation it
+  assesses what remains open and either runs another round, escalates to the user, or completes.
+
+  *Rounds are not a schedule.* A single round that resolves everything is a first-class success, not
+  a degenerate run — no round after the first is ever required. Each subsequent round is sized to
+  what actually remains: repeat at similar strength when much is still open, taper when close to
+  done, and finish with a single wrap-up agent when only consolidation remains. Illustrative, not
+  normative:
+
+  | Round | Researchers | Challengers |
+  |---|---|---|
+  | 1 | 3 | 1–2 |
+  | 2 | 2 | 1 |
+  | 3 | 1 | 1 |
+  | 4 | 1 (wrap-up) | — |
+
+  *The invariant that makes it cheap:* **fan-out is non-increasing across rounds.** A round may match
+  the previous round's size or shrink, never grow. If the agent judges that more capacity is needed
+  than the previous round used, that is an escalation to the user, not a self-authorized spend
+  increase — consistent with the shipped rule that caps are never raised in response to a request.
+
+  Every run records a `termination_reason` of exactly `resolved`, `user-decision-required`,
+  `max-rounds`, or `no-progress`. `council.max_rounds` remains as a cheap backstop (proposed default
+  4, matching the table), but the taper — not the bound — is what supplies the cost guarantee.
+
+  *Progress is tracked per item, not by count.* Each round records **which specific item IDs it
+  closed**, not merely how many remained. Counting alone is gameable by the path of least
+  resistance: a round closes three easy items, the total drops, the taper looks coherent, and the one
+  hard question that actually blocks the work survives untouched into the next round and the next.
+  Per-ID tracking makes that history legible instead of hiding it inside a shrinking number.
+
+  *A survivor escalates rather than expiring.* An item that enters every round and closes in none is
+  the clearest available evidence that the council cannot resolve it — which is the definition of
+  something that belongs with the user. Such a run terminates `user-decision-required`, carrying the
+  item's per-round history as the basis for asking, not `max-rounds`.
+
+  Acceptance: each round records its researcher and challenger counts, `open_items_in`,
+  `open_items_out`, **the item IDs closed**, and — for every round after the first — a recorded
+  justification naming what remained open and why this size was chosen. A round whose fan-out
+  exceeds the previous round's fails. A round that *reduced* fan-out while `open_items_out >=
+  open_items_in` fails as incoherent taper: shrinking the council asserts convergence, so the
+  open-item count must corroborate it. Exceeding `max_rounds` fails. **A run terminating
+  `max-rounds` while any item survived every round without closing fails — it must terminate
+  `user-decision-required` instead.** `user-decision-required` requires a non-empty Questions For
+  User section, and every surviving item's round history must appear with it; `resolved` requires
+  zero blocking `Q` IDs; `max-rounds` and `no-progress` must surface as recorded risk rather than
+  silent completion. A single-round run terminating `resolved` passes with no penalty.
 
 - **R14** — The full council run is logged back into the brief: every round, its members and their
   roles, the evidence classes used per member, every finding with class and disposition, the
   open-item delta per round, and the termination reason.
   Acceptance: a reader can reconstruct what happened from the artifact alone, with no session
-  transcript; `check-council.mjs` fails a brief whose recorded rounds, findings, or dispositions are
+  transcript; `check-council-record.mjs` fails a brief whose recorded rounds, findings, or dispositions are
   structurally incomplete.
 
 - **R15** — `lifecycle-think` is restructured into an explicit staged pipeline: classify → assign
@@ -285,44 +495,83 @@ requires user approval before Plan may start.
   Acceptance: `SKILL.md`'s Workflow section names the stages in order with their gates; the Exit Gate
   covers the new stages; `references/output-schema.md` starter block carries the new optional
   frontmatter; a conformance check locks the SKILL.md stage list against the validator's expectations
-  so the doc and `check-council.mjs` cannot drift apart (the R12/R13/R16/R19 drift class).
+  so the doc and `check-council-record.mjs` cannot drift apart (the R12/R13/R16/R19 drift class).
 
 ### Implicit (RI)
 
 - **RI1** — Narrow the independence rule so read-only workers may overlap on surface when the parent
   declares a dedupe-and-reconcile contract in the active artifact; overlap stays forbidden for any
   repo-write-capable worker and for read-only workers with no declared contract.
+  **The contract's teeth are conflict recording, not its own presence.** When two findings on the
+  same surface reach conflicting conclusions, the conflict and its resolution must be recorded
+  explicitly. A parent that silently picks one produces a wrong answer with a complete audit trail —
+  every finding attributed, every disposition recorded, validator green — while discarding the most
+  valuable signal the council generated. This also makes overlap worth its cost rather than merely
+  tolerable: overlapping members who agree corroborate, and overlapping members who disagree have
+  found the interesting thing.
   Acceptance: all five asserting files change together — `references/independence-rules.md`,
   `references/decision-tree-by-phase.md` (Think and Review rows plus per-phase refuse conditions),
   `references/phase-caps.md`, `SKILL.md` Determinism Rules, `references/output-schema.md` acceptance
-  criteria. A grep proves no file still asserts the blanket form.
+  criteria. A grep proves no file still asserts the blanket form. Findings carry the surface they
+  inspected; conflicting dispositions on a shared surface with no recorded reconcile note fail.
 
 - **RI2** — Document the authorization carve-out in `dispatch-subagents/SKILL.md` as a named
   exception with its conditions, in the same shape as the existing E1 exception, including that
-  sandbox-only writes do not forfeit read-only status for carve-out purposes.
+  sandbox-only writes do not forfeit read-only status for carve-out purposes. State it as its
+  **bounding principle** — *no repo mutation, in phases that produce no verdict* — with the
+  conditions as consequences, so a future reader derives the boundary rather than extending a list
+  (RK-A).
+  **Restate the no-nesting prohibition in the council skill itself**, rather than relying on
+  inheritance from `dispatch-subagents`: a member loading the council charter must see it there, not
+  have to follow a reference to find it.
   Acceptance: SKILL.md's refusal condition "the user did not explicitly authorize delegation" cites
-  the carve-out; the conditions are stated together in one place.
+  the carve-out; the conditions are stated together in one place as derivations of the principle; the
+  council skill carries its own explicit no-nested-dispatch rule.
 
-- **RI3** — New `check-council.mjs` enforcing every mechanical check named across R2–R14, wired into
-  `npm run validate` and the violations suite.
+- **RI3** — New `check-council-record.mjs` enforcing every mechanical check named across R2–R14,
+  wired into `npm run validate` and the violations suite. **Named for what it validates — the
+  record, not the council** — so the filename itself carries the narrow claim rather than implying
+  the broad one (RK-B).
+  It emits a **summary line on success, not a bare pass**: rounds run, findings recorded,
+  `recall`-only hypotheses left unconfirmed, rejections issued across all rounds, and **how many
+  citations were mechanically resolved versus shape-checked only**. A varying number invites
+  reading; a green check invites skipping. The rejection count doubles as the rubber-stamp signal
+  for RK-F, and the resolved-vs-shape-checked ratio tells a reader at a glance how much of the brief
+  rests on classes the validator cannot verify (RK-D, RK-E) — both at zero extra cost.
   Acceptance: validator listed in `src/workflow/validators/README.md` with its checks and its
-  explicit non-claims; passes on a well-formed council brief; fails each seeded violation (RI9).
+  explicit non-claims; passes on a well-formed council brief and prints the summary; fails each
+  seeded violation (RI9); a fixture asserts the summary reports the correct counts, so the texture
+  cannot silently regress to a bare pass.
 
 - **RI4** — The artifact records that the council fired or was refused (with reason), under which
-  authorization mode, with which resolved cap and `cap_source`.
+  authorization mode, with which resolved cap and `cap_source`, and at **dispatch depth 1**.
+  Asserting depth in the log makes a nesting violation a recorded fact in the artifact rather than
+  something inferred from a suspiciously large token bill. Combined with R13's non-increasing
+  fan-out and R2's per-stage caps, this closes the cost model: total council spend per run becomes
+  calculable rather than hopeful.
   Acceptance: council-mode and single-agent briefs are distinguishable by frontmatter alone, with no
-  prose inspection.
+  prose inspection; a recorded dispatch depth greater than 1 fails.
 
 - **RI5** — Brief schema updated in `src/workflow/schemas/`, bundles rebuilt, adapters re-rendered
   and confirmed in sync if any gate content changed.
   Acceptance: `npm run build`, `npm run validate`, `npm run violations:test`,
   `npm run conformance:test` all green; `render-adapters` reports shims current.
 
-- **RI6** — Shipped docs state plainly what `check-council.mjs` does **not** check: whether a finding
-  is correct, whether the council found what a human would have found, whether a rejection reason is
-  a good one, and whether a `web` quote was genuinely present at the cited URL.
+- **RI6** — Shipped docs state plainly what `check-council-record.mjs` does **not** check. Stated
+  directly and never softened — each of these is a real hole, and hedged phrasing would leave a
+  reader trusting more than the validator delivers:
+  - whether a finding is correct;
+  - whether the council found what a human would have found;
+  - whether a rejection reason is a good one;
+  - whether a `web` quote was genuinely present at the cited URL — **a fabricated quote on an
+    external fact that the challenger did not sample passes every check in this system**;
+  - whether a resolving `repo` citation actually informed the finding it is attached to;
+  - whether a member wrote outside both the repo and its configured sandbox — **agentsmyth is a
+    workflow contract, not a sandbox runtime, and cannot confine a process it does not spawn**.
+
   Acceptance: the non-claims appear in the validator's README entry and in the council skill's
-  reference docs, as prose, not as an implication.
+  reference docs, as prose, not as an implication; each is stated as a plain limitation without
+  mitigating qualifiers.
 
 - **RI7** — Make the council-specific default fan-out of 3 (Q2) visible rather than silent, since an
   unconfigured consumer now incurs multiplied cost without having chosen it.
@@ -338,7 +587,7 @@ requires user approval before Plan may start.
 - **RI9** — A violations fixture per mechanical check, so every rule R2–R14 states is proven to
   actually reject.
   Acceptance: `npm run violations:test` count increases by the number of new checks and all pass;
-  each fixture is rejected by `check-council.mjs` specifically, not incidentally by another validator.
+  each fixture is rejected by `check-council-record.mjs` specifically, not incidentally by another validator.
 
 ### Assumptions (A)
 
@@ -377,9 +626,14 @@ requires user approval before Plan may start.
   the point it costs money; RI8 adds a depth dial so cost is reducible without shrinking the council.
   RK-C carries it forward to Review for measurement.
 
-- **Q3 — RESOLVED 2026-08-16: the challenge pass is a dispatched member counted against the cap.**
-  A parent-run challenge shares the parent's context, which is exactly the degradation RK-F
-  describes. Folded into R3. Cost is bounded by the same cap as research members.
+- **Q3 — RESOLVED 2026-08-16, then CORRECTED same day: the challenge pass is a dispatched member,
+  capped as its own stage.** A parent-run challenge shares the parent's context, which is exactly the
+  degradation RK-F describes, so the challenger is dispatched. The original resolution said
+  "counted against the cap," which was arithmetically wrong: 3 researchers + 1 challenger is 4
+  against a cap of 3, and round 1 wants 1–2 challengers. The cap is
+  `max_parallel_workstreams` — it governs peak concurrency, and challengers do not run concurrently
+  with researchers, they review their output. Corrected to per-stage capping: researchers are one
+  parallel stage, challengers a second, each independently capped. Folded into R2 and R3.
 
 ## Questions For User
 
