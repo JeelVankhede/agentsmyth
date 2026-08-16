@@ -140,3 +140,88 @@ properties:
         reason:
           type: string
           minLength: 1
+  council:
+    type: object
+    additionalProperties: false
+    description: >-
+      Council-mode run summary (WP-R21). OPTIONAL - a brief written before 1.1.0, or by the
+      single-agent path, omits it entirely and still validates. Its presence is what makes a council
+      run distinguishable from a single-agent run by frontmatter alone, with no prose inspection.
+      The per-round detail lives in the body's `## Council Log` section; this block is the summary.
+    required:
+      - mode
+    properties:
+      mode:
+        type: string
+        enum:
+          - council
+          - single-agent
+          - refused
+        description: >-
+          `refused` records that the council was applicable but did not fire, and requires
+          refusal_reason. Silence cannot distinguish "not applicable" from "failed to fire", which
+          is why a refusal is a recorded mode rather than an absent block.
+      refusal_reason:
+        type: string
+        enum:
+          - dispatch-disabled
+          - council-disabled
+          - not-complex
+          - cannot-log
+          - buckets-not-independent
+          - bucket-dependency
+      authorization:
+        type: string
+        enum:
+          - carve-out
+          - explicit
+      cap_resolved:
+        type: integer
+        minimum: 0
+      cap_source:
+        type: string
+        enum:
+          - configured
+          - council-default
+        description: >-
+          `council-default` means no max_parallel_workstreams was declared anywhere and the council
+          fell back to its own default. Recorded because that fallback costs an unconfigured
+          consumer real tokens they did not choose to spend.
+      depth:
+        type: string
+        enum:
+          - shallow
+          - standard
+          - deep
+      dispatch_depth:
+        type: integer
+        minimum: 1
+        maximum: 1
+        description: Always 1. Council members do not dispatch; recording it makes a nesting violation a stated fact rather than an inference from an unexpected bill.
+      rounds_run:
+        type: integer
+        minimum: 0
+      termination_reason:
+        type: string
+        enum:
+          - resolved
+          - user-decision-required
+          - max-rounds
+          - no-progress
+      evidence_classes:
+        type: object
+        additionalProperties: false
+        description: Per-class runtime availability. A class requested during classification but absent from this map is invalid - it must be recorded as unavailable rather than silently dropped.
+        properties:
+          repo:
+            type: string
+            enum: [used, unused, unavailable]
+          trial:
+            type: string
+            enum: [used, unused, unavailable]
+          web:
+            type: string
+            enum: [used, unused, unavailable]
+          recall:
+            type: string
+            enum: [used, unused, unavailable]

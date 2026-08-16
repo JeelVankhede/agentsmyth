@@ -21,37 +21,36 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 1 - Contract foundations (complete, awaiting user checkpoint before Phase 2)
-- Manifest IDs: RI1, R4, R10
-- Exit gate: a grep proves no file still asserts the blanket independence form; all five
-  `dispatch-subagents` files changed together; disposition and evidence-class shapes stated once,
-  referenced elsewhere, and containing no open placeholders. **Met** — see Command Results.
+- Phase: Phase 7 - Rejection fixtures (final phase; all seven complete)
+- Manifest IDs: all 24
+- Exit gate: every phase gate met — see Phase Completion Log. Build is complete and ready for Review.
 
 ## Plan Phases Overview
 
 | Phase | Status | Manifest IDs |
 |---|---|---|
 | Phase 1 - Contract foundations | complete | RI1, R4, R10 |
-| Phase 2 - Config surface | pending | R2, R7, R11, RI7, RI8 |
-| Phase 3 - Council skill | pending | R3, R12, RI2 |
-| Phase 4 - Think restructuring | pending | R1, R5, R8, R9, R13, R15 |
-| Phase 5 - Record and schema | pending | R6, R14, RI4, RI5 |
-| Phase 6 - Validator | pending | RI3, RI6 |
-| Phase 7 - Rejection fixtures | pending | RI9 |
+| Phase 2 - Config surface | complete | R2, R7, R11, RI7, RI8 |
+| Phase 3 - Council skill | complete | R3, R12, RI2 |
+| Phase 4 - Think restructuring | complete | R1, R5, R8, R9, R13, R15 |
+| Phase 5 - Record and schema | complete | R6, R14, RI4, RI5 |
+| Phase 6 - Validator | complete | RI3, RI6 |
+| Phase 7 - Rejection fixtures | complete | RI9 |
 
 ## Branch / Repo Status
 
 | Moment | Branch | Status | Notes |
 |---|---|---|---|
 | Before edits | `feat/wp-r21-think-council` | clean | Five commits: brief, Q resolutions, brief expansion, risk hardening, brief approval, plan, plan approval |
-| At handoff | `feat/wp-r21-think-council` | Phase 1 changes staged | Six source files touched, all under `src/workflow/skills/dispatch-subagents/`; `dist/` regenerated but gitignored |
+| At handoff | `feat/wp-r21-think-council` | all seven phases staged | 14 source files plus 16 fixture dirs; `dist/` regenerated but gitignored; no unrelated files touched |
 
 ## Scope
 
-- In scope: Phase 1 only — the three contracts WP-R22 inherits (RI1 independence narrowing, R4
-  disposition contract, R10 evidence classes). Frozen after this phase per the plan's Approach.
-- Out of scope: Phases 2–7. No config, skill, pipeline, schema, validator, or fixture work in this
-  phase. No behavioural code — Phase 1 is contract text only.
+- In scope: all seven plan phases — contracts, config, council skill, Think restructuring, record
+  and schema, validator, rejection fixtures.
+- Out of scope: WP-R22 (Review council). OI-73 (checkpoint multi-line quote) and OI-74 (pre-commit
+  gate blocks mid-Build commits) are both shipped-contract changes found during this chain and
+  deliberately not smuggled into it.
 
 ## Changed Files
 
@@ -70,7 +69,22 @@ orchestration:
   reconcile contracts, conflict recording, cap counting, and council-mode disposition/evidence —
   IDs: RI1, R4, R10
 - `src/workflow/skills/dispatch-subagents/SKILL.md` — Determinism Rules updated for the exception,
-  conflict recording, and cap independence — IDs: RI1
+  conflict recording, cap independence; carve-out documented as its bounding principle — IDs: RI1, RI2
+- `src/workflow/agent-behavior.yaml` — `council:` block and the firing resolution order — IDs: R2, R7, R11, RI8
+- `src/workflow/schemas/agent-behavior.schema.yaml` — council schema, optional at top level so pre-1.1.0 configs still validate — IDs: R7, RI5
+- `src/workflow/schemas/repo-profile.schema.yaml` — `tuning.council` overrides; locked-key enumeration extended — IDs: R2, R11, RI8
+- `src/workflow/schemas/artifact-frontmatter.schema.yaml` — optional `council:` frontmatter block — IDs: R6, R14, RI4
+- `workflow/config/repo-profile.yaml` — this repo's own `tuning.council.sandbox_root` — IDs: R11
+- `src/workflow/skills/think-council/SKILL.md` — new council skill: roles, capability axes, challenge pass, availability — IDs: R3, R12, RI2
+- `src/workflow/skills/think-council/references/output-schema.md` — round result and refusal result shapes — IDs: R3, R12
+- `src/workflow/skills/lifecycle-think/SKILL.md` — eight-stage pipeline, mode resolution, round loop — IDs: R1, R5, R9, R13, R15
+- `src/workflow/skills/lifecycle-think/references/single-agent-path.md` — new; pre-R21 workflow preserved verbatim — IDs: R8
+- `src/workflow/skills/lifecycle-think/references/output-schema.md` — Council Log section and starter block — IDs: R5, R6, R14
+- `src/workflow/validators/check-council-record.mjs` — new validator with summary output — IDs: RI3
+- `src/workflow/validators/README.md` — validator entry plus six stated non-claims — IDs: RI3, RI6
+- `scripts/validate-template.mjs` — registered the validator (explicit list, not auto-discovered) — IDs: RI3
+- `test/run-violation-tests.mjs` + 15 fixture dirs — one rejection fixture per rule — IDs: RI9
+- `test/run-conformance-tests.mjs` + `test/fixtures/conformance/council-wellformed/` — positive control, summary-output lock, stage-list lock, verbatim-preservation lock — IDs: R8, R15, RI3, RI9
 
 ## Implementation Log
 
@@ -125,8 +139,11 @@ plainly, so the contract's specificity does not imply a guarantee of correctness
 | Six-file exception coverage probe | RI1 exit gate | pass | all six report `yes` |
 | `npm run build` | RI5 (early) | pass | `build: ok`; `dist/` regenerated, gitignored |
 | `npm run validate` | all | pass | exit 0 |
-| `npm run conformance:test` | all | pass | 15/15 — correct baseline on this branch; R19's two extra checks live on `feat/wp-r19-…`, not in this branch's ancestry |
-| `npm run violations:test` | all | pass | 29/29 |
+| `npm run conformance:test` | all | pass | 15/15 at Phase 1; **19/19** at Phase 7 (4 new R21 checks). Baseline is 15 on this branch — R19's two checks live on `feat/wp-r19-…`, not in this branch's ancestry |
+| `npm run violations:test` | all | pass | 29/29 at Phase 1; **44/44** at Phase 7 (15 new R21 rejection fixtures) |
+| `check-council-record --dir council-wellformed` | RI3 positive control | pass | Well-formed brief passes and prints the summary line; without this the 15 rejections would be satisfied by a validator that rejects everything |
+| Per-fixture rejection sweep | RI9 | pass | All 15 rejected, each attributable to its own rule |
+| Existing-brief regression | R6 | pass | Every brief under `workflow/artifacts/briefs/` and `examples/` validates with zero edits — `git status` on that tree is clean |
 
 ## Dispatch Log
 
@@ -162,3 +179,9 @@ none
 | Phase | Completed | Exit gate evidence |
 |---|---|---|
 | Phase 1 - Contract foundations | 2026-08-17 | Blanket-form grep returns no matches; all six files carry or reference the exception; `validate` exit 0; conformance 15/15; violations 29/29 |
+| Phase 2 - Config surface | 2026-08-17 | `council:` block and schemas land; `check-config` green via `validate` exit 0. **Partial gate deferral** — the plan's Phase 2 gate also named behavioural fixtures (kill-switch precedence, `cap_source: council-default`, `sandbox_root` across three repo modes), but those need `check-council-record`, which does not exist until Phase 6. Covered by Phase 7's fixtures instead; recorded rather than quietly dropped |
+| Phase 3 - Council skill | 2026-08-17 | `think-council/` loads standalone with SKILL.md + references/output-schema.md; charter states repo fence, outward axis, and no-nesting explicitly; carve-out documented as bounding principle in dispatch-subagents SKILL.md |
+| Phase 4 - Think restructuring | 2026-08-17 | Eight stages named in order — locked by conformance `r21-think-stages`; preserved single-agent path is verbatim — locked by `r21-single-agent-verbatim`; A5's 1.2.0 removal written into single-agent-path.md's Removal section for Ship to carry |
+| Phase 5 - Record and schema | 2026-08-17 | `council:` frontmatter optional at top level; **every existing brief validates with zero edits** (`git status` clean on `workflow/artifacts/briefs/`); council and single-agent briefs distinguishable by frontmatter alone; `npm run build` clean; `render-adapters` reports shims current |
+| Phase 6 - Validator | 2026-08-17 | `check-council-record.mjs` passes a well-formed brief and prints the summary line; registered in `scripts/validate-template.mjs`; README carries all six non-claims stated as plain limitations |
+| Phase 7 - Rejection fixtures | 2026-08-17 | violations 29/29 → **44/44** (15 new); conformance 15/15 → **19/19** (4 new); every fixture rejected by `check-council-record` specifically; positive control passes |

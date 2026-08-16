@@ -21,6 +21,27 @@ Use this skill only when:
 
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
+**Named exception — council auto-fire (WP-R21).** The bounding principle: *auto-fire is permitted
+only for members that cannot mutate the user's repository, in phases that produce no verdict.*
+
+Its consequences, which are the conditions to check:
+
+- every member is read-only with respect to the repository (sandbox writes outside the repo do not
+  forfeit this — the guarantee is about the user's work, not about the filesystem)
+- the phase is Think or Review
+- the task class is Complex
+- the resolved `council.enabled` permits it — and the resolved `dispatch.enabled` is checked first,
+  so a repo that turned delegation off gets no council regardless
+
+State the principle, not just the list, when reasoning about whether some future case qualifies. The
+principle self-limits: Build cannot claim this exception, because Build's output *is* repository
+mutation and a non-mutating Build worker produces nothing usable.
+
+A council fired this way gets read, fetch, and search only. Outward-facing actions — creating
+issues, posting comments, writing to external systems — require explicit in-conversation
+authorization, because an unprompted agent acting in the user's name is a different risk from one
+they asked for. See `workflow/skills/think-council/SKILL.md`.
+
 **Check `dispatch.enabled` before authorization, not after.** Resolve it global-then-repo-local:
 read `workflow/agent-behavior.yaml`, then let `tuning.dispatch.enabled` in
 `workflow/config/repo-profile.yaml` override it when present. If the resolved value is `disabled`,
@@ -68,7 +89,7 @@ behavior. A repo cannot set `required`; the schema rejects it.
 
 Do not dispatch when:
 
-- the user did not explicitly authorize delegation
+- the user did not explicitly authorize delegation, and the council auto-fire exception above does not apply
 - phase cap is zero
 - requested worker count exceeds the cap
 - work is small enough that coordination cost exceeds benefit

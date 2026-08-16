@@ -199,6 +199,25 @@ const fixtures = [
     description: '(WP-R8, R6) repo-profile tuning attempts to rewrite a trigger predicate rather than its threshold — check-config',
     validator: validatorPath('check-config.mjs'),
   },
+  // WP-R21 RI9 — one fixture per mechanical rule in check-council-record. Each is the well-formed
+  // base (test/fixtures/conformance/council-wellformed) with exactly one mutation, so a rejection
+  // is attributable to the rule under test rather than to incidental breakage. The positive control
+  // lives in the conformance suite so this suite stays purely negative.
+  { id: 'ca', dir: 'test/fixtures/lifecycle-violations/ca-unattributed-finding', description: '(WP-R21, R3) council finding has no source member — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cb', dir: 'test/fixtures/lifecycle-violations/cb-empty-rejection-reason', description: '(WP-R21, R4) rejected-with-reason carries an empty reason — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cc', dir: 'test/fixtures/lifecycle-violations/cc-fanout-growth', description: '(WP-R21, R13) round 2 fan-out exceeds round 1 — non-increasing invariant — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cd', dir: 'test/fixtures/lifecycle-violations/cd-incoherent-taper', description: '(WP-R21, R13) council shrank after a round that closed nothing — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ce', dir: 'test/fixtures/lifecycle-violations/ce-maxrounds-survivor', description: '(WP-R21, R13) terminated max-rounds while an item survived every round — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cf', dir: 'test/fixtures/lifecycle-violations/cf-repo-citation-unresolvable', description: '(WP-R21, R10) repo citation names a path that does not exist — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cg', dir: 'test/fixtures/lifecycle-violations/cg-web-citation-incomplete', description: '(WP-R21, R10) web citation missing retrieval date and verbatim quote — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ch', dir: 'test/fixtures/lifecycle-violations/ch-missing-conflicts-entry', description: '(WP-R21, RI1) shared surface holds accepted and rejected findings with no Conflicts entry — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ci', dir: 'test/fixtures/lifecycle-violations/ci-web-no-spotcheck', description: '(WP-R21, R3) round has web findings but no challenger spot-check — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cj', dir: 'test/fixtures/lifecycle-violations/cj-recall-only-recommendation', description: '(WP-R21, R10) surviving Q rests only on recall findings — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ck', dir: 'test/fixtures/lifecycle-violations/ck-dispatch-depth-not-one', description: '(WP-R21, RI4) dispatch depth 2 — council members must not dispatch — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cl', dir: 'test/fixtures/lifecycle-violations/cl-refused-without-reason', description: '(WP-R21, R12) council mode refused with no refusal_reason — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cm', dir: 'test/fixtures/lifecycle-violations/cm-stage-cap-exceeded', description: '(WP-R21, R2) stage fan-out exceeds the resolved cap — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cn', dir: 'test/fixtures/lifecycle-violations/cn-log-without-council-block', description: '(WP-R21, RI4) Council Log body section with no council frontmatter block — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'co', dir: 'test/fixtures/lifecycle-violations/co-missing-conflicts-section', description: '(WP-R21, RI1) Conflicts subsection absent entirely — "no conflicts" must be asserted — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

@@ -51,4 +51,11 @@ generated_output_policy:
   require_regeneration_or_waiver_when_source_changes: true
   manual_edits_allowed: only_when_configured
 
+tuning:
+  council:
+    # This repo declares a sandbox_root explicitly rather than inheriting the default, so the
+    # dogfood chain exercises the repo-local branch of the resolver rather than only the global
+    # one. Kept under ~/.agentsmyth/ so it stays outside every repository by construction.
+    sandbox_root: ~/.agentsmyth/sandbox/agentsmyth
+
 extensions: {}

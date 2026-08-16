@@ -226,7 +226,23 @@ earlier phase has already carried its own targeted check.
 ### Phase 7 - Rejection fixtures
 
 - **Manifest IDs:** RI9
-- Touches: `test/run-violation-tests.mjs`, `test/fixtures/lifecycle-violations/council-*/`,
+- Touches: `test/run-violation-tests.mjs`,
+  `test/fixtures/lifecycle-violations/ca-unattributed-finding`,
+  `test/fixtures/lifecycle-violations/cb-empty-rejection-reason`,
+  `test/fixtures/lifecycle-violations/cc-fanout-growth`,
+  `test/fixtures/lifecycle-violations/cd-incoherent-taper`,
+  `test/fixtures/lifecycle-violations/ce-maxrounds-survivor`,
+  `test/fixtures/lifecycle-violations/cf-repo-citation-unresolvable`,
+  `test/fixtures/lifecycle-violations/cg-web-citation-incomplete`,
+  `test/fixtures/lifecycle-violations/ch-missing-conflicts-entry`,
+  `test/fixtures/lifecycle-violations/ci-web-no-spotcheck`,
+  `test/fixtures/lifecycle-violations/cj-recall-only-recommendation`,
+  `test/fixtures/lifecycle-violations/ck-dispatch-depth-not-one`,
+  `test/fixtures/lifecycle-violations/cl-refused-without-reason`,
+  `test/fixtures/lifecycle-violations/cm-stage-cap-exceeded`,
+  `test/fixtures/lifecycle-violations/cn-log-without-council-block`,
+  `test/fixtures/lifecycle-violations/co-missing-conflicts-section`,
+  `test/fixtures/conformance/council-wellformed`,
   `test/run-conformance-tests.mjs`
 - Work: one fixture per mechanical rule, each rejected by `check-council-record.mjs` specifically
   rather than incidentally by another validator; a conformance check locking the SKILL.md stage list
@@ -329,6 +345,13 @@ couples the two councils in the wrong direction — defeating Phase 1's stated p
 freezing exactly the surfaces R22 inherits. The contracts moved to the shared dispatch contract,
 which both councils already load. No requirement changed; only the file that houses it. Rationale
 also recorded in the task artifact's Implementation Log.
+
+**A3 (2026-08-17, clerical).** Phase 7's `Touches` used a glob, `test/fixtures/lifecycle-violations/council-*/`.
+`check-scope-fence` matches exact paths or directory prefixes, not globs, and the fixtures were
+named for the rule each one violates (`ca-unattributed-finding`, `cb-empty-rejection-reason`, …)
+rather than with a `council-` prefix. Expanded to the fifteen real directories plus
+`test/fixtures/conformance/council-wellformed`, which holds the positive control. No scope change —
+same fixtures, named as built.
 
 ## Open Questions
 

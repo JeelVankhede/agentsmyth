@@ -121,6 +121,37 @@ check('r16-skipped-checks-columns', 'Skipped Checks Starter Block table has all 
 // not just a whitespace-only-prefixed one, so a phase's Touches capture stays bounded
 // instead of silently absorbing a later, unrelated backtick-quoted path as covered.
 const sfb = run(V('check-scope-fence'), ['--dir', 'test/fixtures/conformance/scope-fence-bullet-boundary']);
+// WP-R21 positive control — a well-formed council brief must PASS check-council-record, and must
+// print the summary line. Without this, the 15 rejection fixtures in the violations suite would be
+// satisfied by a validator that rejects everything.
+const cwf = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-wellformed']);
+check('r21-council-wellformed', 'well-formed council brief passes check-council-record',
+  cwf.status === 0);
+check('r21-council-summary', 'check-council-record reports texture, not a bare pass',
+  /summary: 1 council brief\(s\), 2 round\(s\), 4 finding\(s\)/.test(cwf.out) &&
+  /citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
+
+// WP-R21 R15 anti-drift — lifecycle-think's SKILL.md must keep naming the eight pipeline stages the
+// validator and council skill are written against. Same doc-drift class as R12/R13/R16/R19: the
+// contract and its documentation rot apart unless something pins them together.
+const thinkSkill = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-think/SKILL.md'), 'utf8');
+check('r21-think-stages', 'lifecycle-think SKILL.md names all eight pipeline stages in order',
+  ['Stage 1 — Classify and locate', 'Stage 2 — Frame requirements and assign evidence classes',
+   'Stage 3 — Fan out', 'Stage 4 — Challenge', 'Stage 5 — Consolidate',
+   'Stage 6 — Assess and decide', 'Stage 7 — Write the brief', 'Stage 8 — Log the run']
+    .every((s, i, arr) => {
+      const idx = thinkSkill.indexOf(s);
+      return idx !== -1 && (i === 0 || idx > thinkSkill.indexOf(arr[i - 1]));
+    }));
+
+// WP-R21 R8 — the preserved single-agent path must stay a verbatim copy, not a paraphrase. A
+// "preserved" path that drifts into a reconstruction is not a rollback surface.
+const sap = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-think/references/single-agent-path.md'), 'utf8');
+check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-R21 workflow steps verbatim',
+  /1\. Classify task as Trivial, Standard, or Complex\./.test(sap) &&
+  /11\. Set `orchestration\.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`\./.test(sap) &&
+  /skill_trigger_log` entry for every evaluated trigger \(ran or skipped, with reason\)\./.test(sap));
+
 check('r15-scope-fence-bullet', 'bullet-dash-prefixed phase boundary keeps Touches correctly bounded',
   sfb.status !== 0 && /outside Phase 1's declared Touches/.test(sfb.out));
 

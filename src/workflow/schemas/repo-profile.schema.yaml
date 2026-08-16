@@ -241,7 +241,10 @@ properties:
       classification_signals, since tuning those is an indirect route to reclassifying all work as
       trivial and skipping phases), the rest of pause_resume, all of evidence_policy, all of
       change_policy, all of waivers, dispatch.require_independent_file_ownership,
-      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers.
+      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers. WP-R21 adds
+      council.enabled, council.max_rounds, council.depth, council.default_fan_out, and
+      council.sandbox_root as overridable; nothing else in the council block is, and no council key
+      can re-enable delegation that dispatch.enabled has turned off.
       Resolution - the global value is overridden by the repo-local value here, EXCEPT
       pause_resume.user_checkpoint_required_for, which is resolved by union with the global list.
       Governing rule - a repo-local value may make behavior stricter or leave it unchanged, never
@@ -263,6 +266,40 @@ properties:
               - optional
               - disabled
             description: A repo may turn delegation off; it may not set `required` per-repo. `required` is deliberately absent from this enum — permitting it would be the looser direction the governing rule forbids.
+      council:
+        type: object
+        additionalProperties: false
+        description: >-
+          Per-repo council overrides (WP-R21). Note the ordering that binds regardless of anything
+          here - dispatch.enabled resolving to `disabled` suppresses the council outright, so a repo
+          that turned delegation off does not need to also disable the council, and cannot re-enable
+          it from this block.
+        properties:
+          enabled:
+            enum:
+              - on-for-complex
+              - disabled
+            description: A repo may turn the council off, or restate the global default. There is no value here that makes councils fire more widely than the global config allows.
+          max_rounds:
+            type: integer
+            minimum: 1
+            maximum: 10
+            description: Capacity bound on the round loop, not an enforcement rule. Lowering it makes runs cheaper and shorter; it cannot loosen any gate.
+          depth:
+            enum:
+              - shallow
+              - standard
+              - deep
+            description: Per-member research effort. Capacity rather than enforcement, so a repo may move it in either direction.
+          default_fan_out:
+            type: integer
+            minimum: 1
+            maximum: 10
+            description: Council fallback fan-out when no max_parallel_workstreams is declared. Capacity, like max_parallel_workstreams, so it has no looser direction to move in.
+          sandbox_root:
+            type: string
+            minLength: 1
+            description: Where this repo's trial members write. Must resolve outside the repository; a path inside it fails the Build-phase check rather than being silently accepted.
       skill_scoring:
         type: object
         additionalProperties: false

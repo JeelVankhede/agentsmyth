@@ -25,6 +25,28 @@ Phases with `none` role have a cap of 0 — dispatch is never allowed regardless
 
 For all other phases, the cap is the resolved `dispatch.max_parallel_workstreams`. If neither the global config nor repo tuning declares one, default to 1 (no parallelism).
 
+### Council exception to the default-to-1 rule
+
+Council-mode dispatch is the one documented departure. When no `max_parallel_workstreams` is
+declared anywhere, a council resolves its cap from `council.default_fan_out` (shipped default 3)
+rather than falling back to 1, because a one-member council is not a council.
+
+This departure is stated here rather than left to be discovered because it has a real cost: an
+unconfigured consumer gets a multi-member council on every Complex Think without having chosen one.
+Two things make it visible rather than silent — the artifact records `cap_source: council-default`
+when this branch applies (as opposed to `configured`), and `council.depth` exists so that cost can
+be reduced without shrinking the council.
+
+The departure is bounded: it changes the *default*, never the ceiling. A declared
+`max_parallel_workstreams` still wins, and `council.default_fan_out` is itself capped by the schema.
+
+### Council stages are capped independently
+
+A council round runs researchers as one parallel stage, then challengers as a second stage against
+their output. The cap governs **peak concurrency within a stage**, not the round total — so 3
+researchers followed by 2 challengers satisfies a cap of 3, because the two stages never run
+concurrently. Challengers review what researchers produced; they cannot start before it exists.
+
 Requested worker counts above the cap must be reduced to the cap or refused. Never increase the cap in response to a user request — raising it requires editing `agent-behavior.yaml` globally or `tuning.dispatch.max_parallel_workstreams` in the repo profile, and either is a config change, not a dispatch decision.
 
 ## Overlapping Read-Only Workers Still Count
