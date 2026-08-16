@@ -107,7 +107,16 @@ Do not dispatch when:
 - Do not nest subagent dispatch.
 - Do not duplicate work between parent and subagents.
 - Do not dispatch state-dependent Test, Ship, or Reflect work — the one narrow exception is the `verification-parallelizer` (E1) profile: independently-reproducible `verification-matrix-builder` (B6) rows only, capped at 3, per `references/decision-tree-by-phase.md`'s E1 section.
-- Do not allow Build workers to touch overlapping files or contracts.
+- Do not allow Build workers to touch overlapping files or contracts. The Read-Only Overlap
+  Exception never applies to Build — it exists because a read-only worker cannot create a write
+  conflict, and Build's workers write.
+- Read-only workers **may** share a surface when the parent has declared a dedupe-and-reconcile
+  contract in the active artifact (`references/independence-rules.md`). Two read-only workers who
+  reach conflicting conclusions on that shared surface must have the conflict and its resolution
+  recorded explicitly — a parent that silently picks one has produced a wrong answer with a complete
+  audit trail.
+- Overlapping read-only workers still count against the phase cap. Independence and cap arithmetic
+  are separate constraints.
 - Read-only review workers must not edit files.
 - Parent agent remains responsible for final integration, evidence, and user-facing claims.
 

@@ -26,3 +26,12 @@ Phases with `none` role have a cap of 0 — dispatch is never allowed regardless
 For all other phases, the cap is the resolved `dispatch.max_parallel_workstreams`. If neither the global config nor repo tuning declares one, default to 1 (no parallelism).
 
 Requested worker counts above the cap must be reduced to the cap or refused. Never increase the cap in response to a user request — raising it requires editing `agent-behavior.yaml` globally or `tuning.dispatch.max_parallel_workstreams` in the repo profile, and either is a config change, not a dispatch decision.
+
+## Overlapping Read-Only Workers Still Count
+
+The Read-Only Overlap Exception (`references/independence-rules.md`) relaxes *which* candidates may
+be dispatched together. It does not relax the cap. Two read-only workers sharing a surface are still
+two workers, and both count against the resolved `max_parallel_workstreams`.
+
+Cap arithmetic is about concurrency and cost; independence is about mergeable output. They are
+separate constraints, and satisfying one has never implied the other.

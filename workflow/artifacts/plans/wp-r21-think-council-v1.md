@@ -90,6 +90,7 @@ check; Phase 7 is where the exhaustive per-rule rejection suite is completed.
 | `src/workflow/skills/dispatch-subagents/references/decision-tree-by-phase.md` | modify | RI1 | Think and Review rows plus per-phase refuse conditions |
 | `src/workflow/skills/dispatch-subagents/references/phase-caps.md` | modify | RI1, RI7 | Per-stage capping; council default-3 departure documented |
 | `src/workflow/skills/dispatch-subagents/references/output-schema.md` | modify | RI1, R4 | Acceptance criteria; disposition shape |
+| `src/workflow/skills/dispatch-subagents/references/council-contracts.md` | create | R4, R10 | Shared disposition + evidence-class contracts; see Plan Amendments |
 | `src/workflow/skills/dispatch-subagents/SKILL.md` | modify | RI1, RI2 | Determinism Rules; carve-out as bounding principle |
 | `src/workflow/agent-behavior.yaml` | modify | R2, R7, R11, RI8 | `council:` block, `sandbox_root`, depth dial |
 | `src/workflow/schemas/agent-behavior.schema.yaml` | modify | R7, RI5 | Schema for the new council block |
@@ -136,8 +137,11 @@ earlier phase has already carried its own targeted check.
 
 - **Manifest IDs:** RI1, R4, R10
 - Touches: `src/workflow/skills/dispatch-subagents/references/independence-rules.md`,
-  `references/decision-tree-by-phase.md`, `references/phase-caps.md`, `references/output-schema.md`,
-  `SKILL.md`
+  `src/workflow/skills/dispatch-subagents/references/decision-tree-by-phase.md`,
+  `src/workflow/skills/dispatch-subagents/references/phase-caps.md`,
+  `src/workflow/skills/dispatch-subagents/references/output-schema.md`,
+  `src/workflow/skills/dispatch-subagents/references/council-contracts.md`,
+  `src/workflow/skills/dispatch-subagents/SKILL.md`
 - Work: narrow the independence rule to permit read-only surface overlap under a declared
   dedupe-and-reconcile contract, with conflict recording as its teeth; specify the disposition
   contract (`accepted` / `merged` / `rejected-with-reason`, non-empty reason); specify the four
@@ -306,6 +310,25 @@ directly.
 - downstream: WP-R22 starts from Phase 1's three frozen contracts. Ship must carry A5's 1.2.0 removal
   onto the release checklist alongside OI-67's `warn-until-1.2.0` markers, or the preserved path
   becomes permanent dead weight.
+
+## Plan Amendments
+
+Amendments made after user approval are recorded here rather than applied silently. Neither changes
+the approved sequencing, the Phase 1 contract freeze, or any manifest ID's phase assignment.
+
+**A1 (2026-08-17, clerical).** Phase 1's `Touches` abbreviated four paths to `references/<file>.md`
+and `SKILL.md`. `check-scope-fence` matches literally, so the abbreviated entries did not match the
+task artifact's Changed Files. Expanded to full repo-relative paths, matching what the Repo Impact
+Map already listed. No scope change.
+
+**A2 (2026-08-17, substantive but scope-neutral).** `council-contracts.md` was added to Phase 1's
+`Touches` and to the Repo Impact Map. The map originally assigned R10 to
+`src/workflow/skills/think-council/`, created in Phase 3. Building Phase 1 made clear that WP-R22's
+Review council must inherit both R4 and R10, and inheriting them from a *Think-specific* skill
+couples the two councils in the wrong direction — defeating Phase 1's stated purpose of landing and
+freezing exactly the surfaces R22 inherits. The contracts moved to the shared dispatch contract,
+which both councils already load. No requirement changed; only the file that houses it. Rationale
+also recorded in the task artifact's Implementation Log.
 
 ## Open Questions
 

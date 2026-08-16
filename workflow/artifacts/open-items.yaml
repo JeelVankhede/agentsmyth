@@ -447,6 +447,12 @@ items:
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-74
+    source: follow-up
+    owner: workflow owner
+    next_action: "The mandatory pre-commit lifecycle gate makes incremental Build commits impossible. .githooks/pre-commit maps a staged `tasks/` artifact to the `review` phase gate, which requires status ready-for-next-phase — but a task artifact is legitimately `in-progress` for the whole of Build, and lifecycle-build's own output-schema says Plan Phases Overview is 'updated at the start of each new Build phase', which implies committing it repeatedly. Today the only ways through are one giant end-of-Build commit or routine `--no-verify`, and routine bypass of a mandatory gate is corrosive — it trains the habit the gate exists to prevent. Hit on wp-r21-think-council Phase 1 (of 7), bypassed deliberately once with the reason in the commit message. Options: map `tasks/` to no gate while status is in-progress and to `review` only when it flips to ready-for-next-phase; or gate on the task's own phase rather than its downstream phase. Prefer the former — it preserves the check that matters (a task claiming review-readiness must actually be ready) without blocking the normal Build loop."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-73
     source: follow-up
     owner: workflow owner
