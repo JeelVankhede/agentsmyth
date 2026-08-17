@@ -447,6 +447,12 @@ items:
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-75
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-coverage-ledger.mjs reads the word 'dropped' appearing in ordinary prose inside a Requirement Coverage cell as a drop claim for that manifest ID. Hit live on wp-r21-think-council Ship: the R12 row read 'availability recorded, never silently dropped' and was rejected as 'R12 is marked dropped/removed with no matching Waivers entry' — the cell says the opposite of what the validator concluded. Same false-positive family as OI-29 ('rather than ... a waiver') and the manifest-ID compound-token fixes: a keyword matched without regard to the surrounding clause. Worked around by rewording the cell. Fix: require the drop claim to be the cell's status token rather than any occurrence in its prose, and add a fixture with a negated or incidental 'dropped' mention."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-74
     source: follow-up
     owner: workflow owner
