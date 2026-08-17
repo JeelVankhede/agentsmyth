@@ -2,7 +2,7 @@
 slug: wp-r21-think-council
 version: 1
 artifact: task
-status: in-progress
+status: ready-for-next-phase
 created: 2026-08-17
 updated: 2026-08-17
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
@@ -11,7 +11,7 @@ upstream:
   - workflow/artifacts/plans/wp-r21-think-council-v1.md
 orchestration:
   phase: build
-  status: in-progress
+  status: ready-for-next-phase
   next_phase: review
   blockers: []
   user_checkpoint: none
@@ -63,8 +63,9 @@ orchestration:
 - `src/workflow/skills/dispatch-subagents/references/decision-tree-by-phase.md` — Think and Review
   rows now permit overlap under the exception; Build row states it never applies; per-phase refuse
   conditions rewritten for Think/Plan, Build, and Review — IDs: RI1
-- `src/workflow/skills/dispatch-subagents/references/phase-caps.md` — new section: overlapping
-  read-only workers still count against the cap — IDs: RI1
+- `src/workflow/skills/dispatch-subagents/references/phase-caps.md` — overlapping read-only workers
+  still count against the cap (Phase 1); council default-fan-out departure from the global
+  default-to-1 rule, with `cap_source` visibility, and per-stage capping (Phase 2) — IDs: RI1, RI7
 - `src/workflow/skills/dispatch-subagents/references/output-schema.md` — acceptance criteria for
   reconcile contracts, conflict recording, cap counting, and council-mode disposition/evidence —
   IDs: RI1, R4, R10
