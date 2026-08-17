@@ -9,7 +9,7 @@
 //
 // A green result here means the record is well-formed and internally consistent. It does not mean
 // the thinking was good.
-import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
+import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -27,13 +27,37 @@ function resolveCouncilConfig() {
   return { ...defaults, ...global, ...repo };
 }
 const councilConfig = resolveCouncilConfig();
+// Indirection so the fence helpers above can read the resolved config without a forward reference.
+const councilConfigRef = { value: councilConfig };
+
+// Tilde expansion shared by both fences. HOME being unset must not silently turn an absolute
+// sandbox path into a relative-looking one, so an unexpandable "~" is left intact and will fail
+// the absolute-path test rather than passing by accident.
+function expandHome(p) {
+  const home = process.env.HOME;
+  return home ? p.replace(/^~(?=\/|$)/, home) : p;
+}
 
 // A sandbox path is inside the repo when it is relative, or absolute-and-under the repo root.
-// "Outside the repo" is the guarantee the carve-out rests on, so it is checked, not assumed.
+// Resolved via lib.mjs's repoRoot — NOT process.cwd(), which is the invocation directory and
+// differs from the repo root whenever a validator runs from a package subdirectory of a monorepo
+// (WP-R5 supports exactly that). Review P2-1.
 function isOutsideRepo(p) {
   if (!p) return false;
-  const norm = p.replace(/^~(?=\/|$)/, process.env.HOME ?? '~');
-  return norm.startsWith('/') && !norm.startsWith(process.cwd() + '/');
+  const norm = expandHome(p);
+  return norm.startsWith('/') && !norm.startsWith(repoRoot.replace(/\/$/, '') + '/');
+}
+
+// R11's actual requirement: the declared path must lie under the RESOLVED sandbox_root, not merely
+// somewhere outside the repo. Review P1-1 — the resolved value was loaded and never compared
+// against, so "outside the repo" was standing in for a fence it does not enforce. Both checks are
+// kept: a sandbox_root misconfigured to a path inside the repo must fail both.
+function isUnderSandboxRoot(p) {
+  if (!p) return false;
+  const root = expandHome(String(councilConfigRef.value.sandbox_root ?? '')).replace(/\/$/, '');
+  if (!root) return false;
+  const norm = expandHome(p).replace(/\/$/, '');
+  return norm === root || norm.startsWith(root + '/');
 }
 
 const errors = [];
@@ -83,7 +107,9 @@ function idsOf(raw) {
 // `trial` and `web` are shape-checked; `recall` carries no citation by definition.
 function checkCitation(file, id, cls, citation) {
   if (cls === 'repo') {
-    const pathMatch = citation.match(/`?([\w./-]+\.[\w]+)`?/);
+    // A bare path with no extension is still a path — saying "names no file path" for
+    // `src/workflow/skills` was untrue and sent a reader looking for the wrong problem (P3-2).
+    const pathMatch = citation.match(/`?((?:[\w.-]+\/)*[\w.-]+)`?/);
     if (!pathMatch) {
       errors.push(`${file} finding ${id} is evidence_class repo but its citation names no file path`);
       return;
@@ -95,7 +121,15 @@ function checkCitation(file, id, cls, citation) {
     }
     const range = citation.match(/[:L](\d+)\s*[-–]\s*(\d+)/);
     if (range) {
-      const lineCount = readText(cited).split('\n').length;
+      // readText throws on a directory. A citation naming one must produce a validator error,
+      // never a stack trace — a crash reads as a broken validator rather than a bad citation.
+      let lineCount;
+      try {
+        lineCount = readText(cited).split('\n').length;
+      } catch {
+        errors.push(`${file} finding ${id} cites "${cited}" with a line range, but it is not a readable file`);
+        return;
+      }
       if (Number(range[2]) > lineCount) {
         errors.push(`${file} finding ${id} cites ${cited} lines ${range[1]}-${range[2]} but the file has ${lineCount} lines`);
         return;
@@ -149,6 +183,33 @@ for (const file of artifactFiles) {
 
   totals.briefs++;
   const mode = council.mode;
+
+  // --- R-1: re-derive the firing decision from its recorded inputs ------------------------
+  // R1 and R7 are agent behaviour, so without the inputs a validator can only confirm what mode
+  // was written down — never whether that mode was the correct consequence of the config. With
+  // them, the decision becomes reproducible: the same three values must always yield the same
+  // mode, and disagreement is a defect rather than a matter of opinion.
+  const res = council.resolution;
+  if (res) {
+    let expectedMode = 'council';
+    let expectedReason = null;
+    if (res.dispatch_enabled === 'disabled') {
+      expectedMode = 'refused';
+      expectedReason = 'dispatch-disabled';
+    } else if (res.council_enabled === 'disabled') {
+      expectedMode = 'refused';
+      expectedReason = 'council-disabled';
+    } else if (res.task_class !== 'complex') {
+      expectedMode = 'refused';
+      expectedReason = 'not-complex';
+    }
+
+    if (mode !== expectedMode) {
+      errors.push(`${file} council.mode is "${mode}" but its recorded resolution inputs (dispatch_enabled: ${res.dispatch_enabled}, council_enabled: ${res.council_enabled}, task_class: ${res.task_class}) require "${expectedMode}"`);
+    } else if (expectedReason && council.refusal_reason && council.refusal_reason !== expectedReason) {
+      errors.push(`${file} council.refusal_reason is "${council.refusal_reason}" but the recorded resolution inputs require "${expectedReason}" — the kill switch is checked before council.enabled, which is checked before task class`);
+    }
+  }
 
   if (mode === 'refused') {
     if (!council.refusal_reason) {
@@ -252,6 +313,8 @@ for (const file of artifactFiles) {
     if (m.sandbox) {
       if (!isOutsideRepo(m.sandbox)) {
         errors.push(`${file} member ${m.id} declares sandbox "${m.sandbox}" which does not resolve outside the repository; the no-repo-mutation guarantee is structural, not advisory`);
+      } else if (!isUnderSandboxRoot(m.sandbox)) {
+        errors.push(`${file} member ${m.id} declares sandbox "${m.sandbox}" which is outside the repo but not under the resolved council.sandbox_root "${councilConfig.sandbox_root}"; confinement is to the configured root, not merely to "somewhere else"`);
       }
       const key = `${m.round}::${m.sandbox}`;
       if (sandboxByRound.has(key)) {
@@ -288,12 +351,22 @@ for (const file of artifactFiles) {
   }
 
   // --- survivors escalate rather than expiring --------------------------------------------
+  // Review P1-2: this rule used to read survivors out of free text, so a run could terminate
+  // "max-rounds" and simply delete the line — the escape was one keystroke, which left the rule
+  // enforcing good behaviour only in runs that were already behaving. The declaration is now
+  // MANDATORY for the two terminations that imply unfinished business, so silence fails before
+  // the survivor comparison is even reached.
+  const terminationText = subSection(logSection, 'Termination') ?? '';
+  const survivorLine = terminationText.match(/Surviving items[^:]*:\s*(.*)/i)?.[1];
+  const impliesUnfinished = council.termination_reason === 'max-rounds' || council.termination_reason === 'no-progress';
+
+  if (impliesUnfinished && (survivorLine === undefined || !survivorLine.trim())) {
+    errors.push(`${file} terminated "${council.termination_reason}" without declaring its surviving items; a termination that implies unfinished business must state what was left unfinished, and omitting the line is not a way to have left nothing`);
+  }
+
   if (rounds.length > 1) {
     const closedEver = new Set(rounds.flatMap((r) => r.closed));
-    const everOpen = new Set(rounds.flatMap((r) => idsOf(String(r.openIn === null ? '' : ''))));
-    void everOpen;
-    const survivors = idsOf(subSection(logSection, 'Termination')?.match(/Surviving items[^:]*:\s*(.*)/i)?.[1] ?? '')
-      .filter((id) => !closedEver.has(id));
+    const survivors = idsOf(survivorLine ?? '').filter((id) => !closedEver.has(id));
     if (council.termination_reason === 'max-rounds' && survivors.length > 0) {
       errors.push(`${file} terminated "max-rounds" while ${survivors.join(', ')} survived every round without closing; a survivor is evidence the council cannot resolve it, so the run must terminate "user-decision-required"`);
     }
@@ -312,6 +385,23 @@ for (const file of artifactFiles) {
   }));
 
   totals.findings += findings.length;
+
+  // --- R-2: repo integrity across the run, filesystem-scoped ------------------------------
+  // Required whenever any member declared a sandbox, i.e. whenever a trial could have written
+  // anything. The digest deliberately covers gitignored build outputs — `git status` reports clean
+  // for dist/, which is exactly what consumers install, so a git-scoped check passes green where
+  // the damage is invisible.
+  const anySandbox = members.some((m) => m.sandbox);
+  const integrity = council.repo_integrity;
+  if (anySandbox) {
+    if (!integrity) {
+      errors.push(`${file} declares sandbox-using member(s) but records no council.repo_integrity; a run that could write must carry a before/after repo digest (see validators/repo-digest.mjs)`);
+    } else if (integrity.before !== integrity.after) {
+      errors.push(`${file} council.repo_integrity before (${integrity.before}) and after (${integrity.after}) differ — the repository changed across the council run, which no member is permitted to do`);
+    } else if (!/sha256/i.test(String(integrity.algorithm ?? ''))) {
+      errors.push(`${file} council.repo_integrity.algorithm "${integrity.algorithm}" is not a recognised digest; use the algorithm string printed by validators/repo-digest.mjs so the value is reproducible`);
+    }
+  }
 
   const memberIds = new Set(members.map((m) => m.id));
   const bySurface = new Map();
@@ -382,9 +472,27 @@ for (const file of artifactFiles) {
   // R5 — a surviving Q must carry a recommendation, and that recommendation must rest on findings
   // that exist and are not exclusively recall. Escalating without a recommendation is the exact
   // behaviour the council was built to remove.
-  const qSection = namedSection(parsed.body, 'Questions For User') ?? '';
+  // A council-mode brief with no Questions For User section is a record that fails OPEN: every
+  // check below silently evaluates to nothing and the artifact passes having proved nothing. Found
+  // while researching how this validator would behave on a review artifact, which has no such
+  // section at all.
+  const qSectionRaw = namedSection(parsed.body, 'Questions For User');
+  if (qSectionRaw === null) {
+    errors.push(`${file} declares council mode but has no "## Questions For User" section; the escalation checks would pass vacuously rather than verifying anything`);
+  }
+  const qSection = qSectionRaw ?? '';
   const findingIds = new Set(findings.map((f) => f.id));
-  for (const line of qSection.split('\n')) {
+
+  // Bullets wrap. Reading one physical line at a time meant a question whose evidence references
+  // sat on a continuation line looked unevidenced — which is exactly how this validator rejected
+  // its own first real council record. Fold each bullet back into one logical line first.
+  const qLines = [];
+  for (const raw of qSection.split('\n')) {
+    if (/^\s*[-*]\s/.test(raw) || qLines.length === 0) qLines.push(raw);
+    else qLines[qLines.length - 1] += ' ' + raw.trim();
+  }
+
+  for (const line of qLines) {
     const qId = line.match(/\b(Q\d+)\b/)?.[1];
     if (!qId) continue;
     const refIds = [...line.matchAll(/\bF\d+\b/g)].map((m) => m[0]);
@@ -395,7 +503,13 @@ for (const file of artifactFiles) {
       continue;
     }
     if (refIds.length === 0) {
-      errors.push(`${file} ${qId} carries a recommendation with no finding references; the evidence it rests on must be citable`);
+      // A question can legitimately have no evidence — when the bucket assigned to it never
+      // completed. That question must still reach the user; it is the one they most need. What must
+      // not happen is silence: an unevidenced question indistinguishable from a researched one.
+      // So an explicit no-evidence declaration passes, and a bare reference-free question fails.
+      // Found by running a real council whose third member died twice on an API 529 (2026-08-17).
+      if (/\b(no finding|unresearched|not researched|never ran|bucket failed)\b/i.test(line)) continue;
+      errors.push(`${file} ${qId} carries a recommendation with no finding references; cite the findings it rests on, or state explicitly that it rests on none and why`);
       continue;
     }
     const unknown = refIds.filter((id) => !findingIds.has(id));

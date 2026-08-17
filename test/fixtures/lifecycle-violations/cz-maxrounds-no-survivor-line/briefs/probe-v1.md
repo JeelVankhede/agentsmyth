@@ -22,7 +22,7 @@ council:
   depth: standard
   dispatch_depth: 1
   rounds_run: 2
-  termination_reason: user-decision-required
+  termination_reason: max-rounds
   resolution:
     dispatch_enabled: optional
     council_enabled: on-for-complex
@@ -88,7 +88,7 @@ council:
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
 | m1 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
-| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
+| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 
@@ -115,8 +115,7 @@ council:
 
 ### Termination
 
-- Reason: user-decision-required
-- Surviving items and their round history: Q5 open in rounds 1 and 2, closed in neither
+- Reason: max-rounds
 
 ## Architecture Notes
 

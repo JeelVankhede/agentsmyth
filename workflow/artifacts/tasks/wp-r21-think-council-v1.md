@@ -86,6 +86,17 @@ orchestration:
 - `scripts/validate-template.mjs` — registered the validator (explicit list, not auto-discovered) — IDs: RI3
 - `test/run-violation-tests.mjs` + 15 fixture dirs — one rejection fixture per rule — IDs: RI9
 - `test/run-conformance-tests.mjs` + `test/fixtures/conformance/council-wellformed/` — positive control, summary-output lock, stage-list lock, verbatim-preservation lock — IDs: R8, R15, RI3, RI9
+- `src/workflow/validators/repo-digest.mjs` — new; filesystem-scoped repo digest covering gitignored build outputs, closing review residual R-2 — IDs: R11, RI3
+- `src/workflow/validators/check-lifecycle.mjs` — checkpoint evidence extractor no longer truncates a multi-line verbatim quote (OI-73) — IDs: RI3
+- `src/assets/hooks/pre-commit` — the downstream phase gate now applies to a task artifact only once it claims ready-for-next-phase, so incremental Build commits no longer require --no-verify (OI-74) — IDs: RI3
+- `.githooks/pre-commit` — this repo's own copy, kept in sync with the shipped asset above (OI-74) — IDs: RI3
+- `test/fixtures/lifecycle-violations/cy-sandbox-outside-root` — sandbox outside the repo but not under the resolved root (P1-1) — IDs: R11, RI9
+- `test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line` — max-rounds omitting its surviving-items declaration (P1-2) — IDs: R13, RI9
+- `test/fixtures/lifecycle-violations/da-no-questions-section` — council brief whose escalation checks would pass vacuously — IDs: R5, RI9
+- `test/fixtures/lifecycle-violations/db-resolution-mismatch` — mode contradicts its recorded resolution inputs (R-1) — IDs: R7, RI9
+- `test/fixtures/lifecycle-violations/dc-refusal-reason-wrong` — refusal reason contradicts resolution precedence (R-1) — IDs: R7, RI9
+- `test/fixtures/lifecycle-violations/dd-sandbox-without-integrity` — sandbox-using run with no repo digest (R-2) — IDs: R11, RI9
+- `test/fixtures/lifecycle-violations/de-integrity-mismatch` — repo digest differs across the run (R-2) — IDs: R11, RI9
 
 ## Implementation Log
 

@@ -87,8 +87,8 @@ council:
 
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
-| m1 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
-| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
+| m1 | researcher | 1 | read, fetch, search | /tmp/somewhere-else/m1 |
+| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 

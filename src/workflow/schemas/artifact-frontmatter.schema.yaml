@@ -208,6 +208,56 @@ properties:
           - user-decision-required
           - max-rounds
           - no-progress
+      resolution:
+        type: object
+        additionalProperties: false
+        description: >-
+          The three resolved inputs that decided whether a council fired, recorded so the decision
+          can be RE-DERIVED rather than merely asserted (WP-R21 review residual R-1). Without these,
+          a validator can confirm what mode was written down but not whether that mode was the
+          correct consequence of the config - which is the whole of R1 and R7. Optional, because a
+          brief written before 1.1.0 has none; when present, the validator recomputes the expected
+          mode and fails on disagreement.
+        required:
+          - dispatch_enabled
+          - council_enabled
+          - task_class
+        properties:
+          dispatch_enabled:
+            type: string
+            enum: [optional, disabled]
+            description: The RESOLVED value, after tuning.dispatch.enabled overrides the global. Checked first - disabled suppresses the council in every phase.
+          council_enabled:
+            type: string
+            enum: [on-for-complex, disabled]
+            description: The RESOLVED council.enabled, after tuning.council.enabled overrides the global.
+          task_class:
+            type: string
+            enum: [trivial, standard, complex]
+      repo_integrity:
+        type: object
+        additionalProperties: false
+        description: >-
+          Filesystem-scoped digest of the repository taken before and after the council ran (WP-R21
+          review residual R-2). Deliberately NOT git-scoped - `git status` reports clean for
+          gitignored paths, and dist/ is both gitignored and the thing consumers actually install,
+          so a git-based assertion passes green exactly where the damage would be invisible.
+          Required whenever any member declared a sandbox, i.e. whenever a trial could have written.
+        required:
+          - before
+          - after
+          - algorithm
+        properties:
+          before:
+            type: string
+            minLength: 8
+          after:
+            type: string
+            minLength: 8
+          algorithm:
+            type: string
+            minLength: 3
+            description: The digest tool and mode used, so a reader can reproduce it. Produced by validators/repo-digest.mjs.
       evidence_classes:
         type: object
         additionalProperties: false

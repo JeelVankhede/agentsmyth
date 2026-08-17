@@ -37,10 +37,16 @@ This skill may fire **without per-conversation user authorization**, which is a 
 the standing rule in `dispatch-subagents/SKILL.md`.
 
 The bounding principle: **auto-fire is permitted only for members that cannot mutate the user's
-repository, in phases that produce no verdict.** The conditions in Invocation Context are
-consequences of that principle, not an arbitrary list. It self-limits — Build cannot claim this
-exception, because Build's output *is* repository mutation, so a non-mutating Build worker produces
-nothing usable.
+repository, and only where the council's own output is not a verdict.** The second clause is about
+the council's output, not the phase's artifact — a council produces findings the parent
+consolidates, and the parent owns the verdict.
+
+The conditions in Invocation Context are consequences of that principle, not an arbitrary list. It
+self-limits — Build cannot claim this exception, because Build's output *is* repository mutation, so
+a non-mutating Build worker produces nothing usable.
+
+`dispatch-subagents/SKILL.md` is the authority for this principle. This paragraph exists so a member
+loading only the council charter still sees it; if the two ever diverge, the dispatch contract wins.
 
 Record the authorization mode in the artifact (`carve-out` or `explicit`) so a reader can always tell
 an auto-fired council from one the user asked for.

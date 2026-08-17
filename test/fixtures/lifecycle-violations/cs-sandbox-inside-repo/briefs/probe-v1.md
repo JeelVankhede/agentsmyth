@@ -23,6 +23,14 @@ council:
   dispatch_depth: 1
   rounds_run: 2
   termination_reason: user-decision-required
+  resolution:
+    dispatch_enabled: optional
+    council_enabled: on-for-complex
+    task_class: complex
+  repo_integrity:
+    before: sha256:aaaaaaaaaaaa
+    after: sha256:aaaaaaaaaaaa
+    algorithm: sha256/sorted-relpath+size+content
   evidence_classes:
     repo: used
     trial: unused
@@ -80,7 +88,7 @@ council:
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
 | m1 | researcher | 1 | read, fetch, search | test/fixtures/scratch/m1 |
-| m2 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m2 |
+| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 

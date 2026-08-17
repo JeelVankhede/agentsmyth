@@ -15,7 +15,8 @@ orchestration:
   blockers: []
   user_checkpoint: brief-review
 council:
-  mode: council
+  mode: refused
+  refusal_reason: not-complex
   authorization: carve-out
   cap_resolved: 3
   cap_source: configured
@@ -25,7 +26,7 @@ council:
   termination_reason: user-decision-required
   resolution:
     dispatch_enabled: optional
-    council_enabled: on-for-complex
+    council_enabled: disabled
     task_class: complex
   repo_integrity:
     before: sha256:aaaaaaaaaaaa
@@ -88,7 +89,7 @@ council:
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
 | m1 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
-| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
+| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 

@@ -251,7 +251,18 @@ earlier phase has already carried its own targeted check.
   `test/fixtures/lifecycle-violations/cv-q-unresolvable-reference`,
   `test/fixtures/lifecycle-violations/cw-trial-without-sandbox`,
   `test/fixtures/lifecycle-violations/cx-finding-unknown-member`,
+  `test/fixtures/lifecycle-violations/cy-sandbox-outside-root`,
+  `test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line`,
+  `test/fixtures/lifecycle-violations/da-no-questions-section`,
+  `test/fixtures/lifecycle-violations/db-resolution-mismatch`,
+  `test/fixtures/lifecycle-violations/dc-refusal-reason-wrong`,
+  `test/fixtures/lifecycle-violations/dd-sandbox-without-integrity`,
+  `test/fixtures/lifecycle-violations/de-integrity-mismatch`,
   `test/fixtures/conformance/council-wellformed`,
+  `src/workflow/validators/repo-digest.mjs`,
+  `src/workflow/validators/check-lifecycle.mjs`,
+  `src/assets/hooks/pre-commit`,
+  `.githooks/pre-commit`,
   `test/run-conformance-tests.mjs`
 - Work: one fixture per mechanical rule, each rejected by `check-council-record.mjs` specifically
   rather than incidentally by another validator; a conformance check locking the SKILL.md stage list
@@ -377,6 +388,17 @@ Corrected by adding `### Requirement Classification` and `### Members` to the Th
 resolved-config loader for `max_rounds` and `sandbox_root` in `check-council-record.mjs`, the nine
 missing checks, and nine rejection fixtures. Phase 7's `Touches` extended accordingly. No requirement
 changed; the requirements are now enforced rather than merely documented.
+
+**A5 (2026-08-18, corrective — review remediation scope).** Closing the review's five findings and
+four residual risks required files Phase 7 had not declared. Added to its `Touches`: the seven new
+rejection fixtures (`cy`–`de`), `validators/repo-digest.mjs` (new — the filesystem-scoped digest
+that closes R-2, since `git status` is blind to `dist/`), `validators/check-lifecycle.mjs` (OI-73,
+the checkpoint quote extractor), and both copies of the pre-commit hook (OI-74, which had been
+forcing `--no-verify` on every incremental Build commit).
+
+OI-73 and OI-74 are not WP-R21 manifest IDs. They are shipped-contract defects this chain surfaced
+and the user directed be fixed here rather than deferred. Recorded as in-scope by this amendment
+rather than smuggled in under an existing ID, so the manifest keeps meaning what it says.
 
 ## Open Questions
 

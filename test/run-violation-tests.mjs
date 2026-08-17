@@ -229,6 +229,17 @@ const fixtures = [
   { id: 'cv', dir: 'test/fixtures/lifecycle-violations/cv-q-unresolvable-reference', description: '(WP-R21, R5) Q cites a finding ID absent from the Findings table — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cw', dir: 'test/fixtures/lifecycle-violations/cw-trial-without-sandbox', description: '(WP-R21, R11) trial finding whose member declares no sandbox path — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cx', dir: 'test/fixtures/lifecycle-violations/cx-finding-unknown-member', description: '(WP-R21, R3) finding attributed to a member absent from Members — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // Added when Review's P1 findings were fixed — each closes a hole the earlier suite could not see.
+  { id: 'cy', dir: 'test/fixtures/lifecycle-violations/cy-sandbox-outside-root', description: '(WP-R21, R11) sandbox is outside the repo but not under the resolved council.sandbox_root — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cz', dir: 'test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line', description: '(WP-R21, R13) max-rounds termination omits its surviving-items declaration — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'da', dir: 'test/fixtures/lifecycle-violations/da-no-questions-section', description: '(WP-R21, R5) council brief with no Questions For User section — escalation checks would pass vacuously — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // Review residuals R-1 and R-2, closed. R-1 makes the firing decision re-derivable rather than
+  // merely asserted; R-2 asserts repo integrity filesystem-scoped, since git status is blind to
+  // dist/ — the one artifact consumers actually install.
+  { id: 'db', dir: 'test/fixtures/lifecycle-violations/db-resolution-mismatch', description: '(WP-R21, R7/R-1) council fired though its recorded resolution inputs require a refusal — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dc', dir: 'test/fixtures/lifecycle-violations/dc-refusal-reason-wrong', description: '(WP-R21, R7/R-1) refusal_reason contradicts the recorded resolution precedence — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dd', dir: 'test/fixtures/lifecycle-violations/dd-sandbox-without-integrity', description: '(WP-R21, R11/R-2) sandbox-using run records no before/after repo digest — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'de', dir: 'test/fixtures/lifecycle-violations/de-integrity-mismatch', description: '(WP-R21, R11/R-2) repo digest differs across the council run — the repo changed — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

@@ -40,6 +40,12 @@ be reduced without shrinking the council.
 The departure is bounded: it changes the *default*, never the ceiling. A declared
 `max_parallel_workstreams` still wins, and `council.default_fan_out` is itself capped by the schema.
 
+**Scope: Think only, as shipped in 1.1.0.** This departure applies to the Think council and to no
+other phase. It is written that way deliberately — a phase-agnostic default would mean that the
+moment a council is extended to another phase, every unconfigured consumer silently acquires a
+multi-member council there too, having chosen nothing. Any package extending councils to a new
+phase must decide that phase's default explicitly rather than inheriting this one.
+
 ### Council stages are capped independently
 
 A council round runs researchers as one parallel stage, then challengers as a second stage against

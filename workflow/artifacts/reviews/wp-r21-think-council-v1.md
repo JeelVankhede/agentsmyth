@@ -4,7 +4,7 @@ version: 1
 artifact: review
 status: ready-for-next-phase
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-18
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
 upstream:
   - workflow/artifacts/tasks/wp-r21-think-council-v1.md
@@ -102,30 +102,34 @@ reading it, which is worth noting: reading it had already produced a clean bill 
 
 ## Severity Summary
 
-| Severity | Count | IDs |
-|---|---|---|
-| P0 | 0 | — |
-| P1 | 2 | P1-1, P1-2 |
-| P2 | 1 | P2-1 |
-| P3 | 2 | P3-1, P3-2 |
+| Severity | Open | Found | IDs | Status |
+|---|---|---|---|---|
+| P0 | 0 | 0 | — | — |
+| P1 | 0 | 2 | P1-1, P1-2 | both fixed 2026-08-18, each locked by a fixture |
+| P2 | 0 | 1 | P2-1 | fixed 2026-08-18, locked by a discriminating probe |
+| P3 | 0 | 2 | P3-1, P3-2 | both fixed 2026-08-18 |
+
+All findings are closed. The `Open` column is what `check-release-readiness.mjs` reads; `Found`
+preserves what the review actually caught, because erasing that would make the review look like it
+found nothing.
 
 ## Requirement Coverage
 
 | Manifest ID | Status | Notes |
 |---|---|---|
-| R1 | partial | Complex-only trigger is documented in the pipeline's mode resolution; no artifact records the task class, so no check can re-derive it. Residual R-1. |
+| R1 | covered | `council.resolution.task_class` is recorded and the validator recomputes the expected mode from it (`db`). Was partial; closed by R-1 remediation. |
 | R2 | covered | Both axes enforced; carve-out outward capability rejected by fixture `cr` |
 | R3 | covered | Attribution, declared-member existence, and the web spot-check duty all enforced (`ca`, `cx`, `ci`) |
 | R4 | covered | Disposition enum and non-empty reason enforced (`cb`) |
 | R5 | covered | Missing recommendation, unresolvable refs, and recall-only all enforced (`cu`, `cv`, `cj`) |
 | R6 | covered | Every existing brief validates with zero edits; `council:` optional at schema top level |
-| R7 | partial | Kill-switch precedence is documented and schema-backed; the resolution itself is agent behaviour with no recorded input. Residual R-1. |
+| R7 | covered | Precedence is re-derived from the recorded resolution inputs, including refusal-reason ordering (`db`, `dc`). Was partial; closed by R-1 remediation. |
 | R8 | covered | Preserved path byte-locked by conformance `r21-single-agent-verbatim` |
 | R9 | covered | Classification presence and non-empty class list enforced (`cp`, `cq`) |
 | R10 | covered | Per-class citation contracts enforced (`cf`, `cg`, `cj`); P3-2 is a message defect, not a coverage gap |
-| R11 | partial | Sandbox declaration and disjointness enforced (`cs`, `ct`, `cw`), but the `sandbox_root` fence is not — P1-1. Repo-integrity hashing over gitignored outputs is not implemented at all. Residual R-2. |
+| R11 | covered | Declaration and disjointness (`cs`, `ct`, `cw`), the `sandbox_root` fence (`cy`), and filesystem-scoped repo integrity including gitignored outputs (`dd`, `de`) all enforced. Was partial; closed by P1-1 and R-2 remediation. |
 | R12 | covered | Per-class availability enforced; refusal reason enforced (`cl`) |
-| R13 | partial | Non-increasing fan-out, taper coherence, and `max_rounds` enforced (`cc`, `cd`); survivor escalation evadable — P1-2 |
+| R13 | covered | Non-increasing fan-out, taper coherence, `max_rounds` (`cc`, `cd`, `ce`), and the now-mandatory survivor declaration (`cz`) all enforced. Was partial; closed by P1-2 remediation. |
 | R14 | covered | Round, finding, conflict, and termination structure all required |
 | R15 | covered | Eight-stage list locked by conformance `r21-think-stages` |
 | RI1 | covered | Blanket form gone; conflict recording enforced (`ch`, `co`) |
@@ -138,8 +142,8 @@ reading it, which is worth noting: reading it had already produced a clean bill 
 | RI8 | covered | Depth dial resolves global-then-repo-local and is schema-constrained |
 | RI9 | covered | 24 fixtures, attribution sweep confirms one error each |
 
-Four `partial` rows appear as findings (P1-1, P1-2) or residual risk (R-1, R-2) as the schema
-requires.
+No `partial` rows remain. The four that were partial at review time — R1, R7, R11, R13 — are closed
+by the remediation recorded below, each with a fixture named in its row.
 
 ## Architecture Notes
 
@@ -172,29 +176,74 @@ requires.
 
 ## Residual Risk
 
-- **R-1 — resolution behaviour is unverifiable from the record (R1, R7).** Kill-switch precedence and
-  the Complex-only trigger are performed by the agent. No artifact records the inputs — resolved
-  `dispatch.enabled`, resolved `council.enabled`, task class — so no validator can re-derive whether
-  the decision was correct; it can only confirm what was written down. Closing this means recording
-  resolution inputs in the `council:` block. Deliberately not done unilaterally after three plan
-  amendments; it is a schema addition and belongs to a decision, not a fix.
-- **R-2 — repo-integrity hashing is unimplemented (R11).** The brief calls for a filesystem-scoped
-  content assertion over the repo root *including gitignored build outputs*, because `git status`
-  reports clean for `dist/`. Nothing implements it. The sandbox declaration checks bound where writes
-  are *declared* to go; nothing detects a write that actually landed in `dist/`. This was the
-  concrete defect RK-I was re-scoped around, and it is still open.
-- **R-3 — cost is still unmeasured (RK-C).** No council has run. The plan committed to measuring the
-  multiplier during Build against the single-agent baseline; that has not happened, and the taper's
-  economics remain an argument rather than a number.
-- **R-4 — two `--no-verify` commits (OI-74).** Both documented in their commit messages with reasons.
-  The gate still makes incremental Build commits impossible, and every future multi-phase chain will
-  hit it.
+All four residual risks raised by this review are closed. Retained here with their outcomes rather
+than deleted, because a residual-risk section that only ever lists open items gives no signal about
+whether anything ever gets closed.
+
+- **R-1 — resolution behaviour unverifiable from the record. CLOSED.** `council.resolution` now
+  records resolved `dispatch_enabled`, resolved `council_enabled`, and `task_class`; the validator
+  recomputes the expected mode and fails on disagreement. Fixtures `db`, `dc`.
+- **R-2 — repo-integrity hashing unimplemented. CLOSED.** `validators/repo-digest.mjs` digests the
+  tree including gitignored build outputs; `council.repo_integrity` carries before/after and is
+  required whenever a member declared a sandbox. Fixtures `dd`, `de`, plus the live `dist/` proof.
+- **R-3 — cost unmeasured. CLOSED as measured, and the result is unfavourable.** ~6× invocations for
+  less coverage than a single-agent baseline. Not a defect to fix; an input to the product decision
+  about whether `council.enabled` should default on.
+- **R-4 — two `--no-verify` commits (OI-74). CLOSED.** The hook now gates a `tasks/` artifact on the
+  downstream phase only once it claims `ready-for-next-phase`, so incremental Build commits no longer
+  require a bypass.
+
+Carried forward as a stated limit rather than a risk: RI6's non-claims. `check-council-record`
+validates the record, not the thinking, and no amount of remediation changes that.
+
+## Post-Review Remediation (2026-08-18)
+
+All five findings and all four residual risks were closed after this review was written. Recorded
+here rather than by rewriting the findings above, so the review still shows what it caught.
+
+| Item | Fix | Locked by |
+|---|---|---|
+| P1-1 `sandbox_root` never compared | `isUnderSandboxRoot()`; both fences kept so a root misconfigured inside the repo fails both | fixture `cy-sandbox-outside-root` |
+| P1-2 survivor rule evadable by omission | The surviving-items declaration is now mandatory for `max-rounds`/`no-progress`, so silence fails before the comparison runs | fixture `cz-maxrounds-no-survivor-line` |
+| P2-1 `process.cwd()` not repo root | Uses `lib.mjs`'s resolved `repoRoot` | probe: absolute in-repo sandbox path rejected identically from repo root and from `src/` |
+| P3-1 dead code | Removed with the P1-2 rewrite | `grep void everOpen` → 0 |
+| P3-2 message + unguarded `readText` | Extensionless paths recognised; `readText` guarded so a directory citation errors instead of throwing | — |
+| R-1 resolution unverifiable | `council.resolution` records the three deciding inputs; the validator recomputes the expected mode and fails on disagreement, including refusal-reason precedence | fixtures `db-resolution-mismatch`, `dc-refusal-reason-wrong` |
+| R-2 repo integrity unimplemented | New `validators/repo-digest.mjs` hashes the tree **including gitignored build outputs**; `council.repo_integrity` carries before/after, required whenever a member declared a sandbox | fixtures `dd-sandbox-without-integrity`, `de-integrity-mismatch` |
+| R-3 cost unmeasured | Measured against a real single-agent baseline — see below | — |
+| R-4 `--no-verify` (OI-74) | Hook now checks the downstream gate only once a task claims `ready-for-next-phase` | — |
+
+Four further defects were found by the live council run and fixed at the same time: the
+`decision-tree-by-phase.md` carve-out desync, `think-council/SKILL.md` carrying superseded wording,
+the phase-agnostic `default_fan_out`, and two validator parsing defects (wrapped Q bullets, and a
+missing `Questions For User` section failing open).
+
+**R-2 proof.** Mutating `dist/workflow-bundle.md` — gitignored, and the file consumers actually
+install — leaves `git status --porcelain dist/` empty while the digest moves
+`7c7aaf95bb62 → f08677cc6ca1`, and `npm run build` restores it exactly. The build is deterministic
+across repeated runs.
+
+**R-3 measurement, reported against interest.** A real single-agent baseline over the same three
+research buckets produced **22 findings from 1 invocation**; the council produced **8 from 4 intended
+invocations (6 attempted, two lost to API 529s)** and covered only 2 of 3 buckets after one member
+died. Not a controlled A/B — the council ran before several fixes and the baseline after — but on
+invocation count the council cost roughly 6× for less coverage. Its distinctive contribution was the
+challenge pass refuting a wrong finding, which the baseline has no mechanism for and which showed in
+the baseline's own output (at least one of its claims is imprecise and nothing checked it). Whether
+that justifies `council.enabled` defaulting on is a product decision this review does not make.
+
+Suite after remediation: `validate` exit 0 · conformance 19/19 · violations 56 → **60/60** ·
+31 council fixtures, attribution sweep confirming exactly one error each.
 
 ## Recommendation
 
-pass-with-risk
+pass
 
-The five findings are real but none blocks Test. The two P1s are missed-rejection defects in a
-validator, not defects in shipped behaviour, and their fixes are additive. R-2 and R-3 are the ones
-worth deciding on before Ship rather than before Test: R-2 is an unimplemented requirement rather
-than a weak check, and R-3 means a headline cost claim is still unmeasured.
+All five findings and all four residual risks are closed, each mechanically locked rather than
+asserted. The recommendation at the time of review was `pass-with-risk`; it is raised to `pass` on
+the remediation above.
+
+Two things are carried forward as known limits rather than open findings, because neither is a
+defect in what shipped: the `check-council-record` non-claims stated in RI6 (it validates the
+record, not the thinking), and the R-3 cost result, which is a measured input to a product decision
+about the default rather than something to fix.

@@ -66,8 +66,8 @@ orchestration:
 
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
-| m1 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m1 |
-| m2 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m2 |
+| m1 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m1 |
+| m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 

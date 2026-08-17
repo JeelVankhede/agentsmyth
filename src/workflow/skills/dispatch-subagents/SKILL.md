@@ -22,7 +22,14 @@ Use this skill only when:
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
 **Named exception — council auto-fire (WP-R21).** The bounding principle: *auto-fire is permitted
-only for members that cannot mutate the user's repository, in phases that produce no verdict.*
+only for members that cannot mutate the user's repository, and only where the council's own output
+is not a verdict.*
+
+The second clause is about the **council's output**, not the phase's artifact. Review produces a
+verdict; a Review *council* does not — it produces findings the parent consolidates, and the parent
+owns the verdict (see `workflow/skills/think-council/references/output-schema.md`). An earlier
+wording said "in phases that produce no verdict", which read as excluding Review and contradicted
+the condition list below.
 
 Its consequences, which are the conditions to check:
 
