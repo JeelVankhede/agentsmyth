@@ -218,6 +218,17 @@ const fixtures = [
   { id: 'cm', dir: 'test/fixtures/lifecycle-violations/cm-stage-cap-exceeded', description: '(WP-R21, R2) stage fan-out exceeds the resolved cap — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cn', dir: 'test/fixtures/lifecycle-violations/cn-log-without-council-block', description: '(WP-R21, RI4) Council Log body section with no council frontmatter block — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'co', dir: 'test/fixtures/lifecycle-violations/co-missing-conflicts-section', description: '(WP-R21, RI1) Conflicts subsection absent entirely — "no conflicts" must be asserted — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // Added after a self-audit found these acceptance criteria documented but unenforced — the exact
+  // drift this package exists to prevent, committed while building it.
+  { id: 'cp', dir: 'test/fixtures/lifecycle-violations/cp-missing-classification', description: '(WP-R21, R9) active manifest ID has no Requirement Classification entry — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cq', dir: 'test/fixtures/lifecycle-violations/cq-classification-no-class', description: '(WP-R21, R9) classification entry names zero evidence classes — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cr', dir: 'test/fixtures/lifecycle-violations/cr-carveout-outward-capability', description: '(WP-R21, R2) carve-out member declares outward-action capability — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cs', dir: 'test/fixtures/lifecycle-violations/cs-sandbox-inside-repo', description: '(WP-R21, R11) declared sandbox path does not resolve outside the repository — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ct', dir: 'test/fixtures/lifecycle-violations/ct-shared-sandbox-path', description: '(WP-R21, R11) two members share a sandbox subpath in the same round — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cu', dir: 'test/fixtures/lifecycle-violations/cu-q-without-recommendation', description: '(WP-R21, R5) surviving Q reaches the user with no recommendation — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cv', dir: 'test/fixtures/lifecycle-violations/cv-q-unresolvable-reference', description: '(WP-R21, R5) Q cites a finding ID absent from the Findings table — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cw', dir: 'test/fixtures/lifecycle-violations/cw-trial-without-sandbox', description: '(WP-R21, R11) trial finding whose member declares no sandbox path — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cx', dir: 'test/fixtures/lifecycle-violations/cx-finding-unknown-member', description: '(WP-R21, R3) finding attributed to a member absent from Members — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

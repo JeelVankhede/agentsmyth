@@ -242,6 +242,15 @@ earlier phase has already carried its own targeted check.
   `test/fixtures/lifecycle-violations/cm-stage-cap-exceeded`,
   `test/fixtures/lifecycle-violations/cn-log-without-council-block`,
   `test/fixtures/lifecycle-violations/co-missing-conflicts-section`,
+  `test/fixtures/lifecycle-violations/cp-missing-classification`,
+  `test/fixtures/lifecycle-violations/cq-classification-no-class`,
+  `test/fixtures/lifecycle-violations/cr-carveout-outward-capability`,
+  `test/fixtures/lifecycle-violations/cs-sandbox-inside-repo`,
+  `test/fixtures/lifecycle-violations/ct-shared-sandbox-path`,
+  `test/fixtures/lifecycle-violations/cu-q-without-recommendation`,
+  `test/fixtures/lifecycle-violations/cv-q-unresolvable-reference`,
+  `test/fixtures/lifecycle-violations/cw-trial-without-sandbox`,
+  `test/fixtures/lifecycle-violations/cx-finding-unknown-member`,
   `test/fixtures/conformance/council-wellformed`,
   `test/run-conformance-tests.mjs`
 - Work: one fixture per mechanical rule, each rejected by `check-council-record.mjs` specifically
@@ -352,6 +361,22 @@ named for the rule each one violates (`ca-unattributed-finding`, `cb-empty-rejec
 rather than with a `council-` prefix. Expanded to the fifteen real directories plus
 `test/fixtures/conformance/council-wellformed`, which holds the positive control. No scope change —
 same fixtures, named as built.
+
+**A4 (2026-08-17, corrective — not clerical).** A self-audit after the Phase 7 commit found six
+acceptance criteria that had been written into shipped documentation but never made mechanical:
+R9's classification requirement had no schema field, section, or check at all; R11's sandbox rules
+were entirely unimplemented because the validator never read a Members table; R2's outward-capability
+rule, R13's `max_rounds` bound, and half of R5's surviving-`Q` rule were likewise absent. The Phase 7
+commit had described this as a "partial gate deferral", which mischaracterised a gap as a schedule.
+
+Cause, recorded because it is the more useful artifact than the fix: phase completion was judged by
+the suite being green, and the suite only ever tested what had been written — never what the plan
+required. A green run proved the fixtures rejected; it proved nothing about criteria with no fixture.
+
+Corrected by adding `### Requirement Classification` and `### Members` to the Think output schema, a
+resolved-config loader for `max_rounds` and `sandbox_root` in `check-council-record.mjs`, the nine
+missing checks, and nine rejection fixtures. Phase 7's `Touches` extended accordingly. No requirement
+changed; the requirements are now enforced rather than merely documented.
 
 ## Open Questions
 

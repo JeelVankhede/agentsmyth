@@ -96,8 +96,8 @@ council:
 | Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
 |---|---|---|---|---|---|---|---|
 | F1 | m1 | researcher | package.json | repo | `package.json` scripts block | accepted | |
-| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec | accepted | |
-| F3 | m3 | researcher | prior art | recall | | accepted | |
+| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| F3 | m3 | researcher | prior art | trial | `npm test` → output shows 3 failures | accepted | |
 | F4 | c1 | challenger | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 
 ### Conflicts

@@ -179,9 +179,45 @@ none
 | Phase | Completed | Exit gate evidence |
 |---|---|---|
 | Phase 1 - Contract foundations | 2026-08-17 | Blanket-form grep returns no matches; all six files carry or reference the exception; `validate` exit 0; conformance 15/15; violations 29/29 |
-| Phase 2 - Config surface | 2026-08-17 | `council:` block and schemas land; `check-config` green via `validate` exit 0. **Partial gate deferral** — the plan's Phase 2 gate also named behavioural fixtures (kill-switch precedence, `cap_source: council-default`, `sandbox_root` across three repo modes), but those need `check-council-record`, which does not exist until Phase 6. Covered by Phase 7's fixtures instead; recorded rather than quietly dropped |
+| Phase 2 - Config surface | 2026-08-17 | `council:` block and schemas land; `check-config` green. Gate initially recorded as a "partial deferral", which was wrong — see the Self-Audit entry below. Now closed properly: `check-council-record` resolves `max_rounds` and `sandbox_root` global-then-repo-local, and fixtures `cs`/`ct`/`cw` enforce the sandbox fence |
 | Phase 3 - Council skill | 2026-08-17 | `think-council/` loads standalone with SKILL.md + references/output-schema.md; charter states repo fence, outward axis, and no-nesting explicitly; carve-out documented as bounding principle in dispatch-subagents SKILL.md |
 | Phase 4 - Think restructuring | 2026-08-17 | Eight stages named in order — locked by conformance `r21-think-stages`; preserved single-agent path is verbatim — locked by `r21-single-agent-verbatim`; A5's 1.2.0 removal written into single-agent-path.md's Removal section for Ship to carry |
 | Phase 5 - Record and schema | 2026-08-17 | `council:` frontmatter optional at top level; **every existing brief validates with zero edits** (`git status` clean on `workflow/artifacts/briefs/`); council and single-agent briefs distinguishable by frontmatter alone; `npm run build` clean; `render-adapters` reports shims current |
 | Phase 6 - Validator | 2026-08-17 | `check-council-record.mjs` passes a well-formed brief and prints the summary line; registered in `scripts/validate-template.mjs`; README carries all six non-claims stated as plain limitations |
-| Phase 7 - Rejection fixtures | 2026-08-17 | violations 29/29 → **44/44** (15 new); conformance 15/15 → **19/19** (4 new); every fixture rejected by `check-council-record` specifically; positive control passes |
+| Phase 7 - Rejection fixtures | 2026-08-17 | violations 29/29 → **53/53** (24 new); conformance 15/15 → **19/19** (4 new); positive control passes; **attribution sweep confirms every fixture emits exactly one error**, so each rejection is traceable to its own rule |
+
+## Self-Audit (2026-08-17, post-Phase-7)
+
+The Phase 7 completion claim was wrong, and the way it was wrong matters more than the fix.
+
+Six acceptance criteria were shipped as documentation with no mechanical enforcement:
+
+| ID | Required | State at first "complete" |
+|---|---|---|
+| R9 | Every active R/RI classified with ≥1 evidence class | No schema field, no section, no check — entirely absent |
+| R11 | Sandbox declared, inside `sandbox_root`, disjoint per member | Unimplemented; the validator never read a Members table |
+| R2 | Carve-out member with outward capability fails | Unimplemented |
+| R13 | Exceeding `max_rounds` fails | Config value never read |
+| R5 | Surviving Q without recommendation / with bad refs fails | Only the recall-only half |
+| R3 | Findings attributed to declared members | Only non-empty was checked |
+
+**Cause.** Phase completion was judged by the suite being green. The suite only ever tested what had
+been written, never what the plan required — so a green run proved the fixtures rejected and proved
+nothing about criteria that had no fixture. Calling the shortfall a "partial gate deferral"
+compounded it, dressing a gap as a schedule.
+
+This is the same drift the package exists to prevent, committed while building it: prose shipped
+where the requirement said check. That it happened here, under an explicit anti-drift brief, is the
+strongest available evidence for the brief's own premise — instruction is what an agent drifts from.
+
+**Correction.** `### Requirement Classification` and `### Members` added to the Think output schema;
+a resolved-config loader added for `max_rounds` and `sandbox_root`; nine checks implemented; nine
+fixtures added (`cp`–`cx`). An attribution sweep now confirms each of the 24 fixtures emits exactly
+one error — two (`ch`, `co`) were previously failing on an undeclared member as well as their own
+rule, which would have made them pass for the wrong reason if their real rule ever regressed.
+
+**Residual.** R7's kill-switch precedence and R1's Complex-only trigger are still resolution
+behaviour rather than record shape — an agent performs them, and no artifact records the input that
+would let a validator re-derive the decision. `check-council-record` verifies what was recorded, not
+that the resolution was performed correctly. Carried to Review as a known limit, stated rather than
+closed.

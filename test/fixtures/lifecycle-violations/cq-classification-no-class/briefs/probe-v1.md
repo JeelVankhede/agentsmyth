@@ -73,7 +73,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R1 | how the thing behaves today | repo, web |
+| R1 | how the thing behaves today | |
 
 ### Members
 
@@ -96,7 +96,7 @@ council:
 | Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
 |---|---|---|---|---|---|---|---|
 | F1 | m1 | researcher | package.json | repo | `package.json` scripts block | accepted | |
-| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec | accepted | |
+| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F3 | m3 | researcher | prior art | recall | | accepted | |
 | F4 | c1 | challenger | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 

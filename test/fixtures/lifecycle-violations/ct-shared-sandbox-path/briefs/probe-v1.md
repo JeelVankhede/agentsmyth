@@ -80,7 +80,7 @@ council:
 | Member | Role | Round | Capabilities | Sandbox |
 |---|---|---|---|---|
 | m1 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m1 |
-| m2 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m2 |
+| m2 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m1 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
 
@@ -96,7 +96,7 @@ council:
 | Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
 |---|---|---|---|---|---|---|---|
 | F1 | m1 | researcher | package.json | repo | `package.json` scripts block | accepted | |
-| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec | accepted | |
+| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F3 | m3 | researcher | prior art | recall | | accepted | |
 | F4 | c1 | challenger | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 

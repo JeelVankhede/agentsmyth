@@ -69,6 +69,21 @@ council:
 
 ## Council Log
 
+### Requirement Classification
+
+| Manifest ID | Question bucket | Evidence classes |
+|---|---|---|
+| R1 | how the thing behaves today | repo, web |
+
+### Members
+
+| Member | Role | Round | Capabilities | Sandbox |
+|---|---|---|---|---|
+| m1 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m1 |
+| m2 | researcher | 1 | read, fetch, search | /Users/probe/.agentsmyth/sandbox/probe/1/m2 |
+| m3 | researcher | 1 | read, fetch, search | |
+| c1 | challenger | 1 | read, fetch, search | |
+
 ### Rounds
 
 | Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |

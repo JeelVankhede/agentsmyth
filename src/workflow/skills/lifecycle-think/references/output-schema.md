@@ -141,6 +141,20 @@ skill_trigger_log:
 
 <!-- Required only when frontmatter has council.mode: council. Omit entirely otherwise. -->
 
+### Requirement Classification
+
+<!-- Every active R/RI, with the evidence class(es) that would actually settle it. Written at
+     stage 2, BEFORE any dispatch — deciding what would settle a question is what stops research
+     becoming an undirected read of whatever is nearby. -->
+
+| Manifest ID | Question bucket | Evidence classes |
+|---|---|---|
+
+### Members
+
+| Member | Role | Round | Capabilities | Sandbox |
+|---|---|---|---|---|
+
 ### Rounds
 
 | Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |

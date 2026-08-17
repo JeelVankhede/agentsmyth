@@ -9,11 +9,32 @@
 //
 // A green result here means the record is well-formed and internally consistent. It does not mean
 // the thinking was good.
-import { finish, listFiles, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
+import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
 const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
+
+// Resolve council config global-then-repo-local, the same two-root shape as definitions_root.
+// Without this the max_rounds bound and the sandbox fence are prose, and prose is exactly what an
+// agent drifts from — which is the failure this whole feature exists to prevent.
+function resolveCouncilConfig() {
+  const defaults = { max_rounds: 4, sandbox_root: '~/.agentsmyth/sandbox', default_fan_out: 3 };
+  let global = {};
+  let repo = {};
+  try { global = loadYaml(defsPath('agent-behavior.yaml'))?.council ?? {}; } catch { /* absent is fine */ }
+  try { repo = loadYaml(dataPath('config/repo-profile.yaml'))?.tuning?.council ?? {}; } catch { /* absent is fine */ }
+  return { ...defaults, ...global, ...repo };
+}
+const councilConfig = resolveCouncilConfig();
+
+// A sandbox path is inside the repo when it is relative, or absolute-and-under the repo root.
+// "Outside the repo" is the guarantee the carve-out rests on, so it is checked, not assumed.
+function isOutsideRepo(p) {
+  if (!p) return false;
+  const norm = p.replace(/^~(?=\/|$)/, process.env.HOME ?? '~');
+  return norm.startsWith('/') && !norm.startsWith(process.cwd() + '/');
+}
 
 const errors = [];
 const details = [];
@@ -182,6 +203,64 @@ for (const file of artifactFiles) {
     errors.push(`${file} council.rounds_run is ${council.rounds_run} but the Rounds table has ${rounds.length} row(s)`);
   }
 
+  // R13 — the backstop bound, resolved from config rather than assumed.
+  const maxRounds = Number(councilConfig.max_rounds);
+  if (Number.isFinite(maxRounds) && rounds.length > maxRounds) {
+    errors.push(`${file} ran ${rounds.length} round(s) against a resolved council.max_rounds of ${maxRounds}`);
+  }
+
+  // R9 — requirement classification. Deciding what kind of evidence would settle a requirement,
+  // before going to look, is what stops research becoming an undirected read of whatever is nearby.
+  const classRows = tableRows(subSection(logSection, 'Requirement Classification'));
+  if (classRows.length === 0) {
+    errors.push(`${file} council log has no "### Requirement Classification" subsection; every active R/RI must be classified with the evidence class that would settle it`);
+  } else {
+    const classified = new Map(classRows.map((c) => [c[0], (c[2] ?? '').toLowerCase()]));
+    for (const id of parsed.frontmatter.manifest_ids ?? []) {
+      if (!classified.has(id)) {
+        errors.push(`${file} manifest ID ${id} has no Requirement Classification entry`);
+        continue;
+      }
+      const named = EVIDENCE_CLASSES.filter((c) => classified.get(id).includes(c));
+      if (named.length === 0) {
+        errors.push(`${file} Requirement Classification for ${id} names no evidence class (expected one or more of ${EVIDENCE_CLASSES.join(', ')})`);
+      }
+    }
+  }
+
+  // R2 / R11 — member capability and the sandbox fence.
+  const members = tableRows(subSection(logSection, 'Members')).map((cells) => ({
+    id: cells[0],
+    role: (cells[1] ?? '').toLowerCase(),
+    round: intOf(cells[2]),
+    capabilities: (cells[3] ?? '').toLowerCase(),
+    sandbox: (cells[4] ?? '').trim(),
+  }));
+
+  if (members.length === 0) {
+    errors.push(`${file} council log has no "### Members" subsection; findings cannot be attributed to members that are never declared`);
+  }
+
+  const OUTWARD = /\b(write|post|comment|create-issue|publish|mutate|send)\b/;
+  const sandboxByRound = new Map();
+  for (const m of members) {
+    // The carve-out fires unprompted, so an unprompted agent acting in the user's name is fenced
+    // separately from the repo fence. Explicit authorization lifts only the outward axis.
+    if (council.authorization === 'carve-out' && OUTWARD.test(m.capabilities)) {
+      errors.push(`${file} member ${m.id} was fired under authorization "carve-out" but declares outward-action capability "${m.capabilities}"; carve-out members get read, fetch, and search only`);
+    }
+    if (m.sandbox) {
+      if (!isOutsideRepo(m.sandbox)) {
+        errors.push(`${file} member ${m.id} declares sandbox "${m.sandbox}" which does not resolve outside the repository; the no-repo-mutation guarantee is structural, not advisory`);
+      }
+      const key = `${m.round}::${m.sandbox}`;
+      if (sandboxByRound.has(key)) {
+        errors.push(`${file} members ${sandboxByRound.get(key)} and ${m.id} share sandbox path "${m.sandbox}" in round ${m.round}; RI1 relaxes read overlap, never write overlap`);
+      }
+      sandboxByRound.set(key, m.id);
+    }
+  }
+
   const cap = Number(council.cap_resolved);
   for (const r of rounds) {
     // Stages are capped independently — researchers run, then challengers review their output —
@@ -234,9 +313,21 @@ for (const file of artifactFiles) {
 
   totals.findings += findings.length;
 
+  const memberIds = new Set(members.map((m) => m.id));
   const bySurface = new Map();
   for (const f of findings) {
     if (!f.member) errors.push(`${file} finding ${f.id} has no source member — unattributed findings are invalid`);
+    else if (members.length > 0 && !memberIds.has(f.member)) {
+      errors.push(`${file} finding ${f.id} names source member "${f.member}" which is not declared in Members`);
+    }
+    // R11 — a trial finding is an empirical claim about something that was run somewhere. Without
+    // a declared sandbox there is nothing to audit and nothing bounding where it ran.
+    if (f.cls === 'trial') {
+      const owner = members.find((m) => m.id === f.member);
+      if (!owner?.sandbox) {
+        errors.push(`${file} finding ${f.id} is evidence_class trial but member "${f.member}" declares no sandbox path`);
+      }
+    }
     if (!EVIDENCE_CLASSES.includes(f.cls)) {
       errors.push(`${file} finding ${f.id} has evidence_class "${f.cls}" (expected one of ${EVIDENCE_CLASSES.join(', ')})`);
     } else if (f.cls !== 'recall') {
@@ -288,12 +379,30 @@ for (const file of artifactFiles) {
   // Scan each Q line for finding references wherever they appear. An earlier version required them
   // parenthesised, which real briefs do not reliably do — the check silently passed anything
   // written in another style, which is the worst failure mode for a rule this load-bearing.
+  // R5 — a surviving Q must carry a recommendation, and that recommendation must rest on findings
+  // that exist and are not exclusively recall. Escalating without a recommendation is the exact
+  // behaviour the council was built to remove.
   const qSection = namedSection(parsed.body, 'Questions For User') ?? '';
+  const findingIds = new Set(findings.map((f) => f.id));
   for (const line of qSection.split('\n')) {
     const qId = line.match(/\b(Q\d+)\b/)?.[1];
     if (!qId) continue;
     const refIds = [...line.matchAll(/\bF\d+\b/g)].map((m) => m[0]);
-    if (refIds.length === 0) continue;
+
+    const prose = line.replace(/\bQ\d+\b/g, '').replace(/\bF\d+\b/g, '').replace(/[-*|\s]/g, '');
+    if (prose.length < 12) {
+      errors.push(`${file} ${qId} reaches the user with no recommendation; a surviving question must carry a recommended answer and the evidence it rests on`);
+      continue;
+    }
+    if (refIds.length === 0) {
+      errors.push(`${file} ${qId} carries a recommendation with no finding references; the evidence it rests on must be citable`);
+      continue;
+    }
+    const unknown = refIds.filter((id) => !findingIds.has(id));
+    if (unknown.length > 0) {
+      errors.push(`${file} ${qId} references finding(s) ${unknown.join(', ')} that do not exist in the Findings table`);
+      continue;
+    }
     const refClasses = refIds.map((id) => findings.find((f) => f.id === id)?.cls).filter(Boolean);
     if (refClasses.length > 0 && refClasses.every((c) => c === 'recall')) {
       errors.push(`${file} ${qId}'s recommendation rests only on recall findings (${refIds.join(', ')}); recall may raise a hypothesis but never resolve one`);
