@@ -50,7 +50,7 @@ function activePhaseNumber(taskBody) {
 // line fails to match the boundary, and — for a plan's LAST phase specifically, where there is no
 // following "### Phase" heading to fall back on — the Touches capture instead runs to the end of
 // the phase block, silently absorbing any backtick-quoted path mentioned in that phase's own
-// Work/Exit gate prose as though it were a declared Touches target (OI-37).
+// Work/Exit gate prose as though it were a declared Touches target.
 function phaseTouches(block) {
   const touchesMatch = block.match(
     /Touches:\*{0,2}\s*([\s\S]*?)(?=\n\s*(?:-\s*)?\*{0,2}(?:Work|Exit gate|Why first)\*{0,2}:|\n### |$)/i

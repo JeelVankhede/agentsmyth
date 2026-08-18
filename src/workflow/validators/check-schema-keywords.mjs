@@ -2,7 +2,7 @@
 // Fails when a shipped schema uses a JSON Schema keyword that lib.mjs's hand-rolled validateSchema
 // does not implement.
 //
-// Why this exists (WP-R8 Review F5, 2026-08-14). Three engine gaps surfaced during one work
+// Why this exists. Three engine gaps surfaced during one work
 // package, each by accident: `maximum` was parsed and ignored, so a schema declaring `maximum: 10`
 // accepted 99; schema-valued `additionalProperties` was parsed and ignored, so three open maps
 // across two schemas were never validated at all. In both cases a schema author wrote a
@@ -16,7 +16,7 @@
 // Keeping SUPPORTED in sync is a deliberate manual step — adding a keyword to validateSchema means
 // adding it here, and that is the point. The failure mode this replaces was silence.
 //
-// KNOWN ASYMMETRY (WP-R8 Review F8): only one direction of drift is guarded. Adding a keyword to
+// KNOWN ASYMMETRY: only one direction of drift is guarded. Adding a keyword to
 // validateSchema without listing it here fails loudly the next time a schema uses it — safe.
 // REMOVING a keyword from validateSchema while it stays listed here restores the original silence:
 // schemas keep using it, this check keeps passing, and the declaration is decoration again. If you
@@ -41,7 +41,7 @@ const ANNOTATIONS = new Set([
 // `additionalProperties` (see validateSchema). Anywhere else it is silently ignored, which would
 // make the marker itself an instance of the defect this validator exists to catch — and a
 // dangerous one, since its whole purpose is to soften a hard failure into a warning. So it is not
-// a general annotation; it is legal at one position and an error everywhere else (WP-R8 Review F6).
+// a general annotation; it is legal at one position and an error everywhere else.
 const POSITIONAL = { x_enforcement: 'additionalProperties' };
 
 const errors = [];

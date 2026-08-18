@@ -1,10 +1,11 @@
 # Single-Agent Path (preserved)
 
-The pre-WP-R21 Think workflow, preserved **verbatim** as a rollback surface for one release.
+The Think workflow as it stood before councils were introduced, preserved **verbatim** as a
+rollback surface for one release.
 
 ## Why this file exists
 
-WP-R21 restructured Think into a staged pipeline with a council and a round loop. If that pipeline
+Think was restructured into a staged pipeline with a council and a round loop. If that pipeline
 turns out to be broken, disabling the council is not a rollback — a mode of a broken pipeline is
 still the broken pipeline. This file is the actual fallback: the workflow exactly as it ran before
 R21, so it can be followed directly without reconstructing it from memory or from git history.
@@ -26,10 +27,9 @@ can tell a single-agent brief from a council one.
 
 ## Removal
 
-Scheduled for **1.2.0** (brief A5, user-approved 2026-08-16). Ship must carry this onto the 1.2.0
-release checklist alongside OI-67's `warn-until-1.2.0` marker cleanup. A preserved path nobody
-removes becomes permanent dead weight, and the reason it was kept expires when the pipeline has a
-release of real use behind it.
+Scheduled for removal in the next minor release, alongside the other deprecation-marker cleanup.
+A preserved path nobody removes becomes permanent dead weight, and the reason it was kept expires
+once the pipeline has a release of real use behind it.
 
 ## The preserved workflow
 

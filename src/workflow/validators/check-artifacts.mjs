@@ -150,7 +150,7 @@ if (artifactFiles.length === 0) {
   details.push(`no lifecycle artifact files found under ${artifactsDir}`);
 }
 
-// ── Baseline ratchet (WP-R8 Review F7) ─────────────────────────────────────
+// ── Baseline ratchet ───────────────────────────────────────────────────────
 // This validator was never wired into `npm run validate` — it ran only against test fixtures — so
 // this repo's own artifacts went unchecked and accumulated 96 real violations. Wiring it in and
 // failing on all 96 at once would have meant either editing dozens of historical, already-shipped
@@ -174,7 +174,7 @@ if (baselineArgIdx !== -1) {
   const entries = baseline?.entries ?? [];
 
   // An entry matches when the violation starts with the file AND the remainder equals the message
-  // exactly. Exact, not substring (WP-R8 Review F9): a substring match let a hand-broadened entry
+  // exactly. Exact, not substring: a substring match let a hand-broadened entry
   // — say `is required` instead of `.frontmatter.upstream is required` — absorb a *different*
   // violation of the same shape in the same file, while `stale` stayed 0. That silently defeats the
   // one mechanism forcing entries out when their violation is fixed. Exact comparison makes an

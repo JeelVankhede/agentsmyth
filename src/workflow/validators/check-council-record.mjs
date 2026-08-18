@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// check-council-record (WP-R21). Validates the RECORD a council run leaves behind — not the council.
+// check-council-record. Validates the RECORD a council run leaves behind — not the council.
 //
 // The name is deliberate. This validator can prove the loop ran, that findings were attributed and
 // dispositioned, that citations meet their class's contract, that rounds tapered coherently, and
@@ -41,7 +41,7 @@ function expandHome(p) {
 // A sandbox path is inside the repo when it is relative, or absolute-and-under the repo root.
 // Resolved via lib.mjs's repoRoot — NOT process.cwd(), which is the invocation directory and
 // differs from the repo root whenever a validator runs from a package subdirectory of a monorepo
-// (WP-R5 supports exactly that). Review P2-1.
+// (a supported repository shape).
 function isOutsideRepo(p) {
   if (!p) return false;
   const norm = expandHome(p);

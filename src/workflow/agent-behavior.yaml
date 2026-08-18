@@ -145,7 +145,7 @@ council:
   default_fan_out: 3
   sandbox_root: "~/.agentsmyth/sandbox"
 
-# RESOLUTION (WP-R21): whether a council fires is decided in this exact order, and the first
+# RESOLUTION: whether a council fires is decided in this exact order, and the first
 # answer wins:
 #   1. resolved `dispatch.enabled` — if `disabled`, NO council, in any phase, for any task class.
 #      A repo that turned delegation off made a standing decision, and a council firing anyway
@@ -169,7 +169,7 @@ council:
 # `definitions_root`, and defaults outside every repository by construction so that "no council
 # member modifies the repo" holds structurally rather than by per-run assertion.
 
-# RESOLUTION (WP-R8): three of the six keys a repo may override in workflow/config/repo-profile.yaml
+# RESOLUTION: three of the six keys a repo may override in workflow/config/repo-profile.yaml
 # under `tuning:` live in this block — complexity_score.weights, path_glob_categories, and
 # thresholds. (The other three are dispatch.max_parallel_workstreams, dispatch.enabled, and
 # pause_resume.user_checkpoint_required_for.) Before applying this rubric, resolve each PER ENTRY —
@@ -243,7 +243,7 @@ skill_scoring:
         standard: 6
         complex: 6
   # thresholds holds the numeric cut-offs the predicates below compare against, split out of the
-  # predicate strings by WP-R8 so a repo can say "review me harder" without rewriting logic. This
+  # predicate strings so a repo can say "review me harder" without rewriting logic. This
   # is a tunable key (repo-profile.yaml `tuning.skill_scoring.thresholds`, per-entry merge); the
   # `triggers` predicates themselves stay locked and global. That split is the whole point: a repo
   # moves numbers, never boolean structure, so it can raise or lower how often a skill fires but

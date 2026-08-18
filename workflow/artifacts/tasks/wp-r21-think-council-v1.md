@@ -90,6 +90,8 @@ orchestration:
 - `src/workflow/validators/check-lifecycle.mjs` — checkpoint evidence extractor no longer truncates a multi-line verbatim quote (OI-73) — IDs: RI3
 - `src/assets/hooks/pre-commit` — the downstream phase gate now applies to a task artifact only once it claims ready-for-next-phase, so incremental Build commits no longer require --no-verify (OI-74) — IDs: RI3
 - `.githooks/pre-commit` — this repo's own copy, kept in sync with the shipped asset above (OI-74) — IDs: RI3
+- `test/run-conformance-tests.mjs` — added the `shipped-neutrality` guard (PR #64 review) — IDs: RI9
+- `src/workflow/validators/check-trigger-predicates.mjs` — removed internal tracker IDs from shipped comments — IDs: RI6
 - `test/fixtures/lifecycle-violations/cy-sandbox-outside-root` — sandbox outside the repo but not under the resolved root (P1-1) — IDs: R11, RI9
 - `test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line` — max-rounds omitting its surviving-items declaration (P1-2) — IDs: R13, RI9
 - `test/fixtures/lifecycle-violations/da-no-questions-section` — council brief whose escalation checks would pass vacuously — IDs: R5, RI9

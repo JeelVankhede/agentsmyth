@@ -17,7 +17,7 @@ Authorization is **not** implicit from:
 
 If explicit authorization is absent, do not dispatch. Continue locally.
 
-**Exception — council auto-fire (WP-R21).** A council may fire without explicit per-conversation
+**Exception — council auto-fire.** A council may fire without explicit per-conversation
 authorization under a named exception whose bounding principle, conditions, and capability limits
 are stated in `SKILL.md`. **This file deliberately does not restate them** — restatement across
 files is precisely how this reference and `SKILL.md` drifted apart in the first place, so the

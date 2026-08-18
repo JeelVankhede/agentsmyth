@@ -80,7 +80,7 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -160,6 +160,45 @@ check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-
   /1\. Classify task as Trivial, Standard, or Complex\./.test(sap) &&
   /11\. Set `orchestration\.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`\./.test(sap) &&
   /skill_trigger_log` entry for every evaluated trigger \(ran or skipped, with reason\)\./.test(sap));
+
+// Shipped-neutrality — src/ is copied verbatim into consumer repos and into ~/.agentsmyth, so a
+// consumer reading their own installed agent-behavior.yaml, schema, skill or validator must not be
+// shown agentsmyth's internal tracker IDs. "WP-R21", "OI-74", "Review F5", "brief A5" mean nothing
+// outside this repo's own Notion and workflow/artifacts, and their presence makes shipped files
+// read as internal notes rather than as a product.
+//
+// Reasoning about WHY a rule exists is welcome and should stay; only the ticket reference goes.
+// This was a real defect: 47 such references had accumulated across 19 shipped files before anyone
+// checked, because nothing looked.
+const NEUTRALITY_ALLOWLIST = new Set([
+  // Illustrates the open-items ledger's own ID format. OI-1/OI-2 here are sample data in a format
+  // example, not references to this repo's tracker.
+  'src/workflow/skills/follow-up-owner-assigner/references/ledger-format.md',
+]);
+
+function walkSrc(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) walkSrc(full, out);
+    else if (/\.(md|mjs|ya?ml)$/.test(entry.name) || entry.name === 'pre-commit') out.push(full);
+  }
+  return out;
+}
+
+const neutralityHits = [];
+for (const file of walkSrc(join(repoRoot, 'src'))) {
+  const rel = file.slice(repoRoot.length + 1);
+  if (NEUTRALITY_ALLOWLIST.has(rel)) continue;
+  for (const m of readFileSync(file, 'utf8').matchAll(/\bWP-R\d+|\bOI-\d+|\bReview F\d+\b|\bRI\d+ \(WP/g)) {
+    neutralityHits.push(`${rel}: ${m[0]}`);
+  }
+}
+check('shipped-neutrality', 'no internal tracker IDs (WP-R#, OI-#, Review F#) in shipped src/',
+  neutralityHits.length === 0);
+if (neutralityHits.length) {
+  console.error(`       ${neutralityHits.length} reference(s):`);
+  for (const h of neutralityHits.slice(0, 12)) console.error(`         ${h}`);
+}
 
 check('r15-scope-fence-bullet', 'bullet-dash-prefixed phase boundary keeps Touches correctly bounded',
   sfb.status !== 0 && /outside Phase 1's declared Touches/.test(sfb.out));

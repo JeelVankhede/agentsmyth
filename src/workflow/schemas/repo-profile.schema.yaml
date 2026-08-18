@@ -231,7 +231,7 @@ properties:
     additionalProperties: false
     description: >-
       Optional per-repo overrides for a fixed, enumerated set of behavior knobs that otherwise
-      come from the global agent-behavior.yaml (WP-R8). This block is the ONLY route by which a
+      come from the global agent-behavior.yaml. This block is the ONLY route by which a
       repo may influence lifecycle behavior, and it is deliberately narrow. The enumeration lives
       here and only here — no validator carries a duplicate key list. Every key below is declared
       explicitly under closed objects, so anything not named is rejected as an unknown property
@@ -241,7 +241,7 @@ properties:
       classification_signals, since tuning those is an indirect route to reclassifying all work as
       trivial and skipping phases), the rest of pause_resume, all of evidence_policy, all of
       change_policy, all of waivers, dispatch.require_independent_file_ownership,
-      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers. WP-R21 adds
+      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers. Councils add
       council.enabled, council.max_rounds, council.depth, council.default_fan_out, and
       council.sandbox_root as overridable; nothing else in the council block is, and no council key
       can re-enable delegation that dispatch.enabled has turned off.
@@ -270,7 +270,7 @@ properties:
         type: object
         additionalProperties: false
         description: >-
-          Per-repo council overrides (WP-R21). Note the ordering that binds regardless of anything
+          Per-repo council overrides. Note the ordering that binds regardless of anything
           here - dispatch.enabled resolving to `disabled` suppresses the council outright, so a repo
           that turned delegation off does not need to also disable the council, and cannot re-enable
           it from this block.
@@ -323,7 +323,7 @@ properties:
               meaning - pure repo vocabulary, i.e. what counts as a frontend or migration path in
               this codebase. Consumed by check-trigger-predicates.mjs, which resolves the merged
               value. Typed identically to agent-behavior.yaml's own path_glob_categories rather
-              than left open (WP-R8 Review F2): an open type accepted a bare string like
+              than left open: an open type accepted a bare string like
               `ui_globs: "ui/**"`, which passed config validation and then failed inside
               check-trigger-predicates.mjs as `globs.some is not a function` - a JavaScript
               TypeError naming an internal variable, from a validator the author was not editing.
@@ -353,7 +353,7 @@ properties:
     type: object
     additionalProperties: false
     description: >-
-      Human-answerable configuration that DERIVES the mechanism values in `tuning:` (WP-R8). The
+      Human-answerable configuration that DERIVES the mechanism values in `tuning:`. The
       two blocks are different layers of the same decision, not alternatives. `tuning:` holds
       expert-facing numbers - weights, caps, glob sets - which a setup interview cannot sensibly
       ask a person about. `intent:` holds what a person can actually answer, and the agent derives
@@ -446,7 +446,7 @@ properties:
       derived_keys:
         type: array
         description: >-
-          Provenance (WP-R8 RI8). Dotted paths of the `tuning:` values the agent derived from this
+          Provenance. Dotted paths of the `tuning:` values the agent derived from this
           intent block, e.g. `dispatch.max_parallel_workstreams`. A key listed here may be safely
           re-derived when a later version changes the derivation rules. A `tuning:` value NOT listed
           here was set by hand and must never be silently overwritten by a re-derivation. Without

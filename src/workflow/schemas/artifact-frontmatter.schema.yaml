@@ -47,7 +47,7 @@ properties:
     type: string
     # Was `format: date-time`, which validateSchema does not implement and which the real corpus
     # never matched anyway (artifacts carry both `2026-08-12` and `2026-05-28T00:00:00Z`). A
-    # pattern is enforceable today and accepts both forms — WP-R8 Review F5.
+    # pattern is enforceable today and accepts both forms.
     pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ].*)?$'
   updated:
     type: string
@@ -144,7 +144,7 @@ properties:
     type: object
     additionalProperties: false
     description: >-
-      Council-mode run summary (WP-R21). OPTIONAL - a brief written before 1.1.0, or by the
+      Council-mode run summary. OPTIONAL - a brief written before this field existed, or by the
       single-agent path, omits it entirely and still validates. Its presence is what makes a council
       run distinguishable from a single-agent run by frontmatter alone, with no prose inspection.
       The per-round detail lives in the body's `## Council Log` section; this block is the summary.
@@ -213,10 +213,10 @@ properties:
         additionalProperties: false
         description: >-
           The three resolved inputs that decided whether a council fired, recorded so the decision
-          can be RE-DERIVED rather than merely asserted (WP-R21 review residual R-1). Without these,
+          can be RE-DERIVED rather than merely asserted. Without these,
           a validator can confirm what mode was written down but not whether that mode was the
           correct consequence of the config - which is the whole of R1 and R7. Optional, because a
-          brief written before 1.1.0 has none; when present, the validator recomputes the expected
+          brief written before councils existed has none; when present, the validator recomputes the expected
           mode and fails on disagreement.
         required:
           - dispatch_enabled
@@ -238,8 +238,8 @@ properties:
         type: object
         additionalProperties: false
         description: >-
-          Filesystem-scoped digest of the repository taken before and after the council ran (WP-R21
-          review residual R-2). Deliberately NOT git-scoped - `git status` reports clean for
+          Filesystem-scoped digest of the repository taken before and after the council ran.
+          Deliberately NOT git-scoped - `git status` reports clean for
           gitignored paths, and dist/ is both gitignored and the thing consumers actually install,
           so a git-based assertion passes green exactly where the damage would be invisible.
           Required whenever any member declared a sandbox, i.e. whenever a trial could have written.

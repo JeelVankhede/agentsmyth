@@ -259,6 +259,7 @@ earlier phase has already carried its own targeted check.
   `test/fixtures/lifecycle-violations/dd-sandbox-without-integrity`,
   `test/fixtures/lifecycle-violations/de-integrity-mismatch`,
   `test/fixtures/conformance/council-wellformed`,
+  `src/workflow/validators/check-trigger-predicates.mjs`,
   `src/workflow/validators/repo-digest.mjs`,
   `src/workflow/validators/check-lifecycle.mjs`,
   `src/assets/hooks/pre-commit`,
@@ -399,6 +400,22 @@ forcing `--no-verify` on every incremental Build commit).
 OI-73 and OI-74 are not WP-R21 manifest IDs. They are shipped-contract defects this chain surfaced
 and the user directed be fixed here rather than deferred. Recorded as in-scope by this amendment
 rather than smuggled in under an existing ID, so the manifest keeps meaning what it says.
+
+**A6 (2026-08-19, corrective — PR #64 review).** PR review found internal tracker IDs (`WP-R#`,
+`OI-#`, `Review F#`) in shipped `src/` files. `src/workflow/` is copied verbatim into consumer repos
+and into `~/.agentsmyth`, so a consumer reading their own installed config, schema, skill or
+validator was being shown this repo's Notion ticket IDs — files that read as internal notes rather
+than as a product. 47 references across 19 files, accumulated over several packages; this chain
+introduced roughly a third of them.
+
+All were removed, keeping the *reasoning* and dropping only the reference. The one exception is
+`follow-up-owner-assigner/references/ledger-format.md`, where `OI-1`/`OI-2` are sample data
+illustrating the ledger's own ID format rather than references to this repo's tracker.
+
+Added to Phase 7's `Touches`: `check-trigger-predicates.mjs` (five references) and
+`test/run-conformance-tests.mjs` (the new guard). The guard — conformance check
+`shipped-neutrality` — is the substantive part: a one-time cleanup would simply re-accumulate,
+since nothing had ever looked.
 
 ## Open Questions
 

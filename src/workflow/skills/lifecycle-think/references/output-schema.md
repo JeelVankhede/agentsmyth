@@ -45,9 +45,9 @@ Required body sections:
 16. Exit Gate
 
 `## Council Log` is required whenever frontmatter carries a `council:` block with
-`mode: council`. It is omitted entirely by single-agent and pre-1.1.0 briefs — the `council:` block
-and this section are both optional additions, so every brief written before 1.1.0 continues to
-validate with no edits.
+`mode: council`. It is omitted entirely by single-agent briefs and by briefs written before councils
+existed — the `council:` block and this section are both optional additions, so every earlier brief
+continues to validate with no edits.
 
 The frontmatter `council:` block is the **summary**; `## Council Log` is the **detail**. Together
 they must let a reader reconstruct the run from the artifact alone, with no session transcript:

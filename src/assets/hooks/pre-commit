@@ -41,7 +41,7 @@ if [ -n "$ARTIFACT_FILES" ]; then
     phase=$(phase_for_dir "$dir")
     [ -z "$phase" ] && continue
 
-    # OI-74: a task artifact is legitimately `in-progress` for the whole of Build, and
+    # A task artifact is legitimately `in-progress` for the whole of Build, and
     # lifecycle-build's own schema says its Plan Phases Overview is "updated at the start of each
     # new Build phase" — i.e. it is meant to be committed repeatedly. Gating every staged task on
     # the downstream `review` phase made incremental Build commits impossible, leaving only one

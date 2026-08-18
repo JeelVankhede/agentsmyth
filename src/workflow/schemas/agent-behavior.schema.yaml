@@ -160,7 +160,7 @@ properties:
     type: object
     additionalProperties: false
     description: >-
-      Council-mode dispatch settings (WP-R21). Firing is decided in a fixed order and the first
+      Council-mode dispatch settings. Firing is decided in a fixed order and the first
       answer wins - resolved dispatch.enabled, then council.enabled, then task class. A repo that
       set dispatch.enabled to disabled gets no council regardless of anything in this block; a kill
       switch a later feature can route around is not a kill switch.
@@ -238,7 +238,7 @@ properties:
             additionalProperties: true
       thresholds:
         type: object
-        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings by WP-R8 so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
+        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
         additionalProperties:
           x_enforcement: warn-until-1.2.0
           type: integer

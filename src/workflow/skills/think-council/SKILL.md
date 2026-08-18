@@ -96,7 +96,7 @@ wrong.
 ## Evidence And Dispositions
 
 Follow `dispatch-subagents/references/council-contracts.md`. It is the shared contract — the Review
-council (WP-R22) consumes the same file, so do not restate it here or let the two drift.
+council consumes the same file, so do not restate it here or let the two drift.
 
 In short: every finding declares an evidence class (`repo` / `trial` / `web` / `recall`) meeting that
 class's citation contract, and carries a disposition (`accepted` / `merged` / `rejected-with-reason`

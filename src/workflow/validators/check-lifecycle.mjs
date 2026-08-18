@@ -59,7 +59,7 @@ function checkpointApprovalSection(body) {
   const section = match[1];
   const checkpoint = section.match(/^-\s*Checkpoint:\s*(.+)$/im)?.[1]?.trim();
   const status = section.match(/^-\s*Status:\s*(.+)$/im)?.[1]?.trim();
-  // OI-73: the terminator used to be `(?=\n-\s|\n*$)`, and under /m the `$` matched at the FIRST
+  // The terminator used to be `(?=\n-\s|\n*$)`, and under /m the `$` matched at the FIRST
   // line end — so a multi-line verbatim quote truncated to its opening line, which then usually
   // tripped the length<10 placeholder guard below. Users approve in multi-line messages routinely,
   // which put "quote the user verbatim" in direct tension with what could be stored.

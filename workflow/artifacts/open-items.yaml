@@ -448,6 +448,12 @@ items:
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-78
+    source: follow-up
+    owner: workflow owner
+    next_action: "Grep cannot audit src/ reliably, so any future manual sweep of shipped files must read files directly rather than shell out to grep. check-trigger-predicates.mjs contains NUL sentinels (OI-72), which makes grep classify it as binary and silently return nothing without -a. A manual `grep -rE` sweep for internal tracker IDs across src/ during wp-r21-think-council reported that file as clean while it held five WP-R references; only the new shipped-neutrality conformance check, which reads files with readFileSync, found them. This is the second time OI-72's NUL bytes have caused a false-clean result. Fixing OI-72 removes the whole class."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-76
     source: follow-up
     owner: user

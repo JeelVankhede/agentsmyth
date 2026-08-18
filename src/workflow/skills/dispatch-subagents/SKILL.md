@@ -21,7 +21,7 @@ Use this skill only when:
 
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
-**Named exception — council auto-fire (WP-R21).** The bounding principle: *auto-fire is permitted
+**Named exception — council auto-fire.** The bounding principle: *auto-fire is permitted
 only for members that cannot mutate the user's repository, and only where the council's own output
 is not a verdict.*
 

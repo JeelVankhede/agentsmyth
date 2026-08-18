@@ -219,7 +219,7 @@ history as the basis for asking, **never** `max-rounds`.
 
 The pre-R21 workflow is preserved verbatim in `references/single-agent-path.md` and remains a
 supported route for one release. It is the genuine rollback surface: if the staged pipeline is
-broken, that path still produces a valid brief. Scheduled for removal in 1.2.0 (A5).
+broken, that path still produces a valid brief. Scheduled for removal in the next minor release.
 
 ## Architecture Notes Expectations
 
