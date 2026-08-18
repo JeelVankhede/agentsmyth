@@ -2,7 +2,7 @@
 slug: wp-r21-think-council
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-08-18
 updated: 2026-08-18
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
@@ -10,7 +10,7 @@ upstream:
   - workflow/artifacts/verify/wp-r21-think-council-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -29,12 +29,14 @@ orchestration:
 
 ## Ship Status
 
-`hold-for-user` — the work is ready; two decisions are the user's and one of them changes the PR
-target.
+`ship` — both decisions answered by the user 2026-08-18, and the base divergence is resolved.
 
-Nothing technical is outstanding. Every gate passes, the review is `pass`, Test says `ship`. What
-blocks is that the base moved under this branch while the chain was running, and that the council's
-measured cost makes its default a product call rather than an engineering one.
+1. **Merge:** approved and performed. `origin/release/1.1.0` merged into the branch at `a6aa228`,
+   conflict-free. WP-R19's `dbc2af6` is now in this ancestry; conformance rose 19 → **21/21** as
+   R19's two checks joined R21's four with no interaction.
+2. **Default:** `council.enabled: on-for-complex` confirmed as the shipped default, with the measured
+   cost accepted. No code change — the schema already defaults to it; what changes is that the
+   default is now a decision on record rather than an unexamined inherited value.
 
 ## Requirement Coverage
 
@@ -98,9 +100,11 @@ Two consequences:
 **Merge is clean.** `git merge-tree --write-tree HEAD origin/release/1.1.0` exits 0 — no conflicts,
 despite both sides touching `test/run-conformance-tests.mjs` and `workflow/artifacts/open-items.yaml`.
 
-Recommendation: **merge `origin/release/1.1.0` into the branch before opening the PR**, so the PR
-diff shows only R21's work rather than R21 plus a stale-base delta. Surfaced here rather than done
-silently, per Ship step 4a.
+Recommendation: merge `origin/release/1.1.0` before opening the PR. **Approved and done** —
+merge commit `a6aa228`, conflict-free. Post-merge suite: `validate` exit 0, conformance **21/21**
+(was 19/19; R19's `r19-assumptions-section` and `r19-assumptions-columns` now run alongside R21's
+four), violations 60/60, `check-release-readiness` ok. The PR targets `release/1.1.0` and its diff
+now shows only R21's work.
 
 CI: this repo has no separate CI invocation to cite. The gate is the pre-commit hook plus the suites
 recorded in Test. Commits `1b11d7d` and `9fde5fe` both passed the full mandatory gate with **no
@@ -149,27 +153,24 @@ council produced 8 from 4 intended invocations (6 attempted, two lost to API 529
 buckets. Not a controlled A/B — the council ran before several fixes and the baseline after — but on
 invocation count the council cost roughly 6× for less coverage.
 
-`council.enabled` currently defaults to `on-for-complex`. That default means every consumer
-upgrading to 1.1.0 gets multi-agent Think on Complex work without configuring anything. **This is a
-product decision the engineering work does not settle**, and it is the second thing blocking ship.
-The council's distinctive contribution was the challenge pass refuting a wrong finding — real value,
-but not value the invocation count reflects.
+`council.enabled` defaults to `on-for-complex`. That default means every consumer upgrading to 1.1.0
+gets multi-agent Think on Complex work without configuring anything. **Decided by the user
+2026-08-18: keep it on for Complex, with the measured cost accepted.** The council's distinctive
+contribution was the challenge pass refuting a wrong finding — real value, though not value the
+invocation count reflects. Recorded as an accepted trade rather than an unexamined default, and
+carried into Reflect so a later release can revisit it against more than one run's evidence.
 
 **Residual, unchanged from Review:** `check-council-record` validates the record, not the thinking
 (RI6's six non-claims). No amount of remediation changes that, and the docs say so plainly.
 
 ## Blocked Handoff
 
-Two decisions, both the user's:
+Not blocked. Both decisions were answered on 2026-08-18 and are recorded in Ship Status: merge
+approved and performed (`a6aa228`), and `council.enabled: on-for-complex` confirmed as the shipped
+default with its measured cost accepted.
 
-1. **Merge `origin/release/1.1.0` into the branch before the PR?** Recommended — the merge is clean
-   and it keeps the PR diff to R21's own work.
-2. **Should `council.enabled` default to `on-for-complex` in 1.1.0**, given the measured cost? The
-   alternatives are defaulting off for upgrades and on for fresh inits, or defaulting off entirely
-   and letting consumers opt in. Either is a one-line schema default change plus a doc note.
-
-Once both are answered: merge, push, open the PR against `release/1.1.0`, update the Notion WP to
-Done, then Reflect.
+Remaining mechanical steps, none requiring a further decision: push the branch, open the PR against
+`release/1.1.0`, move the Notion WP-R21 page to Done with the PR reference, then Reflect.
 
 ## Architecture Notes
 
@@ -192,7 +193,14 @@ Done, then Reflect.
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending — this ship decision has not yet been presented to the user.
+- Status: approved
+- Date: 2026-08-18
+- User's own words (verbatim, this turn): "Proceed to ship"
+- Same message, verbatim, answering the two blocking decisions: "1. Merge release branch in the
+  current" / "2. Yes, enabled on for complex by default"
+- Scope of approval: the ship decision as recorded here — merging `origin/release/1.1.0` into the
+  branch, `council.enabled: on-for-complex` as the shipped default with its measured cost accepted,
+  the rollback plan, and the two 1.2.0 checklist items (A5, OI-67).
 
 ## Exit Gate
 
@@ -201,9 +209,8 @@ Done, then Reflect.
 - [x] Release readiness gates pass.
 - [x] Rollback trigger, action, owner, and evidence recorded.
 - [x] Base divergence surfaced rather than absorbed.
-- [ ] User approved the ship decision.
+- [x] User approved the ship decision.
 
 ## Next Phase
 
-Reflect — blocked until the two decisions above are answered and the Checkpoint Approval is recorded
-from the user's own words.
+Reflect — unblocked. Checkpoint Approval recorded from the user's own words 2026-08-18.
