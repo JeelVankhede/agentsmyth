@@ -448,6 +448,18 @@ items:
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-76
+    source: follow-up
+    owner: user
+    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-77
+    source: follow-up
+    owner: workflow owner
+    next_action: "Consider a plan-phase check that every path in a phase's `Touches` is a real repo-relative path. check-scope-fence caught three separate malformed Touches declarations during wp-r21-think-council — abbreviated paths (`references/foo.md` instead of the full path), a glob (`council-*/`), and undeclared files — but only at Build time, after the plan was approved. Each was a clerical error a Plan-phase check would have caught before the plan was signed off."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-75
     source: follow-up
     owner: workflow owner
