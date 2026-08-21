@@ -114,7 +114,7 @@ Land the smallest, most independent phases first (R10, then the Tier 2 new pages
 ### Phase 6 - Per-page meta descriptions and OG image
 
 - **Manifest IDs:** R8, RI1
-- Touches: every `site/*.md` page (frontmatter `description` field), `site/.vitepress/config.ts` (`head`, OG image tag), `site/public/og-image.png` (new OG image asset)
+- Touches: every page under `site/` (frontmatter `description` field), `site/.vitepress/config.ts` (`head`, OG image tag), `site/public/og-image.png` (new OG image asset)
 - Work: Add a distinct `description` frontmatter value per page (including the three new Phase 2 pages). Add an OG image asset and its `head` meta tags.
 - **Exit gate:** each page's rendered `<meta name="description">` differs from the site-wide default; an `og:image` meta tag exists in build output.
 

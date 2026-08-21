@@ -40,6 +40,19 @@ if [ -n "$ARTIFACT_FILES" ]; then
     slug=$(printf '%s' "$base" | sed 's/-v[0-9][0-9]*$//')
     phase=$(phase_for_dir "$dir")
     [ -z "$phase" ] && continue
+
+    # A task artifact is legitimately `in-progress` for the whole of Build, and
+    # lifecycle-build's own schema says its Plan Phases Overview is "updated at the start of each
+    # new Build phase" — i.e. it is meant to be committed repeatedly. Gating every staged task on
+    # the downstream `review` phase made incremental Build commits impossible, leaving only one
+    # giant end-of-Build commit or routine --no-verify. Routine bypass of a mandatory gate trains
+    # exactly the habit the gate exists to prevent.
+    # So: check the downstream gate only once the artifact claims to be ready for it. A task that
+    # claims ready-for-next-phase must really be ready; one still in progress is not yet making
+    # that claim.
+    if [ "$dir" = "tasks" ] && ! grep -qE '^status:[[:space:]]*ready-for-next-phase' "$file"; then
+      continue
+    fi
     if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
       status=1
     fi

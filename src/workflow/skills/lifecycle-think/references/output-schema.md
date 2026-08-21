@@ -39,9 +39,21 @@ Required body sections:
 10. Open Questions
 11. Requirement Manifest
 12. Questions For User
-13. Architecture Notes
-14. Checkpoint Approval
-15. Exit Gate
+13. Council Log (only when frontmatter has `council.mode: council` — see below)
+14. Architecture Notes
+15. Checkpoint Approval
+16. Exit Gate
+
+`## Council Log` is required whenever frontmatter carries a `council:` block with
+`mode: council`. It is omitted entirely by single-agent briefs and by briefs written before councils
+existed — the `council:` block and this section are both optional additions, so every earlier brief
+continues to validate with no edits.
+
+The frontmatter `council:` block is the **summary**; `## Council Log` is the **detail**. Together
+they must let a reader reconstruct the run from the artifact alone, with no session transcript:
+every round with its member counts and roles, evidence classes used, findings with class and
+disposition, conflicts and their resolutions, which item IDs each round closed, and why the loop
+stopped.
 
 `manifest_ids` should include active `R` and `RI` IDs covered by the brief. **Only `R` and `RI` IDs may appear in `manifest_ids`** — `A` (assumption) and `Q` (question) IDs must never be listed there (the schema's `manifest_ids` pattern accepts only `R`/`RI`). Blocking `Q` IDs must also appear in `orchestration.blockers`.
 
@@ -121,6 +133,47 @@ skill_trigger_log:
 ### Open Questions (Q)
 
 ## Questions For User
+
+<!-- Every surviving Q carries a recommendation and the finding IDs it rests on.
+     Evidence references must not be exclusively `recall`. -->
+
+## Council Log
+
+<!-- Required only when frontmatter has council.mode: council. Omit entirely otherwise. -->
+
+### Requirement Classification
+
+<!-- Every active R/RI, with the evidence class(es) that would actually settle it. Written at
+     stage 2, BEFORE any dispatch — deciding what would settle a question is what stops research
+     becoming an undirected read of whatever is nearby. -->
+
+| Manifest ID | Question bucket | Evidence classes |
+|---|---|---|
+
+### Members
+
+| Member | Role | Round | Capabilities | Sandbox |
+|---|---|---|---|---|
+
+### Rounds
+
+| Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |
+|---|---|---|---|---|---|---|
+
+### Findings
+
+| Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
+|---|---|---|---|---|---|---|---|
+
+### Conflicts
+
+| Surface | Findings | Resolution |
+|---|---|---|
+
+### Termination
+
+- Reason:
+- Surviving items and their round history:
 
 ## Architecture Notes
 

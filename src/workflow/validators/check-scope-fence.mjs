@@ -2,7 +2,7 @@
 // scope-fence. For task artifacts, confirms every path listed in Changed Files
 // is covered by the upstream plan's declared phase Touches (exact file match or directory
 // prefix match), or by a Waivers entry. Flags files outside both as out-of-scope.
-import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
+import { finish, listFiles, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -50,7 +50,7 @@ function activePhaseNumber(taskBody) {
 // line fails to match the boundary, and — for a plan's LAST phase specifically, where there is no
 // following "### Phase" heading to fall back on — the Touches capture instead runs to the end of
 // the phase block, silently absorbing any backtick-quoted path mentioned in that phase's own
-// Work/Exit gate prose as though it were a declared Touches target (OI-37).
+// Work/Exit gate prose as though it were a declared Touches target.
 function phaseTouches(block) {
   const touchesMatch = block.match(
     /Touches:\*{0,2}\s*([\s\S]*?)(?=\n\s*(?:-\s*)?\*{0,2}(?:Work|Exit gate|Why first)\*{0,2}:|\n### |$)/i
@@ -97,6 +97,77 @@ function waivedPaths(body) {
   const paths = new Set();
   for (const m of match[1].matchAll(/`([^`]+)`/g)) paths.add(m[1]);
   return paths;
+}
+
+// A plan's declared Touches are only useful if they name real paths. Three separate malformed
+// declarations reached Build in one chain — abbreviated paths (`references/foo.md` instead of the
+// full repo-relative path), a glob (`fixtures/council-*/`), and simply-missing entries — and each
+// was caught only when a Build commit tripped the scope fence, long after the plan was approved.
+// Checking the plan directly turns three late rejections into one early one.
+//
+// Deliberately lenient about what counts as resolvable: a trailing-slash directory prefix, a
+// trailing `*`, and a path that does not exist YET (a file the phase will create) are all legal.
+// The target is the clerical error — a path that can never match anything because it was written
+// relative to the wrong root, or as a shell glob the fence does not expand.
+// Scoped to chains still in flight. A closed chain's plan is a historical record, not a live
+// contract: its paths legitimately rot as files move, and retroactively failing completed chains
+// would teach people to disable the check rather than to write better plans — the same reasoning
+// the artifact baseline already applies.
+//
+// "Closed" means a ship OR reflect artifact exists. Ship alone is enough: not every completed
+// chain got a Reflect artifact (system-level-install shipped without one), so keying on reflect
+// alone misreads a finished chain as in-flight.
+const closedSlugs = new Set(
+  ['ship', 'reflect']
+    .flatMap((d) => listFiles(`${artifactsDir}/${d}`))
+    .map((f) => f.match(/\/([^/]+)-v[0-9]+\.md$/)?.[1])
+    .filter(Boolean)
+);
+
+for (const file of artifactFiles) {
+  const planDir = file.split('/').slice(-2, -1)[0];
+  if (planDir !== 'plans') continue;
+
+  let planOnly;
+  try {
+    planOnly = parseFrontmatter(readText(file), file);
+  } catch {
+    continue;
+  }
+  if (closedSlugs.has(planOnly.frontmatter.slug)) continue;
+
+  for (const block of planOnly.body.split(/\n(?=### Phase\s)/)) {
+    const pm = block.match(/^### Phase\s+(\d+)/);
+    if (!pm) continue;
+    for (const t of phaseTouches(block)) {
+      // A backticked span inside Touches is not always a path — plans legitimately inline a
+      // verification command there (`node validators/check-lifecycle.mjs --phase build`). Paths in
+      // this repo never contain spaces, so a span that does is prose, not a scope declaration.
+      if (/\s/.test(t)) continue;
+      // Interior `*` means a shell-style glob the fence never expands — it only understands a
+      // trailing `*` or a trailing `/`. Such an entry silently matches nothing.
+      const star = t.indexOf('*');
+      if (star !== -1 && star !== t.length - 1) {
+        errors.push(`${file} Phase ${pm[1]} Touches entry "${t}" contains an interior glob; the scope fence matches exact paths, a trailing "/" prefix, or a trailing "*" only`);
+        continue;
+      }
+      // Deliberately NOT flagging leading-slash entries. Plans legitimately mention site routes
+      // inside prose in this field ("likely `/install` or `/setup`"), and an absolute filesystem
+      // path in Touches is a mistake nobody has actually made — flagging it cost real false
+      // positives to guard a hypothetical. A leading-slash entry simply never matches, which the
+      // resolvability check below reports if it matters.
+      const probe = t.replace(/^\//, '').replace(/\*$/, '').replace(/\/$/, '');
+      // Unresolvable AND unlikely to be created: no directory component of it exists either. A
+      // brand-new file under an existing directory is fine; a path whose parents do not exist is
+      // almost always an abbreviation written against the wrong root.
+      if (probe && !pathExists(probe)) {
+        const parent = probe.includes('/') ? probe.slice(0, probe.lastIndexOf('/')) : '';
+        if (parent && !pathExists(parent)) {
+          errors.push(`${file} Phase ${pm[1]} Touches entry "${t}" does not resolve, and neither does its parent directory "${parent}" — check it is repo-relative and not abbreviated`);
+        }
+      }
+    }
+  }
 }
 
 for (const file of artifactFiles) {

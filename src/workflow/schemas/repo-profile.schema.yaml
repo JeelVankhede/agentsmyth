@@ -231,7 +231,7 @@ properties:
     additionalProperties: false
     description: >-
       Optional per-repo overrides for a fixed, enumerated set of behavior knobs that otherwise
-      come from the global agent-behavior.yaml (WP-R8). This block is the ONLY route by which a
+      come from the global agent-behavior.yaml. This block is the ONLY route by which a
       repo may influence lifecycle behavior, and it is deliberately narrow. The enumeration lives
       here and only here — no validator carries a duplicate key list. Every key below is declared
       explicitly under closed objects, so anything not named is rejected as an unknown property
@@ -241,7 +241,10 @@ properties:
       classification_signals, since tuning those is an indirect route to reclassifying all work as
       trivial and skipping phases), the rest of pause_resume, all of evidence_policy, all of
       change_policy, all of waivers, dispatch.require_independent_file_ownership,
-      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers.
+      dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers. Councils add
+      council.enabled, council.max_rounds, council.depth, council.default_fan_out, and
+      council.sandbox_root as overridable; nothing else in the council block is, and no council key
+      can re-enable delegation that dispatch.enabled has turned off.
       Resolution - the global value is overridden by the repo-local value here, EXCEPT
       pause_resume.user_checkpoint_required_for, which is resolved by union with the global list.
       Governing rule - a repo-local value may make behavior stricter or leave it unchanged, never
@@ -263,6 +266,40 @@ properties:
               - optional
               - disabled
             description: A repo may turn delegation off; it may not set `required` per-repo. `required` is deliberately absent from this enum — permitting it would be the looser direction the governing rule forbids.
+      council:
+        type: object
+        additionalProperties: false
+        description: >-
+          Per-repo council overrides. Note the ordering that binds regardless of anything
+          here - dispatch.enabled resolving to `disabled` suppresses the council outright, so a repo
+          that turned delegation off does not need to also disable the council, and cannot re-enable
+          it from this block.
+        properties:
+          enabled:
+            enum:
+              - on-for-complex
+              - disabled
+            description: A repo may turn the council off, or restate the global default. There is no value here that makes councils fire more widely than the global config allows.
+          max_rounds:
+            type: integer
+            minimum: 1
+            maximum: 10
+            description: Capacity bound on the round loop, not an enforcement rule. Lowering it makes runs cheaper and shorter; it cannot loosen any gate.
+          depth:
+            enum:
+              - shallow
+              - standard
+              - deep
+            description: Per-member research effort. Capacity rather than enforcement, so a repo may move it in either direction.
+          default_fan_out:
+            type: integer
+            minimum: 1
+            maximum: 10
+            description: Council fallback fan-out when no max_parallel_workstreams is declared. Capacity, like max_parallel_workstreams, so it has no looser direction to move in.
+          sandbox_root:
+            type: string
+            minLength: 1
+            description: Where this repo's trial members write. Must resolve outside the repository; a path inside it fails the Build-phase check rather than being silently accepted.
       skill_scoring:
         type: object
         additionalProperties: false
@@ -286,7 +323,7 @@ properties:
               meaning - pure repo vocabulary, i.e. what counts as a frontend or migration path in
               this codebase. Consumed by check-trigger-predicates.mjs, which resolves the merged
               value. Typed identically to agent-behavior.yaml's own path_glob_categories rather
-              than left open (WP-R8 Review F2): an open type accepted a bare string like
+              than left open: an open type accepted a bare string like
               `ui_globs: "ui/**"`, which passed config validation and then failed inside
               check-trigger-predicates.mjs as `globs.some is not a function` - a JavaScript
               TypeError naming an internal variable, from a validator the author was not editing.
@@ -316,7 +353,7 @@ properties:
     type: object
     additionalProperties: false
     description: >-
-      Human-answerable configuration that DERIVES the mechanism values in `tuning:` (WP-R8). The
+      Human-answerable configuration that DERIVES the mechanism values in `tuning:`. The
       two blocks are different layers of the same decision, not alternatives. `tuning:` holds
       expert-facing numbers - weights, caps, glob sets - which a setup interview cannot sensibly
       ask a person about. `intent:` holds what a person can actually answer, and the agent derives
@@ -409,7 +446,7 @@ properties:
       derived_keys:
         type: array
         description: >-
-          Provenance (WP-R8 RI8). Dotted paths of the `tuning:` values the agent derived from this
+          Provenance. Dotted paths of the `tuning:` values the agent derived from this
           intent block, e.g. `dispatch.max_parallel_workstreams`. A key listed here may be safely
           re-derived when a later version changes the derivation rules. A `tuning:` value NOT listed
           here was set by hand and must never be silently overwritten by a re-derivation. Without

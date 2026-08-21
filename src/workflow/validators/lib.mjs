@@ -92,7 +92,7 @@ if (_defsRoot !== join(repoRoot, _wf) && !existsSync(_defsRoot)) {
   process.exit(1);
 }
 
-// ── WP-R8 tuned-map resolution ─────────────────────────────────────────────
+// ── Tuned-map resolution ───────────────────────────────────────────────────
 // Merges a repo-local `tuning:` map over its global counterpart PER ENTRY, one level deeper than a
 // plain spread. Lives here, exported and unit-tested (test/run-tuning-merge-tests.mjs), because
 // getting the depth wrong is silent: the defect this replaces passed both check-config.mjs and
@@ -337,7 +337,7 @@ export function assertCondition(condition, message, errors) {
   if (!condition) errors.push(message);
 }
 
-// Deferred-enforcement warnings (WP-R8 Review F4). A schema declaration carrying
+// Deferred-enforcement warnings. A schema declaration carrying
 // `x_enforcement: warn-until-<version>` is validated, but a failure is reported here instead of in
 // `errors`, so it is visible without failing the gate. See the branch in validateSchema.
 export const deferredWarnings = [];
@@ -716,8 +716,8 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     errors.push(`${pathLabel} is below minimum ${schema.minimum}`);
   }
 
-  // `maximum` was absent here until WP-R8 (2026-08-12) — the keyword parsed fine and was then
-  // silently ignored, so a schema declaring `maximum: 10` accepted 99. Found by WP-R8's Phase 1
+  // `maximum` was absent here until 2026-08-12 — the keyword parsed fine and was then
+  // silently ignored, so a schema declaring `maximum: 10` accepted 99. Found by a build phase
   // gate, which was the first schema in the repo to use the keyword at all; nothing else was
   // mis-validating. Mirrors the `minimum` branch above deliberately, including its typeof guard.
   if (schema.maximum !== undefined && typeof value === 'number' && value > schema.maximum) {
@@ -764,7 +764,7 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
   }
 
   // Schema-valued `additionalProperties` — validate every undeclared key against it. Added by
-  // WP-R8 Review F2 (2026-08-14). Until now the engine only understood `additionalProperties: false`
+  // Added 2026-08-14. Until then the engine only understood `additionalProperties: false`
   // and silently ignored the schema form, so every open map in this repo was unvalidated: the
   // global agent-behavior.schema.yaml declares path_glob_categories as arrays of strings, triggers
   // as strings, and thresholds as integers, and none of those were ever checked. A bare string
@@ -775,7 +775,7 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
   // with no properties at all, which is what path_glob_categories and thresholds are) has no
   // declared keys, and the properties-gated block above would skip it entirely — which is exactly
   // how this stayed invisible.
-  // Conditional subschemas (WP-R8 Review F5). lifecycle-artifact.schema.yaml has used `if`/`then`
+  // Conditional subschemas. lifecycle-artifact.schema.yaml has used `if`/`then`
   // since it was written — seven branches declaring which body sections each artifact type
   // requires — and the engine ignored the keywords entirely, so all seven were decoration. That
   // left 16 section requirements across brief/task/reflect declared but unenforced.
@@ -797,8 +797,9 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     const declared = schema.properties ?? {};
     const subSchema = schema.additionalProperties;
 
-    // Deferred enforcement (WP-R8 Review F4). Implementing this keyword newly enforced 8
-    // declarations that had been decorative since they were written — 6 of them outside WP-R8,
+    // Deferred enforcement. Implementing this keyword newly enforced 8
+    // declarations that had been decorative since they were written — 6 of them unrelated to the
+    // change that surfaced them,
     // including verification.yaml's consumer-authored `commands[].env`. A repo that wrote
     // `env: {PORT: 8080}` passed before and would fail after, on upgrade: a compatibility break
     // for a repo that never touched this feature, and the opposite of the non-blocking upgrade

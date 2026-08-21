@@ -138,7 +138,38 @@ dispatch:
   require_dispatch_log: true
   merge_owner: primary_agent
 
-# RESOLUTION (WP-R8): three of the six keys a repo may override in workflow/config/repo-profile.yaml
+council:
+  enabled: on-for-complex
+  max_rounds: 4
+  depth: standard
+  default_fan_out: 3
+  sandbox_root: "~/.agentsmyth/sandbox"
+
+# RESOLUTION: whether a council fires is decided in this exact order, and the first
+# answer wins:
+#   1. resolved `dispatch.enabled` — if `disabled`, NO council, in any phase, for any task class.
+#      A repo that turned delegation off made a standing decision, and a council firing anyway
+#      would be a kill switch a later feature routed around. Log a refusal and run single-agent.
+#   2. resolved `council.enabled` — `disabled` means no council; `on-for-complex` continues.
+#   3. task class — the council fires for `complex` only. Trivial and Standard keep the
+#      single-agent path with no behavioral change.
+#
+# `default_fan_out` applies ONLY when neither the global `dispatch.max_parallel_workstreams` nor
+# `tuning.dispatch.max_parallel_workstreams` is declared. It is a deliberate departure from
+# phase-caps.md's global "default to 1 (no parallelism)" rule, because a one-member council is not
+# a council. The departure costs an unconfigured consumer real tokens without their having chosen
+# it, so the artifact records `cap_source: council-default` vs `configured` and the departure is
+# documented in phase-caps.md rather than left to be discovered on a bill.
+#
+# `depth` bounds per-member research effort, NOT member count. It exists so cost can be reduced
+# without shrinking the council — fan-out is the wrong knob for that, since fewer members means
+# less coverage rather than cheaper coverage.
+#
+# `sandbox_root` is where trial members write. It resolves global-then-repo-local exactly like
+# `definitions_root`, and defaults outside every repository by construction so that "no council
+# member modifies the repo" holds structurally rather than by per-run assertion.
+
+# RESOLUTION: three of the six keys a repo may override in workflow/config/repo-profile.yaml
 # under `tuning:` live in this block — complexity_score.weights, path_glob_categories, and
 # thresholds. (The other three are dispatch.max_parallel_workstreams, dispatch.enabled, and
 # pause_resume.user_checkpoint_required_for.) Before applying this rubric, resolve each PER ENTRY —
@@ -212,7 +243,7 @@ skill_scoring:
         standard: 6
         complex: 6
   # thresholds holds the numeric cut-offs the predicates below compare against, split out of the
-  # predicate strings by WP-R8 so a repo can say "review me harder" without rewriting logic. This
+  # predicate strings so a repo can say "review me harder" without rewriting logic. This
   # is a tunable key (repo-profile.yaml `tuning.skill_scoring.thresholds`, per-entry merge); the
   # `triggers` predicates themselves stay locked and global. That split is the whole point: a repo
   # moves numbers, never boolean structure, so it can raise or lower how often a skill fires but

@@ -80,7 +80,7 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -130,6 +130,84 @@ check('r16-skipped-checks-columns', 'Skipped Checks Starter Block table has all 
 // not just a whitespace-only-prefixed one, so a phase's Touches capture stays bounded
 // instead of silently absorbing a later, unrelated backtick-quoted path as covered.
 const sfb = run(V('check-scope-fence'), ['--dir', 'test/fixtures/conformance/scope-fence-bullet-boundary']);
+// WP-R21 positive control — a well-formed council brief must PASS check-council-record, and must
+// print the summary line. Without this, the 15 rejection fixtures in the violations suite would be
+// satisfied by a validator that rejects everything.
+const cwf = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-wellformed']);
+check('r21-council-wellformed', 'well-formed council brief passes check-council-record',
+  cwf.status === 0);
+check('r21-council-summary', 'check-council-record reports texture, not a bare pass',
+  /summary: 1 council brief\(s\), 2 round\(s\), 4 finding\(s\)/.test(cwf.out) &&
+  /citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
+
+// WP-R21 R15 anti-drift — lifecycle-think's SKILL.md must keep naming the eight pipeline stages the
+// validator and council skill are written against. Same doc-drift class as R12/R13/R16/R19: the
+// contract and its documentation rot apart unless something pins them together.
+const thinkSkill = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-think/SKILL.md'), 'utf8');
+check('r21-think-stages', 'lifecycle-think SKILL.md names all eight pipeline stages in order',
+  ['Stage 1 — Classify and locate', 'Stage 2 — Frame requirements and assign evidence classes',
+   'Stage 3 — Fan out', 'Stage 4 — Challenge', 'Stage 5 — Consolidate',
+   'Stage 6 — Assess and decide', 'Stage 7 — Write the brief', 'Stage 8 — Log the run']
+    .every((s, i, arr) => {
+      const idx = thinkSkill.indexOf(s);
+      return idx !== -1 && (i === 0 || idx > thinkSkill.indexOf(arr[i - 1]));
+    }));
+
+// WP-R21 R8 — the preserved single-agent path must stay a verbatim copy, not a paraphrase. A
+// "preserved" path that drifts into a reconstruction is not a rollback surface.
+const sap = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-think/references/single-agent-path.md'), 'utf8');
+check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-R21 workflow steps verbatim',
+  /1\. Classify task as Trivial, Standard, or Complex\./.test(sap) &&
+  /11\. Set `orchestration\.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`\./.test(sap) &&
+  /skill_trigger_log` entry for every evaluated trigger \(ran or skipped, with reason\)\./.test(sap));
+
+// Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
+// mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop
+// claim, and rejecting it made the validator assert the opposite of what the cell said. The
+// positive case still has to fail (coverage-ledger-sublabel, above), so both directions are pinned.
+const prose = run(V('check-coverage-ledger'), ['--dir', 'test/fixtures/conformance/coverage-ledger-prose-drop']);
+check('coverage-ledger-prose-drop', 'prose mentioning dropped/removed is not read as a drop claim',
+  prose.status === 0);
+
+// Shipped-neutrality — src/ is copied verbatim into consumer repos and into ~/.agentsmyth, so a
+// consumer reading their own installed agent-behavior.yaml, schema, skill or validator must not be
+// shown agentsmyth's internal tracker IDs. "WP-R21", "OI-74", "Review F5", "brief A5" mean nothing
+// outside this repo's own Notion and workflow/artifacts, and their presence makes shipped files
+// read as internal notes rather than as a product.
+//
+// Reasoning about WHY a rule exists is welcome and should stay; only the ticket reference goes.
+// This was a real defect: 47 such references had accumulated across 19 shipped files before anyone
+// checked, because nothing looked.
+const NEUTRALITY_ALLOWLIST = new Set([
+  // Illustrates the open-items ledger's own ID format. OI-1/OI-2 here are sample data in a format
+  // example, not references to this repo's tracker.
+  'src/workflow/skills/follow-up-owner-assigner/references/ledger-format.md',
+]);
+
+function walkSrc(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) walkSrc(full, out);
+    else if (/\.(md|mjs|ya?ml)$/.test(entry.name) || entry.name === 'pre-commit') out.push(full);
+  }
+  return out;
+}
+
+const neutralityHits = [];
+for (const file of walkSrc(join(repoRoot, 'src'))) {
+  const rel = file.slice(repoRoot.length + 1);
+  if (NEUTRALITY_ALLOWLIST.has(rel)) continue;
+  for (const m of readFileSync(file, 'utf8').matchAll(/\bWP-R\d+|\bOI-\d+|\bReview F\d+\b|\bRI\d+ \(WP/g)) {
+    neutralityHits.push(`${rel}: ${m[0]}`);
+  }
+}
+check('shipped-neutrality', 'no internal tracker IDs (WP-R#, OI-#, Review F#) in shipped src/',
+  neutralityHits.length === 0);
+if (neutralityHits.length) {
+  console.error(`       ${neutralityHits.length} reference(s):`);
+  for (const h of neutralityHits.slice(0, 12)) console.error(`         ${h}`);
+}
+
 check('r15-scope-fence-bullet', 'bullet-dash-prefixed phase boundary keeps Touches correctly bounded',
   sfb.status !== 0 && /outside Phase 1's declared Touches/.test(sfb.out));
 

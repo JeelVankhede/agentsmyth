@@ -17,14 +17,24 @@ Authorization is **not** implicit from:
 
 If explicit authorization is absent, do not dispatch. Continue locally.
 
+**Exception — council auto-fire.** A council may fire without explicit per-conversation
+authorization under a named exception whose bounding principle, conditions, and capability limits
+are stated in `SKILL.md`. **This file deliberately does not restate them** — restatement across
+files is precisely how this reference and `SKILL.md` drifted apart in the first place, so the
+pointer is the whole of the content here. Check `SKILL.md` before concluding that an auto-fire is
+refused.
+
+Read the phase rows below with that exception in mind: their "yes, if explicitly authorized" is the
+rule for ordinary dispatch, not a denial of the carve-out.
+
 ## Phase Decision Tree
 
 | Phase | Dispatch allowed | Role | Condition |
 |---|---|---|---|
-| Think | yes, if explicitly authorized | explorer | Read-only; independent context or requirement-bucket questions only |
+| Think | yes, if explicitly authorized | explorer | Read-only; independent context or requirement-bucket questions, **or overlapping surfaces under the Read-Only Overlap Exception** |
 | Plan | yes, if explicitly authorized | explorer | Read-only; independent requirement areas or risk buckets only |
-| Build | yes, if explicitly authorized | worker | Write access; disjoint file and contract ownership required |
-| Review | yes, if explicitly authorized | worker-readonly | Read-only; independent risk categories only |
+| Build | yes, if explicitly authorized | worker | Write access; disjoint file and contract ownership required — the Read-Only Overlap Exception never applies |
+| Review | yes, if explicitly authorized | worker-readonly | Read-only; independent risk categories, **or overlapping surfaces under the Read-Only Overlap Exception** |
 | Test | yes, if explicitly authorized, and only via the `verification-parallelizer` (E1) profile below | verifier-readonly | Fan out only independently-reproducible `verification-matrix-builder` (B6) rows; general Test work stays `never` — evidence is otherwise state-dependent and dispatch cannot produce reproducible verification |
 | Ship | never | none | Release and source state are authoritative and sequential |
 | Reflect | never | none | Synthesis and learning capture require full chain visibility |
@@ -32,20 +42,31 @@ If explicit authorization is absent, do not dispatch. Continue locally.
 ## Per-Phase Refuse Conditions
 
 **Think / Plan** — refuse when:
-- Questions or buckets share a config file, source item, or repo surface
-- A candidate question requires the answer to another candidate question
-- The parent cannot integrate conflicting context findings
+- Questions or buckets share a config file, source item, or repo surface **and the parent has not
+  declared a dedupe-and-reconcile contract** (see the Read-Only Overlap Exception in
+  `references/independence-rules.md`). Explorers are read-only, so a declared contract permits the
+  overlap; an undeclared one still refuses.
+- A candidate question requires the answer to another candidate question — a sequencing dependency,
+  which no reconcile contract resolves
+- The parent cannot integrate conflicting context findings, or cannot commit to surfacing a conflict
+  between two workers on a shared surface rather than silently resolving it
 
 **Build** — refuse when:
-- Two candidate workers would touch the same file, import, schema, fixture, migration, or test
+- Two candidate workers would touch the same file, import, schema, fixture, migration, or test.
+  The Read-Only Overlap Exception does not apply in Build under any circumstance: Build's workers
+  write, and the exception exists only because a read-only worker cannot create a write conflict
 - Candidates share a generated-output source or target
 - Candidates share a public contract, release, or source-handoff surface
 - The parent cannot integrate results without reading and merging both workers' output
 
 **Review** — refuse when:
-- Two candidates inspect the same file or risk area
+- Two candidates inspect the same file or risk area **and the parent has not declared a
+  dedupe-and-reconcile contract**. Review candidates are read-only, so a declared contract permits
+  the overlap; an undeclared one still refuses. Two candidates given the *same risk category* are
+  refused regardless — the exception covers shared surfaces, not duplicated charters.
 - A candidate is asked to produce a fix recommendation (that switches it to Build scope)
-- The parent cannot merge findings without re-reading both workers' full output
+- The parent cannot merge findings without re-reading both workers' full output, or cannot commit to
+  surfacing a conflict between two workers on a shared surface rather than silently resolving it
 
 **Test (`verification-parallelizer`, E1 only)** — refuse when:
 - A candidate verification row's evidence depends on another row's outcome or on shared, mutable

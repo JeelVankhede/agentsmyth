@@ -156,6 +156,48 @@ properties:
         type: boolean
       merge_owner:
         type: string
+  council:
+    type: object
+    additionalProperties: false
+    description: >-
+      Council-mode dispatch settings. Firing is decided in a fixed order and the first
+      answer wins - resolved dispatch.enabled, then council.enabled, then task class. A repo that
+      set dispatch.enabled to disabled gets no council regardless of anything in this block; a kill
+      switch a later feature can route around is not a kill switch.
+    required:
+      - enabled
+      - max_rounds
+      - depth
+      - default_fan_out
+      - sandbox_root
+    properties:
+      enabled:
+        type: string
+        enum:
+          - on-for-complex
+          - disabled
+        description: Councils fire for task_class complex only. Trivial and Standard keep the single-agent Think path unchanged, so there is no on-for-all value to set.
+      max_rounds:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Backstop bound on the round loop. The tapering, non-increasing fan-out supplies the actual cost guarantee; this only stops a pathological loop. A run that hits this bound while any item survived every round without closing must terminate user-decision-required, not max-rounds.
+      depth:
+        type: string
+        enum:
+          - shallow
+          - standard
+          - deep
+        description: Bounds per-member research effort, not member count. Separate from fan-out so cost can be reduced without shrinking the council.
+      default_fan_out:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Council-specific fallback used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from the global default-to-1 rule, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+      sandbox_root:
+        type: string
+        minLength: 1
+        description: Where trial members write. Resolves global-then-repo-local like definitions_root. Must lie outside the repository - that is what makes the no-repo-mutation guarantee structural rather than asserted per run.
   skill_scoring:
     type: object
     additionalProperties: false
@@ -196,7 +238,7 @@ properties:
             additionalProperties: true
       thresholds:
         type: object
-        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings by WP-R8 so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
+        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
         additionalProperties:
           x_enforcement: warn-until-1.2.0
           type: integer

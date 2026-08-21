@@ -75,6 +75,9 @@ For resumed or revised work, load the current slug chain first through `restore-
 - Repository files — when needed to derive implicit requirements, contracts, protected paths, or verification constraints
 - `workflow/skills/decompose-requirements/SKILL.md` — when the manifest needs creation or repair
 - `workflow/skills/dispatch-subagents/SKILL.md` — only when explicitly authorized exploration splits into independent read-only topics
+- `workflow/skills/think-council/SKILL.md` — at stage 3 in council mode; see the mode resolution order in Workflow
+- `workflow/skills/dispatch-subagents/references/council-contracts.md` — when recording findings, for the disposition and evidence-class contracts
+- `references/single-agent-path.md` — when running single-agent mode, or when the staged pipeline needs a rollback
 
 ## Inputs
 
@@ -96,20 +99,127 @@ Stop and ask, or return a blocked brief, when any of these apply:
 
 ## Workflow
 
-1. Classify task as Trivial, Standard, or Complex.
-2. Determine slug and version. Reuse the active slug where possible; bump version for material scope change.
-3. Inspect available source, repo, and config context before asking questions. Evaluate the
-   `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` trigger
-   predicates against recorded signals; run each that evaluates true and record a
-   `skill_trigger_log` entry for every evaluated trigger (ran or skipped, with reason).
-4. Extract explicit requirements as `R` IDs.
-5. Derive implicit requirements as `RI` IDs from repo contracts, domain config, source-of-truth expectations, compatibility, generated output, verification, release, and safety.
-6. Record assumptions as `A` IDs only when proceeding is safe.
-7. Record open decisions as `Q` IDs. Copy blocking `Q` IDs into `orchestration.blockers`.
-8. Define concrete acceptance criteria for every active `R` and `RI`.
-9. Add architecture notes covering role, decisions, constraints, tradeoffs, assumptions, and downstream impact.
-10. Write or update `workflow/artifacts/briefs/<slug>-v<N>.md`.
-11. Set `orchestration.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`.
+Think runs as eight named stages. Stages 3–6 are the council loop and run only in council mode;
+in single-agent mode the parent performs stage 3's research itself and stages 4–6 collapse to one
+pass. **Both modes produce the same artifact against the same output schema.**
+
+Mode is resolved before stage 1, in this order, first answer winning:
+
+1. resolved `dispatch.enabled` is `disabled` → single-agent, log a refusal
+2. resolved `council.enabled` is `disabled` → single-agent, log a refusal
+3. task class is not `complex` → single-agent, no refusal needed (councils are Complex-only)
+4. otherwise → council mode
+
+### Stage 1 — Classify and locate
+
+Classify the task as Trivial, Standard, or Complex. Determine slug and version — reuse the active
+slug where possible; bump version for material scope change.
+
+### Stage 2 — Frame requirements and assign evidence classes
+
+Inspect available source, repo, and config context before asking questions. Evaluate the
+`repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` trigger
+predicates against recorded signals; run each that evaluates true and record a `skill_trigger_log`
+entry for every evaluated trigger (ran or skipped, with reason).
+
+Extract explicit requirements as `R` IDs. Derive implicit requirements as `RI` IDs from repo
+contracts, domain config, source-of-truth expectations, compatibility, generated output,
+verification, release, and safety.
+
+**Then classify each active `R` and `RI` into a question bucket, and assign each bucket the evidence
+class or classes that would actually settle it** — `repo`, `trial`, `web`, `recall`. A requirement
+with no classification entry, or a bucket naming zero evidence classes, fails the gate. Deciding
+*what kind of evidence would settle this* before going to look for it is what stops research from
+becoming an undirected read of whatever is nearby.
+
+### Stage 3 — Fan out
+
+Council mode only. Invoke `workflow/skills/think-council/SKILL.md` for this round. Researchers run
+as one capped parallel stage against their assigned buckets.
+
+Single-agent mode: the parent researches the buckets itself, sequentially, recording findings against
+the same evidence-class contract.
+
+### Stage 4 — Challenge
+
+Council mode only. The challenge pass runs as a second capped stage over the **raw research
+findings**, not over the parent's synthesis.
+
+### Stage 5 — Consolidate
+
+Apply dispositions to every finding. Record conflicts on shared surfaces with their resolution.
+Enforce the evidence rules: `recall` may not solely support a recommendation, and `web` may not
+solely decide a repo-shaped question.
+
+### Stage 6 — Assess and decide
+
+Compare open items before and after the round. Record **which item IDs closed**, not how many. Then
+choose exactly one:
+
+- **another round** — items remain and another round is likely to close them. Fan-out must not grow;
+  size it to what remains (see Round Loop below)
+- **escalate** — remaining items need human authority. Terminate `user-decision-required`
+- **complete** — nothing remains open. Terminate `resolved`
+
+### Stage 7 — Write the brief
+
+Write or update `workflow/artifacts/briefs/<slug>-v<N>.md`. Define concrete acceptance criteria for
+every active `R` and `RI`. Record assumptions as `A` IDs only when proceeding is safe. Record open
+decisions as `Q` IDs and copy blocking ones into `orchestration.blockers`.
+
+**Every surviving `Q` carries a recommended answer and the evidence it rests on**, referencing
+recorded finding IDs. Anything answerable from available evidence must not reach the user — that is
+the point of the preceding six stages. A `Q` whose evidence references are all `recall` is invalid.
+
+Add architecture notes covering role, decisions, constraints, tradeoffs, assumptions, and downstream
+impact.
+
+### Stage 8 — Log the run
+
+Record the full council log into the brief: every round with its member counts and roles, evidence
+classes used per member, every finding with class and disposition, conflicts and resolutions,
+per-round closed item IDs, open-item deltas, authorization mode, resolved cap and `cap_source`,
+dispatch depth, and the termination reason.
+
+Set `orchestration.status` to `blocked-for-user` when questions remain, otherwise
+`ready-for-next-phase` with `next_phase: plan`.
+
+## Round Loop
+
+Rounds are **not a schedule**. A single round that resolves everything is a first-class success — no
+round after the first is ever required.
+
+Each subsequent round is sized to what actually remains: repeat at similar strength when much is
+still open, taper when close to done, finish with a single wrap-up member when only consolidation
+remains. Illustrative shape, not normative:
+
+| Round | Researchers | Challengers |
+|---|---|---|
+| 1 | 3 | 1–2 |
+| 2 | 2 | 1 |
+| 3 | 1 | 1 |
+| 4 | 1 (wrap-up) | — |
+
+**Fan-out is non-increasing across rounds.** A round may match the previous round's size or shrink,
+never grow. Needing more capacity than the previous round used is an escalation to the user, not a
+self-authorized spend increase.
+
+Bounded by `council.max_rounds` (default 4) as a backstop — but the taper, not the bound, is what
+supplies the cost guarantee.
+
+**Taper coherence:** a round that reduces fan-out while open items did not decrease fails. Shrinking
+the council asserts convergence, so the numbers must corroborate it.
+
+**Survivors escalate rather than expiring.** An item that enters every round and closes in none is
+the clearest evidence the council cannot resolve it — which is the definition of something belonging
+with the user. Such a run terminates `user-decision-required`, carrying that item's per-round
+history as the basis for asking, **never** `max-rounds`.
+
+## Single-Agent Mode
+
+The pre-R21 workflow is preserved verbatim in `references/single-agent-path.md` and remains a
+supported route for one release. It is the genuine rollback surface: if the staged pipeline is
+broken, that path still produces a valid brief. Scheduled for removal in the next minor release.
 
 ## Architecture Notes Expectations
 
@@ -136,6 +246,11 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - The user has approved the brief or the artifact records an explicit waiver before Plan begins.
 - Any waiver recorded in the brief passes `waiver-completeness-check` (all 6 required fields present).
 - The `repo-alignment-scan`, `architecture-decision-advisor`, and `constraint-conflict-scan` triggers were each evaluated and recorded in `skill_trigger_log` (ran or skipped, with reason). `check-skill-triggers.mjs` enforces both presence and completeness: a brief must record a `skill_trigger_log`, and it must cover all three mandated skills (a missing log, or a log that omits one, fails). Use the starter-block stub. The validator cannot re-derive the score itself — only that each mandated decision was recorded.
+- Every active `R` and `RI` has a classification entry naming at least one evidence class (stage 2).
+- Every surviving `Q` carries a recommendation whose evidence references resolve to recorded finding IDs, and are not exclusively `recall`.
+- The council run is logged, or a refusal is recorded with its reason — a council that was applicable and did not fire must say so, since silence cannot distinguish "not applicable" from "failed to fire".
+- The run records a `termination_reason` of `resolved`, `user-decision-required`, `max-rounds`, or `no-progress`; a run whose item survived every round terminates `user-decision-required`, never `max-rounds`.
+- Fan-out never grew between rounds, and any round that shrank fan-out is corroborated by a decrease in open items.
 
 ## Determinism Rules
 

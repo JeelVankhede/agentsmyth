@@ -434,8 +434,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Correct CLAUDE.md's stale 'all 4 fixtures' line in the pre-finish checklist — the violation suite is now 29 fixtures (npm run violations:test)."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Fixed: CLAUDE.md pre-finish checklist now reads \"every fixture rejected — 60 as of 1.1.0\" instead of the stale \"all 4 fixtures\", and gained a conformance:test line which the checklist had never mentioned."
   - id: OI-71
     source: follow-up
     owner: workflow owner
@@ -446,5 +447,45 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Fixed: the NUL sentinels in check-trigger-predicates.mjs globToRegex are now printable (<<DOUBLESTAR>>/<<STAR>>). File contains 0 NUL bytes and is greppable again. Glob semantics verified unchanged against 7 cases covering ** depth, * single-segment, and literal-dot escaping."
+  - id: OI-78
+    source: follow-up
+    owner: workflow owner
+    next_action: "Grep cannot audit src/ reliably, so any future manual sweep of shipped files must read files directly rather than shell out to grep. check-trigger-predicates.mjs contains NUL sentinels (OI-72), which makes grep classify it as binary and silently return nothing without -a. A manual `grep -rE` sweep for internal tracker IDs across src/ during wp-r21-think-council reported that file as clean while it held five WP-R references; only the new shipped-neutrality conformance check, which reads files with readFileSync, found them. This is the second time OI-72's NUL bytes have caused a false-clean result. Fixing OI-72 removes the whole class."
+    status: done
+    first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-76
+    source: follow-up
+    owner: user
+    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-77
+    source: follow-up
+    owner: workflow owner
+    next_action: "Consider a plan-phase check that every path in a phase's `Touches` is a real repo-relative path. check-scope-fence caught three separate malformed Touches declarations during wp-r21-think-council — abbreviated paths (`references/foo.md` instead of the full path), a glob (`council-*/`), and undeclared files — but only at Build time, after the plan was approved. Each was a clerical error a Plan-phase check would have caught before the plan was signed off."
+    status: done
+    first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: check-scope-fence now validates plan Touches entries directly, for in-flight chains only (no ship or reflect artifact). Catches interior globs the fence never expands, and paths whose parent directory does not exist. Skips spans containing whitespace, since plans legitimately inline commands there. Found and fixed one real defect on adoption: site-docs-remediation-tier2-3 Phase 6 declared site/*.md, which matched nothing."
+  - id: OI-75
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-coverage-ledger.mjs reads the word 'dropped' appearing in ordinary prose inside a Requirement Coverage cell as a drop claim for that manifest ID. Hit live on wp-r21-think-council Ship: the R12 row read 'availability recorded, never silently dropped' and was rejected as 'R12 is marked dropped/removed with no matching Waivers entry' — the cell says the opposite of what the validator concluded. Same false-positive family as OI-29 ('rather than ... a waiver') and the manifest-ID compound-token fixes: a keyword matched without regard to the surrounding clause. Worked around by rewording the cell. Fix: require the drop claim to be the cell's status token rather than any occurrence in its prose, and add a fixture with a negated or incidental 'dropped' mention."
+    status: done
+    first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: check-coverage-ledger now requires a cell to BEGIN with a drop status token rather than merely contain the word. \"dropped — superseded by R9\" still fails; \"never silently dropped\" no longer does. Locked by conformance coverage-ledger-prose-drop (negative) alongside coverage-ledger-sublabel (positive)."
+  - id: OI-74
+    source: follow-up
+    owner: workflow owner
+    next_action: "The mandatory pre-commit lifecycle gate makes incremental Build commits impossible. .githooks/pre-commit maps a staged `tasks/` artifact to the `review` phase gate, which requires status ready-for-next-phase — but a task artifact is legitimately `in-progress` for the whole of Build, and lifecycle-build's own output-schema says Plan Phases Overview is 'updated at the start of each new Build phase', which implies committing it repeatedly. Today the only ways through are one giant end-of-Build commit or routine `--no-verify`, and routine bypass of a mandatory gate is corrosive — it trains the habit the gate exists to prevent. Hit on wp-r21-think-council Phase 1 (of 7), bypassed deliberately once with the reason in the commit message. Options: map `tasks/` to no gate while status is in-progress and to `review` only when it flips to ready-for-next-phase; or gate on the task's own phase rather than its downstream phase. Prefer the former — it preserves the check that matters (a task claiming review-readiness must actually be ready) without blocking the normal Build loop."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-73
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-lifecycle.mjs's checkpoint evidence extractor cannot record a multi-line verbatim user quote. The regex at line 62 terminates on `(?=\\n-\\s|\\n*$)`, and with the /m flag `$` matches at the first line end, so a multi-line approval truncates to its first line — which then usually trips the `length < 10` placeholder check. Hit live on wp-r21-think-council-v1: the user's real approval spanned four lines and had to be quoted as its final sentence, with the remainder recorded separately in prose. Users approve in multi-line messages routinely, so the rule 'quote the user verbatim' is currently in tension with what the validator can store. Fix the lookahead to terminate only on a following `- ` bullet at column 0, or support an indented continuation block."
+    status: open
+    first_seen_run: wp-r21-think-council-v1

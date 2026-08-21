@@ -55,7 +55,15 @@ Acceptance criteria:
 - explicit authorization state is recorded in every decision
 - phase cap is checked against the resolved `dispatch.max_parallel_workstreams` — `agent-behavior.yaml`, overridden by `tuning.dispatch.max_parallel_workstreams` in `workflow/config/repo-profile.yaml` when present
 - resolved `dispatch.enabled` is checked before authorization; `disabled` refuses dispatch in every phase
-- Build delegations pass the independence checklist in `references/independence-rules.md`
+- Build delegations pass the independence checklist in `references/independence-rules.md`, with no
+  Read-Only Overlap Exception available
+- read-only delegations that share a surface record the dedupe-and-reconcile contract that permits
+  the overlap; conflicting findings on a shared surface record the conflict and its resolution
+- overlapping read-only workers each count against the phase cap
+- council-mode delegations follow `references/council-contracts.md`: every finding carries a
+  disposition (`accepted` / `merged` / `rejected-with-reason`, non-empty reason when rejected) and
+  declares an evidence class (`repo` / `trial` / `web` / `recall`) meeting that class's citation
+  contract
 - Review delegations are read-only; any fix recommendation switches the candidate back to Build scope
 - Test, Ship, and Reflect do not spawn under any condition
 - parent owns merge, validation, and final evidence claims

@@ -122,7 +122,8 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
 - [ ] Edited **source** (`src/`), not generated output.
 - [ ] Ran `npm run build` if `src/workflow/`, `src/setup/`, or `src/adapters/` changed.
 - [ ] Ran `npm run validate` and it passed.
-- [ ] Ran `npm run violations:test` and it passed (all 4 fixtures rejected).
+- [ ] Ran `npm run violations:test` and it passed (every fixture rejected — 60 as of 1.1.0).
+- [ ] Ran `npm run conformance:test` and it passed.
 - [ ] Adapters still in sync if a gate changed.
 - [ ] No new runtime dependency introduced.
 - [ ] Standard/Complex work has its artifact chain under `workflow/artifacts/`.
