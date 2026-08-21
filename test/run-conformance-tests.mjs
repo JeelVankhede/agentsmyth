@@ -161,6 +161,14 @@ check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-
   /11\. Set `orchestration\.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`\./.test(sap) &&
   /skill_trigger_log` entry for every evaluated trigger \(ran or skipped, with reason\)\./.test(sap));
 
+// Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
+// mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop
+// claim, and rejecting it made the validator assert the opposite of what the cell said. The
+// positive case still has to fail (coverage-ledger-sublabel, above), so both directions are pinned.
+const prose = run(V('check-coverage-ledger'), ['--dir', 'test/fixtures/conformance/coverage-ledger-prose-drop']);
+check('coverage-ledger-prose-drop', 'prose mentioning dropped/removed is not read as a drop claim',
+  prose.status === 0);
+
 // Shipped-neutrality — src/ is copied verbatim into consumer repos and into ~/.agentsmyth, so a
 // consumer reading their own installed agent-behavior.yaml, schema, skill or validator must not be
 // shown agentsmyth's internal tracker IDs. "WP-R21", "OI-74", "Review F5", "brief A5" mean nothing

@@ -434,8 +434,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Correct CLAUDE.md's stale 'all 4 fixtures' line in the pre-finish checklist — the violation suite is now 29 fixtures (npm run violations:test)."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Fixed: CLAUDE.md pre-finish checklist now reads \"every fixture rejected — 60 as of 1.1.0\" instead of the stale \"all 4 fixtures\", and gained a conformance:test line which the checklist had never mentioned."
   - id: OI-71
     source: follow-up
     owner: workflow owner
@@ -446,14 +447,16 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Replace or comment the NUL sentinels in check-trigger-predicates.mjs's globToRegex (8 NUL bytes forming \\0DOUBLESTAR\\0 / \\0STAR\\0 placeholders). Harmless at runtime, but grep classifies the file as binary and silently returns nothing without -a, which misled investigation during WP-R8 Test. A one-line comment at the function or non-NUL sentinels would do; no behavior change either way."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Fixed: the NUL sentinels in check-trigger-predicates.mjs globToRegex are now printable (<<DOUBLESTAR>>/<<STAR>>). File contains 0 NUL bytes and is greppable again. Glob semantics verified unchanged against 7 cases covering ** depth, * single-segment, and literal-dot escaping."
   - id: OI-78
     source: follow-up
     owner: workflow owner
     next_action: "Grep cannot audit src/ reliably, so any future manual sweep of shipped files must read files directly rather than shell out to grep. check-trigger-predicates.mjs contains NUL sentinels (OI-72), which makes grep classify it as binary and silently return nothing without -a. A manual `grep -rE` sweep for internal tracker IDs across src/ during wp-r21-think-council reported that file as clean while it held five WP-R references; only the new shipped-neutrality conformance check, which reads files with readFileSync, found them. This is the second time OI-72's NUL bytes have caused a false-clean result. Fixing OI-72 removes the whole class."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
   - id: OI-76
     source: follow-up
     owner: user
@@ -464,14 +467,16 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Consider a plan-phase check that every path in a phase's `Touches` is a real repo-relative path. check-scope-fence caught three separate malformed Touches declarations during wp-r21-think-council — abbreviated paths (`references/foo.md` instead of the full path), a glob (`council-*/`), and undeclared files — but only at Build time, after the plan was approved. Each was a clerical error a Plan-phase check would have caught before the plan was signed off."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: check-scope-fence now validates plan Touches entries directly, for in-flight chains only (no ship or reflect artifact). Catches interior globs the fence never expands, and paths whose parent directory does not exist. Skips spans containing whitespace, since plans legitimately inline commands there. Found and fixed one real defect on adoption: site-docs-remediation-tier2-3 Phase 6 declared site/*.md, which matched nothing."
   - id: OI-75
     source: follow-up
     owner: workflow owner
     next_action: "check-coverage-ledger.mjs reads the word 'dropped' appearing in ordinary prose inside a Requirement Coverage cell as a drop claim for that manifest ID. Hit live on wp-r21-think-council Ship: the R12 row read 'availability recorded, never silently dropped' and was rejected as 'R12 is marked dropped/removed with no matching Waivers entry' — the cell says the opposite of what the validator concluded. Same false-positive family as OI-29 ('rather than ... a waiver') and the manifest-ID compound-token fixes: a keyword matched without regard to the surrounding clause. Worked around by rewording the cell. Fix: require the drop claim to be the cell's status token rather than any occurrence in its prose, and add a fixture with a negated or incidental 'dropped' mention."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: check-coverage-ledger now requires a cell to BEGIN with a drop status token rather than merely contain the word. \"dropped — superseded by R9\" still fails; \"never silently dropped\" no longer does. Locked by conformance coverage-ledger-prose-drop (negative) alongside coverage-ledger-sublabel (positive)."
   - id: OI-74
     source: follow-up
     owner: workflow owner

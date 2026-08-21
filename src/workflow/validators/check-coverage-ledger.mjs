@@ -67,7 +67,22 @@ for (const file of artifactFiles) {
   }
 
   const waived = waiverIds(parsed.body);
-  const droppedPattern = /dropped|removed from scope|out of scope/i;
+
+  // A drop is a STATUS, so it must be read as one. This used to scan the whole row, which meant any
+  // incidental prose containing "dropped" was read as a drop claim — a row reading "availability
+  // recorded, never silently dropped" was rejected as "marked dropped/removed", i.e. the validator
+  // concluded the exact opposite of what the cell said. Same false-positive class as the
+  // "rather than ... a waiver" waiver bug and the compound-token manifest-ID bug: a keyword matched
+  // without regard to its clause.
+  //
+  // Now a cell must *begin* with the status token to count. That still catches a real drop written
+  // as "dropped — superseded by R9", while prose that merely mentions the word does not match.
+  const droppedStatus = /^(dropped|removed|out of scope|removed from scope)\b/i;
+  const isDropClaim = (row) =>
+    row
+      .split('|')
+      .map((cell) => cell.trim().replace(/^\*+|\*+$/g, ''))
+      .some((cell) => droppedStatus.test(cell));
 
   for (const id of manifestIds) {
     const idPattern = new RegExp(`\\b${id}\\b`);
@@ -76,7 +91,7 @@ for (const file of artifactFiles) {
       errors.push(`${file} manifest ID ${id} has no row in the coverage table`);
       continue;
     }
-    if (droppedPattern.test(rowMatch) && !waived.has(id)) {
+    if (isDropClaim(rowMatch) && !waived.has(id)) {
       errors.push(`${file} manifest ID ${id} is marked dropped/removed with no matching Waivers entry`);
     }
   }

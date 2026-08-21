@@ -90,7 +90,12 @@ orchestration:
 - `src/workflow/validators/check-lifecycle.mjs` — checkpoint evidence extractor no longer truncates a multi-line verbatim quote (OI-73) — IDs: RI3
 - `src/assets/hooks/pre-commit` — the downstream phase gate now applies to a task artifact only once it claims ready-for-next-phase, so incremental Build commits no longer require --no-verify (OI-74) — IDs: RI3
 - `.githooks/pre-commit` — this repo's own copy, kept in sync with the shipped asset above (OI-74) — IDs: RI3
-- `test/run-conformance-tests.mjs` — added the `shipped-neutrality` guard (PR #64 review) — IDs: RI9
+- `test/run-conformance-tests.mjs` — added the `shipped-neutrality` guard and the `coverage-ledger-prose-drop` negative check (PR #64 review) — IDs: RI9
+- `src/workflow/validators/check-coverage-ledger.mjs` — drop detection reads a status token instead of any prose occurrence — IDs: RI3
+- `src/workflow/validators/check-scope-fence.mjs` — validates plan Touches entries for in-flight chains — IDs: RI3
+- `test/fixtures/conformance/coverage-ledger-prose-drop/` — new; prose mentioning dropped/removed is not a drop claim — IDs: RI9
+- `CLAUDE.md` — pre-finish checklist fixture count corrected; conformance:test line added — IDs: RI6
+- `workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md` — repaired a Touches glob that expanded to nothing, found by the new check — IDs: RI3
 - `src/workflow/validators/check-trigger-predicates.mjs` — removed internal tracker IDs from shipped comments — IDs: RI6
 - `test/fixtures/lifecycle-violations/cy-sandbox-outside-root` — sandbox outside the repo but not under the resolved root (P1-1) — IDs: R11, RI9
 - `test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line` — max-rounds omitting its surviving-items declaration (P1-2) — IDs: R13, RI9

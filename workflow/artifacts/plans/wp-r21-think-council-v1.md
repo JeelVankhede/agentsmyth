@@ -260,6 +260,11 @@ earlier phase has already carried its own targeted check.
   `test/fixtures/lifecycle-violations/de-integrity-mismatch`,
   `test/fixtures/conformance/council-wellformed`,
   `src/workflow/validators/check-trigger-predicates.mjs`,
+  `src/workflow/validators/check-coverage-ledger.mjs`,
+  `src/workflow/validators/check-scope-fence.mjs`,
+  `test/fixtures/conformance/coverage-ledger-prose-drop/`,
+  `CLAUDE.md`,
+  `workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md`,
   `src/workflow/validators/repo-digest.mjs`,
   `src/workflow/validators/check-lifecycle.mjs`,
   `src/assets/hooks/pre-commit`,
@@ -416,6 +421,23 @@ Added to Phase 7's `Touches`: `check-trigger-predicates.mjs` (five references) a
 `test/run-conformance-tests.mjs` (the new guard). The guard — conformance check
 `shipped-neutrality` — is the substantive part: a one-time cleanup would simply re-accumulate,
 since nothing had ever looked.
+
+**A7 (2026-08-21, corrective — open items fixed rather than filed).** The PR review made clear that
+filing an open item is not a fix. Five were closed with working code rather than carried:
+
+- **OI-72** — NUL sentinels in `check-trigger-predicates.mjs` replaced with printable ones. This was
+  the root of a class: the NUL bytes made `grep` treat the file as binary, so a repo-wide text sweep
+  silently reported it clean. It had already produced two false-clean audits, including this
+  package's own neutrality sweep. **OI-78** closes with it.
+- **OI-75** — `check-coverage-ledger` now reads a drop as a *status token* at the start of a cell,
+  not as any occurrence of the word in prose.
+- **OI-77** — `check-scope-fence` validates plan `Touches` entries directly, scoped to in-flight
+  chains so completed records are not retroactively failed.
+- **OI-70** — CLAUDE.md's stale "all 4 fixtures" corrected to 60, plus the missing conformance line.
+
+Adopting the OI-77 check found one real defect immediately: `site-docs-remediation-tier2-3` Phase 6
+declared `site/*.md`, an interior glob the fence never expands, so that phase's scope was silently
+empty. Repaired to `site/`, a prefix the fence does understand.
 
 ## Open Questions
 

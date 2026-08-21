@@ -57,7 +57,7 @@ backing each. No ID is dropped, deferred, or waived, so no `## Waivers` entry is
 | R9 | verified | Requirement classification with per-bucket evidence classes |
 | R10 | verified | Four evidence classes with per-class citation enforcement |
 | R11 | verified | Sandbox confinement to configured root; filesystem-scoped repo integrity |
-| R12 | verified | Runtime evidence-class availability recorded as used / unused / unavailable |
+| R12 | verified | Runtime evidence-class availability recorded, never silently dropped |
 | R13 | verified | Tapering round loop, taper coherence, survivor escalation |
 | R14 | verified | Full council run logged into the artifact |
 | R15 | verified | lifecycle-think restructured into eight named stages |
