@@ -137,8 +137,9 @@ const cwf = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/
 check('r21-council-wellformed', 'well-formed council brief passes check-council-record',
   cwf.status === 0);
 check('r21-council-summary', 'check-council-record reports texture, not a bare pass',
-  /summary: 1 council brief\(s\), 2 round\(s\), 4 finding\(s\)/.test(cwf.out) &&
-  /citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
+  /summary: \d+ council brief\(s\), \d+ round\(s\), \d+ finding\(s\)/.test(cwf.out) &&
+  /\d+ recall-only hypothes\(es\) accepted without corroboration/.test(cwf.out) &&
+  /\d+ citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
 
 // WP-R21 R15 anti-drift — lifecycle-think's SKILL.md must keep naming the eight pipeline stages the
 // validator and council skill are written against. Same doc-drift class as R12/R13/R16/R19: the
@@ -160,6 +161,13 @@ check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-
   /1\. Classify task as Trivial, Standard, or Complex\./.test(sap) &&
   /11\. Set `orchestration\.status` to `blocked-for-user` when questions remain, otherwise `ready-for-next-phase` with `next_phase: plan`\./.test(sap) &&
   /skill_trigger_log` entry for every evaluated trigger \(ran or skipped, with reason\)\./.test(sap));
+
+// The council validator is only reachable in a consumer repo if a skill names it. `agentsmyth
+// check` hardcodes two validator filenames, and scripts/validate-template.mjs — where it is
+// registered here — is not in package.json "files", so it never ships. The skill's Exit Gate is
+// therefore the only route a consumer has to it, and an unpinned mention rots silently.
+check('r21-validator-named', 'lifecycle-think Exit Gate names check-council-record.mjs',
+  /check-council-record\.mjs/.test(thinkSkill));
 
 // Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
 // mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop

@@ -14,8 +14,25 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
+council:
+  mode: council
+  authorization: carve-out
+  cap_resolved: 3
+  cap_source: configured
+  depth: standard
+  dispatch_depth: 1
+  rounds_run: 2
+  termination_reason: user-decision-required
+  repo_integrity:
+    before: sha256:aaaaaaaaaaaa
+    after: sha256:aaaaaaaaaaaa
+    algorithm: sha256/sorted-relpath+size+content
+  evidence_classes:
+    repo: used
+    trial: unused
+    web: used
+    recall: used
 ---
-
 # Probe - Brief
 
 ## Source Links

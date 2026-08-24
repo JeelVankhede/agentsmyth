@@ -102,12 +102,21 @@ council:
 
 ### Findings
 
-| Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
-|---|---|---|---|---|---|---|---|
-| F1 | m1 | researcher | package.json | repo | `package.json` scripts block | accepted | |
-| F2 | m2 | researcher | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-| F3 | m3 | researcher | prior art | recall | | accepted | |
-| F4 | c1 | challenger | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| Finding | Member | Role | Round | Surface | Evidence class | Citation | Disposition | Reason / merged into |
+|---|---|---|---|---|---|---|---|---|
+| F1 | m1 | researcher | 1 | package.json | repo | see `package.json` scripts block | accepted | |
+| F2 | m2 | researcher | 1 | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| F3 | m3 | researcher | 1 | prior art | recall | | accepted | |
+| F4 | c1 | challenger | 1 | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| F5 | m2 | researcher | 1 | package.json | repo | `package.json` engines field | accepted | |
+| F6 | m2 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| F7 | c1 | challenger | 2 | web spot-check of F6 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+
+### Reconcile Contract
+
+Duplicates on a shared surface collapse into the earliest finding ID, keeping the citation that
+resolves. Disagreements are never collapsed: each is recorded in Conflicts with its resolution and
+the basis for it.
 
 ### Conflicts
 

@@ -4,7 +4,7 @@ version: 1
 artifact: review
 status: ready-for-next-phase
 created: 2026-08-17
-updated: 2026-08-18
+updated: 2026-08-24
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
 upstream:
   - workflow/artifacts/tasks/wp-r21-think-council-v1.md
@@ -235,13 +235,48 @@ that justifies `council.enabled` defaulting on is a product decision this review
 Suite after remediation: `validate` exit 0 · conformance 19/19 · violations 56 → **60/60** ·
 31 council fixtures, attribution sweep confirming exactly one error each.
 
+## External Review (PR #64, 2026-08-24)
+
+A fresh external review of the PR raised thirteen findings against the shipped branch. All are
+recorded here with dispositions. Eleven are fixed in this pass; two are recorded as open items
+because acting on them unilaterally would change a shipped CLI contract or a gate that predates this
+package.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | `check-council-record.mjs` unreachable in a consumer repo — CLI hardcodes two filenames, `validate-template.mjs` is not shipped, no skill names it | **fixed (partial) + deferred** — named in `lifecycle-think`'s Exit Gate and pinned by conformance `r21-validator-named`. The mechanism question is OI-80, not decided here |
+| 2 | `council.resolution` optional, so R-1 re-derivation fails open | **fixed** — schema stays optional; validator requires it when `mode: council`. Fixture `dg` |
+| 3 | `repo` citation regex unanchored — `see \`src/x.mjs\`` resolved to `see` | **fixed** — all candidate tokens collected, passes if any resolves. Base fixture's F1 is now prose-prefixed, so the positive path is exercised |
+| 4 | RI1's reconcile-contract precondition unrecorded and unenforced | **fixed** — `### Reconcile Contract` in the starter block, required whenever ≥2 members share a `surface`. Fixture `df` |
+| 5 | `web`-may-not-decide-a-repo-shaped-question stated twice, enforced nowhere | **fixed (enforced)** — checked against Requirement Classification, which already records the settling class |
+| 6 | Spot-check scope drift — docs say per round, validator satisfied by any one finding | **fixed** — Findings gains a `Round` column; the rule is per round. Fixture `dh` |
+| 7 | Taper coherence tested the open-item delta, not "closed nothing" | **fixed** — gates on `prev.closed.length === 0`, so the message can no longer contradict the table |
+| 8 | Survivor escalation skipped single-round runs and never fired for `no-progress` | **fixed** — round-count guard removed; covers both terminations that imply unfinished business |
+| 9 | Questions For User folding merged unrelated entries | **fixed** — folding stops at any line introducing its own `Q`, and at table rows |
+| 10 | Validation not hermetic — config read from the host repo, fences depended on `$HOME` | **fixed** — config resolves from the fixture dir under `--dir`; `homedir()` fallback makes the fences `$HOME`-independent. Verified identical with and without |
+| 11 | Hook read the working tree and the wrong status field | **fixed** — reads `git show :"$file"` and matches `orchestration.status`, falling back to top-level. Both copies. The `set -e` unreachable-loop observation is OI-79 |
+| 12 | Ledger contradicted the PR body on OI-73/OI-74 | **fixed** — both closed with resolutions |
+| 13 | Validator brief-only, will reject council-mode reviews | **fixed** — escalation checks gated on `artifact === 'brief'` now, ahead of the Review council |
+
+**Two corrections to my own work that the review surfaced indirectly.** The `r21-council-summary`
+conformance check asserted the fixture's literal counts, so it failed the moment the base fixture
+gained a finding — it now pins the summary's *shape* instead. And the real council record in
+`briefs/wp-r22-review-council-v1.md` had to be migrated to the tightened contract rather than
+grandfathered, since it is the only real instance of the record this validator exists to check.
+
+**Not claimed.** Finding 1's acceptance depends on a consumer actually running the validator. The
+skill mention plus its conformance pin makes the reference durable; it does not make the CLI run it.
+That gap is real and stated rather than closed by wording.
+
 ## Recommendation
 
 pass
 
-All five findings and all four residual risks are closed, each mechanically locked rather than
-asserted. The recommendation at the time of review was `pass-with-risk`; it is raised to `pass` on
-the remediation above.
+All five original findings and all four residual risks are closed, each mechanically locked rather
+than asserted. The recommendation at the time of review was `pass-with-risk`; it was raised to
+`pass` on that remediation, and the thirteen external-review findings above do not lower it: eleven
+are fixed with fixtures, and the two deferred are recorded as open items with real next actions
+rather than dropped.
 
 Two things are carried forward as known limits rather than open findings, because neither is a
 defect in what shipped: the `check-council-record` non-claims stated in RI6 (it validates the

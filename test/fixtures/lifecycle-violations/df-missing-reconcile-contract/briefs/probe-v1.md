@@ -14,8 +14,29 @@ orchestration:
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
+council:
+  mode: council
+  authorization: carve-out
+  cap_resolved: 3
+  cap_source: configured
+  depth: standard
+  dispatch_depth: 1
+  rounds_run: 2
+  termination_reason: user-decision-required
+  resolution:
+    dispatch_enabled: optional
+    council_enabled: on-for-complex
+    task_class: complex
+  repo_integrity:
+    before: sha256:aaaaaaaaaaaa
+    after: sha256:aaaaaaaaaaaa
+    algorithm: sha256/sorted-relpath+size+content
+  evidence_classes:
+    repo: used
+    trial: unused
+    web: used
+    recall: used
 ---
-
 # Probe - Brief
 
 ## Source Links
@@ -89,12 +110,6 @@ orchestration:
 | F5 | m2 | researcher | 1 | package.json | repo | `package.json` engines field | accepted | |
 | F6 | m2 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F7 | c1 | challenger | 2 | web spot-check of F6 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-
-### Reconcile Contract
-
-Duplicates on a shared surface collapse into the earliest finding ID, keeping the citation that
-resolves. Disagreements are never collapsed: each is recorded in Conflicts with its resolution and
-the basis for it.
 
 ### Conflicts
 

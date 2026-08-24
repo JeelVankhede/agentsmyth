@@ -9,6 +9,7 @@
 //
 // A green result here means the record is well-formed and internally consistent. It does not mean
 // the thinking was good.
+import { homedir } from 'node:os';
 import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
@@ -23,7 +24,14 @@ function resolveCouncilConfig() {
   let global = {};
   let repo = {};
   try { global = loadYaml(defsPath('agent-behavior.yaml'))?.council ?? {}; } catch { /* absent is fine */ }
-  try { repo = loadYaml(dataPath('config/repo-profile.yaml'))?.tuning?.council ?? {}; } catch { /* absent is fine */ }
+  // When --dir scopes artifact discovery, config must be scoped with it. Otherwise a fixture run
+  // silently resolves against the HOST repo's profile: the same fixture passes or fails depending
+  // on which machine runs it, which is the opposite of what a fixture is for. A fixture directory
+  // that declares no config simply keeps the defaults.
+  const repoProfile = dirArgIdx !== -1
+    ? `${artifactsDir}/config/repo-profile.yaml`
+    : dataPath('config/repo-profile.yaml');
+  try { repo = loadYaml(repoProfile)?.tuning?.council ?? {}; } catch { /* absent is fine */ }
   return { ...defaults, ...global, ...repo };
 }
 const councilConfig = resolveCouncilConfig();
@@ -34,7 +42,10 @@ const councilConfigRef = { value: councilConfig };
 // sandbox path into a relative-looking one, so an unexpandable "~" is left intact and will fail
 // the absolute-path test rather than passing by accident.
 function expandHome(p) {
-  const home = process.env.HOME;
+  // homedir() falls back to the OS user database when $HOME is unset, so the fences do not silently
+  // change verdict with the environment. Leaving "~" literal made it fail the absolute-path test and
+  // rejected a valid sandbox path whenever $HOME was absent.
+  const home = process.env.HOME || homedir();
   return home ? p.replace(/^~(?=\/|$)/, home) : p;
 }
 
@@ -107,16 +118,24 @@ function idsOf(raw) {
 // `trial` and `web` are shape-checked; `recall` carries no citation by definition.
 function checkCitation(file, id, cls, citation) {
   if (cls === 'repo') {
-    // A bare path with no extension is still a path — saying "names no file path" for
-    // `src/workflow/skills` was untrue and sent a reader looking for the wrong problem (P3-2).
-    const pathMatch = citation.match(/`?((?:[\w.-]+\/)*[\w.-]+)`?/);
-    if (!pathMatch) {
+    // A citation is prose that CONTAINS a path, not a path with decoration. Matching the first
+    // word-like token made `see \`src/x.mjs\` line 40` resolve to "see" and fail; every fixture
+    // happened to open with the path, so nothing caught it. Collect every candidate token and
+    // accept if any one resolves — backticked spans first, since a citation that bothers to
+    // backtick its path is naming it deliberately.
+    //
+    // A bare path with no extension is still a path: "names no file path" was untrue for
+    // `src/workflow/skills` and sent a reader looking for the wrong problem.
+    const backticked = [...citation.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    const bare = [...citation.matchAll(/(?:^|\s)((?:[\w.-]+\/)+[\w.-]+)/g)].map((m) => m[1]);
+    const candidates = [...backticked, ...bare].filter((c) => !/\s/.test(c));
+    if (candidates.length === 0) {
       errors.push(`${file} finding ${id} is evidence_class repo but its citation names no file path`);
       return;
     }
-    const cited = pathMatch[1];
-    if (!pathExists(cited)) {
-      errors.push(`${file} finding ${id} cites repo path "${cited}" which does not exist`);
+    const cited = candidates.find((c) => pathExists(c));
+    if (!cited) {
+      errors.push(`${file} finding ${id} cites repo path "${candidates[0]}" which does not exist`);
       return;
     }
     const range = citation.match(/[:L](\d+)\s*[-–]\s*(\d+)/);
@@ -190,6 +209,13 @@ for (const file of artifactFiles) {
   // them, the decision becomes reproducible: the same three values must always yield the same
   // mode, and disagreement is a defect rather than a matter of opinion.
   const res = council.resolution;
+  if (!res && mode === 'council') {
+    // The schema keeps this optional so briefs written before the field existed still validate.
+    // The validator does not: a council-mode record without it means the firing decision cannot be
+    // re-derived, and skipping the check on absence would make deleting six lines a way to disable
+    // it — the same one-keystroke escape the survivor-line rule already had to close.
+    errors.push(`${file} declares council mode but records no council.resolution; without the resolved dispatch_enabled, council_enabled and task_class the firing decision cannot be re-derived, only asserted`);
+  }
   if (res) {
     let expectedMode = 'council';
     let expectedReason = null;
@@ -272,11 +298,13 @@ for (const file of artifactFiles) {
 
   // R9 — requirement classification. Deciding what kind of evidence would settle a requirement,
   // before going to look, is what stops research becoming an undirected read of whatever is nearby.
+  let repoShapedClassified = false;
   const classRows = tableRows(subSection(logSection, 'Requirement Classification'));
   if (classRows.length === 0) {
     errors.push(`${file} council log has no "### Requirement Classification" subsection; every active R/RI must be classified with the evidence class that would settle it`);
   } else {
     const classified = new Map(classRows.map((c) => [c[0], (c[2] ?? '').toLowerCase()]));
+    repoShapedClassified = [...classified.values()].some((v) => v.includes('repo'));
     for (const id of parsed.frontmatter.manifest_ids ?? []) {
       if (!classified.has(id)) {
         errors.push(`${file} manifest ID ${id} has no Requirement Classification entry`);
@@ -345,8 +373,8 @@ for (const file of artifactFiles) {
     if (curTotal > prevTotal) {
       errors.push(`${file} round ${cur.round} fan-out (${curTotal}) exceeds round ${prev.round} (${prevTotal}); fan-out is non-increasing — needing more capacity is an escalation, not a dispatch decision`);
     }
-    if (curTotal < prevTotal && prev.openOut !== null && prev.openIn !== null && prev.openOut >= prev.openIn) {
-      errors.push(`${file} round ${cur.round} reduced fan-out after round ${prev.round} closed nothing (open ${prev.openIn} → ${prev.openOut}); shrinking the council asserts convergence the open-item count does not corroborate`);
+    if (curTotal < prevTotal && prev.closed.length === 0) {
+      errors.push(`${file} round ${cur.round} reduced fan-out after round ${prev.round} closed no items; shrinking the council asserts convergence, and the Items closed column has to corroborate it`);
     }
   }
 
@@ -364,24 +392,28 @@ for (const file of artifactFiles) {
     errors.push(`${file} terminated "${council.termination_reason}" without declaring its surviving items; a termination that implies unfinished business must state what was left unfinished, and omitting the line is not a way to have left nothing`);
   }
 
-  if (rounds.length > 1) {
-    const closedEver = new Set(rounds.flatMap((r) => r.closed));
-    const survivors = idsOf(survivorLine ?? '').filter((id) => !closedEver.has(id));
-    if (council.termination_reason === 'max-rounds' && survivors.length > 0) {
-      errors.push(`${file} terminated "max-rounds" while ${survivors.join(', ')} survived every round without closing; a survivor is evidence the council cannot resolve it, so the run must terminate "user-decision-required"`);
-    }
+  // Not gated on round count: a single-round run that hits the bound has survivors too. Not gated
+  // on max-rounds alone either — the survivor line is mandatory for no-progress on the same
+  // reasoning, so the escalation rule has to cover both.
+  const closedEver = new Set(rounds.flatMap((r) => r.closed));
+  const survivors = idsOf(survivorLine ?? '').filter((id) => !closedEver.has(id));
+  if (impliesUnfinished && survivors.length > 0) {
+    errors.push(`${file} terminated "${council.termination_reason}" while ${survivors.join(', ')} survived without closing; a survivor is evidence the council cannot resolve it, so the run must terminate "user-decision-required"`);
   }
 
   // --- findings ---------------------------------------------------------------------------
+  // Round is a column, not an inference. The spot-check duty is stated per round, and deriving a
+  // finding's round from the Members table only works while every member appears in exactly one.
   const findings = tableRows(subSection(logSection, 'Findings')).map((cells) => ({
     id: cells[0],
     member: cells[1],
     role: (cells[2] ?? '').toLowerCase(),
-    surface: cells[3],
-    cls: (cells[4] ?? '').toLowerCase(),
-    citation: cells[5] ?? '',
-    disposition: (cells[6] ?? '').toLowerCase(),
-    reason: cells[7] ?? '',
+    round: intOf(cells[3]),
+    surface: cells[4],
+    cls: (cells[5] ?? '').toLowerCase(),
+    citation: cells[6] ?? '',
+    disposition: (cells[7] ?? '').toLowerCase(),
+    reason: cells[8] ?? '',
   }));
 
   totals.findings += findings.length;
@@ -441,6 +473,22 @@ for (const file of artifactFiles) {
     }
   }
 
+  // --- reconcile contract: the precondition that licenses overlap at all ------------------
+  // independence-rules.md permits read-only workers to share a surface ONLY when the parent
+  // declares a dedupe-and-reconcile contract in the active artifact before dispatch. Conflict
+  // recording is the teeth; this is the condition. Enforcing the teeth while leaving the condition
+  // unrecorded meant overlap was in practice unconditional.
+  const overlapped = [...bySurface.entries()].filter(
+    ([, fs]) => new Set(fs.map((f) => f.member).filter(Boolean)).size >= 2
+  );
+  if (overlapped.length > 0) {
+    const contract = subSection(logSection, 'Reconcile Contract');
+    if (!contract || !contract.replace(/<!--[\s\S]*?-->/g, '').trim()) {
+      const names = overlapped.map(([s]) => `"${s}"`).join(', ');
+      errors.push(`${file} has members overlapping on surface ${names} but records no "### Reconcile Contract"; overlap is permitted only when the parent declared before dispatch how duplicates collapse and how disagreements surface`);
+    }
+  }
+
   // --- conflicts: present as an assertion, even when empty --------------------------------
   const conflictsText = subSection(logSection, 'Conflicts');
   if (conflictsText === null) {
@@ -457,11 +505,16 @@ for (const file of artifactFiles) {
   }
 
   // --- web spot-check duty ----------------------------------------------------------------
-  const webFindings = findings.filter((f) => f.cls === 'web');
-  if (webFindings.length > 0) {
-    const spotCheck = findings.some((f) => f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason));
-    if (!spotCheck) {
-      errors.push(`${file} has ${webFindings.length} web finding(s) but no recorded challenger spot-check; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
+  // Per ROUND, which is what the skill and the README actually say. Satisfying every round from a
+  // single challenger finding anywhere in the brief made the rule weaker than its own statement:
+  // a later round could introduce web findings nobody sampled.
+  const webRounds = new Set(findings.filter((f) => f.cls === 'web').map((f) => f.round));
+  for (const r of [...webRounds].sort((a, b) => a - b)) {
+    const sampled = findings.some(
+      (f) => f.round === r && f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason)
+    );
+    if (!sampled) {
+      errors.push(`${file} round ${r} has web finding(s) but no challenger spot-check in that round; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
     }
   }
 
@@ -476,19 +529,29 @@ for (const file of artifactFiles) {
   // check below silently evaluates to nothing and the artifact passes having proved nothing. Found
   // while researching how this validator would behave on a review artifact, which has no such
   // section at all.
-  const qSectionRaw = namedSection(parsed.body, 'Questions For User');
-  if (qSectionRaw === null) {
+  // Escalation is a BRIEF concern. A review artifact has no "Questions For User" section — its
+  // escalation surface is Recommendation and Residual Risk — so requiring one there would reject
+  // every council-mode review the moment the Review council ships.
+  const isBrief = parsed.frontmatter.artifact === 'brief';
+  const qSectionRaw = isBrief ? namedSection(parsed.body, 'Questions For User') : null;
+  if (isBrief && qSectionRaw === null) {
     errors.push(`${file} declares council mode but has no "## Questions For User" section; the escalation checks would pass vacuously rather than verifying anything`);
   }
   const qSection = qSectionRaw ?? '';
   const findingIds = new Set(findings.map((f) => f.id));
 
-  // Bullets wrap. Reading one physical line at a time meant a question whose evidence references
-  // sat on a continuation line looked unevidenced — which is exactly how this validator rejected
-  // its own first real council record. Fold each bullet back into one logical line first.
+  // Fold wrapped bullets back into one logical line — a question whose evidence references sat on
+  // a continuation line looked unevidenced, which is how this validator rejected its own first
+  // real council record.
+  //
+  // Folding stops at any line that introduces its own question, and at a table row. Folding those
+  // in meant a table- or paragraph-formatted section collapsed into one entry: only the first Q id
+  // was read, every F reference attached to it, and the remaining questions passed unexamined.
   const qLines = [];
   for (const raw of qSection.split('\n')) {
-    if (/^\s*[-*]\s/.test(raw) || qLines.length === 0) qLines.push(raw);
+    const startsEntry = /^\s*[-*]\s/.test(raw) || /^\s*\|/.test(raw) || /^\s*\**Q\d+\b/.test(raw);
+    const introducesOwnQ = /\bQ\d+\b/.test(raw) && qLines.length > 0 && /\bQ\d+\b/.test(qLines[qLines.length - 1]);
+    if (startsEntry || introducesOwnQ || qLines.length === 0) qLines.push(raw);
     else qLines[qLines.length - 1] += ' ' + raw.trim();
   }
 
@@ -520,6 +583,14 @@ for (const file of artifactFiles) {
     const refClasses = refIds.map((id) => findings.find((f) => f.id === id)?.cls).filter(Boolean);
     if (refClasses.length > 0 && refClasses.every((c) => c === 'recall')) {
       errors.push(`${file} ${qId}'s recommendation rests only on recall findings (${refIds.join(', ')}); recall may raise a hypothesis but never resolve one`);
+      continue;
+    }
+    // `web` may corroborate a repo-shaped question but never decide it: the repo is present and
+    // `repo` citations resolve mechanically, so the class with no mechanical floor stays confined
+    // to questions where it is the only option. Requirement Classification already records which
+    // class would settle each bucket, which is what makes this checkable rather than merely stated.
+    if (refClasses.length > 0 && refClasses.every((c) => c === 'web') && repoShapedClassified) {
+      errors.push(`${file} ${qId}'s recommendation rests only on web findings (${refIds.join(', ')}) while the Requirement Classification names repo as a settling class; web may corroborate a repo-shaped question but not decide it`);
     }
   }
 

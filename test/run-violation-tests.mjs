@@ -240,6 +240,10 @@ const fixtures = [
   { id: 'dc', dir: 'test/fixtures/lifecycle-violations/dc-refusal-reason-wrong', description: '(WP-R21, R7/R-1) refusal_reason contradicts the recorded resolution precedence — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dd', dir: 'test/fixtures/lifecycle-violations/dd-sandbox-without-integrity', description: '(WP-R21, R11/R-2) sandbox-using run records no before/after repo digest — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'de', dir: 'test/fixtures/lifecycle-violations/de-integrity-mismatch', description: '(WP-R21, R11/R-2) repo digest differs across the council run — the repo changed — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // External PR review findings 2, 4 and 6.
+  { id: 'df', dir: 'test/fixtures/lifecycle-violations/df-missing-reconcile-contract', description: '(WP-R21, RI1) members overlap on a surface with no declared reconcile contract — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dg', dir: 'test/fixtures/lifecycle-violations/dg-council-without-resolution', description: '(WP-R21, R7) council mode with no resolution block — the firing decision cannot be re-derived — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dh', dir: 'test/fixtures/lifecycle-violations/dh-round2-web-no-spotcheck', description: '(WP-R21, R3) a later round has web findings with no spot-check in that round — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

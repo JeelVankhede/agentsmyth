@@ -90,7 +90,10 @@ orchestration:
 - `src/workflow/validators/check-lifecycle.mjs` — checkpoint evidence extractor no longer truncates a multi-line verbatim quote (OI-73) — IDs: RI3
 - `src/assets/hooks/pre-commit` — the downstream phase gate now applies to a task artifact only once it claims ready-for-next-phase, so incremental Build commits no longer require --no-verify (OI-74) — IDs: RI3
 - `.githooks/pre-commit` — this repo's own copy, kept in sync with the shipped asset above (OI-74) — IDs: RI3
-- `test/run-conformance-tests.mjs` — added the `shipped-neutrality` guard and the `coverage-ledger-prose-drop` negative check (PR #64 review) — IDs: RI9
+- `test/run-conformance-tests.mjs` — `shipped-neutrality` guard, `coverage-ledger-prose-drop` negative check, `r21-validator-named` pin, and a summary assertion that pins shape rather than literal counts — IDs: RI9
+- `test/fixtures/lifecycle-violations/df-missing-reconcile-contract/` — overlap without a declared reconcile contract — IDs: RI1, RI9
+- `test/fixtures/lifecycle-violations/dg-council-without-resolution/` — council mode with no resolution block — IDs: R7, RI9
+- `test/fixtures/lifecycle-violations/dh-round2-web-no-spotcheck/` — a later round's web findings unsampled — IDs: R3, RI9
 - `src/workflow/validators/check-coverage-ledger.mjs` — drop detection reads a status token instead of any prose occurrence — IDs: RI3
 - `src/workflow/validators/check-scope-fence.mjs` — validates plan Touches entries for in-flight chains — IDs: RI3
 - `test/fixtures/conformance/coverage-ledger-prose-drop/` — new; prose mentioning dropped/removed is not a drop claim — IDs: RI9
@@ -203,6 +206,7 @@ none
 | Phase 4 - Think restructuring | 2026-08-17 | Eight stages named in order — locked by conformance `r21-think-stages`; preserved single-agent path is verbatim — locked by `r21-single-agent-verbatim`; A5's 1.2.0 removal written into single-agent-path.md's Removal section for Ship to carry |
 | Phase 5 - Record and schema | 2026-08-17 | `council:` frontmatter optional at top level; **every existing brief validates with zero edits** (`git status` clean on `workflow/artifacts/briefs/`); council and single-agent briefs distinguishable by frontmatter alone; `npm run build` clean; `render-adapters` reports shims current |
 | Phase 6 - Validator | 2026-08-17 | `check-council-record.mjs` passes a well-formed brief and prints the summary line; registered in `scripts/validate-template.mjs`; README carries all six non-claims stated as plain limitations |
+| Phase 7 - Rejection fixtures (external review pass) | 2026-08-24 | Eleven of thirteen external-review findings fixed with fixtures; two deferred as OI-79/OI-80. violations 60/60 → **63/63**, conformance 23 → **24/24**, `validate` exit 0, and `env -u HOME` conformance identical. Findings table gained a `Round` column so the per-round spot-check rule is derivable from the table rather than inferred from Members |
 | Phase 7 - Rejection fixtures | 2026-08-17 | violations 29/29 → **53/53** (24 new); conformance 15/15 → **19/19** (4 new); positive control passes; **attribution sweep confirms every fixture emits exactly one error**, so each rejection is traceable to its own rule |
 
 ## Self-Audit (2026-08-17, post-Phase-7)

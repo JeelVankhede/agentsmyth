@@ -71,8 +71,17 @@ if [ -n "$ARTIFACT_FILES" ]; then
     # So: check the downstream gate only once the artifact claims to be ready for it. A task that
     # claims ready-for-next-phase must really be ready; one still in progress is not yet making
     # that claim.
-    if [ "$dir" = "tasks" ] && ! grep -qE '^status:[[:space:]]*ready-for-next-phase' "$file"; then
-      continue
+    # Read the STAGED blob, not the working tree. Everything else in this hook reasons about the
+    # index, and a commit is of the index — reading the file on disk would let an unstaged edit
+    # decide whether a staged artifact is gated, in either direction.
+    #
+    # Match orchestration.status (indented), which is the field check-lifecycle actually reads, and
+    # fall back to the top-level status only if the block is absent.
+    if [ "$dir" = "tasks" ]; then
+      staged_blob=$(git show ":$file" 2>/dev/null || true)
+      orch_status=$(printf '%s\n' "$staged_blob" | awk '/^orchestration:/{o=1;next} o&&/^[^[:space:]]/{o=0} o&&/^[[:space:]]+status:/{print $2;exit}')
+      [ -z "$orch_status" ] && orch_status=$(printf '%s\n' "$staged_blob" | awk '/^status:/{print $2;exit}')
+      [ "$orch_status" = "ready-for-next-phase" ] || continue
     fi
     if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
       status=1

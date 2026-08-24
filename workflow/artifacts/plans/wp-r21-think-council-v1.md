@@ -263,6 +263,13 @@ earlier phase has already carried its own targeted check.
   `src/workflow/validators/check-coverage-ledger.mjs`,
   `src/workflow/validators/check-scope-fence.mjs`,
   `test/fixtures/conformance/coverage-ledger-prose-drop/`,
+  `test/fixtures/lifecycle-violations/df-missing-reconcile-contract/`,
+  `test/fixtures/lifecycle-violations/dg-council-without-resolution/`,
+  `test/fixtures/lifecycle-violations/dh-round2-web-no-spotcheck/`,
+  `src/workflow/skills/lifecycle-think/SKILL.md`,
+  `src/workflow/skills/lifecycle-think/references/output-schema.md`,
+  `src/workflow/validators/check-council-record.mjs`,
+  `workflow/artifacts/briefs/wp-r22-review-council-v1.md`,
   `CLAUDE.md`,
   `workflow/artifacts/plans/site-docs-remediation-tier2-3-v1.md`,
   `src/workflow/validators/repo-digest.mjs`,
@@ -438,6 +445,16 @@ filing an open item is not a fix. Five were closed with working code rather than
 Adopting the OI-77 check found one real defect immediately: `site-docs-remediation-tier2-3` Phase 6
 declared `site/*.md`, an interior glob the fence never expands, so that phase's scope was silently
 empty. Repaired to `site/`, a prefix the fence does understand.
+
+**A8 (2026-08-24, corrective — external PR review).** A fresh external review of PR #64 raised
+thirteen findings. Eleven are fixed in this pass with fixtures; two are recorded as open items
+because acting on them unilaterally would change a shipped CLI contract (OI-80) or a gate predating
+this package (OI-79). Dispositions for all thirteen are tabulated in the review artifact.
+
+The two structural changes worth noting here: the Findings table gained a `Round` column, so the
+per-round spot-check rule is derivable from the table itself rather than inferred from Members; and
+validator config resolution is now scoped by `--dir`, so a fixture no longer reads the host repo's
+profile and produce a machine-dependent verdict.
 
 ## Open Questions
 

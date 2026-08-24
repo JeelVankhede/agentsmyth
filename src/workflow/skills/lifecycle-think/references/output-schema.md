@@ -162,8 +162,14 @@ skill_trigger_log:
 
 ### Findings
 
-| Finding | Member | Role | Surface | Evidence class | Citation | Disposition | Reason / merged into |
-|---|---|---|---|---|---|---|---|
+| Finding | Member | Role | Round | Surface | Evidence class | Citation | Disposition | Reason / merged into |
+|---|---|---|---|---|---|---|---|---|
+
+### Reconcile Contract
+
+<!-- Required whenever two or more members produce findings on the same `surface`. Overlap is only
+     permitted because the parent declared, before dispatch, how duplicates collapse and how
+     disagreements surface. State both; "we will reconcile" is not a contract. -->
 
 ### Conflicts
 

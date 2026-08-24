@@ -457,6 +457,18 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-80
+    source: follow-up
+    owner: user
+    next_action: "Decide how consumer-facing validators get invoked, rather than widening `agentsmyth check` one filename at a time. Today the CLI hardcodes check-lifecycle.mjs and check-commit-coverage.mjs (plus check-setup-complete.mjs), while resolveValidator() can already resolve ANY validator from the two-root path — so check-council-record.mjs is reachable but never invoked, and scripts/validate-template.mjs, where it is registered, is not in package.json files and never ships. The council PR fixed the immediate gap by naming the validator in lifecycle-think's Exit Gate with a conformance check pinning the mention. That is a skill-side instruction, not a mechanism. Proposal, deliberately NOT implemented unilaterally: let agent-behavior.yaml declare a per-phase validator set, and have `agentsmyth check --phase <p>` run it, so a new validator ships wired instead of needing a CLI edit and a skill mention. That is a contract change to a shipped CLI and belongs in its own package."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-79
+    source: follow-up
+    owner: workflow owner
+    next_action: "The mandatory pre-commit gate's artifact loop is unreachable whenever the coverage proxy fails. The hook runs under `set -e`, then does `$AGENTSMYTH_BIN check --staged` followed by `status=$?` — under set -e a non-zero exit terminates the script before that assignment, so the per-artifact phase-gate loop below it never runs, and the commit is rejected on coverage alone. The gate is not wrong (it still blocks), but it reports one class of problem while silently skipping another, so an author fixing coverage can be surprised by a second, previously-invisible rejection. Fix: run the coverage check with `if ! ...; then status=1; fi`, or scope `set +e` around it, so both checks always report in one pass. Noted during external review of the council PR; deliberately not bundled into that change since it predates it and touches the shared gate."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-76
     source: follow-up
     owner: user
@@ -481,11 +493,13 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "The mandatory pre-commit lifecycle gate makes incremental Build commits impossible. .githooks/pre-commit maps a staged `tasks/` artifact to the `review` phase gate, which requires status ready-for-next-phase — but a task artifact is legitimately `in-progress` for the whole of Build, and lifecycle-build's own output-schema says Plan Phases Overview is 'updated at the start of each new Build phase', which implies committing it repeatedly. Today the only ways through are one giant end-of-Build commit or routine `--no-verify`, and routine bypass of a mandatory gate is corrosive — it trains the habit the gate exists to prevent. Hit on wp-r21-think-council Phase 1 (of 7), bypassed deliberately once with the reason in the commit message. Options: map `tasks/` to no gate while status is in-progress and to `review` only when it flips to ready-for-next-phase; or gate on the task's own phase rather than its downstream phase. Prefer the former — it preserves the check that matters (a task claiming review-readiness must actually be ready) without blocking the normal Build loop."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: the mandatory pre-commit gate applies the downstream phase check to a tasks/ artifact only once it claims ready-for-next-phase, so a task legitimately in-progress for the whole of Build no longer forces --no-verify. Hardened after external review to read the STAGED blob (git show :file) rather than the working tree, and to match orchestration.status — the field check-lifecycle actually reads — falling back to top-level status only when the block is absent. Applied to both src/assets/hooks/pre-commit and .githooks/pre-commit."
   - id: OI-73
     source: follow-up
     owner: workflow owner
     next_action: "check-lifecycle.mjs's checkpoint evidence extractor cannot record a multi-line verbatim user quote. The regex at line 62 terminates on `(?=\\n-\\s|\\n*$)`, and with the /m flag `$` matches at the first line end, so a multi-line approval truncates to its first line — which then usually trips the `length < 10` placeholder check. Hit live on wp-r21-think-council-v1: the user's real approval spanned four lines and had to be quoted as its final sentence, with the remainder recorded separately in prose. Users approve in multi-line messages routinely, so the rule 'quote the user verbatim' is currently in tension with what the validator can store. Fix the lookahead to terminate only on a following `- ` bullet at column 0, or support an indented continuation block."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed: check-lifecycle checkpointApprovalSection now terminates on the next column-0 bullet or true end-of-string instead of the first line end under /m, so a multi-line verbatim approval is preserved whole. Verified across three shapes — a four-line quote containing a blank line, a single-line quote, and a placeholder that must still be rejected."

@@ -251,6 +251,7 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - The council run is logged, or a refusal is recorded with its reason — a council that was applicable and did not fire must say so, since silence cannot distinguish "not applicable" from "failed to fire".
 - The run records a `termination_reason` of `resolved`, `user-decision-required`, `max-rounds`, or `no-progress`; a run whose item survived every round terminates `user-decision-required`, never `max-rounds`.
 - Fan-out never grew between rounds, and any round that shrank fan-out is corroborated by a decrease in open items.
+- For a council-mode brief, `check-council-record.mjs` passes. It is the mechanical counterpart to the four bullets above: they state what the record must contain, and it is what actually rejects a record that does not. Run it the same way as any other validator in `workflow/validators/`. It reports what it checked on success, including how many citations it could resolve mechanically versus shape-check only — read that line rather than treating a bare pass as proof the research was sound.
 
 ## Determinism Rules
 
