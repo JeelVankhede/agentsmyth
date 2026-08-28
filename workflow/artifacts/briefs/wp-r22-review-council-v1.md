@@ -2,7 +2,7 @@
 slug: wp-r22-review-council
 version: 1
 artifact: brief
-status: draft
+status: ready-for-next-phase
 created: 2026-08-17
 updated: 2026-08-29
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19]
@@ -10,7 +10,7 @@ upstream:
   - user-request
 orchestration:
   phase: think
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: plan
   blockers: []
   user_checkpoint: brief-review
@@ -51,80 +51,25 @@ skill_trigger_log:
 - Notion WP-R22 — Review Council (Class Complex, P1, Target 1.1.0, Depends On WP-R21)
 - `workflow/artifacts/briefs/wp-r21-think-council-v1.md`, `workflow/artifacts/reviews/wp-r21-think-council-v1.md`
 - `src/workflow/skills/dispatch-subagents/references/council-contracts.md` — the frozen shared contract
-- Council run 2026-08-17 — see `## Q3 Research
+- Council run 2026-08-17 — see `## Council Log`
 
-Bucket C died on 2026-08-17 (two API 529s). Researched single-agent on 2026-08-29 rather than
-re-dispatching: this is one bounded question over surfaces that exist in this repo, not three
-disjoint buckets, and WP-R21 measured a council at roughly 6x invocations for less coverage.
-Evidence class `repo` throughout — every claim below resolves to a file in this repository.
+## Status — APPROVED 2026-08-29, ready for Plan
 
-**The finding that reframes the requirement: quality is not knowable at Review time.** A finding's
-*disposition* — accepted / merged / rejected-with-reason — is decided by the parent at consolidation
-and is already contracted in `council-contracts.md`. Whether an accepted finding *proved real* is
-knowable only after someone acts on it: at Test (the fix held, the claim reproduced), at Ship
-(waived, with a recorded waiver), or at Reflect (it was nothing). So R5 is not a wider column on the
-Review table. It is a **second write at a later phase**, which is what "write-back" was reaching for.
+Complete. 26 manifest IDs — R1–R7 and RI1–RI19 — each with an acceptance criterion and the files it
+lands in. No open blockers; the brief was approved by the user on 2026-08-29 and the approval is
+recorded verbatim in `## Checkpoint Approval`.
 
-**Prior art already in the repo, in three places.**
+How it got here, since the history matters to anyone reading the Council Log:
 
-1. `workflow/artifacts/open-items.yaml` is a working durable write-back ledger — cross-run, keyed by
-   ID, `status: open|done|blocked|deferred`, closed later with a resolution, written at the end of
-   each Reflect by `follow-up-owner-assigner` (`lifecycle-reflect/SKILL.md`). Its schema calls it
-   "not a lifecycle artifact — a single persistent file". That is the exact shape a cross-run
-   quality baseline needs.
-2. The review artifact **already prototyped the per-finding outcome table by hand, twice**. WP-R21's
-   review carries `| Severity | Open | Found | IDs | Status |` with the note that `Open` is what
-   `check-release-readiness.mjs` reads while `Found` "preserves what the review actually caught".
-3. Reflect already holds the retrospective shape one level up: `## Manifest Coverage Retrospective`
-   with `Outcome: shipped / deferred / blocked / waived`.
-
-**Two drifts found while researching, both small, both R22-adjacent.**
-
-- The review starter block still declares `| Severity | Count |`, while real reviews use five
-  columns and `check-release-readiness.mjs` was widened to tolerate "any column count beyond
-  Severity + first count column" — a comment that records the validator chasing the artifact. The
-  starter block never caught up. R5 extends exactly this table, so it inherits the drift.
-- `resolution:` is used by 22 entries in `open-items.yaml` and is **declared nowhere** in
-  `open-items.schema.yaml`, which sets no `additionalProperties: false` and so accepts it silently.
-  The field the ledger's write-back actually turns on is undeclared. This is the same class
-  `check-schema-keywords.mjs` exists to catch, one file over.
-
-**Three candidate mechanisms.**
-
-| | Mechanism | Verdict |
-|---|---|---|
-| A | Extend the review artifact's Severity Summary into a per-finding outcome table; a later phase writes the outcome back into it | **Rejected.** Requires a later phase to edit an earlier phase's artifact. The lifecycle treats artifacts as phase-owned; where this repo has done it (R21's Post-Review Remediation) it was deliberately append-only and explicitly justified. Making it routine would erode the property |
-| B | A durable `finding-quality.yaml`, same shape as the open-items ledger: one row per council finding, written at Review with `outcome: pending`, closed at Reflect | **Recommended.** Reuses a proven mechanism and an existing write-back path; accumulates across runs, which is the whole point of R5 ("measurable rather than asserted"); mutates no upstream artifact |
-| C | Fold council findings into `open-items.yaml` with a new `source: council-finding` | **Rejected on contract, not taste.** The ledger requires `owner` and `next_action`, "never TBD". A noise finding has neither. C would fill a ledger whose contract is "needs an owner and a next action" with rows that have neither |
-
-**Recommended shape (B).** Review appends one row per council finding — `id`, `first_seen_run`,
-`disposition` (from the council contract), `outcome: pending`. Reflect closes each row with
-`proved-real | waived | noise`, where `waived` requires a waiver reference and `noise` requires a
-reason. A finding whose truth is genuinely not known by Reflect closes as `unresolved-at-reflect`
-with a stated reason rather than a guess — the ledger is cross-run by construction, so a later chain
-can update it. Enforcement extends `check-council-record.mjs` rather than adding a validator: every
-council finding in a review has a ledger row, and no row is left `pending` once its chain reaches
-Reflect.
-
-**What this research does not settle.** Whether R5 for 1.1.0 is the *recording* half only, or
-recording plus a reported metric (the ratio that would make R21's cost measurement checkable). That
-is a scope call, and it is the question put to the user.
-
-## Council Log`
-
-## Status — RESUMED 2026-08-29, one question open
-
-Requirements R1–R7 and RI1–RI3 are drafted with acceptance criteria. **Bucket C (the
-finding-quality write-back mechanism) was never researched by the council** — its member failed
-twice with a server-side 529 and is recorded as `failed` in the Members table. It was researched
-single-agent on 2026-08-29; see `## Q3 Research` below. R5's acceptance criterion is writable once
-the mechanism is chosen.
-
-Q1 and Q2 are closed — not by decision, but because WP-R21 shipped the fixes they asked for. See
-`## Re-verification`. Q3 is the only remaining blocker.
-
-Not yet written: User Impact, Success Metrics, and the remaining implicit requirements (3 derived
-against roughly 8 expected).
+- The 2026-08-17 council left it incomplete — three blocking questions, and bucket C dead after two
+  API 529s so R5 had no acceptance criterion.
+- Q1 and Q2 closed on re-verification, not by decision: WP-R21 shipped the fixes they asked for. See
+  `## Re-verification`.
+- Q3 was researched single-agent on 2026-08-29 (`## Q3 Research`) and answered by the user, who
+  changed the design in two ways — closure enforced at Ship, and a two-file ledger.
+- RI4–RI19 were derived on 2026-08-29. RI12–RI14 and RI17 exist because the first pass stated the
+  work as intent and never named the skill and schema files it lands in; RI18 and RI19 because the
+  implicit-requirements checklist named in `domain.yaml` had not been run.
 
 ## Re-verification (2026-08-29)
 
@@ -435,6 +380,70 @@ mirrored in `orchestration.blockers`.
 - **Q2** (rests on F7) — CLOSED 2026-08-29: both P1s were fixed on 2026-08-18 and three external review passes have run against the same validator since, so this no longer gates R22's Build.
 - **Q3** (rests on no finding — bucket C never ran, so this was researched single-agent instead) — recommend a durable `finding-quality.yaml` ledger written at Review and closed at Reflect, reusing the open-items shape; see Q3 Research for the two rejected alternatives and why.
 
+## Q3 Research
+
+Bucket C died on 2026-08-17 (two API 529s). Researched single-agent on 2026-08-29 rather than
+re-dispatching: this is one bounded question over surfaces that exist in this repo, not three
+disjoint buckets, and WP-R21 measured a council at roughly 6x invocations for less coverage.
+Evidence class `repo` throughout — every claim below resolves to a file in this repository.
+
+**The finding that reframes the requirement: quality is not knowable at Review time.** A finding's
+*disposition* — accepted / merged / rejected-with-reason — is decided by the parent at consolidation
+and is already contracted in `council-contracts.md`. Whether an accepted finding *proved real* is
+knowable only after someone acts on it: at Test (the fix held, the claim reproduced), at Ship
+(waived, with a recorded waiver), or at Reflect (it was nothing). So R5 is not a wider column on the
+Review table. It is a **second write at a later phase**, which is what "write-back" was reaching for.
+
+**Prior art already in the repo, in three places.**
+
+1. `workflow/artifacts/open-items.yaml` is a working durable write-back ledger — cross-run, keyed by
+   ID, `status: open|done|blocked|deferred`, closed later with a resolution, written at the end of
+   each Reflect by `follow-up-owner-assigner` (`lifecycle-reflect/SKILL.md`). Its schema calls it
+   "not a lifecycle artifact — a single persistent file". That is the exact shape a cross-run
+   quality baseline needs.
+2. The review artifact **already prototyped the per-finding outcome table by hand, twice**. WP-R21's
+   review carries `| Severity | Open | Found | IDs | Status |` with the note that `Open` is what
+   `check-release-readiness.mjs` reads while `Found` "preserves what the review actually caught".
+3. Reflect already holds the retrospective shape one level up: `## Manifest Coverage Retrospective`
+   with `Outcome: shipped / deferred / blocked / waived`.
+
+**Two drifts found while researching, both small, both R22-adjacent.**
+
+- The review starter block still declares `| Severity | Count |`, while real reviews use five
+  columns and `check-release-readiness.mjs` was widened to tolerate "any column count beyond
+  Severity + first count column" — a comment that records the validator chasing the artifact. The
+  starter block never caught up. R5 extends exactly this table, so it inherits the drift.
+- `resolution:` is used by 22 entries in `open-items.yaml` and is **declared nowhere** in
+  `open-items.schema.yaml`, which sets no `additionalProperties: false` and so accepts it silently.
+  The field the ledger's write-back actually turns on is undeclared. This is the same class
+  `check-schema-keywords.mjs` exists to catch, one file over.
+
+**Three candidate mechanisms.**
+
+| | Mechanism | Verdict |
+|---|---|---|
+| A | Extend the review artifact's Severity Summary into a per-finding outcome table; a later phase writes the outcome back into it | **Rejected.** Requires a later phase to edit an earlier phase's artifact. The lifecycle treats artifacts as phase-owned; where this repo has done it (R21's Post-Review Remediation) it was deliberately append-only and explicitly justified. Making it routine would erode the property |
+| B | A durable `finding-quality.yaml`, same shape as the open-items ledger: one row per council finding, written at Review with `outcome: pending`, closed at Reflect | **Recommended.** Reuses a proven mechanism and an existing write-back path; accumulates across runs, which is the whole point of R5 ("measurable rather than asserted"); mutates no upstream artifact |
+| C | Fold council findings into `open-items.yaml` with a new `source: council-finding` | **Rejected on contract, not taste.** The ledger requires `owner` and `next_action`, "never TBD". A noise finding has neither. C would fill a ledger whose contract is "needs an owner and a next action" with rows that have neither |
+
+**Recommended shape (B).** Review appends one row per council finding — `id`, `first_seen_run`,
+`disposition` (from the council contract), `outcome: pending`. Reflect closes each row with
+`proved-real | waived | noise`, where `waived` requires a waiver reference and `noise` requires a
+reason. A finding whose truth is genuinely not known by Reflect closes as `unresolved-at-reflect`
+with a stated reason rather than a guess — the ledger is cross-run by construction, so a later chain
+can update it. Enforcement extends `check-council-record.mjs` rather than adding a validator: every
+council finding in a review has a ledger row, and no row is left `pending` once its chain reaches
+Reflect.
+
+**What this research does not settle.** Whether R5 for 1.1.0 is the *recording* half only, or
+recording plus a reported metric (the ratio that would make R21's cost measurement checkable). That
+is a scope call, and it is the question put to the user.
+
+**Superseded in part by the answer.** The user chose mechanism B and changed two things about it:
+closure is enforced as a gate at Ship rather than closed at Reflect by habit, and the ledger is two
+files rather than one. The decision as taken is recorded under Q3 in `## Open Questions`; this
+section is kept as the research that led to it, not as the design.
+
 ## Council Log
 
 ### Requirement Classification
@@ -545,6 +554,16 @@ basis for it, which is what happened to F2.
 - downstream: Plan sequences RI12–RI16 before RI1 and RI7. The validator work has nothing to check
   until the skill, the output schema, and the ledger schema exist.
 
+## Checkpoint Approval
+
+- Checkpoint: brief-review
+- Status: approved
+- User's own words (verbatim, this turn): "Brief is approved"
+- Date: 2026-08-29
+- Scope of approval: this brief as it stands at commit `4b220db` — 26 manifest IDs including RI18
+  and RI19, which were added after the manifest rebuild and are the two the user had not seen when
+  the brief was first presented.
+
 ## Exit Gate
 
 - [x] Every active R and RI has acceptance criteria. R5's was written once Q3 was answered; RI4–RI11
@@ -555,6 +574,5 @@ basis for it, which is what happened to F2.
 - [x] Architecture notes capture decisions, both tradeoffs, and downstream impact.
 - [x] Every active R/RI has a classification entry naming at least one evidence class.
 - [x] The council run is logged, and its record passes `check-council-record.mjs`.
-- [ ] **User approved.** Not met — this brief has not been presented for approval since it was
-      completed. `user_checkpoint: brief-review` stands, and the approval must be the user's own
-      words, not authored here.
+- [x] **User approved.** Recorded in `## Checkpoint Approval` on 2026-08-29 in the user's own
+      words. Not authored here.
