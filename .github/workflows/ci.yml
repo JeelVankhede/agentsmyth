@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    # Release branches are integration targets — every WP for a minor release merges into one
+    # before main sees a single commit. Filtering to main meant those PRs ran zero checks and every
+    # number in their description came from one developer's machine.
+    branches: [main, 'release/**']
 
 jobs:
   validate:

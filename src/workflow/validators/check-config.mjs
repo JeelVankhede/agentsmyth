@@ -16,7 +16,7 @@ const schemas = schemaRegistry();
 
 // `--dir <path>` points config reads at a fixture tree instead of the repo's own workflow/config.
 // Required by test/run-violation-tests.mjs, which invokes every validator that way; without it the
-// WP-R8 tuning fixtures could not be exercised by the negative suite at all. Mirrors the same flag
+// tuning fixtures could not be exercised by the negative suite at all. Mirrors the same flag
 // in check-assumptions.mjs and friends. Definitions reads (schemas, agent-behavior.yaml) are
 // unaffected — they still resolve through defsPath.
 const args = process.argv.slice(2);
@@ -62,7 +62,7 @@ for (const configPath of listFiles(configDir).filter((file) => file.endsWith('.y
   }
 }
 
-// WP-R8 RI8: `intent.derived_keys` records which `tuning:` values the agent derived from `intent:`
+// `intent.derived_keys` records which `tuning:` values the agent derived from `intent:`
 // rather than the user setting by hand. A later version that changes its derivation rules may
 // safely re-derive anything listed; anything under `tuning:` NOT listed was a deliberate manual
 // override and must never be silently overwritten.
@@ -96,7 +96,7 @@ function checkDerivedKeyProvenance(config, configPath) {
   details.push(`checked ${configPath} intent.derived_keys provenance (${derived.length} key(s))`);
 }
 
-// WP-R8: the ONE tuning rule a schema cannot express.
+// The ONE tuning rule a schema cannot express.
 //
 // Four of the five tunable keys resolve by override — the repo-local value simply replaces the
 // global one, and the schema alone is enough to keep that safe (the enumeration lives there, and

@@ -129,7 +129,7 @@ for (const file of artifactFiles) {
 
   // Cross-check upstream review for unwaived P0/P1 findings when a review exists.
   //
-  // Read the LATEST review version, not the first candidate (WP-R8 Ship S1). `listFiles` returns
+  // Read the LATEST review version, not the first candidate. `listFiles` returns
   // sorted paths, so `[0]` was always the OLDEST review — for a chain that took several rounds,
   // that is the one most likely to still show open P0/P1 findings. Every other part of the
   // lifecycle resolves the newest version of an artifact (check-lifecycle's upstream resolution,

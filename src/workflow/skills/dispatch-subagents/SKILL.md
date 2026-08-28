@@ -21,6 +21,34 @@ Use this skill only when:
 
 If explicit authorization is missing, do not dispatch. Continue locally and record a refusal only when it affects the active artifact.
 
+**Named exception — council auto-fire.** The bounding principle: *auto-fire is permitted
+only for members that cannot mutate the user's repository, and only where the council's own output
+is not a verdict.*
+
+The second clause is about the **council's output**, not the phase's artifact. Review produces a
+verdict; a Review *council* does not — it produces findings the parent consolidates, and the parent
+owns the verdict (see `workflow/skills/think-council/references/output-schema.md`). An earlier
+wording said "in phases that produce no verdict", which read as excluding Review and contradicted
+the condition list below.
+
+Its consequences, which are the conditions to check:
+
+- every member is read-only with respect to the repository (sandbox writes outside the repo do not
+  forfeit this — the guarantee is about the user's work, not about the filesystem)
+- the phase is Think or Review
+- the task class is Complex
+- the resolved `council.enabled` permits it — and the resolved `dispatch.enabled` is checked first,
+  so a repo that turned delegation off gets no council regardless
+
+State the principle, not just the list, when reasoning about whether some future case qualifies. The
+principle self-limits: Build cannot claim this exception, because Build's output *is* repository
+mutation and a non-mutating Build worker produces nothing usable.
+
+A council fired this way gets read, fetch, and search only. Outward-facing actions — creating
+issues, posting comments, writing to external systems — require explicit in-conversation
+authorization, because an unprompted agent acting in the user's name is a different risk from one
+they asked for. See `workflow/skills/think-council/SKILL.md`.
+
 **Check `dispatch.enabled` before authorization, not after.** Resolve it global-then-repo-local:
 read `workflow/agent-behavior.yaml`, then let `tuning.dispatch.enabled` in
 `workflow/config/repo-profile.yaml` override it when present. If the resolved value is `disabled`,
@@ -68,7 +96,7 @@ behavior. A repo cannot set `required`; the schema rejects it.
 
 Do not dispatch when:
 
-- the user did not explicitly authorize delegation
+- the user did not explicitly authorize delegation, and the council auto-fire exception above does not apply
 - phase cap is zero
 - requested worker count exceeds the cap
 - work is small enough that coordination cost exceeds benefit
@@ -107,7 +135,16 @@ Do not dispatch when:
 - Do not nest subagent dispatch.
 - Do not duplicate work between parent and subagents.
 - Do not dispatch state-dependent Test, Ship, or Reflect work — the one narrow exception is the `verification-parallelizer` (E1) profile: independently-reproducible `verification-matrix-builder` (B6) rows only, capped at 3, per `references/decision-tree-by-phase.md`'s E1 section.
-- Do not allow Build workers to touch overlapping files or contracts.
+- Do not allow Build workers to touch overlapping files or contracts. The Read-Only Overlap
+  Exception never applies to Build — it exists because a read-only worker cannot create a write
+  conflict, and Build's workers write.
+- Read-only workers **may** share a surface when the parent has declared a dedupe-and-reconcile
+  contract in the active artifact (`references/independence-rules.md`). Two read-only workers who
+  reach conflicting conclusions on that shared surface must have the conflict and its resolution
+  recorded explicitly — a parent that silently picks one has produced a wrong answer with a complete
+  audit trail.
+- Overlapping read-only workers still count against the phase cap. Independence and cap arithmetic
+  are separate constraints.
 - Read-only review workers must not edit files.
 - Parent agent remains responsible for final integration, evidence, and user-facing claims.
 
