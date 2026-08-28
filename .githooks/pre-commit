@@ -62,31 +62,29 @@ if [ -n "$ARTIFACT_FILES" ]; then
     phase=$(phase_for_dir "$dir")
     [ -z "$phase" ] && continue
 
-    # OI-74: a task artifact is legitimately `in-progress` for the whole of Build, and
-    # lifecycle-build's own schema says its Plan Phases Overview is "updated at the start of each
-    # new Build phase" — i.e. it is meant to be committed repeatedly. Gating every staged task on
-    # the downstream `review` phase made incremental Build commits impossible, leaving only one
-    # giant end-of-Build commit or routine --no-verify. Routine bypass of a mandatory gate trains
-    # exactly the habit the gate exists to prevent.
-    # So: check the downstream gate only once the artifact claims to be ready for it. A task that
-    # claims ready-for-next-phase must really be ready; one still in progress is not yet making
-    # that claim.
+    # OI-74, generalized: an artifact is legitimately in progress for the whole of the phase that
+    # owns it — a task for the whole of Build, a brief for the whole of Think — and its schema
+    # expects it to be committed repeatedly while that phase runs. Gating every staged artifact on
+    # its DOWNSTREAM phase made those incremental commits impossible, leaving only one giant
+    # end-of-phase commit or routine --no-verify. Routine bypass of a mandatory gate trains exactly
+    # the habit the gate exists to prevent.
+    # So: check the downstream gate only once the artifact claims to be ready for it — for every
+    # artifact directory, not for tasks alone. The tasks-only scoping fixed the instance hit first
+    # and left the same wall one directory over: an in-progress brief could not be committed at all.
     # Read the STAGED blob, not the working tree. Everything else in this hook reasons about the
     # index, and a commit is of the index — reading the file on disk would let an unstaged edit
     # decide whether a staged artifact is gated, in either direction.
     #
     # Match orchestration.status (indented), which is the field check-lifecycle actually reads, and
     # fall back to the top-level status only if the block is absent.
-    if [ "$dir" = "tasks" ]; then
-      staged_blob=$(git show ":$file" 2>/dev/null || true)
-      orch_status=$(printf '%s\n' "$staged_blob" | awk '/^orchestration:/{o=1;next} o&&/^[^[:space:]]/{o=0} o&&/^[[:space:]]+status:/{print $2;exit}')
-      [ -z "$orch_status" ] && orch_status=$(printf '%s\n' "$staged_blob" | awk '/^status:/{print $2;exit}')
-      # Skip ONLY on a status we positively read that is not ready. An unreadable blob, or a file
-      # whose status cannot be parsed, leaves this empty — and empty must gate rather than skip,
-      # since "I could not tell" is not "it is fine".
-      if [ -n "$orch_status" ] && [ "$orch_status" != "ready-for-next-phase" ]; then
-        continue
-      fi
+    staged_blob=$(git show ":$file" 2>/dev/null || true)
+    orch_status=$(printf '%s\n' "$staged_blob" | awk '/^orchestration:/{o=1;next} o&&/^[^[:space:]]/{o=0} o&&/^[[:space:]]+status:/{print $2;exit}')
+    [ -z "$orch_status" ] && orch_status=$(printf '%s\n' "$staged_blob" | awk '/^status:/{print $2;exit}')
+    # Skip ONLY on a status we positively read that is not ready. An unreadable blob, or a file
+    # whose status cannot be parsed, leaves this empty — and empty must gate rather than skip,
+    # since "I could not tell" is not "it is fine".
+    if [ -n "$orch_status" ] && [ "$orch_status" != "ready-for-next-phase" ]; then
+      continue
     fi
     if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
       status=1
