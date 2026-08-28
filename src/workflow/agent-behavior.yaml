@@ -143,6 +143,17 @@ council:
   max_rounds: 4
   depth: standard
   default_fan_out: 3
+  # per_phase carries every council default that is NOT Think's. A phase absent from this map gets
+  # no council departure at all and falls back to the global default-to-1 rule — see phase-caps.md.
+  # Review is 2, not Think's 3, decided rather than inherited: the Think council was measured at
+  # roughly 6x invocations for less coverage than a single-agent baseline, Review runs on every
+  # Complex chain with the same bill, and Review's output blocks a commit, so a confident wrong
+  # finding costs more here than in Think. Two reviewers over disjoint risk categories keep the
+  # property that matters — fresh context, no overlap — and the challenge pass, which is where the
+  # Think council's distinctive value actually showed, is capped separately per stage.
+  per_phase:
+    review:
+      default_fan_out: 2
   sandbox_root: "~/.agentsmyth/sandbox"
 
 # RESOLUTION: whether a council fires is decided in this exact order, and the first

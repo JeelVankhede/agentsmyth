@@ -193,7 +193,25 @@ properties:
         type: integer
         minimum: 1
         maximum: 10
-        description: Council-specific fallback used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from the global default-to-1 rule, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+        description: The THINK council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from the global default-to-1 rule, since a one-member council is not a council. When it applies, the artifact records cap_source council-default. Scoped to Think - every other phase declares its own under per_phase, or gets no departure at all.
+      per_phase:
+        type: object
+        additionalProperties: false
+        description: >-
+          Council defaults for phases other than Think. A phase absent from this map gets NO council
+          departure and falls back to the global default-to-1 rule. The asymmetry is deliberate: a
+          phase-agnostic default would mean that extending councils to a new phase silently bills
+          every unconfigured consumer there too, having chosen nothing.
+        properties:
+          review:
+            type: object
+            additionalProperties: false
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the same cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
       sandbox_root:
         type: string
         minLength: 1

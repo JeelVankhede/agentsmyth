@@ -2,7 +2,7 @@
 slug: wp-r22-review-council
 version: 1
 artifact: plan
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-08-29
 updated: 2026-08-29
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19]
@@ -10,7 +10,7 @@ upstream:
   - workflow/artifacts/briefs/wp-r22-review-council-v1.md
 orchestration:
   phase: plan
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: build
   blockers: []
   user_checkpoint: plan-review
@@ -404,8 +404,12 @@ evidence-backed by inspection, so neither converted to a `Q`.
 ## Checkpoint Approval
 
 - Checkpoint: plan-review
-- Status: pending — not yet presented to the user
-- User's own words (verbatim, this turn): "<awaiting user review of this plan's own content>"
+- Status: approved
+- User's own words (verbatim, this turn): "Plan looks good, continue to build"
+- Date: 2026-08-29
+- Scope of approval: this plan as written at commit `8544cab` — eight phases, 26 mapped
+  requirements, the branch strategy targeting `release/1.1.0`, and the accepted-scope risk that
+  1.1.0 is held for the length of this chain.
 
 ## Exit Gate
 
@@ -419,4 +423,4 @@ evidence-backed by inspection, so neither converted to a `Q`.
 - [x] Branch strategy is explicit and does not target the default branch.
 - [x] Requirement Coverage is a `coverage-tracer` ledger with a row and citation per active ID.
 - [x] `plan-assumption-verifier` confirms A1 and A2 are evidence-backed; neither became a `Q`.
-- [ ] User approved the plan. Not met — this plan has not been presented for approval.
+- [x] User approved the plan. Recorded verbatim in `## Checkpoint Approval` on 2026-08-29.
