@@ -5,7 +5,7 @@ artifact: brief
 status: draft
 created: 2026-08-17
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17]
 upstream:
   - user-request
 orchestration:
@@ -278,86 +278,189 @@ Numbered in the Requirement Manifest.
 
 ### Explicit (R)
 
-- **R1** — Reviewers are read-only; a fix recommendation switches the candidate back to Build scope.
-  Acceptance: a reviewer finding carrying a fix recommendation fails the gate. Note F6 — this rule
-  already exists at `decision-tree-by-phase.md:58` as a dispatch refusal condition; R22 makes the
-  validator enforce it rather than leaving it to skill text.
-- **R2** — Reviewers receive the diff and the manifest, never the Build transcript.
-  Acceptance: the artifact records each reviewer's input; a recorded input containing the Build
-  transcript fails.
+Every requirement below names the files it lands in. Intent without a deliverable is how a
+requirement ships as prose with nothing enforcing it — the failure this repo's own WP-R21 self-audit
+recorded, where six criteria were "complete" while every suite was green and none of them checked.
+
+- **R1** — Reviewers are read-only; a council reviewer finding may not carry a fix recommendation,
+  because proposing a fix switches the candidate back to Build scope.
+  - *Modifies:* `src/workflow/skills/dispatch-subagents/references/decision-tree-by-phase.md` already
+    states this as a dispatch refusal condition; R22 makes it mechanical rather than advisory.
+  - **Contract collision to resolve, found 2026-08-29:**
+    `lifecycle-review/references/output-schema.md` currently requires that *every* finding include
+    "severity, path or area, affected manifest ID when applicable, problem, and fix recommendation".
+    That is the opposite of this rule. Resolution: the no-fix rule binds **council-log reviewer
+    findings only**; the parent's consolidated `## Findings` entries still carry fix
+    recommendations, because the parent is not a reviewer. Both documents must say so explicitly —
+    leaving this implicit would ship two contracts that contradict each other.
+  - *Acceptance:* a council-log finding whose row carries a fix recommendation is rejected by
+    `check-council-record.mjs`; a consolidated `## Findings` entry carrying one still passes.
+
+- **R2** — Reviewers receive the diff and the manifest, never the Build session transcript.
+  - *Modifies:* `src/workflow/skills/review-council/SKILL.md` (charter), the review artifact's
+    Council Log Members table (input column).
+  - *Acceptance:* the artifact records each reviewer's declared input; a recorded input naming the
+    Build transcript fails.
+
 - **R3** — The parent owns consolidation, verdict, and evidence.
-  Acceptance: no reviewer output appears as a verdict; consolidation cites every reviewer.
+  - *Modifies:* `src/workflow/skills/review-council/references/output-schema.md`.
+  - *Contract:* inherited verbatim from `think-council/references/output-schema.md` — "No verdict,
+    recommendation-as-decision, or exit-gate claim appears in the result."
+  - *Acceptance:* no reviewer output appears as `## Recommendation`; consolidation cites every
+    reviewer that produced a finding.
+
 - **R4** — Every reviewer finding carries a disposition with a non-empty reason when rejected.
-  Acceptance: inherited from `council-contracts.md` unchanged; fixtures confirm the Review path
-  enforces the same contract.
+  - *Consumes unchanged:* `dispatch-subagents/references/council-contracts.md`.
+  - *Acceptance:* the Review path is rejected by the same fixtures that enforce the Think path —
+    no forked disposition enum.
+
 - **R5** — Finding-quality baseline: each finding records whether it proved real, was waived, or was
   noise, and the record accumulates across runs.
-  Acceptance: a council finding with no row in the active ledger fails; a row left `pending` when
-  its chain reaches Ship fails unless waived; and `check-council-record`'s summary line reports the
-  proved-real / noise / pending counts computed over the active **and** archived ledgers, so the
-  figure is a baseline rather than a snapshot of the current cycle.
-- **R6** — New review-artifact fields optional with safe defaults; pre-1.1.0 reviews still validate.
-  Acceptance: `npm run validate` passes over every existing review with zero edits.
+  - *Delivered by:* RI6, RI7, RI8, RI15, RI16 — see those for the file-level contract.
+  - *Acceptance:* a council finding with no ledger row fails; a row still `pending` at Ship fails
+    unless waived; the summary line reports counts computed over active **and** archive.
+
+- **R6** — New review-artifact fields are optional with safe defaults; pre-1.1.0 reviews still
+  validate.
+  - *Acceptance:* `npm run validate` passes over every existing review under
+    `workflow/artifacts/reviews/` and `examples/` with zero edits, and `git status` on those trees
+    is clean afterwards.
+
 - **R7** — A config field disables the council; the single-agent Review path stays functional and
   CI-exercised for one release.
-  Acceptance: mirrors R21's R8 — preserved verbatim, byte-locked by conformance, removed in 1.2.0.
+  - *Modifies:* `src/workflow/agent-behavior.yaml` (`council.enabled` already exists; Review must
+    honour it), `src/workflow/skills/lifecycle-review/references/single-agent-path.md` (new).
+  - *Acceptance:* mirrors R21's R8 — preserved verbatim, byte-locked by conformance, removed in
+    1.2.0 alongside A5.
 
 ### Implicit (RI)
 
-- **RI1** — Extend `check-council-record.mjs` to review artifacts. F7: line 129 hard-filters to
-  `briefs/`; F2: `totals.briefs` and the summary line mislabel; F4: `Questions For User` has a
-  `?? ''` fallback that makes R5's checks silently vacuous on a review.
-  Acceptance: the validator handles both artifact types; no check is silently skipped or vacuous.
-- **RI2** — Add the Review-only assertion that a reviewer finding may not carry a fix
-  recommendation, scoped to council-log findings only (F6).
-  Acceptance: a fixture with a fix-carrying council finding is rejected, attributable to this rule.
+RI1–RI3 keep the meanings the 2026-08-17 council gave them. RI4–RI17 were derived on 2026-08-29.
+
+- **RI1** — `check-council-record.mjs` handles review artifacts, not briefs alone.
+  - *Modifies:* `src/workflow/validators/check-council-record.mjs`.
+  - *Contract:* widen the `briefs/`-only file filter; make `totals.briefs` and the summary label
+    artifact-type-aware (F2); keep the already-placed `isBrief` guard so escalation checks stay
+    brief-scoped instead of firing vacuously on reviews.
+  - *Acceptance:* both artifact types are checked; no check is silently skipped or vacuous on either.
+
+- **RI2** — The Review-only no-fix-recommendation assertion, scoped to council-log findings (F6).
+  - *Acceptance:* a fixture with a fix-carrying council finding is rejected, attributable to this
+    rule alone.
+
 - **RI3** — Preserve the pre-R22 single-agent Review path verbatim with a byte-comparison lock.
-  Acceptance: preserved text byte-identical; lock fails on drift.
+  - *Creates:* `src/workflow/skills/lifecycle-review/references/single-agent-path.md`.
+  - *Acceptance:* the preserved text is byte-identical to today's 10-step Workflow; a conformance
+    check fails on drift, mirroring `r21-single-agent-verbatim`.
 
-- **RI4** — Review-artifact frontmatter carries the `council:` block additively. The block and every
-  field it introduces are optional at the schema's top level, exactly as R21 made them for briefs.
-  Acceptance: every existing review artifact under `workflow/artifacts/reviews/` and `examples/`
-  validates with zero edits; a council-mode review and a single-agent one are distinguishable from
-  frontmatter alone.
+- **RI4** — Review-artifact frontmatter carries `council:` additively.
+  - *Verified 2026-08-29:* `council:` is already a top-level optional property in
+    `src/workflow/schemas/artifact-frontmatter.schema.yaml`, not brief-scoped, so **no schema change
+    is required** — the work is validator- and starter-block-side. Stated precisely so Build does
+    not "fix" a schema that is already correct.
+  - *Acceptance:* a council-mode review and a single-agent one are distinguishable from frontmatter
+    alone; every existing review validates unedited.
 
-- **RI5** — The Review council's fan-out default is decided for this phase explicitly, never
-  inherited. `phase-caps.md` states that the Think council's departure from default-to-1 is scoped
-  to Think and that "any package extending councils to a new phase must decide that phase's default
-  explicitly". This package is that case.
-  Acceptance: a resolved Review-council cap is recorded with its `cap_source`; the value is stated
-  in `phase-caps.md` alongside Think's rather than left to inheritance.
+- **RI5** — The Review council's fan-out default is decided for this phase explicitly.
+  - *Modifies:* `src/workflow/agent-behavior.yaml`, `src/workflow/schemas/agent-behavior.schema.yaml`,
+    `src/workflow/skills/dispatch-subagents/references/phase-caps.md`.
+  - *Why mandatory:* `phase-caps.md` states the Think departure is "the Think council only… Any
+    package extending councils to a new phase must decide that phase's default explicitly."
+  - *Acceptance:* a resolved Review cap is recorded with its `cap_source`; the chosen number appears
+    in `phase-caps.md` beside Think's.
 
-- **RI6** — The finding-quality ledger is two files: an active ledger and an append-only archive. A
-  row closes in the active file and moves to the archive, keeping the working file lean without
-  discarding history.
-  Acceptance: a schema declares both — including the `resolution`-shaped closure field, declared
-  rather than tolerated (see Q3 Research); a closed row present in both files, or in neither, fails.
+- **RI6** — The ledger is two files with defined rotation.
+  - *Creates:* `workflow/artifacts/finding-quality.yaml` (active),
+    `workflow/artifacts/finding-quality-archive.yaml` (append-only archive).
+  - *Contract:* a row closes in the active file and moves to the archive in the same operation. A row
+    present in both, or in neither after closure, is an error.
+  - *Acceptance:* enforced by RI16's validator, with a fixture for each of the two failure shapes.
 
-- **RI7** — Closure is enforced, not conventional. A finding raised at Review that names a later
-  phase must be closed by Ship.
-  Acceptance: a chain reaching Ship with a `pending` row fails `check-release-readiness` unless a
-  waiver covers it, mirroring how an open P0/P1 is already handled there.
+- **RI7** — Closure is enforced at Ship, not left to habit.
+  - *Modifies:* `src/workflow/validators/check-release-readiness.mjs`.
+  - *Contract:* mirrors the existing open-P0/P1 handling — a `pending` row blocks `ship` unless a
+    Waivers entry covers it.
+  - *Acceptance:* a ship artifact declaring `ship` with a pending row and no waiver is rejected.
 
-- **RI8** — The quality figures are reported on the existing summary line, computed over active +
+- **RI8** — Quality figures are reported on the existing summary line, computed over active +
   archive.
-  Acceptance: the summary reports proved-real / noise / pending counts; a conformance check pins the
-  line's shape, as `r21-council-summary` already does; a metric computed from the active file alone
-  fails that check.
+  - *Modifies:* `src/workflow/validators/check-council-record.mjs`, `test/run-conformance-tests.mjs`.
+  - *Acceptance:* the summary reports proved-real / noise / pending counts; a conformance check pins
+    the line's shape as `r21-council-summary` does; a count computed from the active file alone
+    fails it.
 
-- **RI9** — One rejection fixture per new mechanical rule, each emitting exactly one error and
-  registered in `test/run-violation-tests.mjs`.
-  Acceptance: the violation suite grows by the number of new rules; the attribution sweep still
-  shows exactly one error per fixture across every council fixture.
+- **RI9** — One rejection fixture per new mechanical rule, registered in
+  `test/run-violation-tests.mjs`, each emitting exactly one error.
+  - *Acceptance:* the violation count rises by the number of new rules; the attribution sweep still
+    shows exactly one error per council fixture.
 
-- **RI10** — A Questions For User entry carries a bucket reference, so the repo-shaped evidence rule
-  joins per question instead of brief-wide. This is OI-81, filed against R21 with the note that it
-  belongs with the Review-council work revising these blocks.
-  Acceptance: the rule fires on a question whose own bucket is repo-classified and not on one whose
-  bucket is external; the brief-wide approximation and its non-claim are removed once it does.
+- **RI10** — A Questions For User entry carries a bucket reference so the repo-shaped evidence rule
+  joins per question (OI-81).
+  - *Modifies:* `src/workflow/skills/lifecycle-think/references/output-schema.md`,
+    `src/workflow/validators/check-council-record.mjs`, `src/workflow/validators/README.md`.
+  - *Acceptance:* the rule fires on a question whose own bucket is repo-classified and not on one
+    whose bucket is external; the brief-wide approximation and its stated non-claim are both removed.
 
-- **RI11** — Build outputs and adapters stay current. All five adapters carry identical gate content
-  if any gate text changes.
-  Acceptance: `npm run build` clean and `render-adapters` reports shims current.
+- **RI11** — Build outputs and adapters stay current.
+  - *Acceptance:* `npm run build` clean; `render-adapters` reports shims current; all five adapters
+    carry identical gate content if any gate text changed.
+
+- **RI12** — A `review-council` skill exists, mirroring `think-council`'s shape.
+  - *Creates:* `src/workflow/skills/review-council/SKILL.md`,
+    `src/workflow/skills/review-council/references/output-schema.md`.
+  - *Contract:* charter states the repo fence, the outward-action axis, and no-nesting explicitly, as
+    `think-council/SKILL.md` does; it consumes `council-contracts.md` rather than forking it.
+  - *Acceptance:* the skill loads standalone; a conformance check pins its stage list, as
+    `r21-think-stages` does for Think.
+
+- **RI13** — `lifecycle-review` is restructured for the two modes.
+  - *Modifies:* `src/workflow/skills/lifecycle-review/SKILL.md`.
+  - *Contract:* mode resolution before stage 1 in the same first-answer-wins order R21 established
+    (`dispatch.enabled` → `council.enabled` → task class → council); the present 10-step Workflow
+    becomes the single-agent path; the Exit Gate gains the council bullets and names
+    `check-council-record.mjs`.
+  - *Acceptance:* both modes produce the same artifact against the same output schema.
+
+- **RI14** — The review output schema carries the Council Log.
+  - *Modifies:* `src/workflow/skills/lifecycle-review/references/output-schema.md`.
+  - *Contract:* the starter block gains `## Council Log` with the same subsections the Think record
+    uses — Requirement Classification, Members, Rounds, Findings, Reconcile Contract, Conflicts,
+    Termination — so one validator serves both. **Also fixes a live drift found 2026-08-29:** the
+    starter block declares `| Severity | Count |` while real reviews use
+    `| Severity | Open | Found | IDs | Status |`, and `check-release-readiness.mjs` was widened to
+    tolerate the extra columns. The starter block never caught up.
+  - *Acceptance:* the block a reviewer copies produces an artifact that passes both validators
+    unedited.
+
+- **RI15** — A schema declares the ledger.
+  - *Creates:* `src/workflow/schemas/finding-quality.schema.yaml`.
+  - *Contract:* `required: [version, kind, items]`; each item requires
+    `id`, `finding_id`, `source_artifact`, `first_seen_run`, `disposition`, `outcome`;
+    `outcome` enum is `pending | proved-real | waived | noise | unresolved-at-reflect`;
+    `waived` requires `waiver_ref`, `noise` and `unresolved-at-reflect` require `reason`,
+    and any closed outcome requires `closed_in_phase` and `resolution`.
+    `additionalProperties: false`, so an undeclared field fails rather than passing silently —
+    the defect found in `open-items.schema.yaml`, which accepts a `resolution` key used by 22
+    entries and declared nowhere.
+  - *Acceptance:* `check-schema-keywords.mjs` passes over it, so every keyword it declares is one
+    the engine actually implements.
+
+- **RI16** — A validator checks the ledger.
+  - *Creates:* `src/workflow/validators/check-finding-quality.mjs`.
+  - *Modifies:* `scripts/validate-template.mjs` (explicit registration — validators are a list, not
+    auto-discovered).
+  - *Contract:* mirrors `check-open-items.mjs` — validates both files against RI15's schema when
+    present, exits 0 with a stated message when absent, so a repo with no ledger stays valid.
+  - *Acceptance:* absent ledger exits 0; a malformed row, a row in both files, and a closed row
+    missing its required field each fail with one error.
+
+- **RI17** — Risk categories are assigned from the existing surface, disjointly.
+  - *Modifies:* `src/workflow/skills/lifecycle-review/references/review-risk-categories.md`.
+  - *Contract:* the ten categories already listed there become the assignment surface for reviewer
+    buckets; each reviewer's categories are disjoint, and the assignment is recorded in the Council
+    Log so coverage is auditable rather than asserted.
+  - *Acceptance:* two reviewers sharing a risk category in the same round is rejected, on the same
+    reasoning RI1's independence rule uses for surfaces.
 
 ### Assumptions (A)
 
@@ -401,10 +504,17 @@ mirrored in `orchestration.blockers`.
 | RI9 | rejection fixture set | repo, trial |
 | RI10 | per-question bucket join (OI-81) | repo |
 | RI11 | build outputs and adapter currency | repo, trial |
+| RI12 | review-council skill exists | repo |
+| RI13 | lifecycle-review restructured for two modes | repo |
+| RI14 | review output schema carries the Council Log | repo |
+| RI15 | finding-quality schema | repo |
+| RI16 | finding-quality validator | repo, trial |
+| RI17 | disjoint risk-category assignment | repo |
 
-RI4–RI11 were **not** classified by the 2026-08-17 council. They were derived and classified on
-2026-08-29 while resuming, after Q3 was answered — three of them (RI6, RI7, RI8) exist only because
-of what that answer decided. They are recorded here because every active requirement needs a
+RI4–RI17 were **not** classified by the 2026-08-17 council. They were derived and classified on
+2026-08-29 while resuming: RI6–RI8 and RI15–RI16 exist because of what Q3's answer decided, and
+RI12–RI14 and RI17 because the first pass stated the work as intent and never named the skill and
+schema files it lands in. They are recorded here because every active requirement needs a
 settling class, not to suggest the council produced them.
 
 ### Members
@@ -469,8 +579,14 @@ basis for it, which is what happened to F2.
   honestly pending.
 - decision: The single-agent Review path is preserved verbatim and byte-locked, mirroring R21's R8
   rather than inventing a second preservation mechanism.
-- downstream: F7 and F8 both mean R22 inherits R21 defects rather than clean contracts — validator
-  scope and fan-out default are phase-agnostic in the wrong direction.
+- decision: The no-fix-recommendation rule binds council-log reviewer findings only. The parent's
+  consolidated findings keep their fix recommendations, because `lifecycle-review`'s output schema
+  requires one on every finding and the parent is not a reviewer. Without this scoping the package
+  would ship two contracts that contradict each other.
+- downstream: F7 means R22 still inherits the brief-scoped validator; F8's fan-out defect is closed,
+  but its replacement text *requires* this package to choose a Review default explicitly (RI5).
+- downstream: Plan sequences RI12–RI16 before RI1 and RI7. The validator work has nothing to check
+  until the skill, the output schema, and the ledger schema exist.
 
 ## Exit Gate
 
