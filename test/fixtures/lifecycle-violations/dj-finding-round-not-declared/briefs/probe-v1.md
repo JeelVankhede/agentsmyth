@@ -22,7 +22,7 @@ council:
   depth: standard
   dispatch_depth: 1
   rounds_run: 2
-  termination_reason: max-rounds
+  termination_reason: user-decision-required
   resolution:
     dispatch_enabled: optional
     council_enabled: on-for-complex
@@ -91,6 +91,9 @@ council:
 | m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
+| m1 | researcher | 2 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/2/m1 |
+| m2 | researcher | 2 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/2/m2 |
+| c1 | challenger | 2 | read, fetch, search | |
 
 ### Rounds
 
@@ -108,7 +111,7 @@ council:
 | F3 | m3 | researcher | 1 | prior art | recall | | accepted | |
 | F4 | c1 | challenger | 1 | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F5 | m2 | researcher | 1 | package.json | repo | `package.json` engines field | accepted | |
-| F6 | m2 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
+| F6 | m3 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F7 | c1 | challenger | 2 | web spot-check of F6 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 
 ### Reconcile Contract
@@ -124,7 +127,7 @@ the basis for it.
 
 ### Termination
 
-- Reason: max-rounds
+- Reason: user-decision-required
 - Surviving items and their round history: Q5 open in rounds 1 and 2, closed in neither
 
 ## Architecture Notes

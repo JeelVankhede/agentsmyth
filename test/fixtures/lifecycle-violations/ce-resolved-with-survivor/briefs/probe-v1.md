@@ -22,11 +22,15 @@ council:
   depth: standard
   dispatch_depth: 1
   rounds_run: 2
-  termination_reason: user-decision-required
+  termination_reason: resolved
   resolution:
     dispatch_enabled: optional
     council_enabled: on-for-complex
     task_class: complex
+  repo_integrity:
+    before: sha256:aaaaaaaaaaaa
+    after: sha256:aaaaaaaaaaaa
+    algorithm: sha256/sorted-relpath+size+content
   evidence_classes:
     repo: used
     trial: unused
@@ -123,7 +127,7 @@ the basis for it.
 
 ### Termination
 
-- Reason: user-decision-required
+- Reason: resolved
 - Surviving items and their round history: Q5 open in rounds 1 and 2, closed in neither
 
 ## Architecture Notes

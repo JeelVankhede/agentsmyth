@@ -4,7 +4,7 @@ version: 1
 artifact: review
 status: ready-for-next-phase
 created: 2026-08-17
-updated: 2026-08-24
+updated: 2026-08-29
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9]
 upstream:
   - workflow/artifacts/tasks/wp-r21-think-council-v1.md
@@ -268,6 +268,33 @@ grandfathered, since it is the only real instance of the record this validator e
 skill mention plus its conformance pin makes the reference durable; it does not make the CLI run it.
 That gap is real and stated rather than closed by wording.
 
+## Second External Review (PR #64, 2026-08-29)
+
+A second external pass over the same branch raised nine findings — two blocking, two "should land",
+five non-blocking — plus one observation about the PR body. All nine are fixed here; one carries a
+deferred follow-up (OI-81) for the part that needs a record-shape change rather than a validator
+change. The pass also re-verified the previous thirteen: eleven closed, finding 1 correctly reported
+as partial with OI-80 filed.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | `max-rounds` and `no-progress` were terminations no valid record could carry — the survivor line was mandatory for both and any declared survivor forced `user-decision-required`, so only a vacuous survivor line passed | **fixed by removal** — the enum is now `resolved` \| `user-decision-required` in the schema, in `TERMINATIONS`, in the skill's Round Loop and Exit Gate, and in the `max_rounds` description. The rule hangs off the two remaining reasons and both directions are reachable: `user-decision-required` must declare survivors, `resolved` must have closed everything it declared. No entered-every-round inference is attempted — the Rounds table carries open *counts*, not open IDs, so that predicate is not derivable from it, and the comment says so rather than implying otherwise. Fixtures `ce`, `cz` re-pointed; `di` locks the removal |
+| 2 | CI never ran on this branch — `pull_request.branches: [main]` while the PR targets `release/1.1.0` | **fixed** — `release/**` added to both the push and pull_request filters, with the reason in the file. See the CI note below for what it reproduced |
+| 3 | `validators/README.md` stale on five rules; the same stale taper wording in `lifecycle-think`'s Exit Gate and Round Loop | **fixed** — the README entry now describes the `Items closed` taper test, the required `resolution` block, the reconcile contract, the Findings `Round` cross-checks, the two-value termination enum, and web-may-not-decide; the non-claims list gains the brief-wide approximation. Both skill sites corrected. Pinned by conformance `r21-taper-wording` and `r21-termination-enum`, the same anti-drift shape as `r21-validator-named` |
+| 4 | The Findings `Round` column was authoritative and unvalidated, and the positive control was itself incoherent — F6/F7 declared round 2 with no round-2 member declared anywhere | **fixed** — the fixture declares round-2 rows for m1, m2 and c1, which also makes the Rounds table's 2-researcher/1-challenger claim true; the rows were propagated to all 34 council fixtures so the one-error-per-fixture property holds. The validator now requires a finding's round to name a Rounds row and its member to be declared for that round. Fixtures `dj`, `dk` |
+| 5 | `repoShapedClassified` is any-row, not this-question's-row | **fixed as stated, not as joined** — there is no join to make: classification is keyed by manifest ID and a Q line names findings. The approximation is now stated in the error text and in the README non-claims. The record-shape change that would make the join expressible is OI-81 |
+| 6 | The recall and web rules both used `every`, so a Q resting on one recall and one web finding escaped both | **fixed** — one predicate: a recommendation with no `repo` or `trial` finding under it fails, outright when it is recall-only and on the repo-shaped condition otherwise |
+| 7 | Reconcile Contract fired on the challenge pass, and was checked for non-emptiness only | **fixed** — overlap counts non-challenger members only, so a challenger filing against the surface it attacks is the design working rather than a violation; and the contract must state both how duplicates collapse and how disagreements surface, so "we will reconcile" now fails the check its own starter block says it must. Fixture `dl` |
+| 8 | The hook failed open on an unreadable blob — empty `orch_status` skipped the gate | **fixed** — it skips only on a status positively read and not ready; empty gates. Both copies |
+| 9 | `expandHome`'s comment contradicted the `homedir()` fallback below it; `isBrief` unreachable behind the `briefs/` filter | **fixed as comments** — the stale claim is gone, and the `isBrief` guard is labelled inert-by-design: the filter widening belongs to the Review council, and widening it without the guard already in place would reject every council-mode review on its first run |
+
+**PR-body observation, accepted.** The R21 brief carries no `council:` block and no other brief on
+this branch does either, so `npm run validate` exercises `check-council-record` against zero council
+records in the diff. The one real record — `briefs/wp-r22-review-council-v1.md`, migrated to the
+tightened contract — is untracked on this branch and therefore not evidence a reader can check. It
+does pass locally against the rules as tightened here, and that is stated in the PR body as a local
+observation rather than as a verified claim.
+
 ## Recommendation
 
 pass
@@ -277,6 +304,11 @@ than asserted. The recommendation at the time of review was `pass-with-risk`; it
 `pass` on that remediation, and the thirteen external-review findings above do not lower it: eleven
 are fixed with fixtures, and the two deferred are recorded as open items with real next actions
 rather than dropped.
+
+The nine findings of the second external pass do not lower it either: all nine are fixed, four with
+new fixtures, two with conformance pins, and the one part that needs a record-shape change rather
+than a validator change is filed as OI-81 with a real next action. The branch also runs CI for the
+first time, so its suite numbers are no longer a single machine's claim.
 
 Two things are carried forward as known limits rather than open findings, because neither is a
 defect in what shipped: the `check-council-record` non-claims stated in RI6 (it validates the

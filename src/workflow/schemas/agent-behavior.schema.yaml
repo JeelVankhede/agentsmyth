@@ -181,7 +181,7 @@ properties:
         type: integer
         minimum: 1
         maximum: 10
-        description: Backstop bound on the round loop. The tapering, non-increasing fan-out supplies the actual cost guarantee; this only stops a pathological loop. A run that hits this bound while any item survived every round without closing must terminate user-decision-required, not max-rounds.
+        description: Backstop bound on the round loop. The tapering, non-increasing fan-out supplies the actual cost guarantee; this only stops a pathological loop. A run that hits this bound with anything still open terminates user-decision-required; there is no termination reason naming the bound itself, because a run that stopped at the bound either closed everything or has survivors to escalate.
       depth:
         type: string
         enum:

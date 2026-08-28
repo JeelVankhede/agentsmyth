@@ -38,13 +38,12 @@ const councilConfig = resolveCouncilConfig();
 // Indirection so the fence helpers above can read the resolved config without a forward reference.
 const councilConfigRef = { value: councilConfig };
 
-// Tilde expansion shared by both fences. HOME being unset must not silently turn an absolute
-// sandbox path into a relative-looking one, so an unexpandable "~" is left intact and will fail
-// the absolute-path test rather than passing by accident.
+// Tilde expansion shared by both fences. HOME being unset must not silently change either fence's
+// verdict with the environment, so expansion falls back to homedir(), which reads the OS user
+// database. The earlier behaviour — leave "~" literal and let it fail the absolute-path test —
+// is gone: it rejected a valid sandbox path whenever $HOME was absent. A "~" survives unexpanded
+// only when both sources are empty, which no supported platform produces.
 function expandHome(p) {
-  // homedir() falls back to the OS user database when $HOME is unset, so the fences do not silently
-  // change verdict with the environment. Leaving "~" literal made it fail the absolute-path test and
-  // rejected a valid sandbox path whenever $HOME was absent.
   const home = process.env.HOME || homedir();
   return home ? p.replace(/^~(?=\/|$)/, home) : p;
 }
@@ -76,7 +75,14 @@ const details = [];
 
 const EVIDENCE_CLASSES = ['repo', 'trial', 'web', 'recall'];
 const DISPOSITIONS = ['accepted', 'merged', 'rejected-with-reason'];
-const TERMINATIONS = ['resolved', 'user-decision-required', 'max-rounds', 'no-progress'];
+// Two reasons, not four. `max-rounds` and `no-progress` were enum values no valid record could
+// carry: both imply unfinished business, the survivor declaration was mandatory for both, and any
+// declared survivor forced the run to terminate `user-decision-required` instead — so the only
+// record that passed under either was one declaring no survivors, which contradicts what the two
+// words mean. A run that hits the bound either closed everything (`resolved`) or did not
+// (`user-decision-required`); the bound is recorded by `rounds_run` against `max_rounds`, not by a
+// termination reason that cannot be used.
+const TERMINATIONS = ['resolved', 'user-decision-required'];
 
 // Running totals for the summary line. A bare pass invites skipping; a number that varies invites
 // reading, and the ratios below are how a reader sees how much of a brief rests on classes this
@@ -379,26 +385,26 @@ for (const file of artifactFiles) {
   }
 
   // --- survivors escalate rather than expiring --------------------------------------------
-  // Review P1-2: this rule used to read survivors out of free text, so a run could terminate
-  // "max-rounds" and simply delete the line — the escape was one keystroke, which left the rule
-  // enforcing good behaviour only in runs that were already behaving. The declaration is now
-  // MANDATORY for the two terminations that imply unfinished business, so silence fails before
-  // the survivor comparison is even reached.
+  // Review P1-2 made the survivor declaration mandatory rather than free-text-optional. The second
+  // external review showed the rule as written could only ever be satisfied vacuously, because it
+  // hung off two termination reasons that are now gone (see TERMINATIONS). It hangs off the two
+  // that remain instead, and both directions are reachable:
+  //   - `user-decision-required` must say WHAT it escalates — silence is not "nothing survived".
+  //   - `resolved` must have closed everything it declared — a survivor contradicts the word.
+  // No entered-every-round inference is attempted. The Rounds table carries open counts, not open
+  // IDs, so "entered every round" is not derivable from it; declaring an item as surviving is the
+  // author's own claim that it did, and the check tests that claim against the closed-ID cells.
   const terminationText = subSection(logSection, 'Termination') ?? '';
   const survivorLine = terminationText.match(/Surviving items[^:]*:\s*(.*)/i)?.[1];
-  const impliesUnfinished = council.termination_reason === 'max-rounds' || council.termination_reason === 'no-progress';
 
-  if (impliesUnfinished && (survivorLine === undefined || !survivorLine.trim())) {
-    errors.push(`${file} terminated "${council.termination_reason}" without declaring its surviving items; a termination that implies unfinished business must state what was left unfinished, and omitting the line is not a way to have left nothing`);
+  if (council.termination_reason === 'user-decision-required' && (survivorLine === undefined || !survivorLine.trim())) {
+    errors.push(`${file} terminated "user-decision-required" without declaring its surviving items; an escalation must state what is being escalated, and omitting the line is not a way to have left nothing`);
   }
 
-  // Not gated on round count: a single-round run that hits the bound has survivors too. Not gated
-  // on max-rounds alone either — the survivor line is mandatory for no-progress on the same
-  // reasoning, so the escalation rule has to cover both.
   const closedEver = new Set(rounds.flatMap((r) => r.closed));
   const survivors = idsOf(survivorLine ?? '').filter((id) => !closedEver.has(id));
-  if (impliesUnfinished && survivors.length > 0) {
-    errors.push(`${file} terminated "${council.termination_reason}" while ${survivors.join(', ')} survived without closing; a survivor is evidence the council cannot resolve it, so the run must terminate "user-decision-required"`);
+  if (council.termination_reason === 'resolved' && survivors.length > 0) {
+    errors.push(`${file} terminated "resolved" while ${survivors.join(', ')} appear as surviving items closed in no round; a survivor is evidence the council could not resolve it, so the run must terminate "user-decision-required"`);
   }
 
   // --- findings ---------------------------------------------------------------------------
@@ -436,11 +442,23 @@ for (const file of artifactFiles) {
   }
 
   const memberIds = new Set(members.map((m) => m.id));
+  const memberRounds = new Set(members.map((m) => `${m.id}::${m.round}`));
+  const roundNumbers = new Set(rounds.map((r) => r.round));
   const bySurface = new Map();
   for (const f of findings) {
     if (!f.member) errors.push(`${file} finding ${f.id} has no source member — unattributed findings are invalid`);
     else if (members.length > 0 && !memberIds.has(f.member)) {
       errors.push(`${file} finding ${f.id} names source member "${f.member}" which is not declared in Members`);
+    }
+    // The Round column drives the per-round spot-check rule, so an unchecked value decides a rule
+    // while answering to nothing: a missing round parsed to null and formed its own bucket, and a
+    // round nobody dispatched read as a round that happened. Cross-check against the Rounds table
+    // first, then against the member's own declaration — a member producing a finding in a round it
+    // was not dispatched for is either a mis-typed row or a member that outlived its round.
+    if (!roundNumbers.has(f.round)) {
+      errors.push(`${file} finding ${f.id} declares round ${f.round ?? '(none)'} which is not a row in the Rounds table; the Round column is what the per-round duties are evaluated against`);
+    } else if (f.member && memberIds.has(f.member) && !memberRounds.has(`${f.member}::${f.round}`)) {
+      errors.push(`${file} finding ${f.id} is attributed to member "${f.member}" in round ${f.round}, but Members declares that member only for round(s) ${members.filter((m) => m.id === f.member).map((m) => m.round).join(', ')}`);
     }
     // R11 — a trial finding is an empirical claim about something that was run somewhere. Without
     // a declared sandbox there is nothing to audit and nothing bounding where it ran.
@@ -478,14 +496,26 @@ for (const file of artifactFiles) {
   // declares a dedupe-and-reconcile contract in the active artifact before dispatch. Conflict
   // recording is the teeth; this is the condition. Enforcing the teeth while leaving the condition
   // unrecorded meant overlap was in practice unconditional.
+  //
+  // Challengers are excluded from the overlap count. A challenger filing against the surface of the
+  // researcher it attacks is the challenge pass working as designed — it is not the dispatch-time
+  // bucket overlap RI1's exception governs, and counting it made the contract a tax on challenging.
   const overlapped = [...bySurface.entries()].filter(
-    ([, fs]) => new Set(fs.map((f) => f.member).filter(Boolean)).size >= 2
+    ([, fs]) => new Set(fs.filter((f) => f.role !== 'challenger').map((f) => f.member).filter(Boolean)).size >= 2
   );
   if (overlapped.length > 0) {
-    const contract = subSection(logSection, 'Reconcile Contract');
-    if (!contract || !contract.replace(/<!--[\s\S]*?-->/g, '').trim()) {
-      const names = overlapped.map(([s]) => `"${s}"`).join(', ');
+    const contract = (subSection(logSection, 'Reconcile Contract') ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
+    const names = overlapped.map(([s]) => `"${s}"`).join(', ');
+    // Non-emptiness let "we will reconcile" satisfy the exact check the starter block says it must
+    // not. Both halves have to be stated, because they are different guarantees: collapsing
+    // duplicates is what makes overlap cheap, surfacing disagreement is what makes it safe.
+    const statesDedupe = /\b(duplicat\w*|dedup\w*|collaps\w*|merg\w*)\b/i.test(contract);
+    const statesDisagreement = /\b(disagree\w*|conflict\w*|dissent\w*|contradict\w*)\b/i.test(contract);
+    if (!contract) {
       errors.push(`${file} has members overlapping on surface ${names} but records no "### Reconcile Contract"; overlap is permitted only when the parent declared before dispatch how duplicates collapse and how disagreements surface`);
+    } else if (!statesDedupe || !statesDisagreement) {
+      const missing = [!statesDedupe && 'how duplicates collapse', !statesDisagreement && 'how disagreements surface'].filter(Boolean);
+      errors.push(`${file} has members overlapping on surface ${names} and its "### Reconcile Contract" does not state ${missing.join(' or ')}; "we will reconcile" is a promise, not a contract`);
     }
   }
 
@@ -532,6 +562,11 @@ for (const file of artifactFiles) {
   // Escalation is a BRIEF concern. A review artifact has no "Questions For User" section — its
   // escalation surface is Recommendation and Residual Risk — so requiring one there would reject
   // every council-mode review the moment the Review council ships.
+  //
+  // INERT TODAY, deliberately. The file loop above skips anything not under `briefs/`, so nothing
+  // that reaches here is anything but a brief. The gate is written now because widening that filter
+  // is a one-line change the Review council will make, and a filter widened without this guard would reject
+  // every council-mode review on its first run. Preparation, not a live branch.
   const isBrief = parsed.frontmatter.artifact === 'brief';
   const qSectionRaw = isBrief ? namedSection(parsed.body, 'Questions For User') : null;
   if (isBrief && qSectionRaw === null) {
@@ -581,16 +616,31 @@ for (const file of artifactFiles) {
       continue;
     }
     const refClasses = refIds.map((id) => findings.find((f) => f.id === id)?.cls).filter(Boolean);
-    if (refClasses.length > 0 && refClasses.every((c) => c === 'recall')) {
-      errors.push(`${file} ${qId}'s recommendation rests only on recall findings (${refIds.join(', ')}); recall may raise a hypothesis but never resolve one`);
-      continue;
-    }
-    // `web` may corroborate a repo-shaped question but never decide it: the repo is present and
-    // `repo` citations resolve mechanically, so the class with no mechanical floor stays confined
-    // to questions where it is the only option. Requirement Classification already records which
-    // class would settle each bucket, which is what makes this checkable rather than merely stated.
-    if (refClasses.length > 0 && refClasses.every((c) => c === 'web') && repoShapedClassified) {
-      errors.push(`${file} ${qId}'s recommendation rests only on web findings (${refIds.join(', ')}) while the Requirement Classification names repo as a settling class; web may corroborate a repo-shaped question but not decide it`);
+    if (refClasses.length === 0) continue;
+    // The two rules used to be separate `every` tests, which left a gap exactly between them: a Q
+    // resting on one recall finding and one web finding was "not only recall" and "not only web",
+    // so it escaped both and decided a repo-shaped question on evidence that never touched the
+    // repo. They are one rule about the same thing — whether anything under the recommendation was
+    // mechanically grounded — so they are computed from one predicate.
+    const grounded = refClasses.filter((c) => c === 'repo' || c === 'trial');
+    if (grounded.length === 0) {
+      if (refClasses.every((c) => c === 'recall')) {
+        errors.push(`${file} ${qId}'s recommendation rests only on recall findings (${refIds.join(', ')}); recall may raise a hypothesis but never resolve one`);
+        continue;
+      }
+      // `web` may corroborate a repo-shaped question but never decide it: the repo is present and
+      // `repo` citations resolve mechanically, so the class with no mechanical floor stays confined
+      // to questions where it is the only option.
+      //
+      // APPROXIMATION, stated in the message rather than implied by it: Requirement Classification
+      // is keyed by manifest ID and a Q line names findings, not buckets, so there is no join
+      // expressing "this question's own bucket is repo-shaped". `repoShapedClassified` is true when
+      // ANY row names repo, which over-fires on a genuinely external question in a brief that also
+      // holds one repo-classified requirement. The error says so, so a reader can waive it knowing
+      // what was and was not established.
+      if (repoShapedClassified) {
+        errors.push(`${file} ${qId}'s recommendation (${refIds.join(', ')}) rests on no repo or trial finding while the brief's Requirement Classification names repo as a settling class for at least one requirement; web may corroborate a repo-shaped question but not decide it. This check is brief-wide, not per question: it cannot tell which bucket ${qId} belongs to, so a genuinely external question needs its classes recorded as such or the finding waived`);
+      }
     }
   }
 

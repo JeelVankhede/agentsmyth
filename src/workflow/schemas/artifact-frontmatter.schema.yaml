@@ -203,11 +203,17 @@ properties:
         minimum: 0
       termination_reason:
         type: string
+        description: >-
+          Two reasons, because only two are reachable. A run either closed everything it opened
+          (resolved) or it did not, in which case what remains belongs with the user
+          (user-decision-required). max-rounds and no-progress were removed: both imply unfinished
+          business, and a record carrying either had to declare its survivors, which in turn forced
+          user-decision-required - so the only record that could carry them was one declaring
+          nothing unfinished. Hitting the round bound is recorded by rounds_run against the resolved
+          max_rounds, not by a termination reason.
         enum:
           - resolved
           - user-decision-required
-          - max-rounds
-          - no-progress
       resolution:
         type: object
         additionalProperties: false

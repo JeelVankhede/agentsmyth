@@ -27,6 +27,10 @@ council:
     dispatch_enabled: optional
     council_enabled: on-for-complex
     task_class: complex
+  repo_integrity:
+    before: sha256:aaaaaaaaaaaa
+    after: sha256:aaaaaaaaaaaa
+    algorithm: sha256/sorted-relpath+size+content
   evidence_classes:
     repo: used
     trial: unused
@@ -112,9 +116,7 @@ council:
 
 ### Reconcile Contract
 
-Duplicates on a shared surface collapse into the earliest finding ID, keeping the citation that
-resolves. Disagreements are never collapsed: each is recorded in Conflicts with its resolution and
-the basis for it.
+We will reconcile.
 
 ### Conflicts
 

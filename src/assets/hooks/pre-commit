@@ -61,7 +61,12 @@ if [ -n "$ARTIFACT_FILES" ]; then
       staged_blob=$(git show ":$file" 2>/dev/null || true)
       orch_status=$(printf '%s\n' "$staged_blob" | awk '/^orchestration:/{o=1;next} o&&/^[^[:space:]]/{o=0} o&&/^[[:space:]]+status:/{print $2;exit}')
       [ -z "$orch_status" ] && orch_status=$(printf '%s\n' "$staged_blob" | awk '/^status:/{print $2;exit}')
-      [ "$orch_status" = "ready-for-next-phase" ] || continue
+      # Skip ONLY on a status we positively read that is not ready. An unreadable blob, or a file
+      # whose status cannot be parsed, leaves this empty — and empty must gate rather than skip,
+      # since "I could not tell" is not "it is fine".
+      if [ -n "$orch_status" ] && [ "$orch_status" != "ready-for-next-phase" ]; then
+        continue
+      fi
     fi
     if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
       status=1

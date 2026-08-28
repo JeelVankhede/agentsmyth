@@ -207,13 +207,19 @@ self-authorized spend increase.
 Bounded by `council.max_rounds` (default 4) as a backstop — but the taper, not the bound, is what
 supplies the cost guarantee.
 
-**Taper coherence:** a round that reduces fan-out while open items did not decrease fails. Shrinking
-the council asserts convergence, so the numbers must corroborate it.
+**Taper coherence:** a round that reduces fan-out after a round that closed no items fails.
+Shrinking the council asserts convergence, and the `Items closed` column is what corroborates it —
+an open-item delta cannot, since items also open mid-run.
 
-**Survivors escalate rather than expiring.** An item that enters every round and closes in none is
-the clearest evidence the council cannot resolve it — which is the definition of something belonging
-with the user. Such a run terminates `user-decision-required`, carrying that item's per-round
-history as the basis for asking, **never** `max-rounds`.
+**Survivors escalate rather than expiring.** An item still open when the run stops is the clearest
+evidence the council cannot resolve it — which is the definition of something belonging with the
+user. Such a run terminates `user-decision-required`, carrying that item's per-round history as the
+basis for asking, and declares the surviving items explicitly.
+
+**Termination has two reasons, not four.** `resolved` and `user-decision-required`. There is no
+`max-rounds` or `no-progress`: both named unfinished business, and unfinished business escalates, so
+neither could ever be the reason a valid record carried. Stopping at `council.max_rounds` is
+recorded by `rounds_run`, not by a termination reason.
 
 ## Single-Agent Mode
 
@@ -249,8 +255,9 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - Every active `R` and `RI` has a classification entry naming at least one evidence class (stage 2).
 - Every surviving `Q` carries a recommendation whose evidence references resolve to recorded finding IDs, and are not exclusively `recall`.
 - The council run is logged, or a refusal is recorded with its reason — a council that was applicable and did not fire must say so, since silence cannot distinguish "not applicable" from "failed to fire".
-- The run records a `termination_reason` of `resolved`, `user-decision-required`, `max-rounds`, or `no-progress`; a run whose item survived every round terminates `user-decision-required`, never `max-rounds`.
-- Fan-out never grew between rounds, and any round that shrank fan-out is corroborated by a decrease in open items.
+- The run records a `termination_reason` of `resolved` or `user-decision-required` — the only two reachable reasons — and a `user-decision-required` run declares its surviving items, while a `resolved` run has no item it declared as surviving that closed in no round.
+- Fan-out never grew between rounds, and any round that shrank fan-out follows a round whose `Items closed` cell is non-empty.
+- Every finding's `Round` names a row in the Rounds table, and its source member is declared in Members for that same round.
 - For a council-mode brief, `check-council-record.mjs` passes. It is the mechanical counterpart to the four bullets above: they state what the record must contain, and it is what actually rejects a record that does not. Run it the same way as any other validator in `workflow/validators/`. It reports what it checked on success, including how many citations it could resolve mechanically versus shape-check only — read that line rather than treating a bare pass as proof the research was sound.
 
 ## Determinism Rules

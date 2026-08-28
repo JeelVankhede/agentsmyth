@@ -91,6 +91,9 @@ council:
 | m2 | researcher | 1 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/1/m2 |
 | m3 | researcher | 1 | read, fetch, search | |
 | c1 | challenger | 1 | read, fetch, search | |
+| m1 | researcher | 2 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/2/m1 |
+| m2 | researcher | 2 | read, fetch, search | ~/.agentsmyth/sandbox/agentsmyth/probe/2/m2 |
+| c1 | challenger | 2 | read, fetch, search | |
 
 ### Rounds
 

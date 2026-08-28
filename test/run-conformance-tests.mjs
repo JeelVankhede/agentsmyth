@@ -169,6 +169,22 @@ check('r21-single-agent-verbatim', 'preserved single-agent path retains the pre-
 check('r21-validator-named', 'lifecycle-think Exit Gate names check-council-record.mjs',
   /check-council-record\.mjs/.test(thinkSkill));
 
+// Taper coherence is stated in three places and implemented in one. The implementation gates on the
+// previous round's `Items closed` cell; the prose said "a decrease in open items", which is a
+// different test and one the validator has never run — items also open mid-run. Same anti-drift
+// shape as r21-validator-named: pin the wording to the implementation, since a README that argues
+// for the validator while describing a rule it does not enforce undoes its own argument.
+const validatorsReadme = readFileSync(join(repoRoot, 'src/workflow/validators/README.md'), 'utf8');
+check('r21-taper-wording', 'skill and validators README describe taper coherence as the Items closed test',
+  /Items closed/.test(thinkSkill) && /Items closed/.test(validatorsReadme) &&
+  !/decrease in open items/.test(thinkSkill) && !/decrease in open items/.test(validatorsReadme));
+
+// The termination enum carries only the two reachable reasons. Anything naming max-rounds or
+// no-progress as a termination reason is the removed contract growing back in documentation.
+check('r21-termination-enum', 'termination reason is documented as resolved / user-decision-required only',
+  !/termination_reason` of `resolved`, `user-decision-required`, `max-rounds`/.test(thinkSkill) &&
+  !/terminated `max-rounds`/.test(validatorsReadme));
+
 // Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
 // mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop
 // claim, and rejecting it made the validator assert the opposite of what the cell said. The

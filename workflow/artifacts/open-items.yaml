@@ -457,6 +457,12 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-81
+    source: follow-up
+    owner: workflow owner
+    next_action: "Give a Questions For User entry a bucket reference so the repo-shaped evidence rule can join on it. check-council-record's `web`/`recall` rule asks whether the question it is judging is repo-shaped, but Requirement Classification is keyed by manifest ID while a Q line names only finding IDs — there is no join, so the check uses a brief-wide approximation: true whenever ANY classification row names repo. A genuinely external question in a brief that also holds one repo-classified requirement is therefore flagged wrongly. The second external review of the council PR classed it non-blocking and it is now stated in the error text and in the validators README non-claims, rather than implied. Fix: add a `Bucket` (or `Manifest IDs`) column to the Questions For User starter block in lifecycle-think's output-schema, then narrow the rule to that question's own classification rows. It is a record-shape change to a starter block every council brief already written follows, so it belongs with the Review-council work that is revising those blocks anyway, not as a drive-by."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
   - id: OI-80
     source: follow-up
     owner: user

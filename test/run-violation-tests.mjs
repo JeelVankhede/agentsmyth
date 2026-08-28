@@ -207,7 +207,7 @@ const fixtures = [
   { id: 'cb', dir: 'test/fixtures/lifecycle-violations/cb-empty-rejection-reason', description: '(WP-R21, R4) rejected-with-reason carries an empty reason — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cc', dir: 'test/fixtures/lifecycle-violations/cc-fanout-growth', description: '(WP-R21, R13) round 2 fan-out exceeds round 1 — non-increasing invariant — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cd', dir: 'test/fixtures/lifecycle-violations/cd-incoherent-taper', description: '(WP-R21, R13) council shrank after a round that closed nothing — check-council-record', validator: validatorPath('check-council-record.mjs') },
-  { id: 'ce', dir: 'test/fixtures/lifecycle-violations/ce-maxrounds-survivor', description: '(WP-R21, R13) terminated max-rounds while an item survived every round — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ce', dir: 'test/fixtures/lifecycle-violations/ce-resolved-with-survivor', description: '(WP-R21, R13) terminated resolved while a declared surviving item closed in no round — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cf', dir: 'test/fixtures/lifecycle-violations/cf-repo-citation-unresolvable', description: '(WP-R21, R10) repo citation names a path that does not exist — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'cg', dir: 'test/fixtures/lifecycle-violations/cg-web-citation-incomplete', description: '(WP-R21, R10) web citation missing retrieval date and verbatim quote — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'ch', dir: 'test/fixtures/lifecycle-violations/ch-missing-conflicts-entry', description: '(WP-R21, RI1) shared surface holds accepted and rejected findings with no Conflicts entry — check-council-record', validator: validatorPath('check-council-record.mjs') },
@@ -231,7 +231,7 @@ const fixtures = [
   { id: 'cx', dir: 'test/fixtures/lifecycle-violations/cx-finding-unknown-member', description: '(WP-R21, R3) finding attributed to a member absent from Members — check-council-record', validator: validatorPath('check-council-record.mjs') },
   // Added when Review's P1 findings were fixed — each closes a hole the earlier suite could not see.
   { id: 'cy', dir: 'test/fixtures/lifecycle-violations/cy-sandbox-outside-root', description: '(WP-R21, R11) sandbox is outside the repo but not under the resolved council.sandbox_root — check-council-record', validator: validatorPath('check-council-record.mjs') },
-  { id: 'cz', dir: 'test/fixtures/lifecycle-violations/cz-maxrounds-no-survivor-line', description: '(WP-R21, R13) max-rounds termination omits its surviving-items declaration — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'cz', dir: 'test/fixtures/lifecycle-violations/cz-escalation-no-survivor-line', description: '(WP-R21, R13) user-decision-required termination omits its surviving-items declaration — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'da', dir: 'test/fixtures/lifecycle-violations/da-no-questions-section', description: '(WP-R21, R5) council brief with no Questions For User section — escalation checks would pass vacuously — check-council-record', validator: validatorPath('check-council-record.mjs') },
   // Review residuals R-1 and R-2, closed. R-1 makes the firing decision re-derivable rather than
   // merely asserted; R-2 asserts repo integrity filesystem-scoped, since git status is blind to
@@ -244,6 +244,13 @@ const fixtures = [
   { id: 'df', dir: 'test/fixtures/lifecycle-violations/df-missing-reconcile-contract', description: '(WP-R21, RI1) members overlap on a surface with no declared reconcile contract — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dg', dir: 'test/fixtures/lifecycle-violations/dg-council-without-resolution', description: '(WP-R21, R7) council mode with no resolution block — the firing decision cannot be re-derived — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dh', dir: 'test/fixtures/lifecycle-violations/dh-round2-web-no-spotcheck', description: '(WP-R21, R3) a later round has web findings with no spot-check in that round — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // Second external PR review: the termination enum lost the two values no valid record could
+  // carry, and the Round column — which drives the per-round duties — gained the cross-checks that
+  // make it answerable to the Rounds and Members tables rather than merely authoritative.
+  { id: 'di', dir: 'test/fixtures/lifecycle-violations/di-termination-not-in-enum', description: '(WP-R21, R14) termination_reason max-rounds is no longer a value any record may carry — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dj', dir: 'test/fixtures/lifecycle-violations/dj-finding-round-not-declared', description: '(WP-R21, R3) finding attributed to a member in a round Members never declares it for — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dk', dir: 'test/fixtures/lifecycle-violations/dk-finding-without-round', description: '(WP-R21, R3) finding carries no Round, so it answers to no row in the Rounds table — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dl', dir: 'test/fixtures/lifecycle-violations/dl-vacuous-reconcile-contract', description: '(WP-R21, RI1) reconcile contract states neither dedupe nor disagreement handling — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;
