@@ -270,6 +270,8 @@ earlier phase has already carried its own targeted check.
   `test/fixtures/lifecycle-violations/dj-finding-round-not-declared`,
   `test/fixtures/lifecycle-violations/dk-finding-without-round`,
   `test/fixtures/lifecycle-violations/dl-vacuous-reconcile-contract`,
+  `test/fixtures/lifecycle-violations/dm-resolved-with-open-items`,
+  `test/fixtures/lifecycle-violations/dn-escalation-survivors-none`,
   `src/workflow/validators/README.md`,
   `src/workflow/schemas/artifact-frontmatter.schema.yaml`,
   `src/workflow/schemas/agent-behavior.schema.yaml`,

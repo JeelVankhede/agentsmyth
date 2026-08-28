@@ -100,7 +100,7 @@ council:
 | Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |
 |---|---|---|---|---|---|---|
 | 1 | 3 | 1 | 4 | 2 | Q2, Q3 | — |
-| 2 | 2 | 1 | 2 | 0 | Q4 | Two items remained; tapered as coverage narrowed |
+| 2 | 2 | 1 | 2 | 1 | Q4 | Two items remained; tapered as coverage narrowed |
 
 ### Findings
 
@@ -128,7 +128,6 @@ the basis for it.
 ### Termination
 
 - Reason: resolved
-- Surviving items and their round history: Q5 open in rounds 1 and 2, closed in neither
 
 ## Architecture Notes
 

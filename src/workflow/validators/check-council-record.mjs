@@ -397,14 +397,34 @@ for (const file of artifactFiles) {
   const terminationText = subSection(logSection, 'Termination') ?? '';
   const survivorLine = terminationText.match(/Surviving items[^:]*:\s*(.*)/i)?.[1];
 
-  if (council.termination_reason === 'user-decision-required' && (survivorLine === undefined || !survivorLine.trim())) {
-    errors.push(`${file} terminated "user-decision-required" without declaring its surviving items; an escalation must state what is being escalated, and omitting the line is not a way to have left nothing`);
+  const declaredSurvivorIds = idsOf(survivorLine ?? '');
+
+  if (council.termination_reason === 'user-decision-required') {
+    if (survivorLine === undefined || !survivorLine.trim()) {
+      errors.push(`${file} terminated "user-decision-required" without declaring its surviving items; an escalation must state what is being escalated, and omitting the line is not a way to have left nothing`);
+    } else if (declaredSurvivorIds.length === 0) {
+      // "none" is a non-empty line that names nothing, which satisfied the presence test while
+      // saying exactly what the presence test exists to prevent. An escalation with no item to
+      // escalate is not an escalation — a run that closed everything terminates "resolved".
+      errors.push(`${file} terminated "user-decision-required" but its surviving-items line names no item ID ("${survivorLine.trim()}"); an escalation must name what the user is being asked about, and a run with nothing left open terminates "resolved" instead`);
+    }
   }
 
   const closedEver = new Set(rounds.flatMap((r) => r.closed));
-  const survivors = idsOf(survivorLine ?? '').filter((id) => !closedEver.has(id));
-  if (council.termination_reason === 'resolved' && survivors.length > 0) {
-    errors.push(`${file} terminated "resolved" while ${survivors.join(', ')} appear as surviving items closed in no round; a survivor is evidence the council could not resolve it, so the run must terminate "user-decision-required"`);
+  const survivors = declaredSurvivorIds.filter((id) => !closedEver.has(id));
+  if (council.termination_reason === 'resolved') {
+    if (survivors.length > 0) {
+      errors.push(`${file} terminated "resolved" while ${survivors.join(', ')} appear as surviving items closed in no round; a survivor is evidence the council could not resolve it, so the run must terminate "user-decision-required"`);
+    } else {
+      // The survivor comparison can only test IDs the author volunteered, so declaring none leaves
+      // nothing to compare and "resolved" becomes the cheapest way to record an unfinished run.
+      // The final round's own `Open out` is the number the author already wrote down: resolved
+      // means nothing was left open, and the table has to agree.
+      const finalOut = rounds.length > 0 ? rounds[rounds.length - 1].openOut : null;
+      if (finalOut !== 0) {
+        errors.push(`${file} terminated "resolved" but round ${rounds[rounds.length - 1]?.round ?? '(none)'} records "Open out" of ${finalOut ?? '(unrecorded)'}; "resolved" asserts nothing was left open, and the Rounds table is what corroborates that — an item left open escalates as "user-decision-required"`);
+      }
+    }
   }
 
   // --- findings ---------------------------------------------------------------------------

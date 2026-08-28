@@ -251,6 +251,11 @@ const fixtures = [
   { id: 'dj', dir: 'test/fixtures/lifecycle-violations/dj-finding-round-not-declared', description: '(WP-R21, R3) finding attributed to a member in a round Members never declares it for — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dk', dir: 'test/fixtures/lifecycle-violations/dk-finding-without-round', description: '(WP-R21, R3) finding carries no Round, so it answers to no row in the Rounds table — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dl', dir: 'test/fixtures/lifecycle-violations/dl-vacuous-reconcile-contract', description: '(WP-R21, RI1) reconcile contract states neither dedupe nor disagreement handling — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // Third external PR review: with max-rounds gone, `resolved` is the cheapest way to record an
+  // unfinished run, so both halves of the termination claim are now corroborated by the record
+  // itself — the Rounds table's own Open out, and a survivor line that names something.
+  { id: 'dm', dir: 'test/fixtures/lifecycle-violations/dm-resolved-with-open-items', description: '(WP-R21, R13) terminated resolved while the final round still records open items — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dn', dir: 'test/fixtures/lifecycle-violations/dn-escalation-survivors-none', description: '(WP-R21, R13) escalation whose surviving-items line names no item ID — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

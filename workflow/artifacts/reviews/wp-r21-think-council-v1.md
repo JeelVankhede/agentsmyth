@@ -295,6 +295,23 @@ tightened contract — is untracked on this branch and therefore not evidence a 
 does pass locally against the rules as tightened here, and that is stated in the PR body as a local
 observation rather than as a verified claim.
 
+## Third External Review (PR #64, 2026-08-29)
+
+Verdict `approve`, with four items to land before merge. The pass verified the second round's nine
+findings closed against source and confirmed CI run 33203292050 as a real off-machine reproduction.
+All four are fixed here; nothing is deferred, so no new open item is filed.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | `resolved` was not cross-checked against the final round's `Open out`, so a run with items still open and no `Surviving items` line passed — removing `max-rounds` had made `resolved` the cheapest way to record an unfinished run | **fixed** — a `resolved` record whose final round does not report `Open out: 0` is rejected, naming the round and the number it recorded. The number was already in the table; the check the enum narrowing was implicitly relying on is now explicit. Fixture `dm` |
+| 2 | Mirror hole: `Surviving items: none` satisfied the presence test while saying exactly what that test exists to prevent | **fixed, not waived** — an escalation must name at least one parseable item ID. No legitimate escalation lacks one: `user-decision-required` means something is being asked about, and a run with nothing left open is `resolved` — which finding 1 now forces the record to demonstrate. The two rules are each other's floor. Fixture `dn` |
+| 3 | `r21-termination-enum` pinned superseded sentences, not the contract | **fixed** — it now parses `TERMINATIONS` out of the validator and `termination_reason.enum` out of `artifact-frontmatter.schema.yaml` and asserts the two lists are identical. String-independent, and verified to fail when either side gains a value the other lacks — the paraphrase escape and the unavailable token ban both stop mattering |
+| 4 | Exit Gate said "the four bullets above"; there are six | **fixed count-free** — it reads "the council bullets above", so the sentence cannot rot again the next time a bullet is added. The termination bullet also now states both corroborations rather than only the survivor half |
+
+`ce-resolved-with-survivor` was adjusted alongside finding 1: its final round now reports `Open out:
+0`, so the declared-survivor contradiction remains the single error it is there to prove rather than
+tripping the new rule as well. All 41 council fixtures still emit exactly one error each.
+
 ## Recommendation
 
 pass
@@ -304,6 +321,10 @@ than asserted. The recommendation at the time of review was `pass-with-risk`; it
 `pass` on that remediation, and the thirteen external-review findings above do not lower it: eleven
 are fixed with fixtures, and the two deferred are recorded as open items with real next actions
 rather than dropped.
+
+The third pass returned `approve` and its four items are closed here — two of them rules the second
+pass's enum narrowing had implicitly assumed, which is the honest cost of removing a contract value:
+what the removed value used to catch has to be caught somewhere.
 
 The nine findings of the second external pass do not lower it either: all nine are fixed, four with
 new fixtures, two with conformance pins, and the one part that needs a record-shape change rather

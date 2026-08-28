@@ -255,10 +255,10 @@ Use the `## Architecture Notes` section in the brief body to capture at minimum:
 - Every active `R` and `RI` has a classification entry naming at least one evidence class (stage 2).
 - Every surviving `Q` carries a recommendation whose evidence references resolve to recorded finding IDs, and are not exclusively `recall`.
 - The council run is logged, or a refusal is recorded with its reason — a council that was applicable and did not fire must say so, since silence cannot distinguish "not applicable" from "failed to fire".
-- The run records a `termination_reason` of `resolved` or `user-decision-required` — the only two reachable reasons — and a `user-decision-required` run declares its surviving items, while a `resolved` run has no item it declared as surviving that closed in no round.
+- The run records a `termination_reason` of `resolved` or `user-decision-required` — the only two reachable reasons. Both are corroborated by the record rather than asserted: a `user-decision-required` run declares surviving items and names at least one, and a `resolved` run has no declared survivor that closed in no round and a final-round `Open out` of zero.
 - Fan-out never grew between rounds, and any round that shrank fan-out follows a round whose `Items closed` cell is non-empty.
 - Every finding's `Round` names a row in the Rounds table, and its source member is declared in Members for that same round.
-- For a council-mode brief, `check-council-record.mjs` passes. It is the mechanical counterpart to the four bullets above: they state what the record must contain, and it is what actually rejects a record that does not. Run it the same way as any other validator in `workflow/validators/`. It reports what it checked on success, including how many citations it could resolve mechanically versus shape-check only — read that line rather than treating a bare pass as proof the research was sound.
+- For a council-mode brief, `check-council-record.mjs` passes. It is the mechanical counterpart to the council bullets above: they state what the record must contain, and it is what actually rejects a record that does not. Run it the same way as any other validator in `workflow/validators/`. It reports what it checked on success, including how many citations it could resolve mechanically versus shape-check only — read that line rather than treating a bare pass as proof the research was sound.
 
 ## Determinism Rules
 

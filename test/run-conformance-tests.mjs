@@ -179,11 +179,22 @@ check('r21-taper-wording', 'skill and validators README describe taper coherence
   /Items closed/.test(thinkSkill) && /Items closed/.test(validatorsReadme) &&
   !/decrease in open items/.test(thinkSkill) && !/decrease in open items/.test(validatorsReadme));
 
-// The termination enum carries only the two reachable reasons. Anything naming max-rounds or
-// no-progress as a termination reason is the removed contract growing back in documentation.
-check('r21-termination-enum', 'termination reason is documented as resolved / user-decision-required only',
-  !/termination_reason` of `resolved`, `user-decision-required`, `max-rounds`/.test(thinkSkill) &&
-  !/terminated `max-rounds`/.test(validatorsReadme));
+// The termination enum lives in two places that must agree: TERMINATIONS in the validator, and
+// termination_reason.enum in the artifact schema. Pinning the prose instead only pinned the
+// SENTENCES — both negatives were literal strings from the superseded text, so any paraphrase
+// reintroducing max-rounds walked through, and a blanket token ban is unavailable because the skill
+// legitimately names it in the paragraph explaining its removal. Compare the two lists directly:
+// string-independent, and there is no wording that satisfies it while the contracts disagree.
+const councilValidatorSrc = readFileSync(join(repoRoot, 'src/workflow/validators/check-council-record.mjs'), 'utf8');
+const validatorTerminations = (councilValidatorSrc.match(/const TERMINATIONS = \[([^\]]*)\]/)?.[1] ?? '')
+  .split(',').map((t) => t.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+const artifactSchema = readFileSync(join(repoRoot, 'src/workflow/schemas/artifact-frontmatter.schema.yaml'), 'utf8');
+const schemaTerminations = (artifactSchema.match(/termination_reason:[\s\S]*?enum:\n((?:\s*- [^\n]+\n)+)/)?.[1] ?? '')
+  .split('\n').map((l) => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+check('r21-termination-enum', 'validator TERMINATIONS and schema termination_reason.enum are the same list',
+  validatorTerminations.length > 0 &&
+  schemaTerminations.length > 0 &&
+  validatorTerminations.join('|') === schemaTerminations.join('|'));
 
 // Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
 // mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop
