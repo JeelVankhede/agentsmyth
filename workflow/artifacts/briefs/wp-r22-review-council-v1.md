@@ -5,14 +5,14 @@ artifact: brief
 status: draft
 created: 2026-08-17
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11]
 upstream:
   - user-request
 orchestration:
   phase: think
   status: blocked-for-user
   next_phase: plan
-  blockers: [Q3]
+  blockers: []
   user_checkpoint: brief-review
 council:
   mode: council
@@ -186,11 +186,28 @@ sync.
 
 ## User Impact
 
-Not yet written.
+For a consumer, Review stops being the phase most likely to pass its own work. Today the agent that
+wrote the Plan and the Build also decides whether the change is sound, reading its memory of the
+change rather than the change itself. After R22, findings come from reviewers that never saw the
+Build session, over disjoint risk categories, and the parent must dispose of every one — so an
+inconvenient finding has to be argued with rather than forgotten.
+
+The cost is real and lands on every Complex chain in a repo that leaves the council enabled: more
+invocations per Review, and a Review that takes longer. R21 measured that trade once and the result
+was unfavourable on invocation count. R5 exists so the second measurement is a by-product of normal
+use rather than another one-off study.
 
 ## Success Metrics
 
-Not yet written — depends on Q3, which is unresearched.
+- **Finding quality is reported, not asserted.** `check-council-record`'s summary line carries
+  proved-real / noise / pending counts over active + archived ledgers after any Review council run.
+- **No finding is silently lost.** Zero rows reach Ship still `pending` without a waiver — enforced,
+  so the number is a consequence of the gate rather than a claim about diligence.
+- **Additivity holds.** Every pre-1.1.0 review artifact validates with zero edits.
+- **The rollback surface is real.** The preserved single-agent Review path stays byte-identical
+  under its conformance lock, as R21's R8 did.
+- **The council's cost is answerable.** After R22 ships, "is the Review council worth it" is a query
+  over the ledgers rather than an opinion.
 
 ## Requirements
 
@@ -201,7 +218,14 @@ Numbered in the Requirement Manifest.
 - Gated on WP-R21 landing; R22 consumes three contracts frozen there.
 - Additive only for 1.1.0 — new review-artifact fields optional with safe defaults.
 - Zero runtime dependencies.
-- Constraint list is a sketch; R21's ran to six.
+- Additive-only extends to the ledger: a repo with no finding-quality file is a valid repo, and the
+  checks that read it must be silent rather than failing when it is absent.
+- The Review council must not be able to write to the repository, and must not dispatch — R21's
+  carve-out and depth-1 rule are inherited, not restated.
+- A reviewer's finding is evidence, never authority: nothing a reviewer produces may appear as a
+  verdict, which the frozen `council-contracts.md` output rule already states.
+- Enforcement extends `check-council-record.mjs` rather than adding a parallel validator, so the
+  Review path cannot drift from the Think path it shares a contract with.
 
 ## Risks
 
@@ -234,10 +258,21 @@ Numbered in the Requirement Manifest.
   2026-08-18, and three external PR review passes have since run against the same validator. The
   question was well-posed and is simply no longer live.
 
-- **Q3 — how does the finding-quality baseline get written back?** Researched 2026-08-29 (see
-  `## Q3 Research`). Three mechanisms identified, one recommended, one rejected on a principled
-  ground rather than taste. **Still blocking** — the choice adds a persistent file or a schema
-  change to the shipped package, which is the user's call, not the agent's. Owner: user.
+- **Q3 — how does the finding-quality baseline get written back? RESOLVED 2026-08-29 by the user.**
+  Mechanism B — a durable finding-quality ledger — with two refinements the user added, both of
+  which change the design rather than confirm it:
+
+  1. **Closure is a gate, not a convention.** A finding raised at Review that names a later phase
+     must be closed at Test or Ship, enforced mechanically. "Closed at Reflect by habit" was the
+     weaker thing I proposed; the user asked for a blocker so a finding cannot be missed.
+  2. **Two files, not one.** An active ledger that stays lean, and an archive. A closed row moves to
+     the archive, so the active file reflects the current cycle rather than growing without bound.
+
+  **Consequence the two refinements create together, decided here rather than left implicit:** if
+  the summary metric is computed from the lean active file alone, it reports the current cycle and
+  silently stops being a baseline — which is the one thing R5 exists to provide. So the reporter
+  reads **active + archive**, and the archive is append-only. Rotation keeps the working file lean;
+  it must not make the measurement lie.
 
 ## Requirement Manifest
 
@@ -256,8 +291,11 @@ Numbered in the Requirement Manifest.
   Acceptance: inherited from `council-contracts.md` unchanged; fixtures confirm the Review path
   enforces the same contract.
 - **R5** — Finding-quality baseline: each finding records whether it proved real, was waived, or was
-  noise.
-  Acceptance: **cannot be written — Q3 unresearched.**
+  noise, and the record accumulates across runs.
+  Acceptance: a council finding with no row in the active ledger fails; a row left `pending` when
+  its chain reaches Ship fails unless waived; and `check-council-record`'s summary line reports the
+  proved-real / noise / pending counts computed over the active **and** archived ledgers, so the
+  figure is a baseline rather than a snapshot of the current cycle.
 - **R6** — New review-artifact fields optional with safe defaults; pre-1.1.0 reviews still validate.
   Acceptance: `npm run validate` passes over every existing review with zero edits.
 - **R7** — A config field disables the council; the single-agent Review path stays functional and
@@ -276,8 +314,50 @@ Numbered in the Requirement Manifest.
 - **RI3** — Preserve the pre-R22 single-agent Review path verbatim with a byte-comparison lock.
   Acceptance: preserved text byte-identical; lock fails on drift.
 
-Not yet derived: risk-category assignment rules, reviewer-input representation, review frontmatter
-schema, config surface, adapter sync, the fixture set.
+- **RI4** — Review-artifact frontmatter carries the `council:` block additively. The block and every
+  field it introduces are optional at the schema's top level, exactly as R21 made them for briefs.
+  Acceptance: every existing review artifact under `workflow/artifacts/reviews/` and `examples/`
+  validates with zero edits; a council-mode review and a single-agent one are distinguishable from
+  frontmatter alone.
+
+- **RI5** — The Review council's fan-out default is decided for this phase explicitly, never
+  inherited. `phase-caps.md` states that the Think council's departure from default-to-1 is scoped
+  to Think and that "any package extending councils to a new phase must decide that phase's default
+  explicitly". This package is that case.
+  Acceptance: a resolved Review-council cap is recorded with its `cap_source`; the value is stated
+  in `phase-caps.md` alongside Think's rather than left to inheritance.
+
+- **RI6** — The finding-quality ledger is two files: an active ledger and an append-only archive. A
+  row closes in the active file and moves to the archive, keeping the working file lean without
+  discarding history.
+  Acceptance: a schema declares both — including the `resolution`-shaped closure field, declared
+  rather than tolerated (see Q3 Research); a closed row present in both files, or in neither, fails.
+
+- **RI7** — Closure is enforced, not conventional. A finding raised at Review that names a later
+  phase must be closed by Ship.
+  Acceptance: a chain reaching Ship with a `pending` row fails `check-release-readiness` unless a
+  waiver covers it, mirroring how an open P0/P1 is already handled there.
+
+- **RI8** — The quality figures are reported on the existing summary line, computed over active +
+  archive.
+  Acceptance: the summary reports proved-real / noise / pending counts; a conformance check pins the
+  line's shape, as `r21-council-summary` already does; a metric computed from the active file alone
+  fails that check.
+
+- **RI9** — One rejection fixture per new mechanical rule, each emitting exactly one error and
+  registered in `test/run-violation-tests.mjs`.
+  Acceptance: the violation suite grows by the number of new rules; the attribution sweep still
+  shows exactly one error per fixture across every council fixture.
+
+- **RI10** — A Questions For User entry carries a bucket reference, so the repo-shaped evidence rule
+  joins per question instead of brief-wide. This is OI-81, filed against R21 with the note that it
+  belongs with the Review-council work revising these blocks.
+  Acceptance: the rule fires on a question whose own bucket is repo-classified and not on one whose
+  bucket is external; the brief-wide approximation and its non-claim are removed once it does.
+
+- **RI11** — Build outputs and adapters stay current. All five adapters carry identical gate content
+  if any gate text changes.
+  Acceptance: `npm run build` clean and `render-adapters` reports shims current.
 
 ### Assumptions (A)
 
@@ -313,6 +393,19 @@ mirrored in `orchestration.blockers`.
 | RI1 | validator extension to review artifacts | repo |
 | RI2 | Review-only fix-recommendation assertion | repo |
 | RI3 | verbatim preservation and byte lock | repo |
+| RI4 | additive review frontmatter | repo |
+| RI5 | Review-phase fan-out default | repo |
+| RI6 | finding-quality ledger shape and rotation | repo |
+| RI7 | closure enforcement at Ship | repo |
+| RI8 | summary-line reporting over both ledgers | repo |
+| RI9 | rejection fixture set | repo, trial |
+| RI10 | per-question bucket join (OI-81) | repo |
+| RI11 | build outputs and adapter currency | repo, trial |
+
+RI4–RI11 were **not** classified by the 2026-08-17 council. They were derived and classified on
+2026-08-29 while resuming, after Q3 was answered — three of them (RI6, RI7, RI8) exist only because
+of what that answer decided. They are recorded here because every active requirement needs a
+settling class, not to suggest the council produced them.
 
 ### Members
 
@@ -366,12 +459,29 @@ basis for it, which is what happened to F2.
 - role: Architect
 - decision: Consume `council-contracts.md` rather than fork it.
 - constraint: Additive-only for 1.1.0; gated on R21 landing.
-- tradeoff: Not yet worked; no equivalent of R21's risk walkthrough has happened.
+- tradeoff: Rotation versus measurement. A lean active ledger is what makes the file usable per
+  cycle; a baseline is what makes R5 worth having. Computing the metric over active + archive keeps
+  both, at the cost of the reporter reading two files instead of one. The alternative — counts
+  rolled up into a header on rotation — was rejected as a second place for the same fact to drift.
+- tradeoff: Enforcing closure at Ship rather than Reflect. Ship already blocks on open P0/P1 with a
+  waiver escape, so the pattern and its escape hatch exist; Reflect has no blocking power. The cost
+  is that a finding whose truth genuinely is not known by Ship must be waived rather than left
+  honestly pending.
+- decision: The single-agent Review path is preserved verbatim and byte-locked, mirroring R21's R8
+  rather than inventing a second preservation mechanism.
 - downstream: F7 and F8 both mean R22 inherits R21 defects rather than clean contracts — validator
   scope and fan-out default are phase-agnostic in the wrong direction.
 
 ## Exit Gate
 
-- [ ] Every active R and RI has acceptance criteria. **Not met** — R5 blocked on unresearched Q3.
-- [x] Blocking Q IDs appear in orchestration.blockers.
-- [ ] User approved or waiver recorded. **Not met** — not presented for approval.
+- [x] Every active R and RI has acceptance criteria. R5's was written once Q3 was answered; RI4–RI11
+      were derived on 2026-08-29 and each carries one.
+- [x] Blocking Q IDs appear in orchestration.blockers. Q1 and Q2 closed against shipped source, Q3
+      answered by the user, so the list is now empty.
+- [x] Goal, scope and non-goals are concrete.
+- [x] Architecture notes capture decisions, both tradeoffs, and downstream impact.
+- [x] Every active R/RI has a classification entry naming at least one evidence class.
+- [x] The council run is logged, and its record passes `check-council-record.mjs`.
+- [ ] **User approved.** Not met — this brief has not been presented for approval since it was
+      completed. `user_checkpoint: brief-review` stands, and the approval must be the user's own
+      words, not authored here.
