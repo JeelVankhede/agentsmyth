@@ -256,6 +256,11 @@ const fixtures = [
   // itself — the Rounds table's own Open out, and a survivor line that names something.
   { id: 'dm', dir: 'test/fixtures/lifecycle-violations/dm-resolved-with-open-items', description: '(WP-R21, R13) terminated resolved while the final round still records open items — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dn', dir: 'test/fixtures/lifecycle-violations/dn-escalation-survivors-none', description: '(WP-R21, R13) escalation whose surviving-items line names no item ID — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // WP-R22 RI10 (OI-81) — the repo-shaped evidence rule joins per question now, so both halves of
+  // the join need a fixture: a question whose OWN bucket names repo, and one that declares no
+  // bucket at all and therefore cannot be judged.
+  { id: 'dp', dir: 'test/fixtures/lifecycle-violations/dp-q-web-only-repo-bucket', description: '(WP-R22, RI10) Q rests on web alone while its own bucket names repo — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dq', dir: 'test/fixtures/lifecycle-violations/dq-q-no-bucket-reference', description: '(WP-R22, RI10) Q rests on web alone and names no bucket to judge it against — check-council-record', validator: validatorPath('check-council-record.mjs') },
 ];
 
 let passed = 0;

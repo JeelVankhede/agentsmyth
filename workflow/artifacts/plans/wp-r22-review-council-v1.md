@@ -336,7 +336,13 @@ to one example.
 - **Manifest IDs:** RI10
 - Touches: `src/workflow/skills/lifecycle-think/references/output-schema.md`,
   `src/workflow/validators/check-council-record.mjs`,
-  `src/workflow/validators/README.md`
+  `src/workflow/validators/README.md`,
+  `test/fixtures/lifecycle-violations/dp-q-web-only-repo-bucket`,
+  `test/fixtures/lifecycle-violations/dq-q-no-bucket-reference`,
+  `test/fixtures/conformance/council-external-question/`,
+  `test/run-violation-tests.mjs`,
+  `test/run-conformance-tests.mjs`,
+  `workflow/artifacts/open-items.yaml`
 - Work: add a bucket reference to the Questions For User entry shape, then narrow the repo-shaped
   evidence rule to that question's own classification rows instead of the brief-wide approximation.
   Remove the approximation's stated non-claim from the README once it no longer applies.

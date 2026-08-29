@@ -197,6 +197,14 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 RI10 (OI-81) — the negative half of the per-question join, which is the whole reason the
+// change was made. A genuinely external question, resting on web alone and naming a bucket whose
+// classification names only web, must NOT be flagged. Under the old brief-wide approximation it
+// was, because some other requirement in the brief happened to be repo-classified.
+const ceq = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-external-question']);
+check('r22-external-question-not-flagged', 'a question whose own bucket is external passes on web evidence',
+  ceq.status === 0);
+
 // WP-R22 RI8 — the quality figure must be computed over BOTH ledger files. The fixture holds one
 // pending row in the active file and two closed rows in the archive, so a tally taken from the
 // active file alone reports "0 proved real" and fails this check. That is the whole hazard the

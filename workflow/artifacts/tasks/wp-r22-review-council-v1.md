@@ -21,10 +21,11 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 9 - Per-question bucket join
-- Manifest IDs: RI10
-- Exit gate: the rule fires on a question whose own bucket is repo-classified and does not fire on
-  one whose bucket is external; both directions have a fixture; OI-81 closes with a resolution.
+- Phase: Phase 10 - Fixtures, conformance, generated output
+- Manifest IDs: RI9, RI11
+- Exit gate: `npm run violations:test` count rises by the number of new rules and passes; the
+  attribution sweep shows exactly one error per council fixture; `npm run conformance:test` passes;
+  `npm run build` clean and `render-adapters` reports shims current.
 
 ## Plan Phases Overview
 
@@ -41,8 +42,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 6 - lifecycle-review restructuring and record shape | complete | R7, RI3, RI13, RI14, RI17, RI18 |
 | Phase 7 - Validator extended to review artifacts | complete | R1, R4, R6, RI1, RI2, RI4 |
 | Phase 8 - Ledger validator, closure gate, reporting | complete | R5, RI7, RI8, RI16 |
-| Phase 9 - Per-question bucket join | active | RI10 |
-| Phase 10 - Fixtures, conformance, generated output | pending | RI9, RI11 |
+| Phase 9 - Per-question bucket join | complete | RI10 |
+| Phase 10 - Fixtures, conformance, generated output | active | RI9, RI11 |
 
 ## Branch / Repo Status
 
@@ -82,6 +83,21 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 9 (RI10).**
+
+- `src/workflow/validators/check-council-record.mjs` — `repoShapedClassified` replaced by a
+  per-ID classification map; the rule joins on the question's declared bucket, rejects a bucket
+  reference that resolves to no classification row, and requires a bucket only of a question it
+  would judge — IDs: RI10
+- `src/workflow/skills/lifecycle-think/references/output-schema.md` — the Q entry's bucket
+  reference and why it exists — IDs: RI10
+- `src/workflow/validators/README.md` — rule description updated; the brief-wide non-claim removed — IDs: RI10
+- `test/fixtures/lifecycle-violations/dp-q-web-only-repo-bucket`,
+  `test/fixtures/lifecycle-violations/dq-q-no-bucket-reference` — new — IDs: RI10, RI9
+- `test/fixtures/conformance/council-external-question/` — new; the negative half of the join — IDs: RI10
+- `test/run-violation-tests.mjs`, `test/run-conformance-tests.mjs` — registration and the pin — IDs: RI10
+- `workflow/artifacts/open-items.yaml` — OI-81 closed with a resolution — IDs: RI10
 
 **Phase 8 (R5, RI7, RI8, RI16).**
 
@@ -171,6 +187,22 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 9 (RI10 / OI-81).** A Questions For User entry now names the manifest ID(s) whose
+Requirement Classification covers it — its bucket — and the rule joins on that instead of asking
+whether *any* row in the brief names repo.
+
+The bucket reference is demanded only of a question the rule would actually judge: one resting on no
+`repo` or `trial` finding. A question already grounded in repo or trial evidence never reaches the
+rule, so the record-shape cost falls only where it buys something, and no existing brief or fixture
+needed editing.
+
+Three fixtures cover the join, and the third is the one that matters: `dp` fires when the question's
+own bucket names repo, `dq` fires when no bucket is declared and the question therefore cannot be
+judged, and conformance `r22-external-question-not-flagged` stays **silent** on a genuinely external
+question resting on web alone — which is precisely what the brief-wide approximation got wrong. The
+non-claim describing that approximation is removed from the README, because the approximation is
+gone rather than merely documented.
 
 **Phase 8 (R5, RI7, RI8, RI16).** `check-finding-quality.mjs` models `check-open-items.mjs` —
 validate when present, exit 0 with a message when absent — with rotation as the rule specific to a
@@ -419,6 +451,10 @@ expanding scope unilaterally.
 | Probe: ship declared with a pending row, no waiver | Phase 8 | pass — rejected | Names the pending IDs |
 | Probe: same, with a finding-quality waiver | Phase 8 | pass — accepted | 0 pending errors; the gate discriminates rather than blanket-blocking |
 | `npm run conformance:test` | Phase 8 | pass | **40/40**, was 38 |
+| `npm run violations:test` | Phase 9 | pass | **71/71**, was 69; `dp` and `dq` one error each |
+| Conformance `r22-external-question-not-flagged` | Phase 9 | pass | The case the old approximation got wrong now passes |
+| `grep brief-wide` in README | Phase 9 | pass | 0 — the non-claim is removed, not merely reworded |
+| `npm run conformance:test` | Phase 9 | pass | **41/41**, was 40 |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -473,6 +509,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 9 - Per-question bucket join | complete | 2026-08-29 | A Q names the manifest ID(s) whose classification covers it, and the rule joins on that rather than on whether any row in the brief names repo. Required only of a question the rule would judge, so no existing brief or fixture needed editing. Three fixtures cover both halves, including the external question the approximation wrongly flagged. README non-claim removed because the approximation is gone. OI-81 closed with a resolution. Violations 69 -> 71, conformance 40 -> 41 |
 | Phase 8 - Ledger validator, closure gate, reporting | complete | 2026-08-29 | `check-finding-quality` validates both files, both rotation directions, and the closed-only archive; ledger absence is an error only when a council review exists, closing the omission escape. Ship gate blocks a pending row without a waiver and clears with one. Quality tally spans both files, pinned by a fixture that fails if read from the active file alone. Probing exposed a path-string keying bug that made the R5 cross-check work only from the repo root; keys normalised to the artifact filename. RI8 rehomed to the ledger validator. Conformance 38 -> 40 |
 | Phase 7 - Validator extended to review artifacts | complete | 2026-08-29 | Filter widened to briefs and reviews; fixed-index parsing replaced by header-keyed reads, since the Review record inserts columns mid-table and every later index would have silently shifted. 69 existing fixtures pass unchanged. Five Review-only rules enforced and each probed against a new positive control. RI2 enforced structurally against a declared column, with the prose-smuggling limit stated as a non-claim. RI4 needed no schema change and none was made. Conformance 36 -> 38 |
 | Phase 6 - lifecycle-review restructuring and record shape | complete | 2026-08-29 | Preserved path extracted from the committed blob before any edit and byte-locked, with the lock proven to discriminate. Mode resolution and six council stages added; single-agent route unchanged. Severity Summary starter block corrected to the five columns real reviews use — the validator had been widened to tolerate them and the block was the stale half. `### Skipped Checks` added so RI18's rule has a place to write its answer. Conformance 33 -> 36 |
