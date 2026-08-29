@@ -163,7 +163,20 @@ for (const file of artifactFiles) {
     const ledgerPath = `${artifactsDir}/finding-quality.yaml`;
     if (pathExists(ledgerPath)) {
       const ledger = loadYaml(ledgerPath);
-      const pending = (ledger?.items ?? []).filter((row) => row?.outcome === 'pending');
+      // Scoped to THIS chain. The ledger is repo-global and cross-run by design, so an unscoped
+      // read makes one chain's unsettled finding block every other chain's ship — and re-fails every
+      // ship artifact already committed, because a historical release cannot answer for a finding
+      // raised after it shipped. Both scoping fields are required by finding-quality.schema.yaml;
+      // reading neither was the defect. Found by this package's own Review council (P1-7), which
+      // broke the repository the moment it wrote its first ledger rows.
+      const shipSlug = parsed.frontmatter?.slug;
+      const pending = (ledger?.items ?? []).filter((row) => {
+        if (row?.outcome !== 'pending') return false;
+        if (!shipSlug) return true;
+        const run = String(row.first_seen_run ?? '');
+        const src = String(row.source_artifact ?? '');
+        return run.startsWith(shipSlug) || src.includes(`/${shipSlug}-v`);
+      });
       if (pending.length > 0) {
         const waived = /## Waivers\s*\n[\s\S]*?finding[- ]quality/i.test(parsed.body);
         if (!waived) {

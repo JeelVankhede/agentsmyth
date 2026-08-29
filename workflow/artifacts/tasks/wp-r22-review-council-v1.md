@@ -540,6 +540,26 @@ when a change reaches outside the active phase's declared scope.
 
 </details>
 
+## Post-Build Fix During Review (2026-08-30)
+
+The Review council's own P1-7 finding — the Ship closure gate reads a repo-global ledger with no
+chain scoping — stopped being latent the moment the review wrote its 56 ledger rows. 26 historical
+ship artifacts failed at once and `npm run validate` broke on the branch.
+
+A finding that breaks the tree cannot wait for the Build loop, so the scoping fix landed immediately:
+`check-release-readiness` now filters pending rows to the shipping artifact's own slug, matching on
+`first_seen_run` or `source_artifact` — both required by the schema and neither previously read.
+Locked by conformance `r22-ship-gate-chain-scoped`, and verified in both directions: a chain's own
+pending row still blocks it, an unrelated chain's does not.
+
+- `src/workflow/validators/check-release-readiness.mjs` — pending rows scoped to the shipping chain — IDs: RI7
+- `test/fixtures/conformance/ship-gate-chain-scoped/` — new — IDs: RI7, RI9
+- `test/run-conformance-tests.mjs` — `r22-ship-gate-chain-scoped` — IDs: RI9
+- `workflow/artifacts/finding-quality.yaml` — 56 rows, all pending, written by hand at Review, which
+  is itself finding P1-2 — IDs: R5
+
+The other six P1 findings remain open and belong to the next Build pass.
+
 ## Phase Completion Log
 
 | Phase | Status | Completed | Notes |

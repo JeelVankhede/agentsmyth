@@ -197,6 +197,16 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 P1-7 — the Ship closure gate must be scoped to the chain being shipped. Unscoped, one
+// chain's unsettled finding blocked every other chain AND re-failed every ship artifact already
+// committed, because a historical release cannot answer for a finding raised after it shipped. This
+// repo's own Review council broke the tree with it: writing 56 ledger rows failed 26 past ship
+// artifacts at once. The fixture ships an unrelated chain's ship artifact beside a pending row that
+// belongs to a different chain — it must pass.
+const shipScoped = run(V('check-release-readiness'), ['--dir', 'test/fixtures/conformance/ship-gate-chain-scoped']);
+check('r22-ship-gate-chain-scoped', "another chain's pending finding does not block this chain's ship",
+  shipScoped.status === 0);
+
 // WP-R22 RI10 (OI-81) — the negative half of the per-question join, which is the whole reason the
 // change was made. A genuinely external question, resting on web alone and naming a bucket whose
 // classification names only web, must NOT be flagged. Under the old brief-wide approximation it

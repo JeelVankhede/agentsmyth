@@ -8,5 +8,343 @@ kind: finding-quality
 # Any figure computed from this ledger must read BOTH files. A count from this one alone reports
 # the current cycle rather than the accumulated baseline.
 #
-# Empty until the Review council first runs — no council has produced a Review record yet.
-items: []
+# Written by hand at Review on 2026-08-30. That is itself finding P1-2: no skill instructs an
+# agent to produce these rows, so the first real ledger in this package was populated by the
+# person reporting that no producer exists.
+items:
+  - id: FQ-1
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-2
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-3
+    finding_id: F3
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-4
+    finding_id: F4
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-5
+    finding_id: F5
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-6
+    finding_id: F6
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-7
+    finding_id: F7
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-8
+    finding_id: F8
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-9
+    finding_id: F9
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-10
+    finding_id: F10
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-11
+    finding_id: F11
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-12
+    finding_id: F12
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-13
+    finding_id: F13
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-14
+    finding_id: F14
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-15
+    finding_id: F15
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-16
+    finding_id: F16
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-17
+    finding_id: F17
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-18
+    finding_id: F18
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-19
+    finding_id: F19
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-20
+    finding_id: F20
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-21
+    finding_id: F21
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-22
+    finding_id: F22
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-23
+    finding_id: F23
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-24
+    finding_id: F24
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-25
+    finding_id: F25
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-26
+    finding_id: F26
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-27
+    finding_id: F27
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-28
+    finding_id: F28
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-29
+    finding_id: F29
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-30
+    finding_id: F30
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-31
+    finding_id: F31
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-32
+    finding_id: F32
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-33
+    finding_id: F33
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-34
+    finding_id: F34
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-35
+    finding_id: F35
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-36
+    finding_id: F36
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-37
+    finding_id: F37
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-38
+    finding_id: F38
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-39
+    finding_id: F39
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-40
+    finding_id: F40
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-41
+    finding_id: F41
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-42
+    finding_id: F42
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-43
+    finding_id: F43
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-44
+    finding_id: F44
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-45
+    finding_id: F45
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-46
+    finding_id: F46
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: merged
+    outcome: pending
+  - id: FQ-47
+    finding_id: F47
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-48
+    finding_id: F48
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-49
+    finding_id: F49
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-50
+    finding_id: F50
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-51
+    finding_id: F51
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-52
+    finding_id: F52
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-53
+    finding_id: F53
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-54
+    finding_id: F54
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-55
+    finding_id: F55
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-56
+    finding_id: F56
+    source_artifact: workflow/artifacts/reviews/wp-r22-review-council-v1.md
+    first_seen_run: wp-r22-review-council-v1
+    disposition: accepted
+    outcome: pending
