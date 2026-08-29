@@ -34,7 +34,7 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase | Status | Manifest IDs |
 |---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | RI5, RI20 |
-| Phase 2 - Definitions validated against their schemas | complete | RI21 |
+| Phase 2 - Definitions validated against their schemas | complete | RI21, RI23, RI24 |
 | Phase 3 - Per-repo council tuning and the setup interview | complete | RI22 |
 | Phase 4 - Finding-quality ledger contract | active | RI6, RI15 |
 | Phase 5 - Review council skill and charter | pending | R2, R3, RI12, RI19 |
@@ -82,6 +82,22 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 2 extension (RI23, RI24).**
+
+- `src/workflow/validators/check-definitions.mjs` — new; validates definitions files against their
+  schemas at the resolved definitions root, registered in the source command list so that root is
+  `src/workflow/` — IDs: RI23
+- `src/workflow/validators/check-config.mjs` — the definitions block added for RI21 removed again,
+  with the reason recorded in its place; check-config stays on repo-local config so one fact is
+  checked in one place — IDs: RI23
+- `scripts/validate-template.mjs` — `check-definitions` registered under `sourceEnv`;
+  `check-pending-setup` registered at all, for the first time — IDs: RI23, RI24
+- `test/run-conformance-tests.mjs` — `every-validator-wired` and `definitions-checked-at-source` — IDs: RI24
+- `src/workflow/schemas/pending-setup.schema.yaml` — `resolved_by` gains `unrecorded`, documented as
+  valid only for items that predate the field — IDs: RI24
+- `workflow/config/pending-setup.yaml` — PS-1..3 marked `resolved_by: unrecorded` rather than
+  backfilled with a guess — IDs: RI24
 - `src/workflow/skills/dispatch-subagents/references/phase-caps.md` — new "Review council default"
   section stating 2 and its three reasons; the Think-only scoping paragraph now names
   `council.per_phase.<phase>` as the place every phase declares its own, a shipped-values table for
@@ -89,7 +105,31 @@ schema-enforcement work lands early, where every later phase's constraints benef
 
 ## Implementation Log
 
-**Phase 3 (RI22) — two findings worth carrying to Review.**
+**Phase 2 reopened and completed (RI23, RI24).** The two findings below were raised as
+carry-to-Review and the user rejected that: "NO, FIX IT RIGHT NOW. NO DEFERRALS". Both are fixed,
+and the underlying shape is locked.
+
+RI21 turned out to enforce a *copy*. `check-config` runs on the repo-local root because it also
+reads `workflow/config/`, and `AGENTSMYTH_WF` moves defsRoot and dataRoot together — so it could
+never be pointed at the source without breaking its other half. The definitions check is now its own
+validator, `check-definitions.mjs`, registered in the **source** command list so it validates
+`src/workflow/agent-behavior.yaml` itself. Proven: an out-of-range value and a removed required key
+in the SOURCE each fail `npm run validate` with no `prepare` run and no global install reachable,
+naming the source path.
+
+RI24 generalises it. Three instances of one defect appeared in this package alone — a schema nothing
+loaded, a definitions check reading the wrong copy, and `check-pending-setup.mjs` registered
+nowhere. A conformance check now enumerates `src/workflow/validators/` and fails on any validator
+missing from `validate-template.mjs`, with CLI-invoked files and non-checks exempted by name; a
+second check pins the definitions check to the source list specifically, since registering it
+anywhere else silently reintroduces the copy problem.
+
+`check-pending-setup` is now registered and passes. Its three failing items were `resolved` with no
+`resolved_by`, and the provenance is genuinely unrecoverable — nothing in git history records it. I
+did not backfill a guess: the schema gained `unrecorded`, documented as valid only for items that
+predate the field, and the three are marked with it.
+
+**Phase 3 (RI22) — the two findings, as originally raised.**
 
 *The dogfood loop validates the GLOBAL definitions, not the source.* A schema change in
 `src/workflow/schemas/` is synced by `npm run build` into `dist/` and the dev workspace, but
@@ -100,13 +140,13 @@ the old global copy while the source already carried the new shape — the trave
 asymmetry is real and not local-only: CI has no `~/.agentsmyth`, so the two-root resolver falls back
 to the repo-local `workflow/` copy that `build` syncs — meaning **CI and a developer's machine
 validate different files**. That is the "passes on the author's machine" class the WP-R21 PR review
-flagged, one layer down. Recorded rather than fixed: it is outside RI22 and belongs to Review.
+flagged, one layer down. Recorded, then fixed the same day as RI23 on user instruction rather than carried to Review.
 
 *`check-pending-setup.mjs` is never run.* It is not registered in `scripts/validate-template.mjs`,
 so `npm run validate` never calls it. Run directly, it exits 1 on this repo — PS-1, PS-2 and PS-3
 are `resolved` with no `resolved_by`, which its own rule forbids. Pre-existing, unrelated to RI22,
-and left alone per `scope-control.md`'s prohibition on unrelated cleanup. Same family as B1: a
-checker that exists and never runs.
+and initially left alone per `scope-control.md`. Fixed as RI24 on the same instruction. Same family
+as B1: a checker that exists and never runs.
 
 This artifact was created before any Phase 1 file was touched, per `lifecycle-build`'s workflow
 step 4 — scoping, not documentation after the fact.
@@ -173,6 +213,11 @@ expanding scope unilaterally.
 | Probe: repo `tuning.council.per_phase.review.default_fan_out: 99` | Phase 3 | pass — rejected | `...per_phase.review.default_fan_out is above maximum 10` |
 | Probe: repo override of `1` | Phase 3 | pass — accepted | Valid override is not rejected; the fence discriminates rather than blanket-failing |
 | `node src/workflow/validators/check-pending-setup.mjs` | Phase 3 | **fail — pre-existing** | PS-1..3 `resolved` without `resolved_by`. Unrelated to RI22; validator is not registered in validate-template so `npm run validate` never runs it |
+| Probe: invalid value in **source** `agent-behavior.yaml`, no `prepare` | Phase 2 (RI23) | pass — rejected | `.../src/workflow/agent-behavior.yaml...default_fan_out is above maximum 10` — names the source, not the global copy |
+| Probe: required key removed from **source** | Phase 2 (RI23) | pass — rejected | `.../src/workflow/agent-behavior.yaml.council.max_rounds is required` |
+| `HOME=/nonexistent ... check-definitions.mjs` | Phase 2 (RI23) | pass | Same verdict with no global install reachable — CI and local now check one file |
+| `npm run conformance:test` | Phase 2 (RI24) | pass | **28/28**, was 26. `every-validator-wired` and `definitions-checked-at-source` |
+| `node src/workflow/validators/check-pending-setup.mjs` | Phase 2 (RI24) | pass | Now registered and green; 4 open / 3 resolved |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -228,4 +273,5 @@ when a change reaches outside the active phase's declared scope.
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
 | Phase 3 - Per-repo council tuning and the setup interview | complete | 2026-08-29 | `tuning.council.per_phase` mirrors the global shape and merges per entry (m12-m14, 14/14). The interview item was added by running the real `check` skew path, and a second run added nothing. Both probe directions discriminate: an out-of-range repo override is rejected naming the path, a valid one is accepted. Two findings recorded for Review — the dogfood loop validates the global definitions rather than the source, and `check-pending-setup` is never registered |
-| Phase 2 - Definitions validated against their schemas | complete | 2026-08-29 | `check-config` applies a definitions file's schema to it. Four probes rejected with the offending path named, including one against a pre-existing `required` key — so the fix covers the whole schema, not only the keys this package added. Unmodified repo still validates clean |
+| Phase 2 - Definitions validated against their schemas | complete (extended) | 2026-08-29 | Extended to RI23 and RI24 after Phase 3 showed RI21 was enforcing a copy. `check-definitions.mjs` validates the source under AGENTSMYTH_WF; a source mutation now fails validate with no `prepare` and no global install. `every-validator-wired` locks the general shape; `check-pending-setup` registered and green. Conformance 26 -> 28 |
+| Phase 2 - Definitions validated against their schemas (initial) | complete | 2026-08-29 | `check-config` applies a definitions file's schema to it. Four probes rejected with the offending path named, including one against a pre-existing `required` key — so the fix covers the whole schema, not only the keys this package added. Unmodified repo still validates clean |

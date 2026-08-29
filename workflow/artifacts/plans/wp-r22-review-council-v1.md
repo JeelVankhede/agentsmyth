@@ -5,7 +5,7 @@ artifact: plan
 status: ready-for-next-phase
 created: 2026-08-29
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24]
 upstream:
   - workflow/artifacts/briefs/wp-r22-review-council-v1.md
 orchestration:
@@ -90,6 +90,8 @@ Established as a `coverage-tracer` ledger: one row per active ID, with state and
 | RI20 | Phase 1 | covered | Brief RI20; added post-approval on user direction |
 | RI21 | Phase 2 | covered | Brief RI21; closes Build blocker B1 |
 | RI22 | Phase 3 | covered | Brief RI22; per-repo inheritance and the init interview |
+| RI23 | Phase 2 | covered | Brief RI23; RI21 enforced a copy, this enforces the source |
+| RI24 | Phase 2 | covered | Brief RI24; the general lock against unwired checks |
 | RI6 | Phase 6 | covered | Brief RI6 |
 | RI7 | Phase 10 | covered | Brief RI7 |
 | RI8 | Phase 10 | covered | Brief RI8 |
@@ -125,7 +127,10 @@ recalled.
 | `src/workflow/schemas/agent-behavior.schema.yaml` | schema | RI5 | Additive optional property | Phase 1 |
 | `src/workflow/skills/dispatch-subagents/references/phase-caps.md` | docs | RI5 | States the Review default beside Think's | Phase 1 |
 | `src/workflow/validators/check-config.mjs` | runtime | RI21 | Applies definitions schemas; closes B1 | Phase 2, before any later schema is trusted |
-| `scripts/validate-template.mjs` | tooling | RI21 | Registration | Phase 2 |
+| `scripts/validate-template.mjs` | tooling | RI21, RI23, RI24 | Registration; the source-vs-repo-root split | Phase 2 |
+| `src/workflow/validators/check-definitions.mjs` | runtime (new) | RI23 | Validates definitions at the source under AGENTSMYTH_WF | Phase 2 |
+| `src/workflow/schemas/pending-setup.schema.yaml` | schema | RI24 | `unrecorded` provenance value | Phase 2 |
+| `test/run-conformance-tests.mjs` | tests | RI24 | The wiring lock | Phase 2 |
 | `src/workflow/schemas/repo-profile.schema.yaml` | schema | RI22 | Additive `tuning.council.per_phase` | Phase 3 |
 | `workflow/config/pending-setup.yaml` | config | RI22 | Interview item | Phase 3 |
 | `src/setup/references/config-map.md` | docs | RI22 | The field mapping setup reads | Phase 3 |
@@ -190,17 +195,24 @@ to one example.
 
 ### Phase 2 - Definitions validated against their schemas
 
-- **Manifest IDs:** RI21
+- **Manifest IDs:** RI21, RI23, RI24
 - Touches: `src/workflow/validators/check-config.mjs`,
+  `src/workflow/validators/check-definitions.mjs`,
+  `src/workflow/validators/check-pending-setup.mjs`,
+  `src/workflow/schemas/pending-setup.schema.yaml`,
+  `workflow/config/pending-setup.yaml`,
+  `test/run-conformance-tests.mjs`,
   `scripts/validate-template.mjs`
 - Work: apply a definitions file's schema to the definitions file, the way `check-config` already
   applies `workflow/config/*.yaml` schemas to repo config. Closes Build blocker B1: nothing loads
   `agent-behavior.schema.yaml` today, so its `required` list, its enums, and its numeric bounds are
   all inert.
 - **Exit gate:** the three probes recorded against Phase 1 in the task artifact are each **rejected**
-  with one error naming the offending path — an out-of-range `default_fan_out`, an unknown key under
-  a closed object, an unknown phase under `per_phase`; `check-schema-keywords` still passes; the
-  unmodified repo still validates clean.
+  with one error naming the offending path; an invalid value in `src/workflow/agent-behavior.yaml`
+  fails `npm run validate` **without** `prepare` having run, naming the source path; the check gives
+  the same verdict with no global install reachable; a conformance check fails on any validator not
+  registered in `validate-template.mjs`; `check-schema-keywords` still passes; the unmodified repo
+  still validates clean.
 
 ### Phase 3 - Per-repo council tuning and the setup interview
 

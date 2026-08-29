@@ -38,7 +38,12 @@ properties:
           enum: [open, resolved, waived]
         resolved_by:
           type: string
-          enum: [inspect, user, lifecycle-plan, lifecycle-build]
+          enum: [inspect, user, lifecycle-plan, lifecycle-build, unrecorded]
+          description: >-
+            How the value was settled. `unrecorded` is only valid for items resolved before this
+            field was required and whose provenance is genuinely not recoverable - it exists so
+            such an item can be marked honestly rather than backfilled with a guess. Never use it
+            for a new resolution: an agent that resolves an item knows how it did so.
         resolution:
           type: string
           description: "The value filled in — recorded for audit"

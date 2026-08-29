@@ -5,7 +5,7 @@ artifact: brief
 status: ready-for-next-phase
 created: 2026-08-17
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24]
 upstream:
   - user-request
 orchestration:
@@ -387,6 +387,30 @@ rule that a considered-and-rejected category is marked rather than left silent.
   - Acceptance: a repo overriding Review alone leaves Think's resolved value unchanged; a repo
     overriding neither inherits both; the interview item is present and resolvable.
 
+- **RI23** - Definitions are validated against their schemas **at the source**, identically on every
+  machine.
+  - Files: `src/workflow/validators/check-definitions.mjs`, `scripts/validate-template.mjs`,
+    `src/workflow/validators/check-config.mjs`
+  - Why material: RI21 wired the schema in, but from `check-config`, which runs on the repo-local
+    root. `defsPath()` there returns the global install on a developer machine — which only moves
+    when `agentsmyth prepare` runs — and the build-synced copy in CI, which has no `~/.agentsmyth`.
+    So a source change read clean locally until `prepare`, and CI and a developer validated
+    different files. RI21 without RI23 enforces a copy, not the thing that ships.
+  - Acceptance: an invalid value in `src/workflow/agent-behavior.yaml` fails `npm run validate`
+    **without** `prepare` having run, and the error names the source path; the check produces the
+    same verdict with no global install reachable.
+
+- **RI24** - A validator that exists is a validator that runs.
+  - Files: `test/run-conformance-tests.mjs`, `scripts/validate-template.mjs`,
+    `src/workflow/schemas/pending-setup.schema.yaml`, `workflow/config/pending-setup.yaml`
+  - Why material: three instances of one defect surfaced in this package alone — a schema nothing
+    loaded, a definitions check reading the wrong copy, and `check-pending-setup.mjs`, which was
+    registered nowhere and failed immediately when finally run. A file that looks like a guarantee
+    and is never invoked is worse than an absent one, because it is counted as coverage.
+  - Acceptance: a conformance check enumerates `src/workflow/validators/` and fails on any validator
+    absent from `scripts/validate-template.mjs`, with CLI-invoked and non-check files exempted by
+    name; and a second check pins the definitions check to the source command list specifically.
+
 **Sources considered and rejected**, per `implicit-requirements-library.md`:
 
 - *source-of-truth*: `mode: optional` with `providers: []`, so no source read/update requirement attaches to R22 beyond the existing practice of updating the Notion page at Ship. No acceptance criterion changes.
@@ -511,6 +535,8 @@ section is kept as the research that led to it, not as the design.
 | RI20 | symmetric per-phase council caps | repo |
 | RI21 | definitions validated against their schema | repo, trial |
 | RI22 | per-repo per-phase council tuning and interview | repo |
+| RI23 | definitions validated at the source | repo, trial |
+| RI24 | every validator is wired and runs | repo, trial |
 
 RI4–RI17 were **not** classified by the 2026-08-17 council. They were derived and classified on
 2026-08-29 while resuming: RI6–RI8 and RI15–RI16 exist because of what Q3's answer decided, and
@@ -617,6 +643,13 @@ configured via schema and inherited/setup for any projects during init or later 
   configuration, which supersedes the Think-special-cased shape Phase 1 first implemented.
 - RI21 comes from "go with (a)" — the schema-enforcement fix for B1.
 - RI22 comes from "inherited/setup for any projects during init or later interview stages".
+
+A second amendment on 2026-08-29 added **RI23** and **RI24**, on the user's instruction to fix
+rather than defer a finding Build had surfaced and I had proposed carrying to Review. RI21 turned
+out to enforce a *copy* of the definitions rather than the source; RI23 fixes that, and RI24
+generalises it so the underlying shape — a check that exists but never runs — cannot recur silently.
+
+**User's own words (verbatim):** "NO, FIX IT RIGHT NOW. NO DEFERRALS" 
 
 IDs are appended after the highest existing ID and nothing is renumbered, per
 `decompose-requirements`. No existing requirement's acceptance criterion changed.

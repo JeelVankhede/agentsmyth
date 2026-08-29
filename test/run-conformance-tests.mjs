@@ -80,7 +80,7 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -195,6 +195,36 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   validatorTerminations.length > 0 &&
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
+
+// Every validator must be WIRED, not merely present. Three separate instances of the same defect
+// surfaced in one work package: agent-behavior.schema.yaml was never loaded by anything,
+// check-definitions had to be created to load it, and check-pending-setup.mjs existed for months
+// registered nowhere — run by hand it failed immediately. A validator nothing invokes is a file
+// that looks like a guarantee and is not one. This asserts the wiring itself, so the next one
+// cannot slip in silently.
+//
+// The exemptions are real and named: two are invoked by the CLI rather than by validate-template,
+// and repo-digest is a tool that prints a hash, not a check that can pass or fail.
+const validateTemplateSrc = readFileSync(join(repoRoot, 'scripts/validate-template.mjs'), 'utf8');
+const CLI_INVOKED = new Set(['check-setup-complete.mjs', 'check-commit-coverage.mjs']);
+const NOT_A_CHECK = new Set(['lib.mjs', 'repo-digest.mjs']);
+const validatorFiles = readdirSync(join(repoRoot, 'src/workflow/validators'))
+  .filter((f) => f.endsWith('.mjs'))
+  .filter((f) => !CLI_INVOKED.has(f) && !NOT_A_CHECK.has(f));
+const unwired = validatorFiles.filter((f) => !validateTemplateSrc.includes(f));
+check('every-validator-wired', 'no validator exists without being registered in validate-template',
+  unwired.length === 0, unwired.length ? `unregistered: ${unwired.join(', ')}` : '');
+
+// The definitions schema check must run under AGENTSMYTH_WF, i.e. in the SOURCE command list.
+// Registered anywhere else it validates whichever copy the two-root resolver returns — the global
+// install on a developer machine, the build-synced copy in CI — so local and CI check different
+// files and a source change reads clean until `agentsmyth prepare` runs.
+const sourceBlock = validateTemplateSrc.slice(
+  validateTemplateSrc.indexOf('const sourceCommands'),
+  validateTemplateSrc.indexOf('const artifactEnv')
+);
+check('definitions-checked-at-source', 'check-definitions runs under AGENTSMYTH_WF against src/workflow',
+  sourceBlock.includes('check-definitions.mjs'));
 
 // Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
 // mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop
