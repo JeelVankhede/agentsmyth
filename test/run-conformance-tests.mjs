@@ -138,7 +138,7 @@ const cwf = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/
 check('r21-council-wellformed', 'well-formed council brief passes check-council-record',
   cwf.status === 0);
 check('r21-council-summary', 'check-council-record reports texture, not a bare pass',
-  /summary: \d+ council brief\(s\), \d+ round\(s\), \d+ finding\(s\)/.test(cwf.out) &&
+  /summary: \d+ council brief\(s\), \d+ council review\(s\), \d+ round\(s\), \d+ finding\(s\)/.test(cwf.out) &&
   /\d+ recall-only hypothes\(es\) accepted without corroboration/.test(cwf.out) &&
   /\d+ citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
 
@@ -196,6 +196,15 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   validatorTerminations.length > 0 &&
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
+
+// WP-R22 RI1 — positive control for the REVIEW record. Without it, the Review-specific rejection
+// rules would be satisfied by a validator that rejects every review, and the filter widening would
+// be unverified in the direction that matters: a council-mode review must be CHECKED, not skipped.
+const crw = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-review-wellformed']);
+check('r22-council-review-wellformed', 'well-formed council REVIEW passes check-council-record',
+  crw.status === 0);
+check('r22-council-review-counted', 'a review is counted as a review, not mislabelled a brief',
+  /0 council brief\(s\), 1 council review\(s\)/.test(crw.out));
 
 // WP-R22 RI3 — the preserved single-agent Review path must stay a verbatim copy, not a paraphrase.
 // A "preserved" path that drifts into a reconstruction is not a rollback surface. The steps are

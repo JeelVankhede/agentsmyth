@@ -87,7 +87,7 @@ const TERMINATIONS = ['resolved', 'user-decision-required'];
 // Running totals for the summary line. A bare pass invites skipping; a number that varies invites
 // reading, and the ratios below are how a reader sees how much of a brief rests on classes this
 // validator cannot verify.
-const totals = { briefs: 0, rounds: 0, findings: 0, rejections: 0, recallUnconfirmed: 0, resolved: 0, shapeOnly: 0 };
+const totals = { briefs: 0, reviews: 0, rounds: 0, findings: 0, rejections: 0, recallUnconfirmed: 0, resolved: 0, shapeOnly: 0 };
 
 function namedSection(body, name) {
   const re = new RegExp(`## ${name}\\s*\\n([\\s\\S]*?)(?=\\n## [^#]|\\s*$)`);
@@ -108,6 +108,32 @@ function tableRows(text) {
     .filter((l) => !/^\|[\s\-:|]+\|$/.test(l))
     .map((l) => l.slice(1, -1).split('|').map((c) => c.trim()))
     .filter((cells) => cells.some((c) => c.length > 0));
+}
+
+// Rows keyed by HEADER NAME rather than by position. The Think and Review records share this
+// validator but not a column layout: a review's Findings table carries a Risk category column and
+// its Members table carries Input and Status, so every fixed index after an insertion point would
+// read the wrong cell — and do it silently, which is worse than failing. Header keys make adding a
+// column a non-event instead of a cross-record corruption.
+function tableObjects(text) {
+  if (!text) return [];
+  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
+  if (lines.length < 2) return [];
+  const headers = lines[0].slice(1, -1).split('|').map((c) => c.trim().toLowerCase());
+  return tableRows(text).map((cells) => {
+    const row = {};
+    headers.forEach((h, i) => { if (h) row[h] = cells[i] ?? ''; });
+    return row;
+  });
+}
+
+// First header present wins, so one reader serves both records where they name the same concept
+// differently — Think dispatches "researchers", Review dispatches "reviewers".
+function col(row, ...names) {
+  for (const name of names) {
+    if (row[name] !== undefined) return row[name];
+  }
+  return '';
 }
 
 function intOf(raw) {
@@ -185,7 +211,12 @@ const artifactFiles = listFiles(artifactsDir).filter(
 );
 
 for (const file of artifactFiles) {
-  if (file.split('/').slice(-2, -1)[0] !== 'briefs') continue;
+  // Briefs AND reviews. The Think council writes into a brief's council log, the Review council into
+  // a review's, and both are the same record against the same contract — which is why one validator
+  // serves them rather than two that drift. Anything else in artifacts/ has no council log and is
+  // skipped.
+  const artifactDir = file.split('/').slice(-2, -1)[0];
+  if (artifactDir !== 'briefs' && artifactDir !== 'reviews') continue;
 
   let parsed;
   try {
@@ -206,7 +237,10 @@ for (const file of artifactFiles) {
     continue;
   }
 
-  totals.briefs++;
+  // Counted by artifact type. Reporting a review as a "brief" was the smaller half of F2; the
+  // larger half is that a reader cannot tell which councils actually ran from a single number.
+  const isReviewRecord = artifactDir === 'reviews';
+  if (isReviewRecord) totals.reviews++; else totals.briefs++;
   const mode = council.mode;
 
   // --- R-1: re-derive the firing decision from its recorded inputs ------------------------
@@ -277,14 +311,14 @@ for (const file of artifactFiles) {
   }
 
   // --- rounds: non-increasing fan-out, coherent taper -------------------------------------
-  const rounds = tableRows(subSection(logSection, 'Rounds')).map((cells) => ({
-    round: intOf(cells[0]),
-    researchers: intOf(cells[1]),
-    challengers: intOf(cells[2]),
-    openIn: intOf(cells[3]),
-    openOut: intOf(cells[4]),
-    closed: idsOf(cells[5]),
-    rationale: (cells[6] ?? '').trim(),
+  const rounds = tableObjects(subSection(logSection, 'Rounds')).map((r) => ({
+    round: intOf(col(r, 'round')),
+    researchers: intOf(col(r, 'researchers', 'reviewers')),
+    challengers: intOf(col(r, 'challengers')),
+    openIn: intOf(col(r, 'open in')),
+    openOut: intOf(col(r, 'open out')),
+    closed: idsOf(col(r, 'items closed')),
+    rationale: col(r, 'sizing rationale').trim(),
   }));
 
   if (rounds.length === 0) {
@@ -324,12 +358,14 @@ for (const file of artifactFiles) {
   }
 
   // R2 / R11 — member capability and the sandbox fence.
-  const members = tableRows(subSection(logSection, 'Members')).map((cells) => ({
-    id: cells[0],
-    role: (cells[1] ?? '').toLowerCase(),
-    round: intOf(cells[2]),
-    capabilities: (cells[3] ?? '').toLowerCase(),
-    sandbox: (cells[4] ?? '').trim(),
+  const members = tableObjects(subSection(logSection, 'Members')).map((m) => ({
+    id: col(m, 'member'),
+    role: col(m, 'role').toLowerCase(),
+    round: intOf(col(m, 'round')),
+    capabilities: col(m, 'capabilities').toLowerCase(),
+    input: col(m, 'input').toLowerCase(),
+    status: col(m, 'status').toLowerCase(),
+    sandbox: col(m, 'sandbox').trim(),
   }));
 
   if (members.length === 0) {
@@ -430,16 +466,17 @@ for (const file of artifactFiles) {
   // --- findings ---------------------------------------------------------------------------
   // Round is a column, not an inference. The spot-check duty is stated per round, and deriving a
   // finding's round from the Members table only works while every member appears in exactly one.
-  const findings = tableRows(subSection(logSection, 'Findings')).map((cells) => ({
-    id: cells[0],
-    member: cells[1],
-    role: (cells[2] ?? '').toLowerCase(),
-    round: intOf(cells[3]),
-    surface: cells[4],
-    cls: (cells[5] ?? '').toLowerCase(),
-    citation: cells[6] ?? '',
-    disposition: (cells[7] ?? '').toLowerCase(),
-    reason: cells[8] ?? '',
+  const findings = tableObjects(subSection(logSection, 'Findings')).map((f) => ({
+    id: col(f, 'finding'),
+    member: col(f, 'member'),
+    role: col(f, 'role').toLowerCase(),
+    round: intOf(col(f, 'round')),
+    riskCategory: col(f, 'risk category').toLowerCase(),
+    surface: col(f, 'surface'),
+    cls: col(f, 'evidence class').toLowerCase(),
+    citation: col(f, 'citation'),
+    disposition: col(f, 'disposition').toLowerCase(),
+    reason: col(f, 'reason / merged into', 'reason'),
   }));
 
   totals.findings += findings.length;
@@ -664,6 +701,78 @@ for (const file of artifactFiles) {
     }
   }
 
+  // --- Review-specific rules ---------------------------------------------------------------
+  // Gated on the artifact type, not on the presence of a section: a review that simply omits the
+  // Members `Input` column would otherwise pass the input fence by leaving it out, which is the
+  // omission escape the survivor rule already had to close once.
+  if (isReviewRecord) {
+    // R2 — reviewers see the diff and the manifest, never the Build session transcript. A reviewer
+    // that reads the author's reasoning reviews the intention rather than the artefact, which is
+    // the whole failure this council exists to remove.
+    for (const m of members) {
+      if (!m.input) {
+        errors.push(`${file} member ${m.id} records no declared input; a Review council member must state what it was given, and "diff+manifest" is the only permitted value`);
+      } else if (/transcript|session|conversation|chat/i.test(m.input)) {
+        errors.push(`${file} member ${m.id} declares input "${m.input}", which names the Build session rather than the diff; a reviewer that reads the author's reasoning reviews the intention rather than the change`);
+      }
+    }
+
+    // RI17 — categories are the unit of assignment and are disjoint. Two reviewers holding one
+    // category read the same ground twice, which means another category went unread.
+    const categoryOwner = new Map();
+    for (const row of tableObjects(subSection(logSection, 'Risk Category Assignment'))) {
+      const member = col(row, 'member');
+      for (const cat of col(row, 'risk categories').split(',').map((c) => c.trim().toLowerCase()).filter(Boolean)) {
+        if (categoryOwner.has(cat) && categoryOwner.get(cat) !== member) {
+          errors.push(`${file} risk category "${cat}" is assigned to both ${categoryOwner.get(cat)} and ${member}; categories are partitioned disjointly, and two reviewers sharing one means another category went unread`);
+        }
+        categoryOwner.set(cat, member);
+      }
+    }
+
+    // RI18 — a member that failed must have its unread categories recorded as a skipped check. A
+    // council that lost a member and says nothing reports the same coverage as one that did not,
+    // which is the more dangerous of the two because it reads as complete.
+    const skippedRows = tableObjects(subSection(logSection, 'Skipped Checks'));
+    const SKIPPED_FIELDS = ['check', 'why skipped', 'risk', 'owner', 'blocks ship', 'manifest ids'];
+    for (const m of members.filter((x) => x.status === 'failed')) {
+      const covering = skippedRows.filter((r) => Object.values(r).some((v) => v.includes(m.id)) || col(r, 'check'));
+      if (skippedRows.length === 0 || covering.length === 0) {
+        errors.push(`${file} member ${m.id} is recorded "failed" but no "### Skipped Checks" entry records what went unread; a lost member with no skipped check reports the same coverage as one that never failed`);
+        continue;
+      }
+      for (const row of covering) {
+        const missing = SKIPPED_FIELDS.filter((f) => !col(row, f).trim());
+        if (missing.length > 0) {
+          errors.push(`${file} skipped-check entry for failed member ${m.id} is missing ${missing.join(', ')}; verification.yaml requires all six fields`);
+          break;
+        }
+      }
+    }
+
+    // RI19 — a Review council reads the repository whose changes it is judging, so the digest is
+    // required whether or not any member declared a sandbox. This is stricter than the Think rule
+    // above deliberately: there, a run with no sandbox could not write; here, the object under
+    // review is the repository itself.
+    if (!integrity) {
+      errors.push(`${file} is a council-mode review but records no council.repo_integrity; a Review council reads the repository it is judging, so the before/after digest is required regardless of whether a member declared a sandbox`);
+    }
+  }
+
+  // RI2 — a council-log finding states what is wrong and where; it carries no fix recommendation,
+  // because proposing a fix switches the candidate to Build scope. Enforced STRUCTURALLY, against a
+  // declared column, rather than by scanning reason prose for imperative phrasing: this repo has
+  // been bitten twice by keyword matching without regard to clause (a coverage cell reading "never
+  // silently dropped", a waiver cell reading "rather than a waiver"). The limit is stated in
+  // README.md rather than papered over — prose smuggled into a reason field is not detectable here.
+  const findingsHeaderRow = tableObjects(subSection(logSection, 'Findings'))[0];
+  if (findingsHeaderRow) {
+    const fixColumn = Object.keys(findingsHeaderRow).find((h) => /\bfix\b|recommendation/.test(h));
+    if (fixColumn) {
+      errors.push(`${file} council-log Findings table declares a "${fixColumn}" column; a council finding states what is wrong and where, and a fix recommendation switches the candidate to Build scope. The parent's consolidated "## Findings" entries carry fixes — council-log rows do not`);
+    }
+  }
+
   // --- evidence-class availability ---------------------------------------------------------
   const declared = council.evidence_classes ?? {};
   for (const f of findings) {
@@ -681,9 +790,10 @@ if (artifactFiles.length === 0) {
 
 // Texture, not a bare pass. The resolved-vs-shape-checked ratio is how a reader sees how much of a
 // brief rests on classes this validator cannot verify.
-if (totals.briefs > 0) {
+if (totals.briefs > 0 || totals.reviews > 0) {
   details.push(
-    `summary: ${totals.briefs} council brief(s), ${totals.rounds} round(s), ${totals.findings} finding(s), ` +
+    `summary: ${totals.briefs} council brief(s), ${totals.reviews} council review(s), ` +
+    `${totals.rounds} round(s), ${totals.findings} finding(s), ` +
     `${totals.rejections} rejection(s), ${totals.recallUnconfirmed} recall-only hypothes(es) accepted without corroboration, ` +
     `${totals.resolved} citation(s) mechanically resolved vs ${totals.shapeOnly} shape-checked only`
   );

@@ -21,11 +21,11 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 7 - Validator extended to review artifacts
-- Manifest IDs: R1, R4, R6, RI1, RI2, RI4
-- Exit gate: all 30 existing review artifacts validate with zero edits and `git status` on
-  `workflow/artifacts/reviews/` and `examples/` is clean; a council-mode review record is checked
-  rather than skipped; `npm run validate` and `npm run violations:test` exit 0.
+- Phase: Phase 8 - Ledger validator, closure gate, reporting
+- Manifest IDs: R5, RI7, RI8, RI16
+- Exit gate: a repo with no ledger exits 0; a `pending` row blocks a `ship` declaration without a
+  waiver; the summary line reports counts drawn from both ledger files, and a count computed from
+  the active file alone fails its conformance pin.
 
 ## Plan Phases Overview
 
@@ -40,8 +40,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 4 - Finding-quality ledger contract | complete | RI6, RI15, RI25 |
 | Phase 5 - Review council skill and charter | complete | R2, R3, RI12, RI19 |
 | Phase 6 - lifecycle-review restructuring and record shape | complete | R7, RI3, RI13, RI14, RI17, RI18 |
-| Phase 7 - Validator extended to review artifacts | active | R1, R4, R6, RI1, RI2, RI4 |
-| Phase 8 - Ledger validator, closure gate, reporting | pending | R5, RI7, RI8, RI16 |
+| Phase 7 - Validator extended to review artifacts | complete | R1, R4, R6, RI1, RI2, RI4 |
+| Phase 8 - Ledger validator, closure gate, reporting | active | R5, RI7, RI8, RI16 |
 | Phase 9 - Per-question bucket join | pending | RI10 |
 | Phase 10 - Fixtures, conformance, generated output | pending | RI9, RI11 |
 
@@ -83,6 +83,19 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 7 (R1, R4, R6, RI1, RI2, RI4).**
+
+- `src/workflow/validators/check-council-record.mjs` — `briefs/` filter widened to briefs and
+  reviews; `tableObjects()` + `col()` replace fixed-index row reads; totals and summary made
+  artifact-type-aware; five Review-only rules added — IDs: R1, R4, R6, RI1, RI2, RI4
+- `src/workflow/validators/README.md` — the dual-record scope, the header-keyed parsing note, the
+  Review-additional rules, and the new non-claim about prose-smuggled fixes — IDs: RI1, RI2
+- `test/fixtures/conformance/council-review-wellformed/` — new; positive control for the review
+  record, without which the rejection rules would be satisfied by a validator that rejects every
+  review — IDs: RI1
+- `test/run-conformance-tests.mjs` — `r22-council-review-wellformed`, `r22-council-review-counted`;
+  `r21-council-summary` updated for the type-aware line — IDs: RI1
 
 **Phase 6 (R7, RI3, RI13, RI14, RI17, RI18).**
 
@@ -145,6 +158,32 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 7 (R1, R4, R6, RI1, RI2, RI4).** The filter widening was the smallest part. The real hazard
+was that the Review record adds columns *mid-table* — `Risk category` in Findings, `Input` and
+`Status` in Members — so every fixed index after an insertion point would have read the wrong cell
+and done it silently. Parsing is now keyed by **header name**, with one reader serving both records
+where they name a concept differently (Think dispatches "researchers", Review "reviewers"). All 69
+existing fixtures pass unchanged, which is the evidence that the refactor preserved Think's
+behaviour rather than the assertion that it did.
+
+F2 closed: totals are counted per artifact type and the summary names both, so a review can no
+longer be reported as a brief.
+
+Five Review-only rules landed with their enforcement, each probed against a purpose-built positive
+control rather than assumed: input fence (R2), disjoint categories (RI17), failed-member skipped
+check (RI18), mandatory repo digest (RI19 — stricter than Think's, because a Review council reads
+the repository it is judging), and the no-fix rule (RI2). RI18 and RI19's record shapes landed in
+Phases 5–6; their enforcement is here, which is where the validator lives.
+
+RI2 is enforced **structurally**, against a declared column, not by scanning reason prose for
+imperative phrasing. This repo has twice shipped a keyword matched without regard to its clause — a
+coverage cell reading "never silently dropped", a waiver cell reading "rather than a waiver" — and a
+third would cost more in false rejections than the rule gains. The limit is stated in the README's
+non-claims list rather than papered over.
+
+RI4 confirmed by inspection, not changed: `council:` was already top-level and optional in
+`artifact-frontmatter.schema.yaml`, so no schema edit was needed and none was made.
 
 **Phase 6 (R7, RI3, RI13, RI14, RI17, RI18).** The preserved path was extracted from the committed
 blob with `git show HEAD:...` and written to `single-agent-path.md` **before** SKILL.md was touched,
@@ -323,6 +362,16 @@ expanding scope unilaterally.
 | `diff` preserved path vs `git show HEAD:` extract | Phase 6 | pass | Identical apart from a trailing newline |
 | Probe: one word altered in preserved step 1 | Phase 6 | pass — rejected | `r22-review-single-agent-verbatim` fails on drift and passes when restored, so the lock discriminates rather than always passing |
 | `npm run conformance:test` | Phase 6 | pass | **36/36**, was 33 |
+| 69 existing fixtures after the header-keyed refactor | Phase 7 | pass | 69/69 — the refactor preserved Think's behaviour rather than being asserted to |
+| Positive control: well-formed council REVIEW | Phase 7 | pass | Checked, not skipped, and counted as `1 council review(s)` rather than a brief |
+| Probe: input names the Build transcript | Phase 7 | pass — rejected | One error naming the member |
+| Probe: input column blank | Phase 7 | pass — rejected | Omission does not evade the fence |
+| Probe: two reviewers share a risk category | Phase 7 | pass — rejected | Names the category and both members |
+| Probe: member `failed` with no skipped check | Phase 7 | pass — rejected | |
+| Probe: `repo_integrity` removed from a review | Phase 7 | pass — rejected | Required regardless of sandbox |
+| Probe: Fix column in council-log Findings | Phase 7 | pass — rejected | One error once the probe filled the added column; the first attempt emptied a reason cell and produced a second, unrelated error — probe artefact, not a validator defect |
+| R6: 30 review artifacts in scope | Phase 7 | pass | All validate unedited; `git status` on `workflow/artifacts/reviews/` and `examples/` clean |
+| `npm run conformance:test` | Phase 7 | pass | **38/38**, was 36 |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -377,6 +426,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 7 - Validator extended to review artifacts | complete | 2026-08-29 | Filter widened to briefs and reviews; fixed-index parsing replaced by header-keyed reads, since the Review record inserts columns mid-table and every later index would have silently shifted. 69 existing fixtures pass unchanged. Five Review-only rules enforced and each probed against a new positive control. RI2 enforced structurally against a declared column, with the prose-smuggling limit stated as a non-claim. RI4 needed no schema change and none was made. Conformance 36 -> 38 |
 | Phase 6 - lifecycle-review restructuring and record shape | complete | 2026-08-29 | Preserved path extracted from the committed blob before any edit and byte-locked, with the lock proven to discriminate. Mode resolution and six council stages added; single-agent route unchanged. Severity Summary starter block corrected to the five columns real reviews use — the validator had been widened to tolerate them and the block was the stale half. `### Skipped Checks` added so RI18's rule has a place to write its answer. Conformance 33 -> 36 |
 | Phase 5 - Review council skill and charter | complete | 2026-08-29 | `review-council/` mirrors `think-council`'s shape; three fences stated in the charter itself, risk categories disjoint across reviewers, R1's collision resolved by scoping the no-fix rule to council-log findings. `council-contracts.md` unchanged — it already named Review as a consumer. Conformance 30 -> 33 |
 | Phase 4 - Finding-quality ledger contract | complete | 2026-08-29 | Schema written to contract with three if/then conditionals, two ledger files created. Probing showed every conditional was inert: the engine skipped `required` whenever no `properties` sibling was present, which is the shape every `then:` branch takes. Fixed in lib.mjs as RI25 and locked by two direct engine assertions, since check-schema-keywords structurally cannot catch it. Conformance 28 -> 30 |

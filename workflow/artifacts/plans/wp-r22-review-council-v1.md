@@ -294,7 +294,14 @@ to one example.
 
 - **Manifest IDs:** R1, R4, R6, RI1, RI2, RI4
 - Touches: `src/workflow/validators/check-council-record.mjs`,
-  `src/workflow/validators/README.md`
+  `src/workflow/validators/README.md`,
+  `test/fixtures/conformance/council-review-wellformed/`,
+  `test/run-conformance-tests.mjs`
+- Touches extended 2026-08-29 during Build: the review positive control and its two conformance
+  pins belong to this phase, not to Phase 10. Without a well-formed review record to check, the
+  filter widening is unverified in the direction that matters — a council-mode review must be
+  CHECKED rather than skipped — and the Review-only rejection rules would be satisfied by a
+  validator that rejects every review.
 - Work: widen the `briefs/` file filter; make `totals.briefs` and the summary label
   artifact-type-aware; keep the `isBrief` guard so escalation checks stay brief-scoped. Add the
   Review-only assertion that a council-log finding may not carry a fix recommendation, scoped so the
