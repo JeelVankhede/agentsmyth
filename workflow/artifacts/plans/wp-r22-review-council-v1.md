@@ -355,7 +355,11 @@ to one example.
 - Touches: `test/fixtures/lifecycle-violations/`,
   `test/run-violation-tests.mjs`,
   `test/run-conformance-tests.mjs`,
-  `test/fixtures/conformance/`
+  `test/fixtures/conformance/`,
+  `src/workflow/validators/check-council-record.mjs`
+- Touches extended 2026-08-29 during Build: the validator is listed because this phase had to
+  RESTORE the Review-only rules Phase 9 deleted. See the task artifact — the deletion is the
+  strongest evidence this phase's own requirement exists for a reason.
 - Work: one rejection fixture per new mechanical rule, each a single mutation off a well-formed base
   and emitting exactly one error; a positive control for the Review council record; conformance pins
   for the review-council stage list and the summary-line shape. Rebuild `dist/` and adapters.

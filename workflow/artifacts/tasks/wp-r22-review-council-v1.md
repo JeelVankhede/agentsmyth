@@ -2,7 +2,7 @@
 slug: wp-r22-review-council
 version: 1
 artifact: task
-status: in-progress
+status: ready-for-next-phase
 created: 2026-08-29
 updated: 2026-08-29
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19]
@@ -11,7 +11,7 @@ upstream:
   - workflow/artifacts/plans/wp-r22-review-council-v1.md
 orchestration:
   phase: build
-  status: in-progress
+  status: ready-for-next-phase
   next_phase: review
   blockers: []
   user_checkpoint: none
@@ -21,11 +21,13 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 10 - Fixtures, conformance, generated output
-- Manifest IDs: RI9, RI11
-- Exit gate: `npm run violations:test` count rises by the number of new rules and passes; the
-  attribution sweep shows exactly one error per council fixture; `npm run conformance:test` passes;
-  `npm run build` clean and `render-adapters` reports shims current.
+- Phase: Phase 10 - Fixtures, conformance, generated output — **complete; Build is done, all ten
+  phases closed**. Named as a phase number rather than prose because `check-scope-fence` extracts
+  the active phase from this line to bound the scope union, and a line it cannot parse fails the
+  gate — which is what happened on the first attempt at this commit.
+- Manifest IDs: RI9, RI11 (Build total: all 32)
+- Exit gate: met. 84/84 violations, 55 council fixtures each emitting exactly one error, 41/41
+  conformance, `npm run build` clean, `render-adapters` reports shims current.
 
 ## Plan Phases Overview
 
@@ -43,7 +45,7 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 7 - Validator extended to review artifacts | complete | R1, R4, R6, RI1, RI2, RI4 |
 | Phase 8 - Ledger validator, closure gate, reporting | complete | R5, RI7, RI8, RI16 |
 | Phase 9 - Per-question bucket join | complete | RI10 |
-| Phase 10 - Fixtures, conformance, generated output | active | RI9, RI11 |
+| Phase 10 - Fixtures, conformance, generated output | complete | RI9, RI11 |
 
 ## Branch / Repo Status
 
@@ -83,6 +85,17 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 10 (RI9, RI11).**
+
+- `src/workflow/validators/check-council-record.mjs` — Review-only rules RESTORED from `a66bd17`
+  after Phase 9's edit deleted them — IDs: RI9
+- `test/fixtures/lifecycle-violations/dr..dw` — six Review-record rules, one mutation each — IDs: RI9
+- `test/fixtures/lifecycle-violations/dx..ea` — ledger rotation, both directions, plus the
+  closed-only archive and the missing-archive case — IDs: RI9, RI6
+- `test/fixtures/lifecycle-violations/eb, ec` — R5's two escapes — IDs: RI9, R5
+- `test/fixtures/lifecycle-violations/ed` — the Ship closure gate — IDs: RI9, RI7
+- `test/run-violation-tests.mjs` — 13 registrations — IDs: RI9
 
 **Phase 9 (RI10).**
 
@@ -187,6 +200,25 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 10 (RI9, RI11) — and the regression it caught.**
+
+Writing the fixtures immediately exposed that **Phase 9 had silently deleted every Review-only rule
+Phase 7 added.** The Phase 9 edit replaced a span running up to the `evidence-class availability`
+marker, and the Review block sat inside that span. All six new fixtures passed a validator that no
+longer contained the rules they targeted, and `validate`, `violations:test` and `conformance:test`
+were green across two commits while the rules were gone.
+
+Nothing caught it because the rules had been proven by **probe** and locked by **nothing**. A probe
+demonstrates a rule works once, at the moment you run it; a fixture keeps it working. That is
+exactly the distinction RI9 exists to enforce, and the package demonstrated the cost of skipping it
+on itself. The rules were restored from `a66bd17` — the Phase 7 commit — rather than retyped, and
+all six fixtures then rejected with one error each.
+
+13 fixtures registered: six for the Review-only record rules, four for the ledger's rotation and
+archive rules, two for R5's escapes (no ledger at all; a ledger omitting a finding), and one for the
+Ship closure gate. The attribution sweep covers all 55 council fixtures and confirms each emits
+exactly one error against its own validator and exits non-zero.
 
 **Phase 9 (RI10 / OI-81).** A Questions For User entry now names the manifest ID(s) whose
 Requirement Classification covers it — its bucket — and the rule joins on that instead of asking
@@ -455,6 +487,10 @@ expanding scope unilaterally.
 | Conformance `r22-external-question-not-flagged` | Phase 9 | pass | The case the old approximation got wrong now passes |
 | `grep brief-wide` in README | Phase 9 | pass | 0 — the non-claim is removed, not merely reworded |
 | `npm run conformance:test` | Phase 9 | pass | **41/41**, was 40 |
+| `npm run violations:test` | Phase 10 | pass | **84/84**, was 71 |
+| Attribution sweep, 55 council fixtures | Phase 10 | pass | Each emits exactly one error against its own validator and exits non-zero. The first sweep read stdout only and reported 0 errors everywhere — `finish()` writes to stderr; the sweep was wrong, not the fixtures |
+| Regression check after restoring the deleted rules | Phase 10 | pass | All six Review fixtures reject; before the restore all six passed against a validator missing the rules |
+| `npm run build` / `render-adapters` | Phase 10 | pass | `build-bundle: ok`; adapter shims current — RI11 |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -509,6 +545,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 10 - Fixtures, conformance, generated output | complete | 2026-08-29 | 13 fixtures registered; violations 71 -> 84. Writing them exposed that Phase 9 had deleted Phase 7's Review-only rules — all suites had stayed green across two commits because those rules were probe-proven and fixture-free. Restored from a66bd17. Attribution sweep: 55 council fixtures, exactly one error each. Build clean, adapters current. **Build phase complete** |
 | Phase 9 - Per-question bucket join | complete | 2026-08-29 | A Q names the manifest ID(s) whose classification covers it, and the rule joins on that rather than on whether any row in the brief names repo. Required only of a question the rule would judge, so no existing brief or fixture needed editing. Three fixtures cover both halves, including the external question the approximation wrongly flagged. README non-claim removed because the approximation is gone. OI-81 closed with a resolution. Violations 69 -> 71, conformance 40 -> 41 |
 | Phase 8 - Ledger validator, closure gate, reporting | complete | 2026-08-29 | `check-finding-quality` validates both files, both rotation directions, and the closed-only archive; ledger absence is an error only when a council review exists, closing the omission escape. Ship gate blocks a pending row without a waiver and clears with one. Quality tally spans both files, pinned by a fixture that fails if read from the active file alone. Probing exposed a path-string keying bug that made the R5 cross-check work only from the repo root; keys normalised to the artifact filename. RI8 rehomed to the ledger validator. Conformance 38 -> 40 |
 | Phase 7 - Validator extended to review artifacts | complete | 2026-08-29 | Filter widened to briefs and reviews; fixed-index parsing replaced by header-keyed reads, since the Review record inserts columns mid-table and every later index would have silently shifted. 69 existing fixtures pass unchanged. Five Review-only rules enforced and each probed against a new positive control. RI2 enforced structurally against a declared column, with the prose-smuggling limit stated as a non-claim. RI4 needed no schema change and none was made. Conformance 36 -> 38 |

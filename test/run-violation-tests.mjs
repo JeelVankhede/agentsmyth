@@ -261,6 +261,25 @@ const fixtures = [
   // bucket at all and therefore cannot be judged.
   { id: 'dp', dir: 'test/fixtures/lifecycle-violations/dp-q-web-only-repo-bucket', description: '(WP-R22, RI10) Q rests on web alone while its own bucket names repo — check-council-record', validator: validatorPath('check-council-record.mjs') },
   { id: 'dq', dir: 'test/fixtures/lifecycle-violations/dq-q-no-bucket-reference', description: '(WP-R22, RI10) Q rests on web alone and names no bucket to judge it against — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // WP-R22 RI9 — one fixture per Review-only mechanical rule, each a single mutation off
+  // test/fixtures/conformance/council-review-wellformed. These exist because Phase 9 silently
+  // deleted the Phase 7 rules they cover and every suite stayed green: the rules had been proven by
+  // probe and locked by nothing. A probe demonstrates a rule works once; a fixture keeps it working.
+  { id: 'dr', dir: 'test/fixtures/lifecycle-violations/dr-review-input-is-transcript', description: '(WP-R22, R2) reviewer declares the Build session transcript as its input — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ds', dir: 'test/fixtures/lifecycle-violations/ds-review-input-undeclared', description: '(WP-R22, R2) reviewer declares no input at all — omission must not evade the fence — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dt', dir: 'test/fixtures/lifecycle-violations/dt-risk-categories-overlap', description: '(WP-R22, RI17) two reviewers assigned the same risk category — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'du', dir: 'test/fixtures/lifecycle-violations/du-failed-member-no-skipped-check', description: '(WP-R22, RI18) member recorded failed with no skipped-check entry — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dv', dir: 'test/fixtures/lifecycle-violations/dv-review-without-repo-integrity', description: '(WP-R22, RI19) council-mode review records no repo digest — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'dw', dir: 'test/fixtures/lifecycle-violations/dw-council-finding-carries-fix', description: '(WP-R22, RI2) council-log Findings table declares a fix-recommendation column — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  // The two-file ledger: rotation in both directions, and the archive's closed-only rule.
+  { id: 'dx', dir: 'test/fixtures/lifecycle-violations/dx-closed-row-not-rotated', description: '(WP-R22, RI6) closed row left in the active ledger — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'dy', dir: 'test/fixtures/lifecycle-violations/dy-row-in-both-files', description: '(WP-R22, RI6) row present in both ledger files — copied rather than moved — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'dz', dir: 'test/fixtures/lifecycle-violations/dz-pending-row-in-archive', description: '(WP-R22, RI6) pending row sitting in the archive, where nothing will return to it — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ea', dir: 'test/fixtures/lifecycle-violations/ea-archive-missing', description: '(WP-R22, RI6) archive absent while the active ledger exists — a figure from one file is not a baseline — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  // R5's two escapes: no ledger at all, and a ledger that omits a finding.
+  { id: 'eb', dir: 'test/fixtures/lifecycle-violations/eb-council-review-without-ledger', description: '(WP-R22, R5) council review exists with no finding-quality ledger — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ec', dir: 'test/fixtures/lifecycle-violations/ec-council-finding-unrecorded', description: '(WP-R22, R5) council finding has no finding-quality row — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ed', dir: 'test/fixtures/lifecycle-violations/ed-ship-with-pending-finding', description: '(WP-R22, RI7) ship declared while a finding-quality row is still pending, with no waiver — check-release-readiness', validator: validatorPath('check-release-readiness.mjs') },
 ];
 
 let passed = 0;
