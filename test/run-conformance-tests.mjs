@@ -81,6 +81,7 @@ const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-t
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
 import { readdirSync, readFileSync } from 'node:fs';
+import { validateSchema } from '../src/workflow/validators/lib.mjs';
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -195,6 +196,37 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   validatorTerminations.length > 0 &&
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
+
+// The schema engine must enforce `required` independently of `properties`. It did not: the check
+// was nested inside `if (schema.properties && ...)`, so a schema declaring `required` alone
+// enforced nothing — and that is the exact shape every `then:` branch of an if/then takes, since
+// the branch names newly-mandatory keys and re-declares no properties. Conditional requirements
+// were accepted whatever they said, while `pattern` and `additionalProperties` in the same schema
+// worked, so the schema looked live.
+//
+// check-schema-keywords cannot cover this: it asserts a keyword is IMPLEMENTED, not that it is
+// reachable in the position a schema uses it. Asserted directly against the engine instead.
+{
+  const requiredOnly = { required: ['b'] };
+  const missing = [];
+  validateSchema({ a: 1 }, requiredOnly, 'probe', missing, {}, requiredOnly);
+  const present = [];
+  validateSchema({ a: 1, b: 2 }, requiredOnly, 'probe', present, {}, requiredOnly);
+  check('schema-required-without-properties', 'required is enforced with no properties sibling',
+    missing.length === 1 && present.length === 0);
+
+  const conditional = {
+    allOf: [{ if: { properties: { kind: { const: 'x' } }, required: ['kind'] }, then: { required: ['extra'] } }],
+  };
+  const fires = [];
+  validateSchema({ kind: 'x' }, conditional, 'probe', fires, {}, conditional);
+  const quiet = [];
+  validateSchema({ kind: 'y' }, conditional, 'probe', quiet, {}, conditional);
+  const satisfied = [];
+  validateSchema({ kind: 'x', extra: 1 }, conditional, 'probe', satisfied, {}, conditional);
+  check('schema-conditional-required', 'if/then required fires on match, stays quiet otherwise',
+    fires.length === 1 && quiet.length === 0 && satisfied.length === 0);
+}
 
 // Every validator must be WIRED, not merely present. Three separate instances of the same defect
 // surfaced in one work package: agent-behavior.schema.yaml was never loaded by anything,

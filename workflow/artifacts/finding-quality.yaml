@@ -1,0 +1,12 @@
+version: 1
+kind: finding-quality
+
+# Active finding-quality ledger. One row per council finding, written at Review with
+# outcome: pending, settled at Test, Ship or Reflect. A row that closes moves to
+# finding-quality-archive.yaml in the same operation, so a row is present in exactly one file.
+#
+# Any figure computed from this ledger must read BOTH files. A count from this one alone reports
+# the current cycle rather than the accumulated baseline.
+#
+# Empty until the Review council first runs — no council has produced a Review record yet.
+items: []

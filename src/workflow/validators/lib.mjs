@@ -741,13 +741,22 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     });
   }
 
-  if (schema.properties && isPlainObject(value)) {
-    for (const required of schema.required ?? []) {
+  // `required` is independent of `properties`. Guarding it on properties meant a schema declaring
+  // `required` alone enforced nothing — which is exactly the shape every `then:` branch of an
+  // if/then takes, since the branch names the keys that become mandatory and re-declares no
+  // properties. Conditional requirements were therefore accepted whatever they said, while
+  // `pattern` and `additionalProperties` in the same schema worked, so the schema looked live.
+  // check-schema-keywords cannot catch this: it verifies that a keyword is IMPLEMENTED, not that
+  // it is reachable in the position a schema uses it.
+  if (schema.required && isPlainObject(value)) {
+    for (const required of schema.required) {
       if (!(required in value)) {
         errors.push(`${pathLabel}.${required} is required`);
       }
     }
+  }
 
+  if (schema.properties && isPlainObject(value)) {
     if (schema.additionalProperties === false) {
       for (const key of Object.keys(value)) {
         if (!(key in schema.properties)) {

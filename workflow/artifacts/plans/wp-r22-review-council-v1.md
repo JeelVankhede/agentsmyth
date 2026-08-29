@@ -5,7 +5,7 @@ artifact: plan
 status: ready-for-next-phase
 created: 2026-08-29
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24, RI25]
 upstream:
   - workflow/artifacts/briefs/wp-r22-review-council-v1.md
 orchestration:
@@ -92,6 +92,7 @@ Established as a `coverage-tracer` ledger: one row per active ID, with state and
 | RI22 | Phase 3 | covered | Brief RI22; per-repo inheritance and the init interview |
 | RI23 | Phase 2 | covered | Brief RI23; RI21 enforced a copy, this enforces the source |
 | RI24 | Phase 2 | covered | Brief RI24; the general lock against unwired checks |
+| RI25 | Phase 4 | covered | Brief RI25; without it RI15's conditionals are decoration |
 | RI6 | Phase 6 | covered | Brief RI6 |
 | RI7 | Phase 10 | covered | Brief RI7 |
 | RI8 | Phase 10 | covered | Brief RI8 |
@@ -237,18 +238,26 @@ to one example.
 
 ### Phase 4 - Finding-quality ledger contract
 
-- **Manifest IDs:** RI6, RI15
+- **Manifest IDs:** RI6, RI15, RI25
 - Touches: `src/workflow/schemas/finding-quality.schema.yaml`,
   `workflow/artifacts/finding-quality.yaml`,
-  `workflow/artifacts/finding-quality-archive.yaml`
+  `workflow/artifacts/finding-quality-archive.yaml`,
+  `src/workflow/validators/lib.mjs`,
+  `test/run-conformance-tests.mjs`
+- Touches extended 2026-08-29 during Build: probing the conditionals showed the schema engine
+  ignores `required` when no `properties` sibling is present, so RI15's rules could not be enforced
+  as written. The engine fix is directly necessary to this phase's own acceptance criterion, not
+  adjacent cleanup.
 - Work: write the schema — `required: [version, kind, items]`; per item `id`, `finding_id`,
   `source_artifact`, `first_seen_run`, `disposition`, `outcome`; `outcome` enum
   `pending | proved-real | waived | noise | unresolved-at-reflect`; `waived` requires `waiver_ref`;
   `noise` and `unresolved-at-reflect` require `reason`; any closed outcome requires `closed_in_phase`
   and `resolution`; `additionalProperties: false`. Define rotation: a row closes in the active file
   and moves to the archive in one operation.
-- **Exit gate:** `node src/workflow/validators/check-schema-keywords.mjs` exits 0 over the new
-  schema; both ledger files parse against it; `npm run validate` exits 0.
+- **Exit gate:** `check-schema-keywords` exits 0 over the new schema; both ledger files validate
+  against it; each of the three conditional rules is proven to REJECT a row that violates it and to
+  accept a well-formed one; `npm run validate` exits 0 and the full suite is re-run, since the
+  engine change is used by every validator.
 
 ### Phase 5 - Review council skill and charter
 

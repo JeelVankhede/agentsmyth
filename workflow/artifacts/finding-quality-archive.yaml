@@ -1,0 +1,7 @@
+version: 1
+kind: finding-quality-archive
+
+# Archive of closed finding-quality rows. Append-only: rows arrive here when they close in the
+# active ledger and are never edited or removed afterwards. Keeping the active file lean must not
+# cost the baseline, so every reported figure is computed over this file and the active one.
+items: []

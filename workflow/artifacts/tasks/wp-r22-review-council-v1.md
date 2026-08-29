@@ -21,10 +21,10 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 4 - Finding-quality ledger contract
-- Manifest IDs: RI6, RI15
-- Exit gate: `check-schema-keywords.mjs` exits 0 over the new schema; both ledger files parse
-  against it; `npm run validate` exits 0.
+- Phase: Phase 5 - Review council skill and charter
+- Manifest IDs: R2, R3, RI12, RI19
+- Exit gate: the skill loads standalone with no dangling reference; `council-contracts.md` is
+  unchanged apart from any Review-specific reference addition; `npm run validate` exits 0.
 
 ## Plan Phases Overview
 
@@ -36,8 +36,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 1 - Per-phase council caps, symmetric | complete | RI5, RI20 |
 | Phase 2 - Definitions validated against their schemas | complete | RI21, RI23, RI24 |
 | Phase 3 - Per-repo council tuning and the setup interview | complete | RI22 |
-| Phase 4 - Finding-quality ledger contract | active | RI6, RI15 |
-| Phase 5 - Review council skill and charter | pending | R2, R3, RI12, RI19 |
+| Phase 4 - Finding-quality ledger contract | complete | RI6, RI15, RI25 |
+| Phase 5 - Review council skill and charter | active | R2, R3, RI12, RI19 |
 | Phase 6 - lifecycle-review restructuring and record shape | pending | R7, RI3, RI13, RI14, RI17, RI18 |
 | Phase 7 - Validator extended to review artifacts | pending | R1, R4, R6, RI1, RI2, RI4 |
 | Phase 8 - Ledger validator, closure gate, reporting | pending | R5, RI7, RI8, RI16 |
@@ -83,6 +83,21 @@ schema-enforcement work lands early, where every later phase's constraints benef
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
 
+**Phase 4 (RI6, RI15, RI25).**
+
+- `src/workflow/schemas/finding-quality.schema.yaml` — new; `additionalProperties: false`, an
+  `FQ-N` id pattern, and three `if/then` conditionals — a closed outcome requires `closed_in_phase`
+  and `resolution`, `waived` requires `waiver_ref`, `noise`/`unresolved-at-reflect` require
+  `reason` — IDs: RI15
+- `workflow/artifacts/finding-quality.yaml` — new; active ledger, `items: []` until the Review
+  council first runs — IDs: RI6
+- `workflow/artifacts/finding-quality-archive.yaml` — new; append-only archive, distinct `kind` so
+  neither file can be mistaken for the other — IDs: RI6
+- `src/workflow/validators/lib.mjs` — `required` is enforced independently of `properties`; without
+  this every conditional in the schema above was inert — IDs: RI25
+- `test/run-conformance-tests.mjs` — `schema-required-without-properties` and
+  `schema-conditional-required`, asserted against the engine directly — IDs: RI25
+
 **Phase 2 extension (RI23, RI24).**
 
 - `src/workflow/validators/check-definitions.mjs` — new; validates definitions files against their
@@ -104,6 +119,24 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 4 (RI6, RI15, RI25) — the conditionals were decoration until the engine was fixed.**
+
+The ledger schema was written to the brief's contract, `check-schema-keywords` passed, and both
+ledger files validated. Probing it rather than trusting it showed **every conditional rule
+accepted a row that violated it** — a closed row with no `closed_in_phase`, a waived row with no
+`waiver_ref`, a noise row with no `reason`. `pattern` and `additionalProperties` in the same schema
+rejected correctly, so the schema looked live.
+
+Cause: the engine checked `required` only inside `if (schema.properties && isPlainObject(value))`.
+Every `then:` branch of an if/then names newly-mandatory keys and re-declares no properties, so its
+`required` was skipped entirely. `check-schema-keywords` cannot see this — it asserts a keyword is
+implemented, not that it is reachable in the position a schema uses it, which is the same
+looks-enforced-from-every-angle-but-one shape as B1.
+
+Fixed in `lib.mjs` (RI25), which every validator's schema checking runs through, so the full suite
+was re-run rather than the phase's own checks alone. Locked by two direct assertions against the
+engine, since no schema-level check can cover it.
 
 **Phase 2 reopened and completed (RI23, RI24).** The two findings below were raised as
 carry-to-Review and the user rejected that: "NO, FIX IT RIGHT NOW. NO DEFERRALS". Both are fixed,
@@ -218,6 +251,9 @@ expanding scope unilaterally.
 | `HOME=/nonexistent ... check-definitions.mjs` | Phase 2 (RI23) | pass | Same verdict with no global install reachable — CI and local now check one file |
 | `npm run conformance:test` | Phase 2 (RI24) | pass | **28/28**, was 26. `every-validator-wired` and `definitions-checked-at-source` |
 | `node src/workflow/validators/check-pending-setup.mjs` | Phase 2 (RI24) | pass | Now registered and green; 4 open / 3 resolved |
+| Probe suite: 10 ledger documents against the schema | Phase 4 | pass | Before the engine fix, all four conditional violations were ACCEPTED; after it, each is rejected naming the missing key, and both well-formed rows and the two shipped ledger files still pass |
+| `npm run conformance:test` | Phase 4 | pass | **30/30**, was 28 |
+| Full suite re-run after the `lib.mjs` change | Phase 4 | pass | validate exit 0, 69/69 violations, 30/30 conformance, eight auxiliary suites — the engine is used by every validator, so the phase's own checks were not sufficient evidence |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -272,6 +308,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 4 - Finding-quality ledger contract | complete | 2026-08-29 | Schema written to contract with three if/then conditionals, two ledger files created. Probing showed every conditional was inert: the engine skipped `required` whenever no `properties` sibling was present, which is the shape every `then:` branch takes. Fixed in lib.mjs as RI25 and locked by two direct engine assertions, since check-schema-keywords structurally cannot catch it. Conformance 28 -> 30 |
 | Phase 3 - Per-repo council tuning and the setup interview | complete | 2026-08-29 | `tuning.council.per_phase` mirrors the global shape and merges per entry (m12-m14, 14/14). The interview item was added by running the real `check` skew path, and a second run added nothing. Both probe directions discriminate: an out-of-range repo override is rejected naming the path, a valid one is accepted. Two findings recorded for Review — the dogfood loop validates the global definitions rather than the source, and `check-pending-setup` is never registered |
 | Phase 2 - Definitions validated against their schemas | complete (extended) | 2026-08-29 | Extended to RI23 and RI24 after Phase 3 showed RI21 was enforcing a copy. `check-definitions.mjs` validates the source under AGENTSMYTH_WF; a source mutation now fails validate with no `prepare` and no global install. `every-validator-wired` locks the general shape; `check-pending-setup` registered and green. Conformance 26 -> 28 |
 | Phase 2 - Definitions validated against their schemas (initial) | complete | 2026-08-29 | `check-config` applies a definitions file's schema to it. Four probes rejected with the offending path named, including one against a pre-existing `required` key — so the fix covers the whole schema, not only the keys this package added. Unmodified repo still validates clean |

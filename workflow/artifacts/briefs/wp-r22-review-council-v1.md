@@ -5,7 +5,7 @@ artifact: brief
 status: ready-for-next-phase
 created: 2026-08-17
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24, RI25]
 upstream:
   - user-request
 orchestration:
@@ -411,6 +411,19 @@ rule that a considered-and-rejected category is marked rather than left silent.
     absent from `scripts/validate-template.mjs`, with CLI-invoked and non-check files exempted by
     name; and a second check pins the definitions check to the source command list specifically.
 
+- **RI25** - The schema engine enforces `required` independently of `properties`.
+  - Files: `src/workflow/validators/lib.mjs`, `test/run-conformance-tests.mjs`
+  - Why material: found at Build by probing RI15's conditionals rather than trusting them. The
+    engine checked `required` only inside `if (schema.properties && ...)`, so a schema declaring
+    `required` alone enforced nothing — which is the exact shape every `then:` branch of an if/then
+    takes. RI15's three conditional rules were accepted whatever a row said, while `pattern` and
+    `additionalProperties` in the same schema worked, so the schema looked live. Without this, RI15
+    ships as decoration and R5's whole ledger contract rests on it.
+  - Acceptance: a schema with `required` and no `properties` sibling rejects a missing key; an
+    if/then conditional fires on match and stays quiet otherwise; both asserted directly against the
+    engine, since `check-schema-keywords` verifies that a keyword is implemented, not that it is
+    reachable in the position a schema uses it.
+
 **Sources considered and rejected**, per `implicit-requirements-library.md`:
 
 - *source-of-truth*: `mode: optional` with `providers: []`, so no source read/update requirement attaches to R22 beyond the existing practice of updating the Notion page at Ship. No acceptance criterion changes.
@@ -537,6 +550,7 @@ section is kept as the research that led to it, not as the design.
 | RI22 | per-repo per-phase council tuning and interview | repo |
 | RI23 | definitions validated at the source | repo, trial |
 | RI24 | every validator is wired and runs | repo, trial |
+| RI25 | schema engine enforces standalone `required` | repo, trial |
 
 RI4–RI17 were **not** classified by the 2026-08-17 council. They were derived and classified on
 2026-08-29 while resuming: RI6–RI8 and RI15–RI16 exist because of what Q3's answer decided, and
