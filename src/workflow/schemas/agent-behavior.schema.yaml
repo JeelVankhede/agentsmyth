@@ -168,7 +168,7 @@ properties:
       - enabled
       - max_rounds
       - depth
-      - default_fan_out
+      - per_phase
       - sandbox_root
     properties:
       enabled:
@@ -189,29 +189,41 @@ properties:
           - standard
           - deep
         description: Bounds per-member research effort, not member count. Separate from fan-out so cost can be reduced without shrinking the council.
-      default_fan_out:
-        type: integer
-        minimum: 1
-        maximum: 10
-        description: The THINK council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from the global default-to-1 rule, since a one-member council is not a council. When it applies, the artifact records cap_source council-default. Scoped to Think - every other phase declares its own under per_phase, or gets no departure at all.
       per_phase:
         type: object
         additionalProperties: false
         description: >-
-          Council defaults for phases other than Think. A phase absent from this map gets NO council
-          departure and falls back to the global default-to-1 rule. The asymmetry is deliberate: a
-          phase-agnostic default would mean that extending councils to a new phase silently bills
-          every unconfigured consumer there too, having chosen nothing.
+          Council fan-out per phase. There is no phase-agnostic default: a phase absent from this
+          map gets NO council departure and falls back to the global default-to-1 rule. The
+          asymmetry that used to live here - one phase's value at the top level, everyone else's
+          nested - read as a special case and invited the next phase to be bolted on the same ad-hoc
+          way. It also risked the failure this rule exists to prevent, where extending councils to a
+          new phase silently bills every unconfigured consumer there too.
+        required:
+          - think
         properties:
-          review:
+          think:
             type: object
             additionalProperties: false
+            required:
+              - default_fan_out
             properties:
               default_fan_out:
                 type: integer
                 minimum: 1
                 maximum: 10
-                description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the same cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
+                description: The Think council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from default-to-1, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+          review:
+            type: object
+            additionalProperties: false
+            required:
+              - default_fan_out
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
       sandbox_root:
         type: string
         minLength: 1

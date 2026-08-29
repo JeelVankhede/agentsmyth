@@ -11,9 +11,9 @@ upstream:
   - workflow/artifacts/plans/wp-r22-review-council-v1.md
 orchestration:
   phase: build
-  status: blocked
+  status: in-progress
   next_phase: review
-  blockers: [B1]
+  blockers: []
   user_checkpoint: none
 ---
 
@@ -21,24 +21,29 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 1 - Review-phase council config
-- Manifest IDs: RI5
-- Exit gate: `phase-caps.md` names a Review default distinct from Think's inheritance;
-  `npm run validate` exits 0; a repo declaring no `max_parallel_workstreams` resolves a Review cap
-  from the new key.
+- Phase: Phase 3 - Per-repo council tuning and the setup interview
+- Manifest IDs: RI22
+- Exit gate: a repo overriding Review alone leaves Think's resolved value unchanged; a repo
+  overriding neither inherits both; the interview item is present and its `config`/`field` point at
+  a real key; `npm run validate` and `npm run setup-checks:test` exit 0.
 
 ## Plan Phases Overview
 
+Plan revised 2026-08-29 on user direction after blocker B1; phases renumbered to 10 so the
+schema-enforcement work lands early, where every later phase's constraints benefit from it.
+
 | Phase | Status | Manifest IDs |
 |---|---|---|
-| Phase 1 - Review-phase council config | active | RI5 |
-| Phase 2 - Finding-quality ledger contract | pending | RI6, RI15 |
-| Phase 3 - Review council skill and charter | pending | R2, R3, RI12, RI19 |
-| Phase 4 - lifecycle-review restructuring and record shape | pending | R7, RI3, RI13, RI14, RI17, RI18 |
-| Phase 5 - Validator extended to review artifacts | pending | R1, R4, R6, RI1, RI2, RI4 |
-| Phase 6 - Ledger validator, closure gate, reporting | pending | R5, RI7, RI8, RI16 |
-| Phase 7 - Per-question bucket join | pending | RI10 |
-| Phase 8 - Fixtures, conformance, generated output | pending | RI9, RI11 |
+| Phase 1 - Per-phase council caps, symmetric | complete | RI5, RI20 |
+| Phase 2 - Definitions validated against their schemas | complete | RI21 |
+| Phase 3 - Per-repo council tuning and the setup interview | active | RI22 |
+| Phase 4 - Finding-quality ledger contract | pending | RI6, RI15 |
+| Phase 5 - Review council skill and charter | pending | R2, R3, RI12, RI19 |
+| Phase 6 - lifecycle-review restructuring and record shape | pending | R7, RI3, RI13, RI14, RI17, RI18 |
+| Phase 7 - Validator extended to review artifacts | pending | R1, R4, R6, RI1, RI2, RI4 |
+| Phase 8 - Ledger validator, closure gate, reporting | pending | R5, RI7, RI8, RI16 |
+| Phase 9 - Per-question bucket join | pending | RI10 |
+| Phase 10 - Fixtures, conformance, generated output | pending | RI9, RI11 |
 
 ## Branch / Repo Status
 
@@ -56,16 +61,20 @@ orchestration:
 
 ## Changed Files
 
-**Phase 1 (RI5)** — implementation complete, phase NOT closed pending the blocker below.
+**Phase 1 (RI5, RI20)** and **Phase 2 (RI21)** — complete. B1 closed.
 
 - `src/workflow/agent-behavior.yaml` — `council.per_phase.review.default_fan_out: 2`, with the
   reasoning for 2-not-3 in the comment — IDs: RI5
-- `src/workflow/schemas/agent-behavior.schema.yaml` — `per_phase` declared as an optional object;
-  `default_fan_out`'s description narrowed to state it is Think's alone — IDs: RI5
+- `src/workflow/schemas/agent-behavior.schema.yaml` — `per_phase` replaces the top-level
+  `default_fan_out`, with `think` and `review` as closed objects and `think` required; `per_phase`
+  replaces `default_fan_out` in the council `required` list — IDs: RI5, RI20
+- `src/workflow/validators/check-config.mjs` — definitions files are now validated against their
+  schemas, keyed off `kind` exactly as the repo-config loop is; absent definitions root is recorded
+  as skipped rather than passing silently — IDs: RI21
 - `src/workflow/skills/dispatch-subagents/references/phase-caps.md` — new "Review council default"
   section stating 2 and its three reasons; the Think-only scoping paragraph now names
-  `council.per_phase.<phase>` as the place a new phase declares its own, and states that a phase
-  absent from that map gets no departure at all — IDs: RI5
+  `council.per_phase.<phase>` as the place every phase declares its own, a shipped-values table for
+  think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
 
@@ -122,6 +131,13 @@ expanding scope unilaterally.
 | Probe: unknown key `challengers` under `per_phase.review` (`additionalProperties: false`) | Phase 1 | **fail — accepted** | Should have been rejected |
 | Probe: unknown phase `ship` under `per_phase` (`additionalProperties: false`) | Phase 1 | **fail — accepted** | Should have been rejected |
 | `grep -rn "agent-behavior.schema"` across repo | Phase 1 root-cause | pass | One comment in `lib.mjs`, one bundle copy, zero validator reads — the schema is never applied |
+| Probe re-run: `default_fan_out: 99` | Phase 2 | **pass — now rejected** | `...council.per_phase.review.default_fan_out is above maximum 10` |
+| Probe re-run: unknown key `challengers` | Phase 2 | **pass — now rejected** | `...council.per_phase.review.challengers is not allowed` |
+| Probe re-run: unknown phase `ship` | Phase 2 | **pass — now rejected** | `...council.per_phase.ship is not allowed` |
+| New probe: required `max_rounds` removed | Phase 2 | **pass — rejected** | `...council.max_rounds is required` — proves the pre-existing `required` list is live too, not just the new keys |
+| `node src/workflow/validators/check-config.mjs` (unmodified repo) | Phase 2 | pass | Clean — enforcement added no false positive |
+| `npm run build`, `validate`, `violations:test`, `conformance:test` | Phases 1-2 | pass | build ok, exit 0, 69/69, 26/26 |
+| Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
 ## Dispatch Log
 
@@ -136,6 +152,18 @@ none — Phase 1 is a three-file config and documentation change whose parts are
 - downstream: Review inherits the fixture and conformance evidence recorded here.
 
 ## Blockers
+
+none open.
+
+**B1 — CLOSED 2026-08-29 by Phase 2.** Retained with its evidence rather than deleted, because a
+blocker log that only ever lists open items gives no signal about whether anything gets closed.
+Resolution: the user chose option (a) and added a design direction; the brief gained RI20, RI21 and
+RI22 by post-approval amendment, the plan was revised to 10 phases, and `check-config` now applies a
+definitions file's schema to it. All three original probes and one new one (a removed `required`
+key) are rejected with the offending path named.
+
+<details>
+<summary>B1 as originally raised</summary>
 
 **B1 — `agent-behavior.schema.yaml` is never applied to `agent-behavior.yaml`.** Open. Raised at
 Phase 1 by discriminating probe, not by reading. Every constraint in that schema is unenforced,
@@ -155,7 +183,11 @@ Needs a user decision, because resolving it changes scope:
 Not resolved unilaterally: `scope-control.md` requires stopping, recording, and raising a blocker
 when a change reaches outside the active phase's declared scope.
 
+</details>
+
 ## Phase Completion Log
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
+| Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 2 - Definitions validated against their schemas | complete | 2026-08-29 | `check-config` applies a definitions file's schema to it. Four probes rejected with the offending path named, including one against a pre-existing `required` key — so the fix covers the whole schema, not only the keys this package added. Unmodified repo still validates clean |

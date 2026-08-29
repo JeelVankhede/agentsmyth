@@ -5,7 +5,7 @@ artifact: brief
 status: ready-for-next-phase
 created: 2026-08-17
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22]
 upstream:
   - user-request
 orchestration:
@@ -355,6 +355,38 @@ rule that a considered-and-rejected category is marked rather than left silent.
   - Why material: a Review council reads the repository it is reviewing. Nothing in R1–R7 said it may not write to it — R1 constrains what a *finding* may say, not what a member may do.
   - Acceptance: the sandbox and `repo_integrity` checks that apply to a Think council record apply unchanged to a Review council record; a Review run whose before/after digests differ is rejected.
 
+- **RI20** - Council fan-out is configured per phase, symmetrically, with no phase special-cased.
+  - Files: `src/workflow/agent-behavior.yaml`, `src/workflow/schemas/agent-behavior.schema.yaml`,
+    `src/workflow/skills/dispatch-subagents/references/phase-caps.md`
+  - Contract: `council.per_phase.<phase>.default_fan_out` carries every phase's value, Think's
+    included. The top-level `default_fan_out` stops being Think's implicit home. A phase absent from
+    the map gets no departure and falls back to default-to-1, so forgetting to decide fails safe.
+  - Acceptance: `per_phase.think` and `per_phase.review` both resolve; a phase named in neither
+    resolves to 1; no reader falls back to a phase-agnostic value.
+
+- **RI21** - A definitions file is validated against its schema, so a constraint declared there is
+  enforced rather than decoration.
+  - Files: `src/workflow/validators/check-config.mjs`, `scripts/validate-template.mjs`
+  - Why material: found at Build by probe (task blocker B1). Nothing loads
+    `agent-behavior.schema.yaml` — a repo-wide grep returns one comment and the bundle copy. Every
+    constraint in it is currently inert, including `required`, the `enabled` enum, and
+    `max_rounds`'s bounds. `check-config` already validates `workflow/config/*.yaml` against their
+    schemas; definitions files were never given the same treatment.
+  - Acceptance: the three probes that passed at Phase 1 are rejected — an out-of-range
+    `default_fan_out`, an unknown key under a closed object, and an unknown phase under `per_phase`
+    — each with one error naming the offending path.
+
+- **RI22** - Per-repo council caps are settable per phase and inherit from the global definitions
+  when unset.
+  - Files: `src/workflow/schemas/repo-profile.schema.yaml`, `workflow/config/pending-setup.yaml`,
+    `src/setup/SKILL.md`
+  - Contract: `tuning.council.per_phase.<phase>.default_fan_out` overrides that phase only, leaving
+    every other phase on the global value — the same per-entry resolution rule `skill_scoring`
+    already documents, where a repo naming one entry changes that one thing rather than replacing
+    the map. A setup interview item exists so the question can be answered at `init` or later.
+  - Acceptance: a repo overriding Review alone leaves Think's resolved value unchanged; a repo
+    overriding neither inherits both; the interview item is present and resolvable.
+
 **Sources considered and rejected**, per `implicit-requirements-library.md`:
 
 - *source-of-truth*: `mode: optional` with `providers: []`, so no source read/update requirement attaches to R22 beyond the existing practice of updating the Notion page at Ship. No acceptance criterion changes.
@@ -476,6 +508,9 @@ section is kept as the research that led to it, not as the design.
 | RI17 | disjoint risk-category assignment | repo |
 | RI18 | failed member recorded as a skipped check | repo |
 | RI19 | sandbox fence and repo-integrity inherited | repo, trial |
+| RI20 | symmetric per-phase council caps | repo |
+| RI21 | definitions validated against their schema | repo, trial |
+| RI22 | per-repo per-phase council tuning and interview | repo |
 
 RI4–RI17 were **not** classified by the 2026-08-17 council. They were derived and classified on
 2026-08-29 while resuming: RI6–RI8 and RI15–RI16 exist because of what Q3's answer decided, and
@@ -563,6 +598,28 @@ basis for it, which is what happened to F2.
 - Scope of approval: this brief as it stands at commit `4b220db` — 26 manifest IDs including RI18
   and RI19, which were added after the manifest rebuild and are the two the user had not seen when
   the brief was first presented.
+
+## Post-Approval Amendment (2026-08-29)
+
+Three requirements were added **after** the approval recorded above, on the user's explicit
+direction during Build. Recorded here rather than by silently growing the manifest, because the
+checkpoint approval names the brief as it stood at commit `4b220db`.
+
+Trigger: Phase 1 of Build raised blocker B1 — discriminating probes showed that nothing loads
+`agent-behavior.schema.yaml`, so every constraint in it, including the ones RI5 had just added, was
+decoration. Presented with three options, the user chose to fix it inside this package and added a
+design direction.
+
+**User's own words (verbatim):** "go with (a). I would think different caps for think and review
+configured via schema and inherited/setup for any projects during init or later interview stages."
+
+- RI20 comes from "different caps for think and review configured via schema" — symmetric per-phase
+  configuration, which supersedes the Think-special-cased shape Phase 1 first implemented.
+- RI21 comes from "go with (a)" — the schema-enforcement fix for B1.
+- RI22 comes from "inherited/setup for any projects during init or later interview stages".
+
+IDs are appended after the highest existing ID and nothing is renumbered, per
+`decompose-requirements`. No existing requirement's acceptance criterion changed.
 
 ## Exit Gate
 

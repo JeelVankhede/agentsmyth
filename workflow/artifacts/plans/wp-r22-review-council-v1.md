@@ -5,7 +5,7 @@ artifact: plan
 status: ready-for-next-phase
 created: 2026-08-29
 updated: 2026-08-29
-manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19]
+manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22]
 upstream:
   - workflow/artifacts/briefs/wp-r22-review-council-v1.md
 orchestration:
@@ -75,32 +75,35 @@ Established as a `coverage-tracer` ledger: one row per active ID, with state and
 
 | Manifest ID | Covered by phases | State | Citation |
 |---|---|---|---|
-| R1 | Phase 5 (owning), stated in Phase 4 | covered | Brief R1; collision resolved against `lifecycle-review/references/output-schema.md` |
-| R2 | Phase 3 | covered | Brief R2 |
-| R3 | Phase 3 | covered | Brief R3; inherits `think-council/references/output-schema.md` no-verdict rule |
-| R4 | Phase 5 | covered | Brief R4; `council-contracts.md` consumed unchanged |
-| R5 | Phase 6 | covered | Brief R5; delivered via RI6/RI7/RI8/RI15/RI16 |
-| R6 | Phase 5 | covered | Brief R6; 30 existing review artifacts in scope, none carrying a Council Log |
-| R7 | Phase 4 | covered | Brief R7; mirrors R21's R8 |
-| RI1 | Phase 5 | covered | Brief RI1; `check-council-record.mjs` briefs/ filter |
-| RI2 | Phase 5 | covered | Brief RI2 |
-| RI3 | Phase 4 | covered | Brief RI3 |
-| RI4 | Phase 5 | covered | Brief RI4; verified no schema change needed |
+| R1 | Phase 7 (owning), stated in Phase 6 | covered | Brief R1; collision resolved against `lifecycle-review/references/output-schema.md` |
+| R2 | Phase 7 | covered | Brief R2 |
+| R3 | Phase 7 | covered | Brief R3; inherits `think-council/references/output-schema.md` no-verdict rule |
+| R4 | Phase 9 | covered | Brief R4; `council-contracts.md` consumed unchanged |
+| R5 | Phase 10 | covered | Brief R5; delivered via RI6/RI7/RI8/RI15/RI16 |
+| R6 | Phase 9 | covered | Brief R6; 30 existing review artifacts in scope, none carrying a Council Log |
+| R7 | Phase 8 | covered | Brief R7; mirrors R21's R8 |
+| RI1 | Phase 9 | covered | Brief RI1; `check-council-record.mjs` briefs/ filter |
+| RI2 | Phase 9 | covered | Brief RI2 |
+| RI3 | Phase 8 | covered | Brief RI3 |
+| RI4 | Phase 9 | covered | Brief RI4; verified no schema change needed |
 | RI5 | Phase 1 | covered | Brief RI5; `phase-caps.md` requires the explicit decision |
-| RI6 | Phase 2 | covered | Brief RI6 |
-| RI7 | Phase 6 | covered | Brief RI7 |
-| RI8 | Phase 6 | covered | Brief RI8 |
-| RI9 | Phase 8 | covered | Brief RI9 |
-| RI10 | Phase 7 | covered | Brief RI10; OI-81 |
-| RI11 | Phase 8 | covered | Brief RI11 |
-| RI12 | Phase 3 | covered | Brief RI12 |
-| RI13 | Phase 4 | covered | Brief RI13 |
-| RI14 | Phase 4 | covered | Brief RI14 |
-| RI15 | Phase 2 | covered | Brief RI15 |
-| RI16 | Phase 6 | covered | Brief RI16 |
-| RI17 | Phase 4 | covered | Brief RI17; `review-risk-categories.md` already lists the ten |
-| RI18 | Phase 4 | covered | Brief RI18; `verification.yaml` `skipped_checks.required_fields` |
-| RI19 | Phase 3 | covered | Brief RI19; R21's R11 and R-2 |
+| RI20 | Phase 1 | covered | Brief RI20; added post-approval on user direction |
+| RI21 | Phase 2 | covered | Brief RI21; closes Build blocker B1 |
+| RI22 | Phase 3 | covered | Brief RI22; per-repo inheritance and the init interview |
+| RI6 | Phase 6 | covered | Brief RI6 |
+| RI7 | Phase 10 | covered | Brief RI7 |
+| RI8 | Phase 10 | covered | Brief RI8 |
+| RI9 | Phase 10 | covered | Brief RI9 |
+| RI10 | Phase 9 | covered | Brief RI10; OI-81 |
+| RI11 | Phase 10 | covered | Brief RI11 |
+| RI12 | Phase 7 | covered | Brief RI12 |
+| RI13 | Phase 8 | covered | Brief RI13 |
+| RI14 | Phase 8 | covered | Brief RI14 |
+| RI15 | Phase 6 | covered | Brief RI15 |
+| RI16 | Phase 10 | covered | Brief RI16 |
+| RI17 | Phase 8 | covered | Brief RI17; `review-risk-categories.md` already lists the ten |
+| RI18 | Phase 8 | covered | Brief RI18; `verification.yaml` `skipped_checks.required_fields` |
+| RI19 | Phase 7 | covered | Brief RI19; R21's R11 and R-2 |
 
 No ID is `deferred`, `waived`, or `dropped`.
 
@@ -121,23 +124,28 @@ recalled.
 | `src/workflow/agent-behavior.yaml` | config | RI5 | Shipped invariant; new optional council key with a safe default | Phase 1, before anything reads it |
 | `src/workflow/schemas/agent-behavior.schema.yaml` | schema | RI5 | Additive optional property | Phase 1 |
 | `src/workflow/skills/dispatch-subagents/references/phase-caps.md` | docs | RI5 | States the Review default beside Think's | Phase 1 |
-| `src/workflow/schemas/finding-quality.schema.yaml` | schema (new) | RI15 | New contract; `additionalProperties: false` | Phase 2, before any writer or reader |
-| `workflow/artifacts/finding-quality.yaml` | generated data (new) | RI6 | Repo-local ledger, absent-is-valid | Phase 2 |
-| `workflow/artifacts/finding-quality-archive.yaml` | generated data (new) | RI6 | Append-only | Phase 2 |
-| `src/workflow/skills/review-council/` | skill (new dir) | R2, R3, RI12, RI19 | New surface; consumes frozen contracts | Phase 3; new directory, declared with trailing slash |
-| `src/workflow/skills/lifecycle-review/SKILL.md` | skill | R7, RI13 | Behaviour contract; single-agent path preserved | Phase 4, after the council skill exists |
-| `src/workflow/skills/lifecycle-review/references/output-schema.md` | schema/docs | R1, RI14 | Artifact contract; fixes the Severity Summary drift | Phase 4 |
-| `src/workflow/skills/lifecycle-review/references/single-agent-path.md` | docs (new) | RI3 | Byte-locked rollback surface | Phase 4 |
-| `src/workflow/skills/lifecycle-review/references/review-risk-categories.md` | docs | RI17 | Assignment surface | Phase 4 |
-| `src/workflow/validators/check-council-record.mjs` | runtime | R1, R4, R6, RI1, RI2, RI4, RI8, RI10, RI18, RI19 | Validator contract; widened scope | Phase 5 then 6 then 7 |
-| `src/workflow/validators/check-finding-quality.mjs` | runtime (new) | RI16 | New validator, absent-ledger-is-valid | Phase 6 |
-| `src/workflow/validators/check-release-readiness.mjs` | runtime | RI7 | Ship gate gains a blocking condition | Phase 6 |
-| `scripts/validate-template.mjs` | tooling | RI16 | Validators are an explicit list, not auto-discovered | Phase 6 |
-| `src/workflow/skills/lifecycle-think/references/output-schema.md` | schema/docs | RI10 | Starter-block change for the bucket column | Phase 7 |
+| `src/workflow/validators/check-config.mjs` | runtime | RI21 | Applies definitions schemas; closes B1 | Phase 2, before any later schema is trusted |
+| `scripts/validate-template.mjs` | tooling | RI21 | Registration | Phase 2 |
+| `src/workflow/schemas/repo-profile.schema.yaml` | schema | RI22 | Additive `tuning.council.per_phase` | Phase 3 |
+| `workflow/config/pending-setup.yaml` | config | RI22 | Interview item | Phase 3 |
+| `src/setup/SKILL.md` | docs | RI22 | Setup asks the question | Phase 3 |
+| `src/workflow/schemas/finding-quality.schema.yaml` | schema (new) | RI15 | New contract; `additionalProperties: false` | Phase 4, before any writer or reader |
+| `workflow/artifacts/finding-quality.yaml` | generated data (new) | RI6 | Repo-local ledger, absent-is-valid | Phase 6 |
+| `workflow/artifacts/finding-quality-archive.yaml` | generated data (new) | RI6 | Append-only | Phase 6 |
+| `src/workflow/skills/review-council/` | skill (new dir) | R2, R3, RI12, RI19 | New surface; consumes frozen contracts | Phase 5; new directory, declared with trailing slash |
+| `src/workflow/skills/lifecycle-review/SKILL.md` | skill | R7, RI13 | Behaviour contract; single-agent path preserved | Phase 6, after the council skill exists |
+| `src/workflow/skills/lifecycle-review/references/output-schema.md` | schema/docs | R1, RI14 | Artifact contract; fixes the Severity Summary drift | Phase 8 |
+| `src/workflow/skills/lifecycle-review/references/single-agent-path.md` | docs (new) | RI3 | Byte-locked rollback surface | Phase 8 |
+| `src/workflow/skills/lifecycle-review/references/review-risk-categories.md` | docs | RI17 | Assignment surface | Phase 8 |
+| `src/workflow/validators/check-council-record.mjs` | runtime | R1, R4, R6, RI1, RI2, RI4, RI8, RI10, RI18, RI19 | Validator contract; widened scope | Phase 7 then 6 then 7 |
+| `src/workflow/validators/check-finding-quality.mjs` | runtime (new) | RI16 | New validator, absent-ledger-is-valid | Phase 10 |
+| `src/workflow/validators/check-release-readiness.mjs` | runtime | RI7 | Ship gate gains a blocking condition | Phase 10 |
+| `scripts/validate-template.mjs` | tooling | RI16 | Validators are an explicit list, not auto-discovered | Phase 10 |
+| `src/workflow/skills/lifecycle-think/references/output-schema.md` | schema/docs | RI10 | Starter-block change for the bucket column | Phase 9 |
 | `src/workflow/validators/README.md` | docs | RI1, RI10 | Non-claims list must track the implementation | Phases 5 and 7 |
-| `test/fixtures/lifecycle-violations/` | tests | RI9 | One fixture per new rule | Phase 8 |
-| `test/run-violation-tests.mjs`, `test/run-conformance-tests.mjs` | tests | RI9, RI11, RI12 | Registration and conformance pins | Phase 8 |
-| `dist/`, `src/assets/adapters/` | generated output | RI11 | Rebuilt, never hand-edited | Phase 8 |
+| `test/fixtures/lifecycle-violations/` | tests | RI9 | One fixture per new rule | Phase 10 |
+| `test/run-violation-tests.mjs`, `test/run-conformance-tests.mjs` | tests | RI9, RI11, RI12 | Registration and conformance pins | Phase 10 |
+| `dist/`, `src/assets/adapters/` | generated output | RI11 | Rebuilt, never hand-edited | Phase 10 |
 
 No protected path (`.git/**`, `.env*`, `**/*secret*`) is touched.
 
@@ -156,28 +164,56 @@ The council mechanism already exists and is proven; what does not exist is a Rev
 Review-shaped council charter, and a place to record whether findings were any good. So the plan
 deliberately does **not** start with the validator — RI1's one-line filter widening is trivial to
 write and impossible to test until a review artifact with a Council Log exists to run it against.
-Phases 3 and 4 create that artifact shape; Phase 5 widens the validator to it.
+Phases 3 and 4 create that artifact shape; Phase 7 widens the validator to it.
 
-The ledger is sequenced the same way: schema (Phase 2) before the writer (Phase 4's skill text)
-before the reader (Phase 6's validator). A schema written after its first writer is a schema fitted
+The ledger is sequenced the same way: schema (Phase 4) before the writer (Phase 6's skill text)
+before the reader (Phase 8's validator). A schema written after its first writer is a schema fitted
 to one example.
 
 ## Phases
 
-### Phase 1 - Review-phase council config
+### Phase 1 - Per-phase council caps, symmetric
 
-- **Manifest IDs:** RI5
+- **Manifest IDs:** RI5, RI20
 - Touches: `src/workflow/agent-behavior.yaml`,
   `src/workflow/schemas/agent-behavior.schema.yaml`,
   `src/workflow/skills/dispatch-subagents/references/phase-caps.md`
-- Work: decide and record the Review council's fan-out default explicitly, as `phase-caps.md`
-  requires of any package extending councils to a new phase. State the number, its `cap_source`
-  behaviour, and the reasoning beside Think's departure.
-- **Exit gate:** `phase-caps.md` names a Review default distinct from Think's inheritance;
-  `npm run validate` exits 0; a repo declaring no `max_parallel_workstreams` resolves a Review cap
-  from the new key.
+- Work: move council fan-out to `council.per_phase.<phase>.default_fan_out` for Think and Review
+  alike, so no phase is special-cased and the top-level `default_fan_out` stops being Think's
+  implicit home. Think stays 3; Review is 2, decided rather than inherited, with the reasoning
+  recorded. A phase named in neither resolves to 1, so forgetting to decide fails safe.
+- **Exit gate:** `phase-caps.md` states both phases' values and the fail-safe rule;
+  `per_phase.think` and `per_phase.review` both resolve; `npm run validate` exits 0. The schema
+  constraints are *not* claimed enforced by this phase — Phase 2 is what makes that true.
 
-### Phase 2 - Finding-quality ledger contract
+### Phase 2 - Definitions validated against their schemas
+
+- **Manifest IDs:** RI21
+- Touches: `src/workflow/validators/check-config.mjs`,
+  `scripts/validate-template.mjs`
+- Work: apply a definitions file's schema to the definitions file, the way `check-config` already
+  applies `workflow/config/*.yaml` schemas to repo config. Closes Build blocker B1: nothing loads
+  `agent-behavior.schema.yaml` today, so its `required` list, its enums, and its numeric bounds are
+  all inert.
+- **Exit gate:** the three probes recorded against Phase 1 in the task artifact are each **rejected**
+  with one error naming the offending path — an out-of-range `default_fan_out`, an unknown key under
+  a closed object, an unknown phase under `per_phase`; `check-schema-keywords` still passes; the
+  unmodified repo still validates clean.
+
+### Phase 3 - Per-repo council tuning and the setup interview
+
+- **Manifest IDs:** RI22
+- Touches: `src/workflow/schemas/repo-profile.schema.yaml`,
+  `workflow/config/pending-setup.yaml`,
+  `src/setup/SKILL.md`
+- Work: extend `tuning.council` with the same `per_phase` shape so a repo can override one phase's
+  cap without disturbing another's, following the per-entry resolution rule `skill_scoring` already
+  documents. Add a setup interview item so the question can be answered at `init` or later.
+- **Exit gate:** a repo overriding Review alone leaves Think's resolved value unchanged; a repo
+  overriding neither inherits both; the interview item is present and its `config`/`field` point at
+  a real key; `npm run validate` and `npm run setup-checks:test` exit 0.
+
+### Phase 4 - Finding-quality ledger contract
 
 - **Manifest IDs:** RI6, RI15
 - Touches: `src/workflow/schemas/finding-quality.schema.yaml`,
@@ -192,7 +228,7 @@ to one example.
 - **Exit gate:** `node src/workflow/validators/check-schema-keywords.mjs` exits 0 over the new
   schema; both ledger files parse against it; `npm run validate` exits 0.
 
-### Phase 3 - Review council skill and charter
+### Phase 5 - Review council skill and charter
 
 - **Manifest IDs:** R2, R3, RI12, RI19
 - Touches: `src/workflow/skills/review-council/`,
@@ -206,7 +242,7 @@ to one example.
   unchanged apart from any Review-specific reference addition (`git diff --stat` shows no rule
   edits); `npm run validate` exits 0.
 
-### Phase 4 - lifecycle-review restructuring and record shape
+### Phase 6 - lifecycle-review restructuring and record shape
 
 - **Manifest IDs:** R7, RI3, RI13, RI14, RI17, RI18
 - Touches: `src/workflow/skills/lifecycle-review/SKILL.md`,
@@ -223,7 +259,7 @@ to one example.
   `git show HEAD:...` diff); the starter block produces an artifact that passes `npm run validate`
   unedited; both modes are documented against one output schema.
 
-### Phase 5 - Validator extended to review artifacts
+### Phase 7 - Validator extended to review artifacts
 
 - **Manifest IDs:** R1, R4, R6, RI1, RI2, RI4
 - Touches: `src/workflow/validators/check-council-record.mjs`,
@@ -236,7 +272,7 @@ to one example.
   `workflow/artifacts/reviews/` and `examples/` is clean; a council-mode review record is checked
   rather than skipped; `npm run validate` and `npm run violations:test` exit 0.
 
-### Phase 6 - Ledger validator, closure gate, reporting
+### Phase 8 - Ledger validator, closure gate, reporting
 
 - **Manifest IDs:** R5, RI7, RI8, RI16
 - Touches: `src/workflow/validators/check-finding-quality.mjs`,
@@ -249,9 +285,9 @@ to one example.
   counts computed over active **and** archive.
 - **Exit gate:** a repo with no ledger exits 0; a `pending` row blocks a `ship` declaration without a
   waiver; the summary line reports counts drawn from both files, and a count computed from the
-  active file alone fails the conformance pin added in Phase 8.
+  active file alone fails the conformance pin added in Phase 10.
 
-### Phase 7 - Per-question bucket join
+### Phase 9 - Per-question bucket join
 
 - **Manifest IDs:** RI10
 - Touches: `src/workflow/skills/lifecycle-think/references/output-schema.md`,
@@ -263,7 +299,7 @@ to one example.
 - **Exit gate:** the rule fires on a question whose own bucket is repo-classified and does not fire
   on one whose bucket is external; both directions have a fixture; OI-81 closes with a resolution.
 
-### Phase 8 - Fixtures, conformance, generated output
+### Phase 10 - Fixtures, conformance, generated output
 
 - **Manifest IDs:** RI9, RI11
 - Touches: `test/fixtures/lifecycle-violations/`,
@@ -281,13 +317,13 @@ to one example.
 
 Phase 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8. Strictly sequential.
 
-Phases 1 and 2 are contract-setting and must precede every consumer. Phase 3 must precede Phase 4:
+Phases 1 and 2 are contract-setting and must precede every consumer. Phase 5 must precede Phase 6:
 `lifecycle-review` references the council skill, and referencing a skill that does not yet exist is
-the dangling-reference class `setup-refs:test` catches. Phase 5 must follow Phase 4 because the
-validator has no Review-shaped record to check until the output schema defines one. Phase 6 follows
-5 because the summary-line change edits the same function Phase 5 widens. Phase 7 is independent of
+the dangling-reference class `setup-refs:test` catches. Phase 7 must follow Phase 6 because the
+validator has no Review-shaped record to check until the output schema defines one. Phase 8 follows
+5 because the summary-line change edits the same function Phase 7 widens. Phase 9 is independent of
 3–6 and could be parallelised, but is placed after them so a single validator file is edited by one
-phase at a time. Phase 8 is last because a fixture can only be written against a rule that exists.
+phase at a time. Phase 10 is last because a fixture can only be written against a rule that exists.
 
 ## Branch Strategy
 
@@ -307,13 +343,14 @@ phase at a time. Phase 8 is last because a fixture can only be written against a
 
 | Risk | Likelihood | Impact | Mitigation | Owner phase | Manifest IDs | Waiver needed |
 |---|---|---|---|---|---|---|
-| Widening the `briefs/` filter brings 30 existing review artifacts into scope and newly fails some | low | high | Verified at plan time: none carries a `## Council Log`, so presence-symmetry short-circuits. Phase 5's exit gate re-checks all 30 with zero edits | Phase 5 | R6, RI1 | no |
+| Widening the `briefs/` filter brings 30 existing review artifacts into scope and newly fails some | low | high | Verified at plan time: none carries a `## Council Log`, so presence-symmetry short-circuits. Phase 7's exit gate re-checks all 30 with zero edits | Phase 9 | R6, RI1 | no |
 | A Review council on every Complex chain multiplies invocations, as R21 measured for Think | high | medium | RI5 forces an explicit Review default rather than inheriting Think's 3; `council.enabled` disables it; the ledger makes the cost answerable rather than anecdotal | Phase 1 | RI5, R5, R7 | no |
-| Ledger rotation loses a row — closed in the active file, never written to the archive | medium | high | Rotation is one operation with both post-conditions checked: present in exactly one file. Two fixtures, both directions | Phase 6 | RI6, RI16 | no |
-| The metric is computed from the lean active file and silently stops being a baseline | medium | high | Explicit design decision recorded in the brief; the conformance pin fails a count drawn from the active file alone | Phase 6, 8 | RI8 | no |
-| R1's no-fix rule collides with the review output schema's requirement that every finding carry one | high | high | Already resolved at Plan: the rule binds council-log findings only. Both documents must state it, and Phase 5's fixture proves the parent's findings still pass | Phases 4, 5 | R1, RI2 | no |
-| Preserved single-agent path drifts from a real rollback surface into a paraphrase | medium | medium | Copy verbatim before editing; byte-lock by conformance, as `r21-single-agent-verbatim` does | Phase 4 | RI3, R7 | no |
+| Ledger rotation loses a row — closed in the active file, never written to the archive | medium | high | Rotation is one operation with both post-conditions checked: present in exactly one file. Two fixtures, both directions | Phase 10 | RI6, RI16 | no |
+| The metric is computed from the lean active file and silently stops being a baseline | medium | high | Explicit design decision recorded in the brief; the conformance pin fails a count drawn from the active file alone | Phase 8, 8 | RI8 | no |
+| R1's no-fix rule collides with the review output schema's requirement that every finding carry one | high | high | Already resolved at Plan: the rule binds council-log findings only. Both documents must state it, and Phase 7's fixture proves the parent's findings still pass | Phases 4, 5 | R1, RI2 | no |
+| Preserved single-agent path drifts from a real rollback surface into a paraphrase | medium | medium | Copy verbatim before editing; byte-lock by conformance, as `r21-single-agent-verbatim` does | Phase 8 | RI3, R7 | no |
 | 1.1.0 is held for the length of a Complex chain | high | medium | Accepted by the user as scope. Phases are independently reviewable, so partial progress is shippable only as a whole package — no partial-council state ships | user | — | no |
+| Wiring definitions to their schemas newly fails a definitions file that was silently non-conforming | medium | medium | Phase 2's exit gate requires the unmodified repo to validate clean before the probes are re-run; any pre-existing violation is fixed or recorded, never suppressed | Phase 2 | RI21 | no |
 | A validator edited by three phases (5, 6, 7) accumulates conflicting assumptions | medium | medium | Sequential phases, each with its own exit gate and full suite run; no two phases edit it concurrently | Phases 5–7 | RI1, RI8, RI10 | no |
 
 ## Verification Plan
@@ -351,6 +388,9 @@ and `npm run build` are discovered from `package.json` scripts, permitted by
 | RI17 | fixture | two reviewers sharing a risk category | rejected | Review | Coverage overlap unnoticed |
 | RI18 | fixture | `failed` member with no skipped-check entry | rejected | Test | A dead bucket disappears |
 | RI19 | fixture | Review run whose repo digest moved | rejected | Test | A reviewer mutates the repo |
+| RI20 | inspection + command | both phases resolve from `per_phase`; a third phase resolves to 1 | as stated | Review | Silent inheritance returns |
+| RI21 | probe | the three Phase 1 probes re-run | each rejected with one error | Review | Schema constraints stay decoration |
+| RI22 | command | `npm run validate`; `npm run setup-checks:test` | exit 0; override affects one phase only | Test | Repos cannot tune what they are billed for |
 
 ## Architecture Notes
 
@@ -383,14 +423,21 @@ and `npm run build` are discovered from `package.json` scripts, permitted by
   alternative for the boundary: putting the ledger writer inside `check-council-record.mjs` so one
   file both validates and records — rejected because a validator that writes is no longer a
   validator, and every other validator in this repo is read-only.
+- decision (post-approval, user-directed): council fan-out is per-phase and symmetric rather than
+  Think-implicit. The first Phase 1 implementation kept `default_fan_out` as Think's and added
+  `per_phase.review`, which reads as a special case and invites the next phase to be added the same
+  ad-hoc way. Symmetric configuration costs one more line and removes the question.
+- decision: B1 is fixed inside this package rather than filed. A package whose thesis is that
+  unenforced contracts drift cannot itself ship constraints that do not constrain — and RI5's own
+  schema constraints were the ones found inert.
 - constraint: Additive-only for 1.1.0; zero runtime dependencies; the five adapters stay in sync.
 - tradeoff (quality-gates-validator): The bars that matter here are fixtures and conformance, not
   unit coverage — this repo has no unit-test framework by design. Adequacy judgment: the violation
   suite is adequate *only* under the one-error-per-fixture rule, because a fixture rejected for two
   reasons keeps passing when the rule it targets regresses. That rule is therefore a phase exit
-  gate (Phase 8), not a convention. Lint/type and security-scan bars are not applicable: no
+  gate (Phase 10), not a convention. Lint/type and security-scan bars are not applicable: no
   TypeScript, and the package ships no network or credential surface.
-- tradeoff: Sequencing Phase 7 after 5 and 6 costs parallelism to keep one validator file under one
+- tradeoff: Sequencing Phase 9 after 5 and 6 costs parallelism to keep one validator file under one
   phase's ownership at a time.
 - downstream: Build executes one phase at a time; each phase's exit gate is a command or an
   inspection with a binary result. Test inherits the fixture and conformance evidence. Ship inherits

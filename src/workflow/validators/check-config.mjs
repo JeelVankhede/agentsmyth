@@ -39,6 +39,40 @@ for (const schemaPath of listFiles(defsPath('schemas')).filter((file) => file.en
   }
 }
 
+// Definitions files get the same treatment repo config already gets. Without this, a schema that
+// ships alongside a definitions file describes it without constraining it: `agent-behavior.yaml`
+// had a schema declaring a required-key list, two enums and numeric bounds, and nothing anywhere
+// loaded it. Three probes that should have failed — an out-of-range fan-out, an unknown key under a
+// closed object, an unknown phase — all passed, because the schema was never applied to the
+// document it describes.
+//
+// Same failure shape as a config key that is resolved and never compared against: every surface
+// looks correct except the one that does the work. Keyed off `kind` exactly as the repo-config loop
+// below is, so a definitions file and a repo config are checked by one rule rather than two.
+for (const name of ['agent-behavior.yaml']) {
+  const defPath = defsPath(name);
+  if (!pathExists(defPath)) {
+    // Not an error: a repo may be validated before its definitions root resolves (fresh init, or a
+    // CI checkout with no global install). Recorded rather than skipped silently, so a check that
+    // did not run never reads as one that passed.
+    details.push(`skipped ${name} schema check — ${defPath} not found`);
+    continue;
+  }
+  const doc = loadYaml(defPath);
+  if (!doc?.kind) {
+    errors.push(`${defPath} missing kind`);
+    continue;
+  }
+  const defSchemaPath = defsPath('schemas', `${doc.kind}.schema.yaml`);
+  if (!pathExists(defSchemaPath)) {
+    errors.push(`${defPath} has no matching schema ${defSchemaPath}`);
+    continue;
+  }
+  const defSchema = loadYaml(defSchemaPath);
+  validateSchema(doc, defSchema, defPath, errors, schemas, defSchema);
+  details.push(`checked ${defPath} against ${defSchemaPath}`);
+}
+
 for (const configPath of listFiles(configDir).filter((file) => file.endsWith('.yaml'))) {
   const config = loadYaml(configPath);
   if (!config.kind) {
