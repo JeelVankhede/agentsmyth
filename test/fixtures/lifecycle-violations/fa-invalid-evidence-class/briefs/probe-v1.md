@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 
@@ -110,7 +110,7 @@ council:
 | F2 | m2 | researcher | 1 | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F3 | m3 | researcher | 1 | prior art | recall | | accepted | |
 | F4 | c1 | challenger | 1 | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-| F5 | m2 | researcher | 1 | package.json | repo | `package.json` engines field | accepted | |
+| F5 | m2 | researcher | 1 | package.json | hunch | `package.json` engines field | accepted | |
 | F6 | m2 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F7 | c1 | challenger | 2 | web spot-check of F6 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 

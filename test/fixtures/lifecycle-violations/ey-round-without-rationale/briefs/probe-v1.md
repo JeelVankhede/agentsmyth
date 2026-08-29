@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 
@@ -100,7 +100,7 @@ council:
 | Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |
 |---|---|---|---|---|---|---|
 | 1 | 3 | 1 | 4 | 2 | Q2, Q3 | — |
-| 2 | 2 | 1 | 2 | 1 | Q4 | Two items remained; tapered as coverage narrowed |
+| 2 | 2 | 1 | 2 | 1 | Q4 |  |
 
 ### Findings
 

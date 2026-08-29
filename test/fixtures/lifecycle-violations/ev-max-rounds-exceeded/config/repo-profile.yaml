@@ -1,0 +1,5 @@
+version: 1
+kind: repo-profile
+tuning:
+  council:
+    max_rounds: 1

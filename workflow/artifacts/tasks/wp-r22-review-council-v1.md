@@ -540,6 +540,37 @@ when a change reaches outside the active phase's declared scope.
 
 </details>
 
+## Test Phase — Mutation Testing (2026-08-30)
+
+The first Test pass re-ran the suites, found them green, and recommended ship. The user rejected it:
+re-running the same checks the Build phases ran confirms nothing about whether those checks would
+notice a defect. Replaced with **mutation testing** — disable one rule at a time in the four
+validators, run the suites, record what survives.
+
+**27 of 86 rules survived.** They could be deleted with `validate`, `violations:test` and
+`conformance:test` all green. Driven to **0 survivors** across four rounds:
+
+1. Baseline: 27 survivors.
+2. Fixtures gained an `expect` string, so rejecting is no longer enough — a fixture must reject for
+   the rule it names. 26 remained.
+3. 22 fixtures written for rules with no coverage at all. 4 remained.
+4. Per-fixture `env` added to the harness, because four rules fire only against a crafted
+   definitions root and were unfixturable by the harness's own design. 0 remained.
+
+**The sharpest finding: `cp-missing-classification` tested the wrong rule.** Its description names
+the per-manifest-ID rule; it deletes the whole subsection, so it triggered a different rule and the
+one it named had no coverage. The attribution sweep could not see this — it counts errors, not which
+rule produced them. A fixture can reject, emit exactly one error, satisfy every check in the suite,
+and still not exercise the rule it claims to.
+
+Fixtures 92 → **119**; 27 of those exist because a rule was found undefended, not because a rule was
+added. Files under `test/fixtures/definitions/` are new: crafted definitions roots, which is what
+makes the last four rules testable.
+
+Left unmeasured and recorded as a skipped check: the other 20 validators in
+`src/workflow/validators/` were not mutated. The 31% survival rate found here says nothing about
+them either way.
+
 ## CI Reproduction (2026-08-30)
 
 PR #65 opened against `release/1.1.0`, which is what makes CI run — `feat/**` is in no push filter,

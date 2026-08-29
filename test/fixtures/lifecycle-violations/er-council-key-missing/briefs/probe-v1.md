@@ -18,7 +18,6 @@ council:
   mode: council
   authorization: carve-out
   cap_resolved: 3
-  cap_source: configured
   depth: standard
   dispatch_depth: 1
   rounds_run: 2
@@ -81,7 +80,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 

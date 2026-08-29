@@ -31,6 +31,39 @@ orchestration:
   PR #65 — the same suites on a fresh checkout, which is what makes the numbers below more than one
   machine's claim.
 
+## Mutation Test — the primary evidence
+
+Re-running the suites proves they still pass; it proves nothing about whether they would notice a
+rule being removed. The first version of this artifact did exactly that and called it verification.
+So the real test here is **mutation testing**: disable one rule at a time in the four validators,
+run the suites, and record whether anything fails. A mutant that SURVIVES is a rule the suite does
+not defend, however carefully it was written.
+
+| Round | Mutants | Survivors | What changed |
+|---|---|---|---|
+| 1 — as shipped after Review | 86 | **27** | Baseline. 27 of 86 rules could be deleted with `validate`, `violations:test` and `conformance:test` all green |
+| 2 — after asserting *which* rule fired | 86 | 26 | Fixtures now carry an `expect` string; rejecting is no longer enough, it must reject for the named rule |
+| 3 — after writing 22 missing fixtures | 86 | 4 | The remaining four fire only against a crafted definitions root |
+| 4 — after per-fixture `env` support | 86 | **0** | Every rule in every validator is defended |
+
+**The finding that mattered most.** `cp-missing-classification` is described as testing "manifest ID
+has no Requirement Classification entry". It deletes the entire subsection, so it actually triggered
+a *different* rule — and the per-ID rule it names had no fixture at all. The attribution sweep could
+not see this: it counts errors, not which rule produced them. A fixture can reject, emit exactly one
+error, satisfy every check in the suite, and still not exercise the rule it claims to. That is a
+sharper version of the Phase 10 regression, and it was invisible until mutation testing.
+
+Two structural fixes came out of it, both permanent:
+
+- Every fixture now declares an `expect` substring, and the harness fails a fixture that rejects for
+  the wrong reason. `cp` was re-targeted and the subsection rule got its own fixture (`em`).
+- The harness supports a per-fixture `env`, so rules that only fire against a crafted definitions
+  root — a missing schema, a file with no `kind`, a check that validated nothing — are fixturable at
+  all. Four rules had been unreachable by the harness's own design.
+
+Fixture count rose 92 → **119**, and 27 of those exist because a rule was found undefended rather
+than because a rule was added.
+
 ## Automated Checks
 
 Every command run, with its real exit status. Nothing here is inferred from a previous run.
@@ -38,7 +71,7 @@ Every command run, with its real exit status. Nothing here is inferred from a pr
 | Command | Outcome | Evidence |
 |---|---|---|
 | `npm run validate` | pass | exit 0 |
-| `npm run violations:test` | pass | exit 0 — `92/92 violations detected`; `attribution sweep: 62/62 council fixtures emit exactly one error` |
+| `npm run violations:test` | pass | exit 0 — `119/119 violations detected`; `attribution sweep: 84/84 council fixtures emit exactly one error` |
 | `npm run conformance:test` | pass | exit 0 — `44/44 conformance checks passed` |
 | `npm run tuning-merge:test` | pass | exit 0 — `15/15 tuning-merge assertions passed` |
 | `npm run setup-checks:test` | pass | exit 0 |
@@ -52,7 +85,9 @@ Every command run, with its real exit status. Nothing here is inferred from a pr
 | `node scripts/render-adapters.mjs` | pass | exit 0 — `render-adapters: adapter shims are current` |
 | `node src/workflow/validators/check-finding-quality.mjs` | pass | `56 proved real, 0 noise, 0 waived, 0 pending` across both ledger files |
 | `node src/workflow/validators/check-release-readiness.mjs` | pass | No pending row blocks this chain's ship |
-| CI, all of the above on a fresh checkout | pass | Run 33271243967, ubuntu-latest / Node 20 |
+| Mutation test, 4 rounds | pass | 86 mutants, **0 survivors** — every rule in `check-council-record`, `check-finding-quality`, `check-release-readiness` and `check-definitions` is defended by a fixture that fails without it |
+| `HOME=/nonexistent npm run violations:test` / `conformance:test` | pass | Reproduces the CI condition locally: 119/119, 44/44 |
+| CI, the suites on a fresh checkout | pass | Run 33271243967, ubuntu-latest / Node 20 (pre-dates the 27 new fixtures; the PR run after this commit is the current reproduction) |
 
 **A note on how these were run.** The first attempt used a shell function passing the command as an
 unquoted parameter; zsh does not word-split those, so every command reported `exit=127` — command
@@ -119,17 +154,24 @@ than carried to Ship.
 
 ## Findings
 
-none
+**27 rules were undefended, and one fixture tested the wrong rule.** Both are fixed; both were
+invisible to every check that existed before this phase.
 
-No new defect was found at Test. That is a weaker statement than it looks: every check run here is
-one the Build phases also ran, and the Review council found 30 defects that all of them passed. Test
-confirms the remediation holds against the suite; it is not independent evidence that the
-remediation is correct.
+| ID | Finding | Disposition |
+|---|---|---|
+| T-1 | 27 of 86 validator rules could be deleted with all suites green — no fixture exercised them | fixed: 22 new fixtures, plus 4 reachable only after adding per-fixture `env` |
+| T-2 | `cp-missing-classification` rejected via a different rule than its description names, so the named rule had no coverage and the attribution sweep could not tell | fixed: `cp` re-targeted, `em` added for the subsection rule, and every fixture now asserts *which* rule fired |
+| T-3 | The violations harness could not express a rule that fires only against a crafted definitions root, so four such rules were unfixturable by design | fixed: per-fixture `env`, with fixtures `fj`–`fm` |
+
+These are Test findings, not Review findings: they are defects in the *verification*, which is what
+this phase owns. The shipped behaviour was correct in every case — the suite simply would not have
+noticed had it stopped being correct.
 
 ## Skipped Checks
 
 | Check | Why Skipped | Risk | Owner | Blocks Ship | Manifest IDs |
 |---|---|---|---|---|---|
+| Mutation testing of the other 20 validators | Only the four validators this package created or changed were mutated. The rest of `src/workflow/validators/` is unmeasured | Rules elsewhere may be equally undefended; the 31% survival rate found here is not evidence about them either way | workflow owner | no | — |
 | Second Review council over the remediation | The remediation of the council's 31 findings was written by the same agent the council exists to check, and no second council was run over it | A defect introduced while fixing would be caught only by the suites, which is exactly the coverage the first council proved insufficient | user | no | R1–R7, RI1–RI25 |
 | Review-council cost baseline | No single-agent Review baseline was run against this diff, so the council's cost-per-finding is unmeasured for this phase | `council.enabled` defaults on for Complex work with the Review cost unquantified; WP-R21 measured ~6x for Think | user | no | RI5 |
 
@@ -138,10 +180,16 @@ remediation is correct.
 - role: Senior QA
 - decision: Recommend `ship`. Every active requirement has pass evidence from a command, a fixture,
   a conformance check, or a recorded probe, and the numbers reproduce on a fresh checkout.
-- observation: The most valuable evidence in this phase is not the green suites — the Build phases
-  had those too, while 30 defects sat in the work. It is the CI run, which caught a harness that
-  passed locally and died on a runner, and RI11, which Test could verify precisely because it is not
-  under the council's read-only fence.
+- decision: The primary evidence in this phase is the mutation test, not the suite run. Re-running
+  green suites is confirmation; deleting a rule and checking that something fails is verification.
+  The first version of this artifact did the former and called it the latter, and the user rejected
+  it on exactly that ground.
+- observation: **31% of the rules were undefended.** The suites, the attribution sweep, and a
+  council of four agents all passed over them. What found them was asking a different question —
+  not "does it pass" but "would it notice".
+- observation: The `cp` finding generalises beyond this repo: a passing negative test can be
+  passing for the wrong reason, and no amount of counting errors reveals it. Asserting the expected
+  error is cheap and would have caught it years earlier.
 - constraint: Two skipped checks are recorded rather than closed, both about the limits of who
   checked whom. Neither blocks Ship; both are real.
 - downstream: Ship inherits a clean ledger — 56 rows closed and rotated, nothing pending — so the

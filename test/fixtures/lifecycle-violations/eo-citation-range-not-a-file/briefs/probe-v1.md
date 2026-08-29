@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 
@@ -106,7 +106,7 @@ council:
 
 | Finding | Member | Role | Round | Surface | Evidence class | Citation | Disposition | Reason / merged into |
 |---|---|---|---|---|---|---|---|---|
-| F1 | m1 | researcher | 1 | package.json | repo | see `package.json` scripts block | accepted | |
+| F1 | m1 | researcher | 1 | package.json | repo | see `src/workflow/validators` L1-5 | accepted | |
 | F2 | m2 | researcher | 1 | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 | F3 | m3 | researcher | 1 | prior art | recall | | accepted | |
 | F4 | c1 | challenger | 1 | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |

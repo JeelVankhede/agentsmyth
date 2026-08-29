@@ -30,7 +30,7 @@ council:
   repo_integrity:
     before: sha256:aaaaaaaaaaaa
     after: sha256:aaaaaaaaaaaa
-    algorithm: sha256/sorted-relpath+size+content
+    algorithm: md5-of-something
   evidence_classes:
     repo: used
     trial: unused
@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 

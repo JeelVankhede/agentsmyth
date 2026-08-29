@@ -73,7 +73,7 @@ council:
 
 ## Questions For User
 
-- **Q5** — recommend deferring; rests on F1 (repo) and F2 (web)
+- **Q5** — recommend deferring this until the next release cycle for cost reasons
 
 ## Council Log
 
@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 

@@ -21,7 +21,7 @@ council:
   cap_source: configured
   depth: standard
   dispatch_depth: 1
-  rounds_run: 2
+  rounds_run: 0
   termination_reason: user-decision-required
   resolution:
     dispatch_enabled: optional
@@ -32,10 +32,10 @@ council:
     after: sha256:aaaaaaaaaaaa
     algorithm: sha256/sorted-relpath+size+content
   evidence_classes:
-    repo: used
+    repo: unused
     trial: unused
-    web: used
-    recall: used
+    web: unused
+    recall: unused
 ---
 # Probe - Brief
 
@@ -73,7 +73,7 @@ council:
 
 ## Questions For User
 
-- **Q5** — recommend deferring; rests on F1 (repo) and F2 (web)
+- **Q5** — recommend deferring; rests on no finding, since the bucket never ran
 
 ## Council Log
 
@@ -81,7 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
-| R2 | a requirement that is not in manifest_ids | repo |
+| R1 | how the thing behaves today | repo, web |
 
 ### Members
 
@@ -99,20 +99,11 @@ council:
 
 | Round | Researchers | Challengers | Open in | Open out | Items closed | Sizing rationale |
 |---|---|---|---|---|---|---|
-| 1 | 3 | 1 | 4 | 2 | Q2, Q3 | — |
-| 2 | 2 | 1 | 2 | 1 | Q4 | Two items remained; tapered as coverage narrowed |
 
 ### Findings
 
 | Finding | Member | Role | Round | Surface | Evidence class | Citation | Disposition | Reason / merged into |
 |---|---|---|---|---|---|---|---|---|
-| F1 | m1 | researcher | 1 | package.json | repo | see `package.json` scripts block | accepted | |
-| F2 | m2 | researcher | 1 | upstream defaults | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-| F3 | m3 | researcher | 1 | prior art | recall | | accepted | |
-| F4 | c1 | challenger | 1 | web spot-check of F2 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-| F5 | m2 | researcher | 1 | package.json | repo | `package.json` engines field | accepted | |
-| F6 | m2 | researcher | 2 | upstream defaults, revisited | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
-| F7 | c1 | challenger | 2 | web spot-check of F6 | web | https://example.com/spec retrieved 2026-08-17 — "the default timeout is thirty seconds" | accepted | |
 
 ### Reconcile Contract
 
