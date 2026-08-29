@@ -197,6 +197,23 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 RI8 — the quality figure must be computed over BOTH ledger files. The fixture holds one
+// pending row in the active file and two closed rows in the archive, so a tally taken from the
+// active file alone reports "0 proved real" and fails this check. That is the whole hazard the
+// two-file split creates: rotation keeps the working file lean, and a figure read from it silently
+// stops being a baseline while still looking like one.
+const fq = run(V('check-finding-quality'), ['--dir', 'test/fixtures/conformance/finding-quality-both-files']);
+check('r22-finding-quality-spans-both-files', 'quality tally counts active and archived rows together',
+  fq.status === 0 &&
+  /1 proved real, 1 noise, 0 waived, 0 unresolved at reflect, 1 pending/.test(fq.out) &&
+  /% of settled findings proved real/.test(fq.out));
+
+// Absence is valid. A repo that has never run a Review council has no ledger, and a checker that
+// failed on absence would make the feature mandatory by the back door.
+const fqAbsent = run(V('check-finding-quality'), ['--dir', 'test/fixtures/conformance/council-wellformed']);
+check('r22-finding-quality-absent-ok', 'a repo with no ledger passes rather than failing',
+  fqAbsent.status === 0 && /no finding-quality ledger/.test(fqAbsent.out));
+
 // WP-R22 RI1 — positive control for the REVIEW record. Without it, the Review-specific rejection
 // rules would be satisfied by a validator that rejects every review, and the filter widening would
 // be unverified in the direction that matters: a council-mode review must be CHECKED, not skipped.

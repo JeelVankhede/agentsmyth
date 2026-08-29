@@ -315,8 +315,14 @@ to one example.
 - **Manifest IDs:** R5, RI7, RI8, RI16
 - Touches: `src/workflow/validators/check-finding-quality.mjs`,
   `src/workflow/validators/check-release-readiness.mjs`,
-  `src/workflow/validators/check-council-record.mjs`,
-  `scripts/validate-template.mjs`
+  `scripts/validate-template.mjs`,
+  `test/fixtures/conformance/finding-quality-both-files/`,
+  `test/run-conformance-tests.mjs`
+- Touches corrected 2026-08-29 during Build: `check-council-record.mjs` is NOT touched. RI8 was
+  planned to put the quality figure on that validator's summary line, but the ledger figure belongs
+  to the validator that owns the ledger — putting it on the record validator would mean two readers
+  of the same two files, which is the duplicated-fact shape this package keeps closing. The fixture
+  and its pins land here because the both-files property is what they prove.
 - Work: create the ledger validator mirroring `check-open-items.mjs` — validate when present, exit 0
   with a stated message when absent. Register it. Add the Ship closure gate with a waiver escape
   mirroring the open-P0/P1 handling. Extend the summary line with proved-real / noise / pending

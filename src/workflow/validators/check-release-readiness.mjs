@@ -2,7 +2,7 @@
 // release-readiness-gate. For ship artifacts, confirms the Ship Status section
 // declares exactly one of ship/hold/hold-with-waiver, and that a "ship" declaration is not
 // contradicted by unresolved orchestration.blockers or an unwaived P0/P1 in the upstream review.
-import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
+import { finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -154,6 +154,26 @@ for (const file of artifactFiles) {
       return n > Number(best.match(/-v([0-9]+)\.md$/)?.[1] ?? 0) ? f : best;
     })
     : null;
+  // RI7 — a finding raised at Review must be settled by Ship. The finding-quality ledger is the
+  // record; a row still `pending` when a chain declares "ship" is a finding nobody came back to.
+  // Mirrors the open-P0/P1 handling directly above, waiver escape included: this is the same shape
+  // of claim — "there is unfinished business, and shipping anyway is a decision someone has to
+  // record" — so it gets the same mechanism rather than a second one that drifts from it.
+  if (recommendation === 'ship') {
+    const ledgerPath = `${artifactsDir}/finding-quality.yaml`;
+    if (pathExists(ledgerPath)) {
+      const ledger = loadYaml(ledgerPath);
+      const pending = (ledger?.items ?? []).filter((row) => row?.outcome === 'pending');
+      if (pending.length > 0) {
+        const waived = /## Waivers\s*\n[\s\S]*?finding[- ]quality/i.test(parsed.body);
+        if (!waived) {
+          const ids = pending.map((row) => row.id).filter(Boolean).join(', ');
+          errors.push(`${file} declares "ship" but the finding-quality ledger has ${pending.length} row(s) still pending (${ids}) with no matching Waivers entry; a finding raised at Review is settled by Ship or waived, never left open`);
+        }
+      }
+    }
+  }
+
   if (recommendation === 'ship' && latestReview) {
     const reviewText = readText(latestReview);
     let reviewParsed;

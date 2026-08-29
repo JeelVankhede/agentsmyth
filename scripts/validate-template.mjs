@@ -51,6 +51,7 @@ const artifactCommands = [
   // Was never registered anywhere, so it never ran — the same "exists but is not wired" defect as
   // the unapplied agent-behavior schema. Run directly it failed immediately on this repo.
   ['node', ['src/workflow/validators/check-pending-setup.mjs']],
+  ['node', ['src/workflow/validators/check-finding-quality.mjs']],
   // Previously documented but never actually invoked by any script, CI job, or test runner
   // (found via audit-validator-fixture-gaps) — both check real dev-workspace/repo state directly,
   // no env override needed.

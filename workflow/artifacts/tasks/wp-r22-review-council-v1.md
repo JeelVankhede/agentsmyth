@@ -21,11 +21,10 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 8 - Ledger validator, closure gate, reporting
-- Manifest IDs: R5, RI7, RI8, RI16
-- Exit gate: a repo with no ledger exits 0; a `pending` row blocks a `ship` declaration without a
-  waiver; the summary line reports counts drawn from both ledger files, and a count computed from
-  the active file alone fails its conformance pin.
+- Phase: Phase 9 - Per-question bucket join
+- Manifest IDs: RI10
+- Exit gate: the rule fires on a question whose own bucket is repo-classified and does not fire on
+  one whose bucket is external; both directions have a fixture; OI-81 closes with a resolution.
 
 ## Plan Phases Overview
 
@@ -41,8 +40,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 5 - Review council skill and charter | complete | R2, R3, RI12, RI19 |
 | Phase 6 - lifecycle-review restructuring and record shape | complete | R7, RI3, RI13, RI14, RI17, RI18 |
 | Phase 7 - Validator extended to review artifacts | complete | R1, R4, R6, RI1, RI2, RI4 |
-| Phase 8 - Ledger validator, closure gate, reporting | active | R5, RI7, RI8, RI16 |
-| Phase 9 - Per-question bucket join | pending | RI10 |
+| Phase 8 - Ledger validator, closure gate, reporting | complete | R5, RI7, RI8, RI16 |
+| Phase 9 - Per-question bucket join | active | RI10 |
 | Phase 10 - Fixtures, conformance, generated output | pending | RI9, RI11 |
 
 ## Branch / Repo Status
@@ -83,6 +82,20 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 8 (R5, RI7, RI8, RI16).**
+
+- `src/workflow/validators/check-finding-quality.mjs` — new; schema validation of both ledger files,
+  both rotation directions, closed-only archive, the R5 cross-check that every council finding has a
+  row, and the quality tally computed across both files — IDs: R5, RI16, RI8
+- `src/workflow/validators/check-release-readiness.mjs` — the Ship closure gate: a `pending` row
+  blocks a `ship` declaration unless a Waivers entry covers it, mirroring the open-P0/P1 handling
+  directly above it rather than inventing a second mechanism — IDs: RI7
+- `scripts/validate-template.mjs` — `check-finding-quality` registered — IDs: RI16
+- `test/fixtures/conformance/finding-quality-both-files/` — new; one pending row active, two closed
+  rows archived, so a tally read from the active file alone reports "0 proved real" and fails — IDs: RI8
+- `test/run-conformance-tests.mjs` — `r22-finding-quality-spans-both-files`,
+  `r22-finding-quality-absent-ok` — IDs: RI8, RI16
 
 **Phase 7 (R1, R4, R6, RI1, RI2, RI4).**
 
@@ -158,6 +171,29 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 8 (R5, RI7, RI8, RI16).** `check-finding-quality.mjs` models `check-open-items.mjs` —
+validate when present, exit 0 with a message when absent — with rotation as the rule specific to a
+two-file ledger. Both failure directions are checked, because neither is visible from one file: a
+row in both files was copied rather than moved, and a closed row still in the active file was never
+rotated. A pending row in the archive is rejected too — nothing scans the archive for work to
+finish, so it would sit forever while reading as accounted for.
+
+**Absence is conditional, not always-fine.** A repo that never ran a Review council legitimately has
+no ledger. One that HAS run a council and recorded no outcomes has lost exactly the record R5
+exists to keep, and would otherwise pass by not creating the file — the omission escape this package
+has closed twice already. So the ledger's absence is an error when a council-mode review exists.
+
+**A bug found by probing, not reading.** The R5 cross-check keyed rows on `source_artifact` as a
+path string, which matched only when the validator ran from the repo root; under `--dir` a
+repo-relative ledger row could never match the scanned path. Keys are normalised to the artifact
+FILENAME, which carries slug and version — the identity the key actually needs — and survives the
+artifacts tree being relocated.
+
+RI8 moved home. The plan put the quality figure on `check-council-record`'s summary line; it belongs
+to the validator that owns the ledger. Reporting it from the record validator would put two readers
+on the same two files, which is the duplicated-fact shape being closed throughout. Brief and plan
+amended; no requirement changed, only its home.
 
 **Phase 7 (R1, R4, R6, RI1, RI2, RI4).** The filter widening was the smallest part. The real hazard
 was that the Review record adds columns *mid-table* — `Risk category` in Findings, `Input` and
@@ -372,6 +408,17 @@ expanding scope unilaterally.
 | Probe: Fix column in council-log Findings | Phase 7 | pass — rejected | One error once the probe filled the added column; the first attempt emptied a reason cell and produced a second, unrelated error — probe artefact, not a validator defect |
 | R6: 30 review artifacts in scope | Phase 7 | pass | All validate unedited; `git status` on `workflow/artifacts/reviews/` and `examples/` clean |
 | `npm run conformance:test` | Phase 7 | pass | **38/38**, was 36 |
+| Probe: absent ledger | Phase 8 | pass | Exits 0 with a message — the feature is not mandatory by the back door |
+| Probe: closed row never rotated out of active | Phase 8 | pass — rejected | |
+| Probe: same row in both files | Phase 8 | pass — rejected | Would be double-counted in every figure |
+| Probe: pending row in the archive | Phase 8 | pass — rejected | |
+| Probe: archive deleted, active kept | Phase 8 | pass — rejected | A figure from one file is not a baseline |
+| Probe: council review with NO ledger | Phase 8 | pass — rejected | Names the 3 unrecorded findings and their artifact |
+| Probe: ledger present, 3 findings unrecorded | Phase 8 | pass — 3 errors | One per unrecorded finding |
+| Probe: all findings recorded, repo-relative paths | Phase 8 | pass | Exposed and fixed the path-string keying bug — normalised to filename |
+| Probe: ship declared with a pending row, no waiver | Phase 8 | pass — rejected | Names the pending IDs |
+| Probe: same, with a finding-quality waiver | Phase 8 | pass — accepted | 0 pending errors; the gate discriminates rather than blanket-blocking |
+| `npm run conformance:test` | Phase 8 | pass | **40/40**, was 38 |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -426,6 +473,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 8 - Ledger validator, closure gate, reporting | complete | 2026-08-29 | `check-finding-quality` validates both files, both rotation directions, and the closed-only archive; ledger absence is an error only when a council review exists, closing the omission escape. Ship gate blocks a pending row without a waiver and clears with one. Quality tally spans both files, pinned by a fixture that fails if read from the active file alone. Probing exposed a path-string keying bug that made the R5 cross-check work only from the repo root; keys normalised to the artifact filename. RI8 rehomed to the ledger validator. Conformance 38 -> 40 |
 | Phase 7 - Validator extended to review artifacts | complete | 2026-08-29 | Filter widened to briefs and reviews; fixed-index parsing replaced by header-keyed reads, since the Review record inserts columns mid-table and every later index would have silently shifted. 69 existing fixtures pass unchanged. Five Review-only rules enforced and each probed against a new positive control. RI2 enforced structurally against a declared column, with the prose-smuggling limit stated as a non-claim. RI4 needed no schema change and none was made. Conformance 36 -> 38 |
 | Phase 6 - lifecycle-review restructuring and record shape | complete | 2026-08-29 | Preserved path extracted from the committed blob before any edit and byte-locked, with the lock proven to discriminate. Mode resolution and six council stages added; single-agent route unchanged. Severity Summary starter block corrected to the five columns real reviews use — the validator had been widened to tolerate them and the block was the stale half. `### Skipped Checks` added so RI18's rule has a place to write its answer. Conformance 33 -> 36 |
 | Phase 5 - Review council skill and charter | complete | 2026-08-29 | `review-council/` mirrors `think-council`'s shape; three fences stated in the charter itself, risk categories disjoint across reviewers, R1's collision resolved by scoping the no-fix rule to council-log findings. `council-contracts.md` unchanged — it already named Review as a consumer. Conformance 30 -> 33 |
