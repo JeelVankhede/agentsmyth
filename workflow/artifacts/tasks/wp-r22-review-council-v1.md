@@ -21,11 +21,11 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 6 - lifecycle-review restructuring and record shape
-- Manifest IDs: R7, RI3, RI13, RI14, RI17, RI18
-- Exit gate: `single-agent-path.md` is byte-identical to the pre-edit Workflow; the starter block
-  produces an artifact that passes `npm run validate` unedited; both modes documented against one
-  output schema.
+- Phase: Phase 7 - Validator extended to review artifacts
+- Manifest IDs: R1, R4, R6, RI1, RI2, RI4
+- Exit gate: all 30 existing review artifacts validate with zero edits and `git status` on
+  `workflow/artifacts/reviews/` and `examples/` is clean; a council-mode review record is checked
+  rather than skipped; `npm run validate` and `npm run violations:test` exit 0.
 
 ## Plan Phases Overview
 
@@ -39,8 +39,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 | Phase 3 - Per-repo council tuning and the setup interview | complete | RI22 |
 | Phase 4 - Finding-quality ledger contract | complete | RI6, RI15, RI25 |
 | Phase 5 - Review council skill and charter | complete | R2, R3, RI12, RI19 |
-| Phase 6 - lifecycle-review restructuring and record shape | active | R7, RI3, RI13, RI14, RI17, RI18 |
-| Phase 7 - Validator extended to review artifacts | pending | R1, R4, R6, RI1, RI2, RI4 |
+| Phase 6 - lifecycle-review restructuring and record shape | complete | R7, RI3, RI13, RI14, RI17, RI18 |
+| Phase 7 - Validator extended to review artifacts | active | R1, R4, R6, RI1, RI2, RI4 |
 | Phase 8 - Ledger validator, closure gate, reporting | pending | R5, RI7, RI8, RI16 |
 | Phase 9 - Per-question bucket join | pending | RI10 |
 | Phase 10 - Fixtures, conformance, generated output | pending | RI9, RI11 |
@@ -83,6 +83,22 @@ schema-enforcement work lands early, where every later phase's constraints benef
   per-entry merge rule — IDs: RI22
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
+
+**Phase 6 (R7, RI3, RI13, RI14, RI17, RI18).**
+
+- `src/workflow/skills/lifecycle-review/references/single-agent-path.md` — new; the pre-council
+  10-step Workflow, extracted from the committed blob rather than retyped — IDs: R7, RI3
+- `src/workflow/skills/lifecycle-review/SKILL.md` — mode resolution before stage 1, six council
+  stages, the preserved path as the single-agent route, and eight council bullets on the Exit Gate
+  naming `check-council-record.mjs` — IDs: R7, RI13
+- `src/workflow/skills/lifecycle-review/references/output-schema.md` — `## Council Log` starter
+  block with seven subsections mirroring the Think record; Severity Summary corrected to the five
+  columns real reviews use; `### Skipped Checks` added so RI18 has somewhere to write — IDs: RI14, RI18
+- `src/workflow/skills/lifecycle-review/references/review-risk-categories.md` — the ten categories
+  become the council's assignment surface, disjoint across reviewers, files deliberately not
+  partitioned — IDs: RI17
+- `test/run-conformance-tests.mjs` — `r22-review-single-agent-verbatim`,
+  `r22-review-severity-columns`, `r22-review-council-log-block` — IDs: RI3, RI14
 
 **Phase 5 (R2, R3, RI12, RI19).**
 
@@ -129,6 +145,24 @@ schema-enforcement work lands early, where every later phase's constraints benef
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 6 (R7, RI3, RI13, RI14, RI17, RI18).** The preserved path was extracted from the committed
+blob with `git show HEAD:...` and written to `single-agent-path.md` **before** SKILL.md was touched,
+rather than retyped — a copy that is re-derived is the drift the byte-lock exists to catch. `diff`
+against the extracted text shows no difference beyond a trailing newline. The lock discriminates:
+altering one word of step 1 fails `r22-review-single-agent-verbatim`, and restoring it passes.
+
+`lifecycle-review` now resolves mode before stage 1 in the same first-answer-wins order R21
+established, then runs six stages in council mode — the parent owns grounding, category assignment
+and the verdict; the council owns fan-out, challenge and consolidation input. Single-agent mode is
+the preserved path, unchanged.
+
+Two record-shape fixes landed with it. The Severity Summary starter block declared
+`| Severity | Count |` while every real review used five columns and `check-release-readiness.mjs`
+had already been widened to tolerate them — the block a reviewer copies was the stale thing, so it
+now carries `Open | Found | IDs | Status`. And the Council Log gained a `### Skipped Checks`
+subsection: RI18's rule had a rule and no place to write the answer, which would have made it
+unenforceable at Phase 7 no matter what the validator did.
 
 **Phase 5 (R2, R3, RI12, RI19).** `review-council/` created, mirroring `think-council`'s shape.
 Three fences are stated in the charter itself rather than by reference, because a member loads only
@@ -286,6 +320,9 @@ expanding scope unilaterally.
 | Full suite re-run after the `lib.mjs` change | Phase 4 | pass | validate exit 0, 69/69 violations, 30/30 conformance, eight auxiliary suites — the engine is used by every validator, so the phase's own checks were not sufficient evidence |
 | `npm run conformance:test` | Phase 5 | pass | **33/33**, was 30. Three RI12 pins |
 | `git diff --numstat a099b28..HEAD` per file in `dispatch-subagents/references/` | Phase 5 | pass | Six of seven byte-identical, `council-contracts.md` and `independence-rules.md` among them, so A1 holds. `phase-caps.md` +36/-11 from Phase 1's RI5/RI20, which is a declared deliverable, not drift |
+| `diff` preserved path vs `git show HEAD:` extract | Phase 6 | pass | Identical apart from a trailing newline |
+| Probe: one word altered in preserved step 1 | Phase 6 | pass — rejected | `r22-review-single-agent-verbatim` fails on drift and passes when restored, so the lock discriminates rather than always passing |
+| `npm run conformance:test` | Phase 6 | pass | **36/36**, was 33 |
 | Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
@@ -340,6 +377,7 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 6 - lifecycle-review restructuring and record shape | complete | 2026-08-29 | Preserved path extracted from the committed blob before any edit and byte-locked, with the lock proven to discriminate. Mode resolution and six council stages added; single-agent route unchanged. Severity Summary starter block corrected to the five columns real reviews use — the validator had been widened to tolerate them and the block was the stale half. `### Skipped Checks` added so RI18's rule has a place to write its answer. Conformance 33 -> 36 |
 | Phase 5 - Review council skill and charter | complete | 2026-08-29 | `review-council/` mirrors `think-council`'s shape; three fences stated in the charter itself, risk categories disjoint across reviewers, R1's collision resolved by scoping the no-fix rule to council-log findings. `council-contracts.md` unchanged — it already named Review as a consumer. Conformance 30 -> 33 |
 | Phase 4 - Finding-quality ledger contract | complete | 2026-08-29 | Schema written to contract with three if/then conditionals, two ledger files created. Probing showed every conditional was inert: the engine skipped `required` whenever no `properties` sibling was present, which is the shape every `then:` branch takes. Fixed in lib.mjs as RI25 and locked by two direct engine assertions, since check-schema-keywords structurally cannot catch it. Conformance 28 -> 30 |
 | Phase 3 - Per-repo council tuning and the setup interview | complete | 2026-08-29 | `tuning.council.per_phase` mirrors the global shape and merges per entry (m12-m14, 14/14). The interview item was added by running the real `check` skew path, and a second run added nothing. Both probe directions discriminate: an out-of-range repo override is rejected naming the path, a valid one is accepted. Two findings recorded for Review — the dogfood loop validates the global definitions rather than the source, and `check-pending-setup` is never registered |

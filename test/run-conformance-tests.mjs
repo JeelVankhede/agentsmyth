@@ -197,6 +197,32 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 RI3 — the preserved single-agent Review path must stay a verbatim copy, not a paraphrase.
+// A "preserved" path that drifts into a reconstruction is not a rollback surface. The steps are
+// byte-compared against the pre-council text; the closing step is included because a truncated copy
+// is the likeliest drift.
+const reviewSingleAgent = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/references/single-agent-path.md'), 'utf8');
+check('r22-review-single-agent-verbatim', 'preserved single-agent Review path retains the pre-council steps verbatim',
+  /1\. Ground the review in the active manifest IDs, plan phase, task evidence, and diff target\./.test(reviewSingleAgent) &&
+  /6\. Run a blocking pass for missing requirements, contract mismatch, data loss, security risk, compatibility break, generated-output drift, release risk, and invalid lifecycle state\./.test(reviewSingleAgent) &&
+  /10\. Set `orchestration\.status` to `blocked` when findings require Build changes, otherwise `ready-for-next-phase` with `next_phase: test`\./.test(reviewSingleAgent));
+
+// The Severity Summary starter block must match what real reviews and check-release-readiness
+// actually use. It declared two columns while every real review used five, and the validator had
+// been widened to tolerate the extra ones — the block a reviewer copies was the thing left stale.
+const reviewOutputSchema = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/references/output-schema.md'), 'utf8');
+check('r22-review-severity-columns', 'Severity Summary starter block carries the columns real reviews use',
+  /\| Severity \| Open \| Found \| IDs \| Status \|/.test(reviewOutputSchema) &&
+  !/\| Severity \| Count \|/.test(reviewOutputSchema));
+
+// Council mode and single-agent mode must produce ONE artifact shape. The Council Log is the only
+// difference, and it is omitted entirely in single-agent mode.
+check('r22-review-council-log-block', 'review output schema carries the Council Log starter block',
+  /## Council Log/.test(reviewOutputSchema) &&
+  /### Risk Category Assignment/.test(reviewOutputSchema) &&
+  /### Reconcile Contract/.test(reviewOutputSchema) &&
+  /Required only when frontmatter has council\.mode: council/.test(reviewOutputSchema));
+
 // WP-R22 RI12 — review-council's charter must keep naming the sections the validator and
 // lifecycle-review are written against, in order. Same anti-drift shape as r21-think-stages: the
 // contract and its documentation rot apart unless something pins them together. The fences are

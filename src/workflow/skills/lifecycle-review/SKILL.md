@@ -65,7 +65,10 @@ Review may proceed on a blocked Build only when the review target is clear and t
 - `references/exemplar.md` — before finalizing output, to validate quality
 - `references/severity-model.md` — when classifying finding severity
 - `references/requirement-coverage.md` — when mapping requirements to evidence
-- `references/review-risk-categories.md` — when categorizing findings by risk type
+- `references/review-risk-categories.md` — when categorizing findings by risk type, and when assigning disjoint categories to council reviewers
+- `references/single-agent-path.md` — when running single-agent mode, or when the council pipeline needs a rollback
+- `workflow/skills/review-council/SKILL.md` — at stage 3 in council mode; see the mode resolution order in Workflow
+- `workflow/skills/dispatch-subagents/references/council-contracts.md` — when recording findings, for the disposition and evidence-class contracts
 - `references/generated-output-review.md` — when reviewing generated-output changes
 - `references/source-of-truth-review.md` — when reviewing source-of-truth handling
 - `references/verification-review.md` — when reviewing verification evidence
@@ -111,16 +114,70 @@ Stop and ask, or return a blocked review artifact, when any of these apply:
 
 ## Workflow
 
-1. Ground the review in the active manifest IDs, plan phase, task evidence, and diff target.
-2. Inspect actual changed files and relevant unchanged context.
-3. Review generated-output changes against their configured source or regeneration path.
-4. Review source-of-truth handling against configured source policy and task evidence.
-5. Review verification evidence: exact commands, manual QA, generated-output checks, skipped checks, and not-run risks.
-6. Run a blocking pass for missing requirements, contract mismatch, data loss, security risk, compatibility break, generated-output drift, release risk, and invalid lifecycle state.
-7. Run a non-blocking pass for maintainability, docs gaps, unclear evidence, and follow-up-worthy cleanup.
-8. Map every active `R` and `RI` to `covered`, `partial`, or `missing`.
-9. Write `workflow/artifacts/reviews/<slug>-v<N>.md` with findings first, severity summary, requirement coverage, architecture notes, verification reviewed, residual risk, and recommendation.
-10. Set `orchestration.status` to `blocked` when findings require Build changes, otherwise `ready-for-next-phase` with `next_phase: test`.
+Review runs in one of two modes. **Both produce the same artifact against the same output schema**;
+only the route differs.
+
+Mode is resolved before stage 1, in this order, first answer winning:
+
+1. resolved `dispatch.enabled` is `disabled` → single-agent, log a refusal
+2. resolved `council.enabled` is `disabled` → single-agent, log a refusal
+3. task class is not `complex` → single-agent, no refusal needed (councils are Complex-only)
+4. otherwise → council mode
+
+### Single-agent mode
+
+Follow `references/single-agent-path.md`. It is the pre-council workflow, preserved verbatim, and it
+remains a supported route for one release.
+
+### Council mode
+
+Six stages. Stages 3–5 are the council; the parent owns 1, 2 and 6.
+
+#### Stage 1 — Ground the review
+
+Ground in the active manifest IDs, plan phase, task evidence, and diff target. Establish the diff as
+the object under review — not the Build session, and not the plan's description of what was
+intended.
+
+#### Stage 2 — Assign risk categories
+
+Partition the ten categories in `references/review-risk-categories.md` **disjointly** across
+reviewers, sized to the resolved cap (`council.per_phase.review.default_fan_out`, default 2, when no
+`max_parallel_workstreams` is declared). Record the assignment: unassigned categories are the
+coverage gap a reader most needs to see, and two reviewers sharing a category means another went
+unread.
+
+#### Stage 3 — Fan out
+
+Invoke `workflow/skills/review-council/SKILL.md`. Reviewers run as one capped parallel stage against
+their assigned categories, receiving the **diff and the manifest only** — never the Build session
+transcript.
+
+#### Stage 4 — Challenge
+
+A challenger attacks the reviewers' raw findings, not the parent's consolidation. `rejected-with-reason`
+is a success outcome. Where the round contains `web` findings, at least one is spot-checked.
+
+#### Stage 5 — Consolidate
+
+The parent merges duplicates, records conflicts with their resolution, and dispositions **every**
+finding. A finding is never dropped for being inconvenient; it is rejected with a reason or it is
+accepted.
+
+#### Stage 6 — Decide and write
+
+The parent alone assigns severity, maps requirement coverage, and writes the recommendation. A
+member's claim is evidence, never authority. Consolidated `## Findings` entries carry concrete fix
+recommendations, as they always have — the no-fix rule binds council-log findings only, because a
+read-only reviewer proposing an edit has produced work nobody can apply.
+
+Then, in both modes:
+
+- Map every active `R` and `RI` to `covered`, `partial`, or `missing`.
+- Write `workflow/artifacts/reviews/<slug>-v<N>.md` with findings first, severity summary,
+  requirement coverage, architecture notes, verification reviewed, residual risk, and recommendation.
+- Set `orchestration.status` to `blocked` when findings require Build changes, otherwise
+  `ready-for-next-phase` with `next_phase: test`.
 
 ## Architecture Notes Expectations
 
@@ -148,6 +205,13 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `review`, `orchestration.status` is accurate, and `next_phase` is `test` when unblocked.
 - `verify-manifest-coverage` confirms declared `manifest_ids` equal observed diff coverage, with any delta explained.
 - Every claim tagged as verified in the review passes `evidence-auditor`.
+- The council run is logged, or a refusal is recorded with its reason — silence cannot distinguish "not applicable" from "failed to fire".
+- Reviewer risk categories are disjoint and the assignment is recorded; a category left unassigned is recorded as a skipped check.
+- Every member's declared input is recorded, and none names the Build session transcript.
+- No council-log finding carries a fix recommendation; the parent's consolidated findings still do.
+- A member recorded `failed` has a matching skipped-check entry carrying all six fields `verification.yaml` requires.
+- The council's repository digest is recorded before and after, and is unchanged.
+- For a council-mode review, `check-council-record.mjs` passes. It is the mechanical counterpart to the council bullets above: they state what the record must contain, and it is what rejects a record that does not.
 
 ## Determinism Rules
 
