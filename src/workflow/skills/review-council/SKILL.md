@@ -52,8 +52,15 @@ inside a run.
 
 **Repo axis — absolute.** No member modifies the repository, under any authorization mode. This
 matters more here than in Think: a Review council reads the very repository whose changes it is
-judging, so a member that writes would be editing the thing under review. Members that need to write
-do so in the resolved `council.sandbox_root`, never in the repo. A run whose before/after repository
+judging, so a member that writes would be editing the thing under review.
+
+**Members that need scratch space write to the resolved `council.sandbox_root`, and the dispatching
+parent must state that path in the member's instructions.** A member told only "do not write to the
+repo" will reach for the system temp directory, which is outside the fence but also outside the
+configured root — and a `trial` finding from such a member cannot declare a conforming sandbox, so
+its evidence class is unusable. This happened on the first real Review council run: every finding
+had to be downgraded from `trial` to `repo` because the members' scratch went to `/tmp`. Resolve the
+path before dispatch and put it in the charter you hand each member. A run whose before/after repository
 digest differs is invalid — see `lifecycle-review/references/output-schema.md` for where that is
 recorded.
 

@@ -20,7 +20,11 @@ const artifactsDir = dirArgIdx !== -1 ? args[dirArgIdx + 1] : `${wf}/artifacts`;
 // Without this the max_rounds bound and the sandbox fence are prose, and prose is exactly what an
 // agent drifts from — which is the failure this whole feature exists to prevent.
 function resolveCouncilConfig() {
-  const defaults = { max_rounds: 4, sandbox_root: '~/.agentsmyth/sandbox', default_fan_out: 3 };
+  // No default_fan_out here: fan-out is per phase now (council.per_phase.<phase>), and a
+  // phase-agnostic fallback in this file would show a reader a contract the package no longer has.
+  // Nothing in this validator reads fan-out — the cap is checked against the artifact's own
+  // cap_resolved — so the key was dead as well as stale.
+  const defaults = { max_rounds: 4, sandbox_root: '~/.agentsmyth/sandbox' };
   let global = {};
   let repo = {};
   try { global = loadYaml(defsPath('agent-behavior.yaml'))?.council ?? {}; } catch { /* absent is fine */ }
@@ -488,10 +492,18 @@ for (const file of artifactFiles) {
   // the damage is invisible.
   const anySandbox = members.some((m) => m.sandbox);
   const integrity = council.repo_integrity;
-  if (anySandbox) {
-    if (!integrity) {
-      errors.push(`${file} declares sandbox-using member(s) but records no council.repo_integrity; a run that could write must carry a before/after repo digest (see validators/repo-digest.mjs)`);
-    } else if (integrity.before !== integrity.after) {
+  // The digest is REQUIRED when a member could write (a declared sandbox) or when the council read
+  // the repository it is judging (a review). The comparison, by contrast, is unconditional whenever
+  // a digest exists: it used to sit inside the sandbox branch, so a Review council — whose members
+  // are read-only and declare no sandbox — recorded before/after values that were never compared.
+  // A record could state that the repository changed and pass. Requiring presence while never
+  // checking the values is the shape this package exists to prevent.
+  const integrityRequired = anySandbox || isReviewRecord;
+  if (integrityRequired && !integrity) {
+    errors.push(`${file} ${isReviewRecord ? 'is a council-mode review' : 'declares sandbox-using member(s)'} but records no council.repo_integrity; a run that could write, or that reads the repository it is judging, must carry a before/after repo digest (see validators/repo-digest.mjs)`);
+  }
+  if (integrity) {
+    if (integrity.before !== integrity.after) {
       errors.push(`${file} council.repo_integrity before (${integrity.before}) and after (${integrity.after}) differ — the repository changed across the council run, which no member is permitted to do`);
     } else if (!/sha256/i.test(String(integrity.algorithm ?? ''))) {
       errors.push(`${file} council.repo_integrity.algorithm "${integrity.algorithm}" is not a recognised digest; use the algorithm string printed by validators/repo-digest.mjs so the value is reproducible`);
@@ -695,13 +707,19 @@ for (const file of artifactFiles) {
       // repo-shaped brief was flagged, and the error had to admit it. The Q line now names the
       // manifest ID(s) whose buckets it rests on, which is the join, so the rule judges the
       // question in front of it rather than the brief around it.
-      const bucketIds = [...line.matchAll(/\b(RI?\d+)\b/g)].map((m) => m[1]);
+      // Anchored to an explicit `bucket` marker rather than scraping every R<n> token from the
+      // line. Unanchored, a question mentioning a work package in passing had "R21" read as a
+      // declared bucket — and, worse, an incidental token SATISFIED the requirement, masking the
+      // real error. Keyword matching without regard to clause is the failure this repo has shipped
+      // twice; the same file argues that eighty lines below.
+      const bucketDecl = line.match(/bucket[s]?\s*[:\s]\s*((?:RI?\d+[,\s]*)+)/i)?.[1] ?? '';
+      const bucketIds = [...bucketDecl.matchAll(/\b(RI?\d+)\b/g)].map((m) => m[1]);
       if (bucketIds.length === 0) {
         // Only demanded of a question the rule would actually judge. A recommendation grounded in
         // repo or trial evidence never reaches here and needs no bucket; one resting on web or
         // recall alone cannot be judged without knowing what kind of question it is, and guessing
         // is what this change removes.
-        errors.push(`${file} ${qId} rests on no repo or trial finding and names no bucket; cite the manifest ID(s) whose Requirement Classification covers this question, so "would repo evidence settle it" is answerable for this question rather than approximated from the brief`);
+        errors.push(`${file} ${qId} rests on no repo or trial finding and declares no bucket; write "(bucket R3)" naming the manifest ID(s) whose Requirement Classification covers this question, so "would repo evidence settle it" is answerable for this question rather than approximated from the brief`);
         continue;
       }
       const unknownBuckets = bucketIds.filter((id) => !classifiedById.has(id));
@@ -727,21 +745,38 @@ for (const file of artifactFiles) {
     for (const m of members) {
       if (!m.input) {
         errors.push(`${file} member ${m.id} records no declared input; a Review council member must state what it was given, and "diff+manifest" is the only permitted value`);
-      } else if (/transcript|session|conversation|chat/i.test(m.input)) {
-        errors.push(`${file} member ${m.id} declares input "${m.input}", which names the Build session rather than the diff; a reviewer that reads the author's reasoning reviews the intention rather than the change`);
+      } else if (m.input !== 'diff+manifest') {
+        // A closed enum, because that is what the message and the output schema both state. The
+        // earlier four-word blocklist let any free text through — including "the whole repo plus my
+        // notes from the build" — so the rule enforced was narrower than the rule declared.
+        const looksLikeTranscript = /transcript|session|conversation|chat|notes/i.test(m.input);
+        errors.push(`${file} member ${m.id} declares input "${m.input}"; "diff+manifest" is the only permitted value${looksLikeTranscript ? ', and this one names the Build session rather than the diff — a reviewer that reads the author\'s reasoning reviews the intention rather than the change' : ''}`);
       }
     }
 
     // RI17 — categories are the unit of assignment and are disjoint. Two reviewers holding one
     // category read the same ground twice, which means another category went unread.
+    // Presence is checked first. Iterating an absent subsection yields an empty list, so the
+    // disjointness rule passed vacuously for a record that simply deleted it — the same omission
+    // escape closed one rule earlier for the Input column, reintroduced here.
+    const assignmentSection = subSection(logSection, 'Risk Category Assignment');
+    if (assignmentSection === null) {
+      errors.push(`${file} is a council-mode review but has no "### Risk Category Assignment" subsection; coverage that is not recorded cannot be audited, and an absent section satisfies the disjointness rule by having nothing in it`);
+    }
+    // Keyed by ROUND. A category legitimately moves between reviewers across rounds — that is what
+    // a taper does, and what happens when a member fails and another picks its categories up.
+    // Keying globally rejected the hand-off while leaving the rule the requirement actually states
+    // ("in the same round") unexpressible.
     const categoryOwner = new Map();
-    for (const row of tableObjects(subSection(logSection, 'Risk Category Assignment'))) {
+    for (const row of tableObjects(assignmentSection)) {
       const member = col(row, 'member');
+      const roundKey = intOf(col(row, 'round')) ?? 1;
       for (const cat of col(row, 'risk categories').split(',').map((c) => c.trim().toLowerCase()).filter(Boolean)) {
-        if (categoryOwner.has(cat) && categoryOwner.get(cat) !== member) {
-          errors.push(`${file} risk category "${cat}" is assigned to both ${categoryOwner.get(cat)} and ${member}; categories are partitioned disjointly, and two reviewers sharing one means another category went unread`);
+        const key = `${roundKey}::${cat}`;
+        if (categoryOwner.has(key) && categoryOwner.get(key) !== member) {
+          errors.push(`${file} risk category "${cat}" is assigned to both ${categoryOwner.get(key)} and ${member} in round ${roundKey}; categories are partitioned disjointly within a round, and two reviewers sharing one means another category went unread`);
         }
-        categoryOwner.set(cat, member);
+        categoryOwner.set(key, member);
       }
     }
 
@@ -751,7 +786,18 @@ for (const file of artifactFiles) {
     const skippedRows = tableObjects(subSection(logSection, 'Skipped Checks'));
     const SKIPPED_FIELDS = ['check', 'why skipped', 'risk', 'owner', 'blocks ship', 'manifest ids'];
     for (const m of members.filter((x) => x.status === 'failed')) {
-      const covering = skippedRows.filter((r) => Object.values(r).some((v) => v.includes(m.id)) || col(r, 'check'));
+      // The predicate used to end `|| col(r, 'check')`, which is true for any row with a non-empty
+      // Check cell — so a single unrelated skipped check covered every failed member and the
+      // attribution half never ran. Matching is now exact-token, so member m1 is not satisfied by a
+      // row mentioning m10, and a row may also cover by naming one of that member's categories.
+      const memberCategories = [...categoryOwner.entries()]
+        .filter(([, owner]) => owner === m.id)
+        .map(([key]) => key.split('::')[1]);
+      const namesMember = (text) => new RegExp(`(^|[^A-Za-z0-9])${m.id}([^A-Za-z0-9]|$)`).test(text);
+      const covering = skippedRows.filter((r) => {
+        const text = Object.values(r).join(' ');
+        return namesMember(text) || memberCategories.some((cat) => text.toLowerCase().includes(cat));
+      });
       if (skippedRows.length === 0 || covering.length === 0) {
         errors.push(`${file} member ${m.id} is recorded "failed" but no "### Skipped Checks" entry records what went unread; a lost member with no skipped check reports the same coverage as one that never failed`);
         continue;
@@ -765,12 +811,31 @@ for (const file of artifactFiles) {
       }
     }
 
-    // RI19 — a Review council reads the repository whose changes it is judging, so the digest is
-    // required whether or not any member declared a sandbox. This is stricter than the Think rule
-    // above deliberately: there, a run with no sandbox could not write; here, the object under
-    // review is the repository itself.
-    if (!integrity) {
-      errors.push(`${file} is a council-mode review but records no council.repo_integrity; a Review council reads the repository it is judging, so the before/after digest is required regardless of whether a member declared a sandbox`);
+    // RI19's presence requirement is enforced with the digest comparison above, where
+    // `integrityRequired` already covers `isReviewRecord`. It used to be duplicated here, which the
+    // attribution sweep caught the moment it ran: fixture `dv` emitted two errors for one defect,
+    // and a fixture rejected twice keeps passing when the rule it targets regresses.
+  }
+
+  // R3 — the parent consolidates, and consolidation must SHOW its sources. A review whose body
+  // Findings section says "none" while its Council Log records accepted findings has dropped them
+  // silently, which is the single behaviour the brief's goals name as the reason for a disposition
+  // contract at all. Checked only for accepted/merged findings: a rejected one is accounted for by
+  // its reason and need not reach the body.
+  if (isReviewRecord) {
+    const surviving = findings.filter((f) => f.disposition === 'accepted' || f.disposition === 'merged');
+    if (surviving.length > 0) {
+      const bodyFindings = namedSection(parsed.body, 'Findings') ?? '';
+      const stripped = bodyFindings.replace(/<!--[\s\S]*?-->/g, '').trim();
+      if (!stripped || /^none$/i.test(stripped)) {
+        errors.push(`${file} records ${surviving.length} accepted or merged council finding(s) but its "## Findings" section says nothing; the parent consolidates, and a finding that reaches no consolidation has been dropped rather than dispositioned`);
+      } else {
+        const citedMembers = new Set(surviving.map((f) => f.member).filter(Boolean));
+        const uncited = [...citedMembers].filter((m) => !new RegExp(`(^|[^A-Za-z0-9])${m}([^A-Za-z0-9]|$)`).test(bodyFindings));
+        if (uncited.length > 0) {
+          errors.push(`${file} consolidation does not cite member(s) ${uncited.join(', ')}, each of which produced an accepted or merged finding; a reviewer whose work is not cited cannot be told from one that was ignored`);
+        }
+      }
     }
   }
 
@@ -780,7 +845,9 @@ for (const file of artifactFiles) {
   // been bitten twice by keyword matching without regard to clause (a coverage cell reading "never
   // silently dropped", a waiver cell reading "rather than a waiver"). The limit is stated in
   // README.md rather than papered over — prose smuggled into a reason field is not detectable here.
-  const findingsHeaderRow = tableObjects(subSection(logSection, 'Findings'))[0];
+  // Scoped to reviews, matching the requirement: the rule is about a READ-ONLY reviewer proposing an
+  // edit. A Think council brief has no reviewer, so binding briefs was stricter than specified.
+  const findingsHeaderRow = isReviewRecord ? tableObjects(subSection(logSection, 'Findings'))[0] : null;
   if (findingsHeaderRow) {
     const fixColumn = Object.keys(findingsHeaderRow).find((h) => /\bfix\b|recommendation/.test(h));
     if (fixColumn) {

@@ -164,6 +164,17 @@ The parent merges duplicates, records conflicts with their resolution, and dispo
 finding. A finding is never dropped for being inconvenient; it is rejected with a reason or it is
 accepted.
 
+#### Stage 5b — Record finding quality
+
+Append one row per council finding to `workflow/artifacts/finding-quality.yaml` with
+`outcome: pending`, carrying the finding's ID, this artifact's path, the chain's slug-vN, and the
+disposition the parent just assigned. `check-finding-quality` rejects a council finding with no row,
+and `check-release-readiness` blocks `ship` on a row still pending — so a council that skips this
+step produces a chain that cannot ship.
+
+The rows are `pending` on purpose. Whether a finding *proved real* is not knowable at Review; it is
+settled later by whoever acts on it. Recording the outcome now would be guessing.
+
 #### Stage 6 — Decide and write
 
 The parent alone assigns severity, maps requirement coverage, and writes the recommendation. A
@@ -211,6 +222,7 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - No council-log finding carries a fix recommendation; the parent's consolidated findings still do.
 - A member recorded `failed` has a matching skipped-check entry carrying all six fields `verification.yaml` requires.
 - The council's repository digest is recorded before and after, and is unchanged.
+- Every council finding has a `pending` row in `workflow/artifacts/finding-quality.yaml`.
 - For a council-mode review, `check-council-record.mjs` passes. It is the mechanical counterpart to the council bullets above: they state what the record must contain, and it is what rejects a record that does not.
 
 ## Determinism Rules

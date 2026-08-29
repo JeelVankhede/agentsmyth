@@ -540,6 +540,32 @@ when a change reaches outside the active phase's declared scope.
 
 </details>
 
+## Post-Review Remediation (2026-08-30)
+
+All 31 Review-council findings fixed. The per-finding table is in the review artifact; what belongs
+here is what the remediation itself cost and taught.
+
+**Two bugs I introduced while fixing, both caught by suites rather than by me.** The P1-1 fix left a
+duplicate presence check — the newly-added attribution sweep caught it on its very first run, one
+fixture emitting two errors. And the P3-6 fix put a `const` in the temporal dead zone, reintroducing
+the exact ReferenceError `bin/agentsmyth.mjs` carries a comment warning about; `init-prepare-interop`
+caught it. Both are the mechanism working on its author, one commit after being built.
+
+**One schema assumption disproved by using it.** `closed_in_phase` was an enum of `test | ship |
+reflect`, on my assumption that finding quality is never knowable at Review. Settling this council's
+own 56 rows disproved it immediately: a finding fixed in the same review that raised it is settled
+there. `review` added, with the reason recorded — the enum, not the rows, was wrong.
+
+**The ledger completed a full cycle.** 56 rows written `pending` at Review, all closed and rotated to
+the archive in one operation, leaving the active file empty and the tally computed across both files:
+`56 proved real, 0 noise, 0 waived, 0 pending — 100% of settled findings proved real`. That 100% is
+not a quality claim about the council; it means every finding it raised was acted on rather than
+argued away, which is the number R5 exists to make visible.
+
+Suite movement across the remediation: violations 84 → **92**, conformance 42 → **43**,
+tuning-merge 14 → **15**, and the attribution sweep now runs inside `violations:test` rather than in
+someone's terminal.
+
 ## Post-Build Fix During Review (2026-08-30)
 
 The Review council's own P1-7 finding — the Ship closure gate reads a repo-global ledger with no

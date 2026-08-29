@@ -71,6 +71,32 @@ orchestration:
   next_phase: test
   blockers: []
   user_checkpoint: none
+# council: is REQUIRED in council mode and omitted entirely in single-agent mode. In single-agent
+# mode record `council: {mode: single-agent}` instead, so the two modes are distinguishable from
+# frontmatter alone without a Council Log. The values below are a working example, not placeholders:
+# the starter block is itself schema-validated, so replace them with the run's real values.
+council:
+  mode: council
+  authorization: carve-out
+  cap_resolved: 2
+  cap_source: configured
+  depth: standard
+  dispatch_depth: 1
+  rounds_run: 1
+  termination_reason: resolved
+  resolution:
+    dispatch_enabled: optional
+    council_enabled: on-for-complex
+    task_class: complex
+  repo_integrity:
+    before: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    after: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    algorithm: sha256/sorted-relpath+size+content
+  evidence_classes:
+    repo: used
+    trial: unused
+    web: unused
+    recall: unused
 ---
 
 # <Title> - Review
@@ -93,13 +119,23 @@ none
 <!-- Required only when frontmatter has council.mode: council. Omit entirely otherwise.
      Subsections mirror the Think record so one validator serves both. -->
 
+### Requirement Classification
+
+<!-- Every active R/RI, with the evidence class(es) that would settle it. Required of every council
+     record, review and brief alike — the validator does not gate this on artifact type. -->
+
+| Manifest ID | Question bucket | Evidence classes |
+|---|---|---|
+
 ### Risk Category Assignment
 
 <!-- The ten categories in references/review-risk-categories.md, partitioned DISJOINTLY across
-     reviewers. A category assigned to nobody is a coverage gap and belongs in Skipped Checks. -->
+     reviewers WITHIN A ROUND. A category may move to another reviewer in a later round — that is
+     what a taper does — so the round is part of the assignment. A category assigned to nobody is a
+     coverage gap and belongs in Skipped Checks. -->
 
-| Member | Risk categories | Rationale |
-|---|---|---|
+| Member | Round | Risk categories | Rationale |
+|---|---|---|---|
 
 ### Members
 
@@ -139,6 +175,16 @@ none
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |
 |---|---|---|---|---|---|
+
+### Finding Quality
+
+<!-- One row per council finding, written at Review with outcome `pending`, into
+     workflow/artifacts/finding-quality.yaml. Closed at Test, Ship or Reflect and moved to
+     finding-quality-archive.yaml in the same operation. See lifecycle-review's Workflow stage 5.
+     This table is the human-readable view; the ledger files are what validators read. -->
+
+| Finding | Ledger row | Outcome | Settled in phase |
+|---|---|---|---|
 
 ### Termination
 

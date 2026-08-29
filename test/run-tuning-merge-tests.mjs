@@ -7,7 +7,7 @@
 // scenario cannot distinguish a NaN complexity_score from a legitimately low one. A suite that
 // already passes with the defect present cannot be the proof that the defect is fixed. These are
 // positive assertions on the merge itself, and case 2 fails against the pre-fix shallow spread.
-import { mergeTunedMap } from '../src/workflow/validators/lib.mjs';
+import { loadYaml, mergeTunedMap } from '../src/workflow/validators/lib.mjs';
 
 const results = [];
 
@@ -75,24 +75,28 @@ const score =
 // the other at its global value. This is the same per-entry rule cases 2 and 3 prove for
 // skill_scoring weights, asserted against the council map because that is where a mistake now costs
 // the user real invocations on every Complex chain.
-const globalCouncilPerPhase = {
-  think: { default_fan_out: 3 },
-  review: { default_fan_out: 2 },
-};
+// Read from the SHIPPED config, not written as a literal. As literals, m12-m14 passed identically
+// with council.per_phase deleted from every file — they asserted the helper's semantics and nothing
+// about this package. The same argument the header makes for m1-m8.
+const globalCouncilPerPhase = loadYaml('src/workflow/agent-behavior.yaml')?.council?.per_phase;
+check('m12a', 'the shipped config actually declares per-phase council fan-out',
+  Boolean(globalCouncilPerPhase && globalCouncilPerPhase.think && globalCouncilPerPhase.review), true);
 
 check('m12', 'overriding review leaves think at the global value',
   mergeTunedMap(globalCouncilPerPhase, { review: { default_fan_out: 1 } }),
-  { think: { default_fan_out: 3 }, review: { default_fan_out: 1 } });
+  { ...globalCouncilPerPhase, review: { default_fan_out: 1 } });
 
 check('m13', 'overriding neither phase inherits both',
   mergeTunedMap(globalCouncilPerPhase, {}),
-  { think: { default_fan_out: 3 }, review: { default_fan_out: 2 } });
+  globalCouncilPerPhase);
 
-// A phase the global map does not name is kept as declared rather than dropped — the merge must not
-// silently discard a repo's value for a phase a later version will add.
-check('m14', 'a repo-named phase absent from the global map survives the merge',
-  mergeTunedMap(globalCouncilPerPhase, { plan: { default_fan_out: 2 } }).plan,
-  { default_fan_out: 2 });
+// m14 previously asserted that a `plan` phase survives the merge — true of the helper, and
+// unreachable through the config contract, since both schemas close per_phase to think|review.
+// A test that locks in behaviour the schema forbids teaches the next reader the wrong contract.
+// What is worth asserting is that overriding one phase does not disturb the OTHER declared phase.
+check('m14', 'overriding think leaves review at the global value',
+  mergeTunedMap(globalCouncilPerPhase, { think: { default_fan_out: 1 } }).review,
+  globalCouncilPerPhase.review);
 
 check('m8', 'complexity_score stays finite under a partial nested edit (F1 consequence)',
   Number.isFinite(score) && score === 54, true);

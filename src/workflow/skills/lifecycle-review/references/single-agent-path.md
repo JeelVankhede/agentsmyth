@@ -24,8 +24,12 @@ check fails.
 - the staged pipeline is malfunctioning and you need Review to produce a valid verdict anyway
 
 Using this path is not a waiver and needs no approval. It produces the same artifact against the
-same output schema; only the route differs. Record which path ran in the review's council log, so a
-reader can tell a single-agent review from a council one.
+same output schema; only the route differs.
+
+**Record the mode in FRONTMATTER, not in a Council Log.** Write `council: {mode: single-agent}` and
+omit the `## Council Log` section entirely — the output schema requires that section only in council
+mode, and a Council Log with no council block is rejected. Frontmatter is what makes the two modes
+distinguishable without reading the body, which is the property the requirement actually asks for.
 
 ## Removal
 

@@ -41,7 +41,15 @@ council:
 
 ## Findings
 
-none
+Consolidated by the parent from the council's findings. Every accepted or merged council finding
+reaches this section, and every member that produced one is cited by name.
+
+### P2-1 — engines constraint narrows the scripts block
+
+- **Severity:** P2 · **Source:** m1 (F1), corroborated against m2's reading (F2), challenged by c1 (F3)
+- **Problem:** `package.json`'s scripts block is read as unconditional while the engines field
+  constrains it. c1's challenge (F3) narrowed the claim rather than removing it.
+- **Fix:** state the engines constraint where the scripts block is documented.
 
 ## Severity Summary
 

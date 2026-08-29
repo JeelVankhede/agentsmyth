@@ -42,7 +42,7 @@ skill_trigger_log:
 Extend the council mechanism WP-R21 built for Think to the Review phase, and add the finding-quality
 ledger that makes a council's value measurable rather than asserted.
 
-Eight phases, strictly ordered: the contract and schema decisions land first (Review fan-out default,
+Ten phases, strictly ordered: the contract and schema decisions land first (Review fan-out default,
 ledger schema), then the skill surfaces that produce records, then the validators that check them,
 then the fixtures that prove the validators reject.
 
@@ -73,19 +73,25 @@ this package, so extending it is the planned route and a second validator is not
 
 Established as a `coverage-tracer` ledger: one row per active ID, with state and citation.
 
+**Corrected 2026-08-30 (Review finding P3-2).** 21 of these rows named a phase two lower than the
+one that actually owns the ID — written against the original eight-phase plan and never propagated
+when Phases 2 and 3 were inserted on user direction. Every row read `covered` while pointing at a
+phase that did not claim it. Regenerated from the phase blocks themselves rather than re-edited by
+hand, so the two cannot drift apart again by transcription.
+
 | Manifest ID | Covered by phases | State | Citation |
 |---|---|---|---|
-| R1 | Phase 7 (owning), stated in Phase 6 | covered | Brief R1; collision resolved against `lifecycle-review/references/output-schema.md` |
-| R2 | Phase 7 | covered | Brief R2 |
-| R3 | Phase 7 | covered | Brief R3; inherits `think-council/references/output-schema.md` no-verdict rule |
-| R4 | Phase 9 | covered | Brief R4; `council-contracts.md` consumed unchanged |
-| R5 | Phase 10 | covered | Brief R5; delivered via RI6/RI7/RI8/RI15/RI16 |
-| R6 | Phase 9 | covered | Brief R6; 30 existing review artifacts in scope, none carrying a Council Log |
-| R7 | Phase 8 | covered | Brief R7; mirrors R21's R8 |
-| RI1 | Phase 9 | covered | Brief RI1; `check-council-record.mjs` briefs/ filter |
-| RI2 | Phase 9 | covered | Brief RI2 |
-| RI3 | Phase 8 | covered | Brief RI3 |
-| RI4 | Phase 9 | covered | Brief RI4; verified no schema change needed |
+| R1 | Phase 7 | covered | Brief R1; collision resolved against `lifecycle-review/references/output-schema.md` |
+| R2 | Phase 5 | covered | Brief R2 |
+| R3 | Phase 5 | covered | Brief R3; inherits `think-council/references/output-schema.md` no-verdict rule |
+| R4 | Phase 7 | covered | Brief R4; `council-contracts.md` consumed unchanged |
+| R5 | Phase 8 | covered | Brief R5; delivered via RI6/RI7/RI8/RI15/RI16 |
+| R6 | Phase 7 | covered | Brief R6; 30 existing review artifacts in scope, none carrying a Council Log |
+| R7 | Phase 6 | covered | Brief R7; mirrors R21's R8 |
+| RI1 | Phase 7 | covered | Brief RI1; `check-council-record.mjs` briefs/ filter |
+| RI2 | Phase 7 | covered | Brief RI2 |
+| RI3 | Phase 6 | covered | Brief RI3 |
+| RI4 | Phase 7 | covered | Brief RI4; verified no schema change needed |
 | RI5 | Phase 1 | covered | Brief RI5; `phase-caps.md` requires the explicit decision |
 | RI20 | Phase 1 | covered | Brief RI20; added post-approval on user direction |
 | RI21 | Phase 2 | covered | Brief RI21; closes Build blocker B1 |
@@ -93,20 +99,20 @@ Established as a `coverage-tracer` ledger: one row per active ID, with state and
 | RI23 | Phase 2 | covered | Brief RI23; RI21 enforced a copy, this enforces the source |
 | RI24 | Phase 2 | covered | Brief RI24; the general lock against unwired checks |
 | RI25 | Phase 4 | covered | Brief RI25; without it RI15's conditionals are decoration |
-| RI6 | Phase 6 | covered | Brief RI6 |
-| RI7 | Phase 10 | covered | Brief RI7 |
-| RI8 | Phase 10 | covered | Brief RI8 |
+| RI6 | Phase 4 | covered | Brief RI6 |
+| RI7 | Phase 8 | covered | Brief RI7 |
+| RI8 | Phase 8 | covered | Brief RI8 |
 | RI9 | Phase 10 | covered | Brief RI9 |
 | RI10 | Phase 9 | covered | Brief RI10; OI-81 |
 | RI11 | Phase 10 | covered | Brief RI11 |
-| RI12 | Phase 7 | covered | Brief RI12 |
-| RI13 | Phase 8 | covered | Brief RI13 |
-| RI14 | Phase 8 | covered | Brief RI14 |
-| RI15 | Phase 6 | covered | Brief RI15 |
-| RI16 | Phase 10 | covered | Brief RI16 |
-| RI17 | Phase 8 | covered | Brief RI17; `review-risk-categories.md` already lists the ten |
-| RI18 | Phase 8 | covered | Brief RI18; `verification.yaml` `skipped_checks.required_fields` |
-| RI19 | Phase 7 | covered | Brief RI19; R21's R11 and R-2 |
+| RI12 | Phase 5 | covered | Brief RI12 |
+| RI13 | Phase 6 | covered | Brief RI13 |
+| RI14 | Phase 6 | covered | Brief RI14 |
+| RI15 | Phase 4 | covered | Brief RI15 |
+| RI16 | Phase 8 | covered | Brief RI16 |
+| RI17 | Phase 6 | covered | Brief RI17; `review-risk-categories.md` already lists the ten |
+| RI18 | Phase 6 | covered | Brief RI18; `verification.yaml` `skipped_checks.required_fields` |
+| RI19 | Phase 5 | covered | Brief RI19; R21's R11 and R-2 |
 
 No ID is `deferred`, `waived`, or `dropped`.
 
@@ -508,7 +514,7 @@ evidence-backed by inspection, so neither converted to a `Q`.
 - Status: approved
 - User's own words (verbatim, this turn): "Plan looks good, continue to build"
 - Date: 2026-08-29
-- Scope of approval: this plan as written at commit `8544cab` — eight phases, 26 mapped
+- Scope of approval: this plan as written at commit `8544cab` — ten phases, 32 mapped
   requirements, the branch strategy targeting `release/1.1.0`, and the accepted-scope risk that
   1.1.0 is held for the length of this chain.
 

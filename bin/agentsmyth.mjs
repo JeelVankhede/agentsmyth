@@ -277,6 +277,15 @@ function councilTuningItemSpecs() {
   ];
 }
 
+// PS-1..PS-8 are the full set headlessBootstrap can emit; the conditional ones leave gaps rather
+// than shifting the numbering, so the derived blocks start at 9.
+//
+// A hoisted FUNCTION, not a const — for the same reason intentItemSpecs() is one. headlessBootstrap
+// runs from a call site above this point in the file, so a const would sit in the temporal dead
+// zone and throw ReferenceError. The file already carries that warning; I reintroduced the bug it
+// describes and the interop suite caught it on the next run.
+function intentStartId() { return 9; }
+
 // Renders item specs as pending-setup.yaml entries starting at PS-<startId>. IDs are never
 // reused or renumbered, so callers pass the next free number.
 function pendingItemsFrom(specs, startId) {
@@ -301,6 +310,16 @@ function appendPendingItems(configDir, specs, marker) {
 
   const content = readFileSync(pendingPath, 'utf8');
   if (content.includes(marker)) return 0;
+
+  // Appending a sequence entry is only valid if the document actually ends in an `items:` block
+  // that can take one. A file whose body reads `items: []` is schema-valid — it is the shape a repo
+  // reaches once every item is resolved and pruned — and appending to it produces YAML this
+  // package's own parser rejects, leaving the consumer with an unloadable config they never
+  // touched. Refuse rather than corrupt; the caller treats 0 as "nothing added".
+  const tail = content.replace(/\s*$/, '');
+  const hasOpenItemsBlock = /(^|\n)items:\s*(\n\s*-\s|\s*$)/.test(tail) && !/(^|\n)items:\s*\[\s*\]\s*$/.test(tail);
+  const lastKeyIsItems = /(^|\n)items:[\s\S]*$/.test(tail) && !/(^|\n)[A-Za-z_][A-Za-z0-9_]*:\s*[\s\S]*$/.test(tail.slice(tail.lastIndexOf('\nitems:') + 1).replace(/^items:[^\n]*\n?/, '').replace(/^\s*-[\s\S]*/gm, ''));
+  if (!hasOpenItemsBlock || !lastKeyIsItems) return 0;
 
   // Continue the ID sequence from the highest existing PS-N rather than assuming a count — a repo
   // may have had items added by an earlier upgrade or by the setup skill itself.
@@ -576,9 +595,12 @@ function headlessBootstrap(repoDir, pkgRootDir) {
       // WP-R8 intent items last, so the file reads PS-1..PS-11 in order. IDs 9-11 are fixed here
       // because PS-1..PS-8 are the full set this bootstrap can emit; the conditional ones
       // (PS-3/4/5) leave gaps when they don't fire rather than shifting the numbering.
-      ...pendingItemsFrom(intentItemSpecs(), 9),
-      // PS-12: council fan-out, after the intent block. Same fixed-numbering reasoning as above.
-      ...pendingItemsFrom(councilTuningItemSpecs(), 12),
+      ...pendingItemsFrom(intentItemSpecs(), intentStartId()),
+      // Council fan-out, immediately after the intent block. The start id is DERIVED from the
+      // intent block's length rather than written as a literal: a literal was correct only for as
+      // long as intentItemSpecs() returned exactly three, and adding a fourth would have silently
+      // produced two items sharing an id, in a file whose contract says ids are never reused.
+      ...pendingItemsFrom(councilTuningItemSpecs(), intentStartId() + intentItemSpecs().length),
     ].filter(Boolean);
     writeFileSync(pendingPath,
       `version: 1\nkind: pending-setup\n\n` +

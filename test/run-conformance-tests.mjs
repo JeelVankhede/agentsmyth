@@ -197,6 +197,22 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 P3-5 — the shipped fan-out defaults are restated in six documents. Nothing derived them,
+// so changing agent-behavior.yaml would leave five files asserting the old numbers. Pinned against
+// the config rather than against each other, so the config stays the single source.
+const behaviorYaml = readFileSync(join(repoRoot, 'src/workflow/agent-behavior.yaml'), 'utf8');
+const perPhase = behaviorYaml.match(/per_phase:\s*\n\s*think:\s*\n\s*default_fan_out:\s*(\d+)\s*\n\s*review:\s*\n\s*default_fan_out:\s*(\d+)/);
+const phaseCapsDoc = readFileSync(join(repoRoot, 'src/workflow/skills/dispatch-subagents/references/phase-caps.md'), 'utf8');
+const configMapDoc = readFileSync(join(repoRoot, 'src/setup/references/config-map.md'), 'utf8');
+const reviewSkillDoc = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/SKILL.md'), 'utf8');
+check('r22-fan-out-defaults-agree', 'every document restating the fan-out defaults matches agent-behavior.yaml',
+  Boolean(perPhase) &&
+  new RegExp(`\\| \`think\` \\| ${perPhase[1]} \\|`).test(phaseCapsDoc) &&
+  new RegExp(`\\| \`review\` \\| ${perPhase[2]} \\|`).test(phaseCapsDoc) &&
+  new RegExp(`default_fan_out\` is \\*\\*${perPhase[2]}\\*\\*`).test(phaseCapsDoc) &&
+  new RegExp(`${perPhase[1]} for Think and ${perPhase[2]} for Review`).test(configMapDoc) &&
+  new RegExp(`default ${perPhase[2]}`).test(reviewSkillDoc));
+
 // WP-R22 P1-7 — the Ship closure gate must be scoped to the chain being shipped. Unscoped, one
 // chain's unsettled finding blocked every other chain AND re-failed every ship artifact already
 // committed, because a historical release cannot answer for a finding raised after it shipped. This
@@ -246,10 +262,10 @@ check('r22-council-review-counted', 'a review is counted as a review, not mislab
 // byte-compared against the pre-council text; the closing step is included because a truncated copy
 // is the likeliest drift.
 const reviewSingleAgent = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/references/single-agent-path.md'), 'utf8');
-check('r22-review-single-agent-verbatim', 'preserved single-agent Review path retains the pre-council steps verbatim',
-  /1\. Ground the review in the active manifest IDs, plan phase, task evidence, and diff target\./.test(reviewSingleAgent) &&
-  /6\. Run a blocking pass for missing requirements, contract mismatch, data loss, security risk, compatibility break, generated-output drift, release risk, and invalid lifecycle state\./.test(reviewSingleAgent) &&
-  /10\. Set `orchestration\.status` to `blocked` when findings require Build changes, otherwise `ready-for-next-phase` with `next_phase: test`\./.test(reviewSingleAgent));
+const preservedSteps = reviewSingleAgent.split('\n').filter((l) => /^\d+\. /.test(l));
+check('r22-review-single-agent-verbatim', 'preserved single-agent Review path retains ALL ten pre-council steps verbatim',
+  preservedSteps.length === 10 &&
+  preservedSteps.join('\n') === '1. Ground the review in the active manifest IDs, plan phase, task evidence, and diff target.\n2. Inspect actual changed files and relevant unchanged context.\n3. Review generated-output changes against their configured source or regeneration path.\n4. Review source-of-truth handling against configured source policy and task evidence.\n5. Review verification evidence: exact commands, manual QA, generated-output checks, skipped checks, and not-run risks.\n6. Run a blocking pass for missing requirements, contract mismatch, data loss, security risk, compatibility break, generated-output drift, release risk, and invalid lifecycle state.\n7. Run a non-blocking pass for maintainability, docs gaps, unclear evidence, and follow-up-worthy cleanup.\n8. Map every active `R` and `RI` to `covered`, `partial`, or `missing`.\n9. Write `workflow/artifacts/reviews/<slug>-v<N>.md` with findings first, severity summary, requirement coverage, architecture notes, verification reviewed, residual risk, and recommendation.\n10. Set `orchestration.status` to `blocked` when findings require Build changes, otherwise `ready-for-next-phase` with `next_phase: test`.');
 
 // The Severity Summary starter block must match what real reviews and check-release-readiness
 // actually use. It declared two columns while every real review used five, and the validator had
@@ -343,7 +359,12 @@ const NOT_A_CHECK = new Set(['lib.mjs', 'repo-digest.mjs']);
 const validatorFiles = readdirSync(join(repoRoot, 'src/workflow/validators'))
   .filter((f) => f.endsWith('.mjs'))
   .filter((f) => !CLI_INVOKED.has(f) && !NOT_A_CHECK.has(f));
-const unwired = validatorFiles.filter((f) => !validateTemplateSrc.includes(f));
+// Comments stripped first. A bare substring test counted a validator named only inside a comment as
+// wired — and validate-template.mjs does mention validators in comments, so the check could pass on
+// a file nothing invokes. That is the exact defect this check exists to catch, present in the check
+// itself.
+const validateTemplateCode = validateTemplateSrc.replace(/^\s*\/\/.*$/gm, '');
+const unwired = validatorFiles.filter((f) => !validateTemplateCode.includes(f));
 check('every-validator-wired', 'no validator exists without being registered in validate-template',
   unwired.length === 0, unwired.length ? `unregistered: ${unwired.join(', ')}` : '');
 
@@ -351,9 +372,9 @@ check('every-validator-wired', 'no validator exists without being registered in 
 // Registered anywhere else it validates whichever copy the two-root resolver returns — the global
 // install on a developer machine, the build-synced copy in CI — so local and CI check different
 // files and a source change reads clean until `agentsmyth prepare` runs.
-const sourceBlock = validateTemplateSrc.slice(
-  validateTemplateSrc.indexOf('const sourceCommands'),
-  validateTemplateSrc.indexOf('const artifactEnv')
+const sourceBlock = validateTemplateCode.slice(
+  validateTemplateCode.indexOf('const sourceCommands'),
+  validateTemplateCode.indexOf('const artifactEnv')
 );
 check('definitions-checked-at-source', 'check-definitions runs under AGENTSMYTH_WF against src/workflow',
   sourceBlock.includes('check-definitions.mjs'));

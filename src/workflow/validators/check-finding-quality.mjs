@@ -119,10 +119,14 @@ function all_ids(rows) {
 const activeRows = indexRows(active, activePath);
 const archiveRows = indexRows(archive, archivePath);
 
-// Rotation, direction 1: copied rather than moved.
-for (const id of activeRows.keys()) {
-  if (archiveRows.has(id)) {
-    errors.push(`${activePath}: row ${id} is present in both the active ledger and the archive; rotation is a move, so a closed row lives in exactly one file — counted from both, it would be double-counted in every figure`);
+// Rotation, direction 1: copied rather than moved. Keyed by the SAME identity the coverage check
+// uses — artifact plus finding — not by ledger row id. Keying on FQ-N let a row copied to the
+// archive under a fresh id escape the check whose whole job is to catch that, while being counted
+// twice in a tally the schema says must span both files. One notion of identity per row.
+const archiveKeys = new Set(all_ids(archiveRows));
+for (const [id, row] of activeRows) {
+  if (archiveKeys.has(artifactKey(row.source_artifact, row.finding_id))) {
+    errors.push(`${activePath}: row ${id} names finding ${row.finding_id} of ${row.source_artifact}, which is already recorded in the archive; rotation is a move, so a finding lives in exactly one file — counted from both, it is double-counted in every figure, and a fresh row id does not make it a different finding`);
   }
 }
 

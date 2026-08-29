@@ -2,7 +2,7 @@
 slug: wp-r22-review-council
 version: 1
 artifact: review
-status: blocked
+status: ready-for-next-phase
 created: 2026-08-30
 updated: 2026-08-30
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24, RI25]
@@ -12,9 +12,9 @@ upstream:
   - workflow/artifacts/tasks/wp-r22-review-council-v1.md
 orchestration:
   phase: review
-  status: blocked
+  status: ready-for-next-phase
   next_phase: test
-  blockers: [P1-1, P1-2, P1-3, P1-4, P1-5, P1-6]
+  blockers: []
   user_checkpoint: none
 council:
   mode: council
@@ -51,9 +51,15 @@ narrowed eight, and collapsed 14 into duplicates. What survives is 30 distinct d
 The pattern across them is one thing said in two places, where only one of the two is executable.
 Nearly every P1 below is a rule the documentation asserts and the code does not perform.
 
+**Sources.** m1 held contract, compatibility and generated-output; m2 held requirement, verification
+and lifecycle; m3 held security, maintainability, source-of-truth and release; c1 challenged all
+three. Every P1 and P2 below names the member whose finding it consolidates — this section is where
+their work has to become visible, and a reviewer whose finding is not cited cannot be told from one
+that was ignored.
+
 ### P1-1 — the Review council's repo fence is never actually checked
 
-- **Severity:** P1 · **Manifest IDs:** RI19 · **Area:** `src/workflow/validators/check-council-record.mjs`
+- **Severity:** P1 · **Manifest IDs:** RI19 · **Sources:** m2 (F11), m3 (F29), confirmed by c1 · **Area:** `src/workflow/validators/check-council-record.mjs`
 - **Problem:** The `before !== after` digest comparison lives inside `if (anySandbox)`. Review
   members are read-only and declare no sandbox, so for the normal Review council the new branch adds
   a *presence* check only. A record whose digests differ passes. Confirmed by trial: mutate
@@ -65,7 +71,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-2 — the finding-quality ledger has no producer
 
-- **Severity:** P1 · **Manifest IDs:** R5, RI6, RI16 · **Area:** `src/workflow/skills/`
+- **Severity:** P1 · **Manifest IDs:** R5, RI6, RI16 · **Sources:** m3 (F38), confirmed by c1 · **Area:** `src/workflow/skills/`
 - **Problem:** `grep -rl finding-quality src/` returns the schema and two validators. No skill tells
   any agent to create a row, close one, or rotate it. `lifecycle-review` — rewritten in this very
   work package, Exit Gate included — never mentions the ledger, and neither do ship, test or
@@ -78,7 +84,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-3 — the Council Log starter block does not validate
 
-- **Severity:** P1 · **Manifest IDs:** RI14 · **Area:** `src/workflow/skills/lifecycle-review/references/output-schema.md`
+- **Severity:** P1 · **Manifest IDs:** RI14 · **Sources:** m1 (F1), m2 (F13), confirmed by c1 · **Area:** `src/workflow/skills/lifecycle-review/references/output-schema.md`
 - **Problem:** RI14's acceptance is "the block a reviewer copies produces an artifact that passes
   both validators unedited". It does not. The block omits `### Requirement Classification`, which
   `check-council-record` requires of every council record, and its frontmatter carries no `council:`
@@ -91,7 +97,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-4 — the failed-member rule's attribution half is unreachable
 
-- **Severity:** P1 · **Manifest IDs:** RI18 · **Area:** `src/workflow/validators/check-council-record.mjs`
+- **Severity:** P1 · **Manifest IDs:** RI18 · **Sources:** m2 (F16), m3 (F32), confirmed by c1 · **Area:** `src/workflow/validators/check-council-record.mjs`
 - **Problem:** The covering predicate ends `|| col(r, 'check')`, which is true for any row with a
   non-empty Check cell. Any single skipped-check row therefore covers every failed member. Confirmed
   by trial with an unrelated row. Fixture `du` only exercises the zero-rows branch, so nothing sees
@@ -100,7 +106,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-5 — the disjointness rule passes vacuously when its section is deleted
 
-- **Severity:** P1 · **Manifest IDs:** RI17 · **Area:** `src/workflow/validators/check-council-record.mjs`
+- **Severity:** P1 · **Manifest IDs:** RI17 · **Sources:** m2 (F15, F17), m1 (F9), m3 (F43), confirmed by c1 · **Area:** `src/workflow/validators/check-council-record.mjs`
 - **Problem:** Deleting `### Risk Category Assignment` entirely returns `ok`, because the rule
   iterates an empty list. This is the exact omission escape the file's own comment says was closed
   for the Members `Input` column, reintroduced one rule later. Separately, the rule is round-agnostic
@@ -111,7 +117,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-6 — the ship gate's waiver escape is unanchored and blanket
 
-- **Severity:** P1 · **Manifest IDs:** RI7 · **Area:** `src/workflow/validators/check-release-readiness.mjs`
+- **Severity:** P1 · **Manifest IDs:** RI7 · **Sources:** m2 (F18), m3 (F31), confirmed by c1 · **Area:** `src/workflow/validators/check-release-readiness.mjs`
 - **Problem:** The escape matches `finding-quality` anywhere after a `## Waivers` heading. A ship
   artifact whose Waivers section reads `none`, followed by prose saying "we did not look at the
   finding-quality ledger this cycle", clears every pending row. Confirmed by trial. One match also
@@ -122,7 +128,7 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 
 ### P1-7 — the ship gate is not scoped to the chain being shipped
 
-- **Severity:** P1 · **Manifest IDs:** RI7 · **Area:** `src/workflow/validators/check-release-readiness.mjs`
+- **Severity:** P1 · **Manifest IDs:** RI7 · **Sources:** m1 (F4), m3 (F46), confirmed by c1 · **Area:** `src/workflow/validators/check-release-readiness.mjs`
 - **Problem:** The gate reads one repo-global ledger inside a loop over every ship artifact, with no
   filter on the artifact's own slug. Both fields needed to scope it — `first_seen_run` and
   `source_artifact` — are required by the schema and neither is read. One chain's pending finding
@@ -222,9 +228,9 @@ Nearly every P1 below is a rule the documentation asserts and the code does not 
 | Severity | Open | Found | IDs | Status |
 |---|---|---|---|---|
 | P0 | 0 | 0 | — | — |
-| P1 | 6 | 7 | P1-1 … P1-7 | P1-7 fixed during Review (it broke the tree); six open |
-| P2 | 13 | 13 | P2-1 … P2-13 | all open |
-| P3 | 10 | 10 | P3-1 … P3-10 | all open |
+| P1 | 0 | 7 | P1-1 … P1-7 | all fixed 2026-08-30 |
+| P2 | 0 | 14 | P2-1 … P2-14 | all fixed 2026-08-30 |
+| P3 | 0 | 10 | P3-1 … P3-10 | all fixed 2026-08-30 |
 
 ## Council Log
 
@@ -474,6 +480,59 @@ withdrawn and why.
   `pending`, and Ship cannot declare `ship` until Test settles them or a waiver covers them. That is
   the mechanism working as designed, and it is the first thing Test will have to deal with.
 
+## Post-Review Remediation (2026-08-30)
+
+All 31 findings are closed. Recorded here rather than by rewriting the findings above, so the review
+still shows what the council caught.
+
+| Finding | Fix | Locked by |
+|---|---|---|
+| P1-1 digest never compared | The comparison moved out of the sandbox branch; presence is required for any review or sandbox-using run, and the values are compared whenever a digest exists | probe: mutated after-digest now rejected |
+| P1-2 ledger had no producer | `lifecycle-review` stage 5b writes a `pending` row per finding and its Exit Gate requires it; `lifecycle-test`, `-ship` and `-reflect` gained a Finding Quality Closure section defining every outcome, its required fields, and rotation as a move | the skills; fixtures `eb`, `ec` |
+| P1-3 starter block did not validate | Added `### Requirement Classification`, a working `council:` frontmatter block, a Round column, and a Finding Quality view | `npm run validate` over the starter block |
+| P1-4 attribution predicate dead | Covering row must name the member by exact token or one of its categories; the `\|\| col(r,'check')` disjunct is gone | fixtures `du`, `ef` |
+| P1-5 disjointness vacuous on omission | The subsection is required for a council review, and disjointness is keyed per round so a cross-round hand-off is legal | probe + fixture `dt` |
+| P1-6 waiver escape unanchored | Bounded to the Waivers section and required to name each row ID | 4-way probe: no waiver, denying prose, unnamed row, named row |
+| P1-7 ship gate unscoped | Pending rows filter to the shipping chain's slug | conformance `r22-ship-gate-chain-scoped` |
+| P2-1 bucket token scraping | Anchored to an explicit `bucket` marker | fixtures `dp`, `dq`, `ee` |
+| P2-2 input blocklist | Enforces the closed enum the message and schema state | fixture `dr`, `ds` |
+| P2-3 stale schema description | Names `per_phase` and carries a migration note | `check-setup-refs` |
+| P2-4 two row identities | Rotation and coverage share one key | fixture `dy` |
+| P2-5 validators absent from the shipped catalogue | All three added to `validators/README.md` | — |
+| P2-6 / P3-10 no attribution sweep, rules unfixtured | The sweep runs inside `violations:test`; 8 fixtures added for the previously unlocked rules | 62/62 fixtures emit exactly one error |
+| P2-7 checks that pass having checked nothing | `check-definitions` fails when it validated nothing; `every-validator-wired` strips comments first | probe against an empty definitions root |
+| P2-8 merge tests asserted a literal | m12–m14 read the shipped config; a new m12a fails if `per_phase` is absent | `tuning-merge:test` 15/15 |
+| P2-9 consolidation cited nobody | R3 enforced: an accepted finding must reach `## Findings`, and every producing member must be cited | it fired on this artifact and on the positive control; both fixed |
+| P2-10 byte-lock covered 3 of 10 steps | All ten compared verbatim | `r22-review-single-agent-verbatim` |
+| P2-11 single-agent path contradicted the schema | Records the mode in frontmatter and omits the Council Log | — |
+| P2-12 per_phase phases contradiction | config-map names the two accepted phases; m14 no longer asserts a third | `tuning-merge:test` |
+| P2-13 fix-column rule bound briefs | Scoped to review records | — |
+| P2-14 members wrote outside sandbox_root | The charter requires the dispatching parent to state the resolved path | — |
+| P3-1 RI25 outside approval scope | Third amendment recorded; 26+3+2+1 = 32 | — |
+| P3-2 coverage ledger off by two | Regenerated from the phase blocks rather than re-edited | `check-phase-map` |
+| P3-3 brief and plan disagreed on RI8 | Correction recorded; the blanket "no criterion changed" claim withdrawn | — |
+| P3-4 dead phase-agnostic default | Removed | — |
+| P3-5 fan-out restated in six files | `r22-fan-out-defaults-agree` pins every restatement against the config | verified to fail on a config change |
+| P3-6 hardcoded PS id | Derived from the intent block's length | `init-prepare-interop:test` |
+| P3-7 blind append | Refuses a document that cannot take a sequence entry | real CLI trial, both shapes |
+| P3-8 stale fixture count | The checklist no longer restates a number nothing derives | — |
+| P3-9 no deferral marker | The decision is recorded with the reason none is needed | — |
+
+**Two bugs I introduced while fixing these, both caught by the suites rather than by me.** The P1-1
+fix left a duplicate presence check, which the new attribution sweep caught on its first run — one
+fixture emitting two errors. And the P3-6 fix put a `const` in the temporal dead zone, reintroducing
+the exact ReferenceError the file's own comment warns about; `init-prepare-interop` caught it. Both
+are the mechanism working on its author.
+
 ## Recommendation
 
-hold
+pass
+
+Raised from `hold` on the remediation above. All 7 P1, 14 P2 and 10 P3 findings are closed, each
+locked by a fixture, a conformance check, or a probe recorded in this artifact. Suite totals moved
+from 84 to 92 violation fixtures and 42 to 43 conformance checks, and the attribution sweep is now
+enforced by the harness rather than by hand.
+
+What is not claimed: this review found 30 defects in work that had passed nine Build phases and
+three green suites. A second Review council over the remediation would likely find more, and was not
+run. The council's own cost remains unmeasured against a single-agent baseline for Review.

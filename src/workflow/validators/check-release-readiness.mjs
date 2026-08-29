@@ -178,10 +178,16 @@ for (const file of artifactFiles) {
         return run.startsWith(shipSlug) || src.includes(`/${shipSlug}-v`);
       });
       if (pending.length > 0) {
-        const waived = /## Waivers\s*\n[\s\S]*?finding[- ]quality/i.test(parsed.body);
-        if (!waived) {
-          const ids = pending.map((row) => row.id).filter(Boolean).join(', ');
-          errors.push(`${file} declares "ship" but the finding-quality ledger has ${pending.length} row(s) still pending (${ids}) with no matching Waivers entry; a finding raised at Review is settled by Ship or waived, never left open`);
+        // Bounded to the Waivers SECTION, and the waiver must name the rows it covers. The earlier
+        // regex ran to the end of the document, so any mention of "finding-quality" anywhere after
+        // the heading cleared every pending row — including a sentence denying that a waiver was
+        // given. It was also blanket while the error it suppressed enumerated rows individually.
+        // This repo already ships a conformance check against exactly this clause-blind shape.
+        const waiverSection = parsed.body.match(/## Waivers\s*\n([\s\S]*?)(?=\n## [^#]|\s*$)/)?.[1] ?? '';
+        const uncovered = pending.filter((row) => !row.id || !new RegExp(`(^|[^A-Za-z0-9])${row.id}([^A-Za-z0-9]|$)`).test(waiverSection));
+        if (uncovered.length > 0) {
+          const ids = uncovered.map((row) => row.id).filter(Boolean).join(', ');
+          errors.push(`${file} declares "ship" but the finding-quality ledger has ${uncovered.length} row(s) still pending (${ids}) with no Waivers entry naming them; a finding raised at Review is settled by Ship or waived by ID, never left open`);
         }
       }
     }

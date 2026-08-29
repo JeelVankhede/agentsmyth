@@ -55,7 +55,7 @@ skill_trigger_log:
 
 ## Status — APPROVED 2026-08-29, ready for Plan
 
-Complete. 26 manifest IDs — R1–R7 and RI1–RI19 — each with an acceptance criterion and the files it
+Complete. 32 manifest IDs — R1–R7 and RI1–RI25 — each with an acceptance criterion and the files it
 lands in. No open blockers; the brief was approved by the user on 2026-08-29 and the approval is
 recorded verbatim in `## Checkpoint Approval`.
 
@@ -424,7 +424,7 @@ rule that a considered-and-rejected category is marked rather than left silent.
     engine, since `check-schema-keywords` verifies that a keyword is implemented, not that it is
     reachable in the position a schema uses it.
 
-**Sources considered and rejected**, per `implicit-requirements-library.md`:
+**Sources considered and rejected** (listed after the final RI), per `implicit-requirements-library.md`:
 
 - *source-of-truth*: `mode: optional` with `providers: []`, so no source read/update requirement attaches to R22 beyond the existing practice of updating the Notion page at Ship. No acceptance criterion changes.
 - *release*: `gates.branch` and the PR policy are repo-wide and already enforced; R22 changes neither.
@@ -666,12 +666,25 @@ generalises it so the underlying shape — a check that exists but never runs �
 **User's own words (verbatim):** "NO, FIX IT RIGHT NOW. NO DEFERRALS" 
 
 IDs are appended after the highest existing ID and nothing is renumbered, per
-`decompose-requirements`. No existing requirement's acceptance criterion changed.
+`decompose-requirements`.
+
+**Correction, 2026-08-30 (Review finding P3-3).** This section previously claimed "no existing
+requirement's acceptance criterion changed". That was wrong in one respect: RI8's *Files* line moved
+from `check-council-record.mjs` to `check-finding-quality.mjs` during Build, recorded only in the
+plan. Its acceptance clause names no validator and is unchanged, so what moved was the requirement's
+declared home rather than its criterion — but the blanket claim was inaccurate and the brief and
+plan disagreed until now.
+
+**Third amendment, 2026-08-30 (Review finding P3-1).** RI25 was added during Build's Phase 4 and
+appears in the manifest and the classification table but in no amendment record, so it sat outside
+the approval's stated scope of 26 IDs at `4b220db`. Recorded here: RI25 — the schema engine enforces
+`required` independently of `properties` — was derived when probing RI15's conditionals showed every
+one of them inert. 26 approved + 3 + 2 + 1 = 32, which is what `manifest_ids` carries.
 
 ## Exit Gate
 
-- [x] Every active R and RI has acceptance criteria. R5's was written once Q3 was answered; RI4–RI11
-      were derived on 2026-08-29 and each carries one.
+- [x] Every active R and RI has acceptance criteria. R5's was written once Q3 was answered; RI4–RI25
+      were derived across 2026-08-29/30 and each carries one.
 - [x] Blocking Q IDs appear in orchestration.blockers. Q1 and Q2 closed against shipped source, Q3
       answered by the user, so the list is now empty.
 - [x] Goal, scope and non-goals are concrete.

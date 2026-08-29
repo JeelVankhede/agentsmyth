@@ -280,6 +280,15 @@ const fixtures = [
   { id: 'eb', dir: 'test/fixtures/lifecycle-violations/eb-council-review-without-ledger', description: '(WP-R22, R5) council review exists with no finding-quality ledger — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
   { id: 'ec', dir: 'test/fixtures/lifecycle-violations/ec-council-finding-unrecorded', description: '(WP-R22, R5) council finding has no finding-quality row — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
   { id: 'ed', dir: 'test/fixtures/lifecycle-violations/ed-ship-with-pending-finding', description: '(WP-R22, RI7) ship declared while a finding-quality row is still pending, with no waiver — check-release-readiness', validator: validatorPath('check-release-readiness.mjs') },
+  // Review council findings P2-6/P3-10: rules that rejected under probe and were locked by nothing.
+  { id: 'ee', dir: 'test/fixtures/lifecycle-violations/ee-q-bucket-unresolvable', description: '(WP-R22, RI10) Q declares a bucket with no Requirement Classification row — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'ef', dir: 'test/fixtures/lifecycle-violations/ef-skipped-check-missing-field', description: '(WP-R22, RI18) skipped-check entry covering a failed member omits a required field — check-council-record', validator: validatorPath('check-council-record.mjs') },
+  { id: 'eg', dir: 'test/fixtures/lifecycle-violations/eg-active-ledger-missing', description: '(WP-R22, RI6) archive exists while the active ledger does not — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'eh', dir: 'test/fixtures/lifecycle-violations/eh-ledger-wrong-kind', description: '(WP-R22, RI16) ledger declares the wrong kind — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ei', dir: 'test/fixtures/lifecycle-violations/ei-ledger-duplicate-row-id', description: '(WP-R22, RI16) two ledger rows share an id — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ej', dir: 'test/fixtures/lifecycle-violations/ej-closed-row-missing-resolution', description: '(WP-R22, RI15) closed row without closed_in_phase or resolution — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'ek', dir: 'test/fixtures/lifecycle-violations/ek-waived-without-waiver-ref', description: '(WP-R22, RI15) waived row without a waiver_ref — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
+  { id: 'el', dir: 'test/fixtures/lifecycle-violations/el-noise-without-reason', description: '(WP-R22, RI15) noise row without a reason — check-finding-quality', validator: validatorPath('check-finding-quality.mjs') },
 ];
 
 let passed = 0;
@@ -306,6 +315,28 @@ for (const fixture of fixtures) {
 }
 
 console.log(`\n${passed}/${fixtures.length} violations detected`);
+
+// Attribution sweep, in the harness rather than in a person's terminal. RI9's acceptance says every
+// council fixture emits exactly one error; until now that was verified by hand, which means it was
+// true on the day someone checked and unverified every day after. A fixture rejected for TWO reasons
+// keeps passing when the rule it targets regresses — the failure this suite exists to prevent.
+const councilFixtures = fixtures.filter((f) => /check-(council-record|finding-quality)\.mjs$/.test(f.validator));
+let multi = 0;
+for (const fixture of councilFixtures) {
+  const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir],
+    { cwd: repoRoot, encoding: 'utf8', env });
+  const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+  const count = combined.split('\n').filter((l) => l.startsWith('- ')).length;
+  if (count !== 1) {
+    console.error(`[ATTR] ${fixture.id}: emitted ${count} error(s), expected exactly 1`);
+    multi++;
+  }
+}
+console.log(`attribution sweep: ${councilFixtures.length - multi}/${councilFixtures.length} council fixtures emit exactly one error`);
+if (multi > 0) {
+  console.error(`${multi} fixture(s) reject for more than one reason — each would keep passing if its own rule regressed`);
+  process.exit(1);
+}
 
 if (gaps > 0) {
   console.error(`${gaps} confirmed validator gap(s) — fix before wiring more call sites`);

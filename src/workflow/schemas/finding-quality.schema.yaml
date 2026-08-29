@@ -74,8 +74,14 @@ properties:
             and a later chain may update it, since this record is cross-run by construction.
         closed_in_phase:
           type: string
-          enum: [test, ship, reflect]
-          description: "Which phase settled the outcome. Required once the outcome is not pending."
+          enum: [review, test, ship, reflect]
+          description: >-
+            Which phase settled the outcome. Required once the outcome is not pending. `review` is
+            included because a finding fixed during the same review that raised it is settled there:
+            the enum originally started at `test`, on the assumption that quality is never knowable
+            at Review, and the first real council disproved that on its own remediation pass. It is
+            still the exception rather than the norm - a finding whose truth needs someone to act on
+            it closes later, and guessing at Review is what `pending` exists to prevent.
         resolution:
           type: string
           minLength: 1

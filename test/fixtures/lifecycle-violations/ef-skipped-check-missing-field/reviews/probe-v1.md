@@ -27,6 +27,10 @@ council:
     dispatch_enabled: optional
     council_enabled: on-for-complex
     task_class: complex
+  repo_integrity:
+    before: sha256:bbbbbbbbbbbb
+    after: sha256:bbbbbbbbbbbb
+    algorithm: sha256/sorted-relpath+size+content
   evidence_classes:
     repo: used
     trial: unused
@@ -76,7 +80,7 @@ reaches this section, and every member that produced one is cited by name.
 | Member | Role | Round | Capabilities | Input | Status | Sandbox |
 |---|---|---|---|---|---|---|
 | m1 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
-| m2 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
+| m2 | reviewer | 1 | read, fetch, search | diff+manifest | failed | |
 | c1 | challenger | 1 | read, fetch, search | diff+manifest | ran | |
 
 ### Rounds
@@ -108,6 +112,7 @@ resolves. Disagreements are never collapsed: each is recorded in Conflicts with 
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |
 |---|---|---|---|---|---|
+| m2 categories unread | member failed | coverage gap |  | no | R1 |
 
 ### Termination
 

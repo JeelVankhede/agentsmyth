@@ -23,6 +23,8 @@ import { defsPath, finish, listFiles, loadYaml, pathExists, schemaRegistry, vali
 
 const errors = [];
 const details = [];
+let checked = 0;
+let skipped = 0;
 const schemas = schemaRegistry();
 
 // Definitions files are matched to their schema by `kind`, exactly as check-config matches repo
@@ -33,10 +35,13 @@ const DEFINITIONS = ['agent-behavior.yaml'];
 for (const name of DEFINITIONS) {
   const filePath = defsPath(name);
   if (!pathExists(filePath)) {
-    // Absent is legitimate — a consumer repo linked to a global install has no local copy, and a
-    // fresh checkout may not have prepared one. Recorded rather than skipped silently, so a check
-    // that did not run never reads as one that passed.
+    // Absent is legitimate for a CONSUMER repo linked to a global install. It is not legitimate
+    // here: this validator runs under AGENTSMYTH_WF against the package source, where the file
+    // always exists. Reporting `ok` after validating nothing is the failure this validator was
+    // created to fix, one level up — so absence is counted, and a run that validated nothing at
+    // all fails below rather than passing quietly.
     details.push(`skipped ${name} — not present at ${filePath}`);
+    skipped++;
     continue;
   }
 
@@ -54,6 +59,7 @@ for (const name of DEFINITIONS) {
 
   const schema = loadYaml(schemaPath);
   const before = errors.length;
+  checked++;
   validateSchema(doc, schema, filePath, errors, schemas, schema);
   details.push(
     errors.length === before
@@ -72,8 +78,11 @@ if (definitionKinds.size > 0) {
   details.push(`definitions validated by kind: ${[...definitionKinds].join(', ')}`);
 }
 
-if (listFiles(defsPath('schemas')).length === 0) {
-  details.push(`no schemas found under ${defsPath('schemas')} — nothing to validate against`);
+// A validator that reports success having checked nothing is indistinguishable from one that
+// checked everything and found nothing wrong. That ambiguity is precisely what this file exists to
+// remove, so it refuses to be an instance of it.
+if (checked === 0) {
+  errors.push(`check-definitions validated no definitions file (${skipped} skipped, ${listFiles(defsPath('schemas')).length} schema(s) found under ${defsPath('schemas')}); reporting ok here would be a pass that exercised nothing`);
 }
 
 finish('check-definitions', errors, details);
