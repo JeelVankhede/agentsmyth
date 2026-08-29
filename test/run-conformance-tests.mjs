@@ -197,6 +197,36 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
 
+// WP-R22 RI12 — review-council's charter must keep naming the sections the validator and
+// lifecycle-review are written against, in order. Same anti-drift shape as r21-think-stages: the
+// contract and its documentation rot apart unless something pins them together. The fences are
+// pinned by name because each is a rule a member loading only this charter has to see.
+const reviewCouncilSkill = readFileSync(join(repoRoot, 'src/workflow/skills/review-council/SKILL.md'), 'utf8');
+check('r22-review-council-sections', 'review-council SKILL.md names its charter sections in order',
+  ['## Purpose', '## Invocation Context', '## Authorization', '## Member Capability', '## Roles',
+   '## Risk Category Assignment', '## The Challenge Pass', '## Findings Carry No Fix',
+   '## Members That Fail', '## Evidence And Dispositions', '## Refusal / Stop Conditions',
+   '## Determinism Rules', '## Exit Gate']
+    .every((sec, i, arr) => {
+      const idx = reviewCouncilSkill.indexOf(sec);
+      return idx !== -1 && (i === 0 || idx > reviewCouncilSkill.indexOf(arr[i - 1]));
+    }));
+
+// The three fences that license a Review council to fire unprompted, each stated in the charter
+// itself rather than only by reference. A member loads this file; a rule it must follow a pointer
+// to find is one it can miss.
+check('r22-review-council-fences', 'charter states the repo, outward and input fences explicitly',
+  /Repo axis — absolute/.test(reviewCouncilSkill) &&
+  /Outward axis/.test(reviewCouncilSkill) &&
+  /Input fence/.test(reviewCouncilSkill) &&
+  /does not\s+receive the Build session transcript/i.test(reviewCouncilSkill) &&
+  /Do not nest dispatch/.test(reviewCouncilSkill));
+
+// Review produces a verdict; a Review council does not. The phase name invites the opposite
+// reading, and getting it wrong is what would let a member's finding read as authority.
+check('r22-review-council-no-verdict', 'charter scopes the no-verdict rule to the council output',
+  /Review produces a verdict; a Review council does not/.test(reviewCouncilSkill));
+
 // The schema engine must enforce `required` independently of `properties`. It did not: the check
 // was nested inside `if (schema.properties && ...)`, so a schema declaring `required` alone
 // enforced nothing — and that is the exact shape every `then:` branch of an if/then takes, since
