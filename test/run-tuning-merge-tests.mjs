@@ -7,7 +7,14 @@
 // scenario cannot distinguish a NaN complexity_score from a legitimately low one. A suite that
 // already passes with the defect present cannot be the proof that the defect is fixed. These are
 // positive assertions on the merge itself, and case 2 fails against the pre-fix shallow spread.
-import { loadYaml, mergeTunedMap } from '../src/workflow/validators/lib.mjs';
+// lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
+// at the machine-local ~/.agentsmyth/workflow — and exits at import time when that path is absent.
+// A developer machine has it; a CI runner does not, so importing lib.mjs directly made this suite
+// pass locally and die on a fresh checkout with "global definitions root not found". The env
+// override is what the validators themselves are run under (see scripts/validate-template.mjs), so
+// it is set here BEFORE the dynamic import — a static import is hoisted and would run first.
+process.env.AGENTSMYTH_HOME ??= 'src/workflow';
+const { loadYaml, mergeTunedMap } = await import('../src/workflow/validators/lib.mjs');
 
 const results = [];
 

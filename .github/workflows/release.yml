@@ -59,6 +59,8 @@ jobs:
           npm run init-prepare-interop:test
           npm run checkpoint-approval:test
           npm run setup-validator-definitions-root:test
+          npm run tuning-merge:test
+          npm run commit-coverage:test
 
       - name: Bump version
         id: version

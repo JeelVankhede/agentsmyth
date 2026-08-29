@@ -52,6 +52,15 @@ jobs:
       - name: Run checkpoint-approval gate tests
         run: npm run checkpoint-approval:test
 
+      # Added after a Review-council finding: both suites existed in package.json and ran in no
+      # workflow, so they were counted as coverage while never being invoked. tuning-merge in
+      # particular carries the only automated evidence for per-repo council tuning.
+      - name: Run tuning-merge tests
+        run: npm run tuning-merge:test
+
+      - name: Run commit-coverage tests
+        run: npm run commit-coverage:test
+
       - name: Run setup-validator definitions_root tests
         run: npm run setup-validator-definitions-root:test
 

@@ -540,6 +540,30 @@ when a change reaches outside the active phase's declared scope.
 
 </details>
 
+## CI Reproduction (2026-08-30)
+
+PR #65 opened against `release/1.1.0`, which is what makes CI run — `feat/**` is in no push filter,
+so 21 commits of this package had never been verified off one machine. **CI failed on its first
+run**, and the failure was real rather than environmental:
+
+    agentsmyth: global definitions root not found: /home/runner/.agentsmyth/workflow
+
+The conformance and tuning-merge harnesses had gained a static `import` of `lib.mjs`, which resolves
+its definitions root from `repo-profile.yaml` and **exits at import time** when that machine-local
+path is absent. A developer machine has `~/.agentsmyth`; a runner does not. The suites therefore
+passed locally and died on a fresh checkout — the exact local-versus-CI divergence this package's own
+Review council reported, reproduced in its test harness one commit later.
+
+Fixed by setting the env override the validators already run under, before a dynamic import, since a
+static import is hoisted and would run first. Verified by reproducing the CI condition locally with
+`HOME=/nonexistent`: conformance 44/44, violations 92/92, tuning-merge 15/15.
+
+Two suites were also added to CI and to release, closing the drift the review flagged:
+`tuning-merge:test` and `commit-coverage:test` existed in `package.json` and ran in no workflow —
+counted as coverage, never invoked — and `tuning-merge` holds the only automated evidence for
+per-repo council tuning. Locked by `r22-every-suite-runs-in-ci`, which checks both workflows, since
+a suite gating CI but not the publish is a gap at the moment it matters most.
+
 ## Post-Review Remediation (2026-08-30)
 
 All 31 Review-council findings fixed. The per-finding table is in the review artifact; what belongs

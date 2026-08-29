@@ -81,7 +81,15 @@ const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-t
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
 import { readdirSync, readFileSync } from 'node:fs';
-import { validateSchema } from '../src/workflow/validators/lib.mjs';
+
+// lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
+// at the machine-local ~/.agentsmyth/workflow — and exits at import time when that path is absent.
+// A developer machine has it; a CI runner does not, so importing lib.mjs directly made this suite
+// pass locally and die on a fresh checkout with "global definitions root not found". The env
+// override is what the validators themselves are run under (see scripts/validate-template.mjs), so
+// it is set here BEFORE the dynamic import — a static import is hoisted and would run first.
+process.env.AGENTSMYTH_HOME ??= 'src/workflow';
+const { validateSchema } = await import('../src/workflow/validators/lib.mjs');
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -212,6 +220,21 @@ check('r22-fan-out-defaults-agree', 'every document restating the fan-out defaul
   new RegExp(`default_fan_out\` is \\*\\*${perPhase[2]}\\*\\*`).test(phaseCapsDoc) &&
   new RegExp(`${perPhase[1]} for Think and ${perPhase[2]} for Review`).test(configMapDoc) &&
   new RegExp(`default ${perPhase[2]}`).test(reviewSkillDoc));
+
+// Every test suite must be RUN by CI, for the same reason every validator must be wired: a suite in
+// package.json that no workflow invokes is counted as coverage and provides none. tuning-merge and
+// commit-coverage sat in exactly that state, and tuning-merge held the only automated evidence for
+// per-repo council tuning. Release is checked too — a suite that gates CI but not the publish is a
+// gap at the moment it matters most.
+const pkgScripts = Object.keys(JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')).scripts)
+  .filter((name) => name.endsWith(':test'));
+const ciYml = readFileSync(join(repoRoot, '.github/workflows/ci.yml'), 'utf8');
+const releaseYml = readFileSync(join(repoRoot, '.github/workflows/release.yml'), 'utf8');
+const notInCi = pkgScripts.filter((name) => !ciYml.includes(`npm run ${name}`));
+const notInRelease = pkgScripts.filter((name) => !releaseYml.includes(`npm run ${name}`));
+check('r22-every-suite-runs-in-ci', 'every :test script is invoked by CI and by release',
+  notInCi.length === 0 && notInRelease.length === 0,
+  notInCi.length || notInRelease.length ? `ci: ${notInCi.join(', ') || 'none'} | release: ${notInRelease.join(', ') || 'none'}` : '');
 
 // WP-R22 P1-7 — the Ship closure gate must be scoped to the chain being shipped. Unscoped, one
 // chain's unsettled finding blocked every other chain AND re-failed every ship artifact already
