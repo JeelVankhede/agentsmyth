@@ -21,11 +21,10 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 3 - Per-repo council tuning and the setup interview
-- Manifest IDs: RI22
-- Exit gate: a repo overriding Review alone leaves Think's resolved value unchanged; a repo
-  overriding neither inherits both; the interview item is present and its `config`/`field` point at
-  a real key; `npm run validate` and `npm run setup-checks:test` exit 0.
+- Phase: Phase 4 - Finding-quality ledger contract
+- Manifest IDs: RI6, RI15
+- Exit gate: `check-schema-keywords.mjs` exits 0 over the new schema; both ledger files parse
+  against it; `npm run validate` exits 0.
 
 ## Plan Phases Overview
 
@@ -36,8 +35,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 |---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | RI5, RI20 |
 | Phase 2 - Definitions validated against their schemas | complete | RI21 |
-| Phase 3 - Per-repo council tuning and the setup interview | active | RI22 |
-| Phase 4 - Finding-quality ledger contract | pending | RI6, RI15 |
+| Phase 3 - Per-repo council tuning and the setup interview | complete | RI22 |
+| Phase 4 - Finding-quality ledger contract | active | RI6, RI15 |
 | Phase 5 - Review council skill and charter | pending | R2, R3, RI12, RI19 |
 | Phase 6 - lifecycle-review restructuring and record shape | pending | R7, RI3, RI13, RI14, RI17, RI18 |
 | Phase 7 - Validator extended to review artifacts | pending | R1, R4, R6, RI1, RI2, RI4 |
@@ -71,12 +70,43 @@ schema-enforcement work lands early, where every later phase's constraints benef
 - `src/workflow/validators/check-config.mjs` — definitions files are now validated against their
   schemas, keyed off `kind` exactly as the repo-config loop is; absent definitions root is recorded
   as skipped rather than passing silently — IDs: RI21
+- `src/workflow/schemas/repo-profile.schema.yaml` — `tuning.council.per_phase` replaces the repo-level
+  `default_fan_out`, mirroring the global shape; nothing required, so a repo tunes the phases it
+  cares about and inherits the rest — IDs: RI22
+- `bin/agentsmyth.mjs` — item families generalised: `appendPendingItems(configDir, specs, marker)`
+  with a per-family idempotency marker, so a family added later still reaches a repo that already
+  resolved the earlier ones. New `councilTuningItemSpecs()`; seeded at init as PS-12 and appended on
+  version skew — IDs: RI22
+- `workflow/config/pending-setup.yaml` — PS-7 added by running the real skew path, not hand-written — IDs: RI22
+- `src/setup/references/config-map.md` — council-size row in the derived-numbers table, stating the
+  per-entry merge rule — IDs: RI22
+- `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
+  leaves the other at its global value — IDs: RI22
 - `src/workflow/skills/dispatch-subagents/references/phase-caps.md` — new "Review council default"
   section stating 2 and its three reasons; the Think-only scoping paragraph now names
   `council.per_phase.<phase>` as the place every phase declares its own, a shipped-values table for
   think/review/everything-else, and the fail-safe rule — IDs: RI5, RI20
 
 ## Implementation Log
+
+**Phase 3 (RI22) — two findings worth carrying to Review.**
+
+*The dogfood loop validates the GLOBAL definitions, not the source.* A schema change in
+`src/workflow/schemas/` is synced by `npm run build` into `dist/` and the dev workspace, but
+`~/.agentsmyth/workflow/` only moves when `agentsmyth prepare` runs. `defsPath()` resolves to the
+global install here (`definitions_root` in `repo-profile.yaml`), so `check-config` was validating
+the old global copy while the source already carried the new shape — the traversal probe said
+`MISSING at per_phase` for a key plainly present in `src/`. Running `prepare` closed it. The
+asymmetry is real and not local-only: CI has no `~/.agentsmyth`, so the two-root resolver falls back
+to the repo-local `workflow/` copy that `build` syncs — meaning **CI and a developer's machine
+validate different files**. That is the "passes on the author's machine" class the WP-R21 PR review
+flagged, one layer down. Recorded rather than fixed: it is outside RI22 and belongs to Review.
+
+*`check-pending-setup.mjs` is never run.* It is not registered in `scripts/validate-template.mjs`,
+so `npm run validate` never calls it. Run directly, it exits 1 on this repo — PS-1, PS-2 and PS-3
+are `resolved` with no `resolved_by`, which its own rule forbids. Pre-existing, unrelated to RI22,
+and left alone per `scope-control.md`'s prohibition on unrelated cleanup. Same family as B1: a
+checker that exists and never runs.
 
 This artifact was created before any Phase 1 file was touched, per `lifecycle-build`'s workflow
 step 4 — scoping, not documentation after the fact.
@@ -137,6 +167,13 @@ expanding scope unilaterally.
 | New probe: required `max_rounds` removed | Phase 2 | **pass — rejected** | `...council.max_rounds is required` — proves the pre-existing `required` list is live too, not just the new keys |
 | `node src/workflow/validators/check-config.mjs` (unmodified repo) | Phase 2 | pass | Clean — enforcement added no false positive |
 | `npm run build`, `validate`, `violations:test`, `conformance:test` | Phases 1-2 | pass | build ok, exit 0, 69/69, 26/26 |
+| `node bin/agentsmyth.mjs check` (real skew path) | Phase 3 | pass | Appended PS-7 for `tuning.council.per_phase`; the already-resolved `intent.` family was left alone, proving the per-family marker guard |
+| `node bin/agentsmyth.mjs check` (second run) | Phase 3 | pass | Added 0 — idempotent |
+| `npm run tuning-merge:test` | Phase 3 | pass | **14/14**, was 11/11. m12 overriding review leaves think at 3; m13 overriding neither inherits both; m14 a repo-named phase absent from the global map survives |
+| Probe: repo `tuning.council.per_phase.review.default_fan_out: 99` | Phase 3 | pass — rejected | `...per_phase.review.default_fan_out is above maximum 10` |
+| Probe: repo override of `1` | Phase 3 | pass — accepted | Valid override is not rejected; the fence discriminates rather than blanket-failing |
+| `node src/workflow/validators/check-pending-setup.mjs` | Phase 3 | **fail — pre-existing** | PS-1..3 `resolved` without `resolved_by`. Unrelated to RI22; validator is not registered in validate-template so `npm run validate` never runs it |
+| Ten suites | Phase 3 | pass | violations, conformance, tuning-merge, setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage |
 | Eight auxiliary suites | Phases 1-2 | pass | setup-checks, setup-refs, root-resolution, init-prepare-interop, checkpoint-approval, setup-validator-definitions-root, commit-coverage, tuning-merge |
 
 ## Dispatch Log
@@ -190,4 +227,5 @@ when a change reaches outside the active phase's declared scope.
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
 | Phase 1 - Per-phase council caps, symmetric | complete | 2026-08-29 | `per_phase.think: 3` and `per_phase.review: 2`, no phase special-cased; a phase absent from the map falls back to 1, so forgetting to decide fails safe. `phase-caps.md` carries a shipped-values table. Superseded the first Phase 1 implementation, which kept `default_fan_out` as Think's implicit home |
+| Phase 3 - Per-repo council tuning and the setup interview | complete | 2026-08-29 | `tuning.council.per_phase` mirrors the global shape and merges per entry (m12-m14, 14/14). The interview item was added by running the real `check` skew path, and a second run added nothing. Both probe directions discriminate: an out-of-range repo override is rejected naming the path, a valid one is accepted. Two findings recorded for Review — the dogfood loop validates the global definitions rather than the source, and `check-pending-setup` is never registered |
 | Phase 2 - Definitions validated against their schemas | complete | 2026-08-29 | `check-config` applies a definitions file's schema to it. Four probes rejected with the offending path named, including one against a pre-existing `required` key — so the fix covers the whole schema, not only the keys this package added. Unmodified repo still validates clean |

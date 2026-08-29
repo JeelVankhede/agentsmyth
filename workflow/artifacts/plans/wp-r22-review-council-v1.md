@@ -128,7 +128,9 @@ recalled.
 | `scripts/validate-template.mjs` | tooling | RI21 | Registration | Phase 2 |
 | `src/workflow/schemas/repo-profile.schema.yaml` | schema | RI22 | Additive `tuning.council.per_phase` | Phase 3 |
 | `workflow/config/pending-setup.yaml` | config | RI22 | Interview item | Phase 3 |
-| `src/setup/SKILL.md` | docs | RI22 | Setup asks the question | Phase 3 |
+| `src/setup/references/config-map.md` | docs | RI22 | The field mapping setup reads | Phase 3 |
+| `bin/agentsmyth.mjs` | tooling | RI22 | Seeds the interview item at init and on version skew | Phase 3 |
+| `test/run-tuning-merge-tests.mjs` | tests | RI22 | Positive proof of per-entry merge | Phase 3 |
 | `src/workflow/schemas/finding-quality.schema.yaml` | schema (new) | RI15 | New contract; `additionalProperties: false` | Phase 4, before any writer or reader |
 | `workflow/artifacts/finding-quality.yaml` | generated data (new) | RI6 | Repo-local ledger, absent-is-valid | Phase 6 |
 | `workflow/artifacts/finding-quality-archive.yaml` | generated data (new) | RI6 | Append-only | Phase 6 |
@@ -205,7 +207,15 @@ to one example.
 - **Manifest IDs:** RI22
 - Touches: `src/workflow/schemas/repo-profile.schema.yaml`,
   `workflow/config/pending-setup.yaml`,
-  `src/setup/SKILL.md`
+  `src/setup/references/config-map.md`,
+  `bin/agentsmyth.mjs`,
+  `test/run-tuning-merge-tests.mjs`
+- Touches corrected 2026-08-29 during Build, before any edit: `src/setup/SKILL.md` was declared but
+  applies the router's generic resolution pass and names no individual field, so the field mapping
+  belongs in `config-map.md` instead. `bin/agentsmyth.mjs` seeds and appends interview items and is
+  what "answerable at init" actually means. `test/run-tuning-merge-tests.mjs` is where per-entry
+  merge is proven positively — the negative suite cannot show that overriding Review left Think
+  alone.
 - Work: extend `tuning.council` with the same `per_phase` shape so a repo can override one phase's
   cap without disturbing another's, following the per-entry resolution rule `skill_scoring` already
   documents. Add a setup interview item so the question can be answered at `init` or later.

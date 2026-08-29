@@ -291,11 +291,35 @@ properties:
               - standard
               - deep
             description: Per-member research effort. Capacity rather than enforcement, so a repo may move it in either direction.
-          default_fan_out:
-            type: integer
-            minimum: 1
-            maximum: 10
-            description: Council fallback fan-out when no max_parallel_workstreams is declared. Capacity, like max_parallel_workstreams, so it has no looser direction to move in.
+          per_phase:
+            type: object
+            additionalProperties: false
+            description: >-
+              Per-phase council fan-out overrides. Merged PER ENTRY against the global map, exactly
+              as skill_scoring's weights and glob categories are: naming `review` changes Review's
+              value and leaves Think's global value untouched. A partial map is not a replacement
+              map. Nothing is required here - a repo tunes the phases it cares about and inherits
+              the rest. Capacity, like max_parallel_workstreams, so there is no looser direction to
+              move in.
+            properties:
+              think:
+                type: object
+                additionalProperties: false
+                properties:
+                  default_fan_out:
+                    type: integer
+                    minimum: 1
+                    maximum: 10
+                    description: Overrides the global Think council fan-out for this repo only.
+              review:
+                type: object
+                additionalProperties: false
+                properties:
+                  default_fan_out:
+                    type: integer
+                    minimum: 1
+                    maximum: 10
+                    description: Overrides the global Review council fan-out for this repo only.
           sandbox_root:
             type: string
             minLength: 1

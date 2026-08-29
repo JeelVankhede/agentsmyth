@@ -141,7 +141,9 @@ if (command === 'check') {
       // non-blocking: until the items resolve, every value falls back to the global install, so a
       // repo that ignores the prompt entirely behaves exactly as it did before upgrading.
       try {
-        const added = appendIntentPendingItems(join(checkRoot, 'workflow', 'config'));
+        const configDirForItems = join(checkRoot, 'workflow', 'config');
+        const added = appendIntentPendingItems(configDirForItems)
+          + appendCouncilTuningPendingItems(configDirForItems);
         if (added > 0) {
           console.warn(`  Added ${added} per-repo tuning item(s) to workflow/config/pending-setup.yaml for this version.`);
           console.warn('  Your agent will offer to resolve them at the start of the next session. Until then, behavior is unchanged.');
@@ -260,10 +262,25 @@ function intentItemSpecs() {
   ];
 }
 
-// Renders the intent items as pending-setup.yaml entries starting at PS-<startId>. IDs are never
+// Council fan-out is a per-phase cost decision, and the one config value that bills the user on
+// every Complex chain. It gets its own item family rather than joining the intent block: intent is
+// what a person answers so the agent can DERIVE numbers, whereas this is the number itself, and the
+// idempotency guard below keys off the field prefix — a council item hidden behind the `intent.`
+// marker would never be appended to a repo that already resolved its intent items.
+function councilTuningItemSpecs() {
+  return [
+    {
+      field: 'tuning.council.per_phase',
+      question: 'How many council members should Think and Review each dispatch on Complex work? Defaults are 3 for Think and 2 for Review; lower numbers cost less per chain. Leave unset to inherit both.',
+      hint: 'Only ask if the repo runs Complex work often enough for the cost to matter. Merged per entry — naming review alone leaves think at the global value. Set 1 to make a phase effectively single-agent without disabling councils outright.',
+    },
+  ];
+}
+
+// Renders item specs as pending-setup.yaml entries starting at PS-<startId>. IDs are never
 // reused or renumbered, so callers pass the next free number.
-function intentPendingItems(startId) {
-  return intentItemSpecs().map((item, index) => [
+function pendingItemsFrom(specs, startId) {
+  return specs.map((item, index) => [
     `  - id: PS-${startId + index}`,
     `    config: repo-profile.yaml`,
     `    field: "${item.field}"`,
@@ -273,25 +290,34 @@ function intentPendingItems(startId) {
   ].join('\n'));
 }
 
-// Appends the intent items to an EXISTING pending-setup.yaml that has none — the upgrade path for
-// a repo set up before this version. Idempotent: a file already mentioning `field: "intent.` is
-// left alone, so re-running `check` never duplicates items or resurrects ones the user resolved
-// or waived. Returns the number of items added.
-function appendIntentPendingItems(configDir) {
+// Appends one item family to an EXISTING pending-setup.yaml that lacks it — the upgrade path for a
+// repo set up before that family existed. Idempotent per family: a file already mentioning the
+// family's marker is left alone, so re-running `check` never duplicates items or resurrects ones
+// the user resolved or waived. Each family carries its OWN marker, so adding a family later reaches
+// repos that already resolved the earlier ones. Returns the number of items added.
+function appendPendingItems(configDir, specs, marker) {
   const pendingPath = join(configDir, 'pending-setup.yaml');
   if (!existsSync(pendingPath)) return 0;
 
   const content = readFileSync(pendingPath, 'utf8');
-  if (content.includes('field: "intent.')) return 0;
+  if (content.includes(marker)) return 0;
 
   // Continue the ID sequence from the highest existing PS-N rather than assuming a count — a repo
   // may have had items added by an earlier upgrade or by the setup skill itself.
   const existingIds = [...content.matchAll(/^\s*-\s*id:\s*PS-(\d+)/gm)].map((m) => Number(m[1]));
   const nextId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
 
-  const block = intentPendingItems(nextId).join('\n');
+  const block = pendingItemsFrom(specs, nextId).join('\n');
   writeFileSync(pendingPath, `${content.replace(/\s*$/, '')}\n${block}\n`);
-  return intentItemSpecs().length;
+  return specs.length;
+}
+
+function appendIntentPendingItems(configDir) {
+  return appendPendingItems(configDir, intentItemSpecs(), 'field: "intent.');
+}
+
+function appendCouncilTuningPendingItems(configDir) {
+  return appendPendingItems(configDir, councilTuningItemSpecs(), 'field: "tuning.council.per_phase');
 }
 
 // Writes stub config files + pending-setup.yaml when workflow/config/ is absent.
@@ -550,7 +576,9 @@ function headlessBootstrap(repoDir, pkgRootDir) {
       // WP-R8 intent items last, so the file reads PS-1..PS-11 in order. IDs 9-11 are fixed here
       // because PS-1..PS-8 are the full set this bootstrap can emit; the conditional ones
       // (PS-3/4/5) leave gaps when they don't fire rather than shifting the numbering.
-      ...intentPendingItems(9),
+      ...pendingItemsFrom(intentItemSpecs(), 9),
+      // PS-12: council fan-out, after the intent block. Same fixed-numbering reasoning as above.
+      ...pendingItemsFrom(councilTuningItemSpecs(), 12),
     ].filter(Boolean);
     writeFileSync(pendingPath,
       `version: 1\nkind: pending-setup\n\n` +

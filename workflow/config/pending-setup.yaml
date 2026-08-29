@@ -40,3 +40,9 @@ items:
     question: "How much scrutiny does each concern area deserve here — architecture, code_quality, api_contracts, data_schema, ui_ux, performance, repo_alignment, constraints_safety? Each is not-applicable, light, standard, or strict. Propose a full map derived from repo_character and ask only for confirmation or corrections."
     hint: "standard reproduces current behavior for every area, so it is the safe default. repo_alignment and constraints_safety cannot be not-applicable. ui_ux is commonly not-applicable for a cli or library; data_schema for a repo with no persistence."
     status: open
+  - id: PS-7
+    config: repo-profile.yaml
+    field: "tuning.council.per_phase"
+    question: "How many council members should Think and Review each dispatch on Complex work? Defaults are 3 for Think and 2 for Review; lower numbers cost less per chain. Leave unset to inherit both."
+    hint: "Only ask if the repo runs Complex work often enough for the cost to matter. Merged per entry — naming review alone leaves think at the global value. Set 1 to make a phase effectively single-agent without disabling councils outright."
+    status: open

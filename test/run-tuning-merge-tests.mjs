@@ -71,6 +71,29 @@ const score =
   (raw.touches_contract ? merged.touches_contract : 0) +
   (raw.new_surface ? merged.new_surface : 0) +
   merged.task_class[raw.task_class];
+// 12-14 (WP-R22 RI22) — council fan-out is per phase, and a repo overriding one phase must leave
+// the other at its global value. This is the same per-entry rule cases 2 and 3 prove for
+// skill_scoring weights, asserted against the council map because that is where a mistake now costs
+// the user real invocations on every Complex chain.
+const globalCouncilPerPhase = {
+  think: { default_fan_out: 3 },
+  review: { default_fan_out: 2 },
+};
+
+check('m12', 'overriding review leaves think at the global value',
+  mergeTunedMap(globalCouncilPerPhase, { review: { default_fan_out: 1 } }),
+  { think: { default_fan_out: 3 }, review: { default_fan_out: 1 } });
+
+check('m13', 'overriding neither phase inherits both',
+  mergeTunedMap(globalCouncilPerPhase, {}),
+  { think: { default_fan_out: 3 }, review: { default_fan_out: 2 } });
+
+// A phase the global map does not name is kept as declared rather than dropped — the merge must not
+// silently discard a repo's value for a phase a later version will add.
+check('m14', 'a repo-named phase absent from the global map survives the merge',
+  mergeTunedMap(globalCouncilPerPhase, { plan: { default_fan_out: 2 } }).plan,
+  { default_fan_out: 2 });
+
 check('m8', 'complexity_score stays finite under a partial nested edit (F1 consequence)',
   Number.isFinite(score) && score === 54, true);
 
