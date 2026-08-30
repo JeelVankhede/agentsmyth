@@ -86,6 +86,16 @@ schema-enforcement work lands early, where every later phase's constraints benef
 - `test/run-tuning-merge-tests.mjs` — m12/m13/m14, the positive proof that overriding one phase
   leaves the other at its global value — IDs: RI22
 
+**Test phase — mutation audit tooling.**
+
+- `test/run-mutation-audit.mjs` — new; the mutation harness with a ratchet baseline and a fail-fast
+  guard on the unmutated tree — IDs: RI9
+- `test/mutation-baseline.json` — new; per-validator undefended counts, 106 of 217 — IDs: RI9
+- `package.json` — `mutation:audit` script — IDs: RI9
+- `workflow/artifacts/open-items.yaml` — OI-82 (undefended rules), OI-83 (the gate discrepancy) — IDs: RI9
+- `test/fixtures/definitions/` — crafted definitions roots, so rules that fire only against one are
+  fixturable at all — IDs: RI9
+
 **Phase 10 (RI9, RI11).**
 
 - `src/workflow/validators/check-council-record.mjs` — Review-only rules RESTORED from `a66bd17`

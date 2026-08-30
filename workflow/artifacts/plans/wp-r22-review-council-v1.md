@@ -362,6 +362,11 @@ to one example.
   `test/run-violation-tests.mjs`,
   `test/run-conformance-tests.mjs`,
   `test/fixtures/conformance/`,
+  `test/fixtures/definitions/`,
+  `test/run-mutation-audit.mjs`,
+  `test/mutation-baseline.json`,
+  `package.json`,
+  `workflow/artifacts/open-items.yaml`,
   `src/workflow/validators/check-council-record.mjs`
 - Touches extended 2026-08-29 during Build: the validator is listed because this phase had to
   RESTORE the Review-only rules Phase 9 deleted. See the task artifact — the deletion is the

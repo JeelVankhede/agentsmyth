@@ -457,6 +457,12 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-83
+    source: follow-up
+    owner: workflow owner
+    next_action: "Explain why commit 537eebb passed the mandatory pre-commit gate while staging two files (test/run-mutation-audit.mjs, test/mutation-baseline.json) that no task artifact's Changed Files covered, then close the hole or the record-keeping error it exposes. What was verified: the hook is installed (core.hooksPath=.githooks); it invokes `agentsmyth` from PATH, which is a GLOBALLY INSTALLED 1.0.0 package rather than this repo's bin/; that CLI resolves validators from ~/.agentsmyth/workflow/validators, whose check-commit-coverage.mjs is byte-identical to the repo source; and the gate DOES fire correctly - staging an uncovered test/*.mjs probe produced the expected rejection naming the path. Both files were in 537eebb and neither is covered. The cause is therefore not a missing hook, a stale validator, or a broken rule, and I could not determine it. Two things worth fixing regardless. (1) A gate that fires on a probe but not on a real commit is worse than no gate, because it is trusted; reproduce it deliberately before relying on the gate for scope discipline again. (2) The hook resolves `agentsmyth` from PATH, so the gate a developer experiences depends on which version they happen to have installed globally - here a 1.0.0 package that ships only three validators - rather than on the repo being developed. Consider preferring the repo's own bin/ when one exists, so the gate tests the code under change."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
   - id: OI-82
     source: follow-up
     owner: workflow owner
