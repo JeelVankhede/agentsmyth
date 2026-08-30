@@ -246,7 +246,8 @@ function spawnCli(args, { cwd, home, input }) {
     writeFileSync(join(repo, 'workflow', 'config', 'repo-profile.yaml'), `${profile}\n`);
     const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
     writeFileSync(pendingPath, pendingBody);
-    spawnCli(['check'], { cwd: repo, home });
+    const cli = spawnCli(['check'], { cwd: repo, home });
+    const output = `${cli.stdout ?? ''}${cli.stderr ?? ''}`;
     const after = readFileSync(pendingPath, 'utf8');
     let parses = true;
     try {
@@ -256,7 +257,7 @@ function spawnCli(args, { cwd, home, input }) {
       ], { encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: 'src/workflow' }, cwd: repoRoot });
       parses = r.status === 0;
     } catch { parses = false; }
-    return { after, parses };
+    return { after, parses, output };
   }
 
   // items: first, then other top-level keys. The old guard said "safe to append" and the appended
@@ -270,6 +271,13 @@ function spawnCli(args, { cwd, home, input }) {
     itemsFirst.parses);
   check('J2-itemsfirst-untouched', 'the append refuses rather than writing into the wrong position',
     !itemsFirst.after.includes('tuning.council.per_phase'));
+  // Second external review pass, N11. Refusing is right; refusing silently is not — the marker never
+  // lands, so the family is never offered again and the repo is never told why. A warning nobody
+  // asserts is a warning that can quietly disappear, so it is asserted here rather than eyeballed.
+  check('J2b-itemsfirst-warns', 'the refusal names the file and the family it could not add',
+    itemsFirst.output.includes('tuning.council.per_phase') &&
+    itemsFirst.output.includes('pending-setup.yaml') &&
+    /a top-level key follows the "items:" block/.test(itemsFirst.output));
 
   // items: [] — the steady state of a repo that resolved and pruned everything. Previously a
   // permanent silent no-op, so such a repo could never be offered a new item family.

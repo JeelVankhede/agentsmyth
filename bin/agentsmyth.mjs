@@ -325,7 +325,18 @@ function appendPendingItems(configDir, specs, marker) {
   // position. Only top-level keys matter: sequence entries and their nested mappings are indented.
   const keyFollowsItems = itemsIdx !== -1 && lines.slice(itemsIdx + 1).some((l) => /^[A-Za-z_]/.test(l));
 
-  if (itemsIdx === -1 || keyFollowsItems) return 0;
+  // Refusing is right; refusing SILENTLY is not. The same argument the `items: []` branch below
+  // makes for its own case applies here: a repo whose pending-setup.yaml is shaped this way can
+  // never be offered this family, on this upgrade or any later one, because the marker never lands —
+  // and nothing ever told anyone. The append is the only part that is unsafe; saying so is not.
+  if (itemsIdx === -1 || keyFollowsItems) {
+    const reason = itemsIdx === -1
+      ? 'it has no top-level "items:" key'
+      : 'a top-level key follows the "items:" block, so an appended entry would land in the wrong document position';
+    console.warn(`  (skipped adding the "${marker}" item family to ${pendingPath}: ${reason})`);
+    console.warn('   Nothing was written. Add the items by hand, or reorder the file so "items:" is last, to be offered them.');
+    return 0;
+  }
 
   // `items: []` is the steady state of a mature repo — every item resolved and pruned. Refusing it
   // silently meant such a repo could never be offered a new item family, on this upgrade or any

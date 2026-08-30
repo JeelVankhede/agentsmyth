@@ -21,9 +21,20 @@
 // It IS a ratchet. test/mutation-baseline.json records the per-validator survivor count; exceeding
 // a baseline fails. The number can shrink and never grow, which is the same mechanism
 // workflow/config/artifact-baseline.yaml uses for the 96 grandfathered artifact violations.
-import { readFileSync, writeFileSync, copyFileSync, unlinkSync, readdirSync, existsSync } from 'node:fs';
+//
+// It mutates a COPY of the tree, never the working tree. The earlier version wrote the mutant to the
+// tracked validator and restored it in a `finally`, which does not run on a signal: an interrupted
+// run left a live mutant in a TRACKED file, with `errors.push(` replaced by `void (` on some rule.
+// That state does not announce itself. It reads as a fixture defect — one violation fixture silently
+// dropping to zero errors — and the pre-commit hook has no reason to stop it. It cost a reviewer an
+// hour bisecting a regression in an unrelated validator that did not exist. The isolation is
+// structural rather than handler-dependent because the reproduction used SIGKILL, which no handler
+// can catch; signal handlers here only tidy the temp directory, and are not what makes the working
+// tree safe.
+import { readFileSync, writeFileSync, readdirSync, existsSync, cpSync, mkdtempSync, rmSync, lstatSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -35,6 +46,46 @@ const onlyIdx = args.indexOf('--only');
 const only = onlyIdx !== -1 ? args[onlyIdx + 1] : null;
 const writeBaseline = args.includes('--write-baseline');
 
+// Sweep any `.mutation-backup` left by a version of this script that mutated in place. Its presence
+// means a previous run died mid-mutation, so the tracked file beside it may still be a live mutant —
+// and the backup is the pristine original, which makes repair mechanical rather than a bisect. Run
+// before the fail-fast below: a leftover mutant would otherwise be measured as the baseline tree.
+for (const name of readdirSync(VALIDATORS).filter((f) => f.endsWith('.mutation-backup'))) {
+  const backup = join(VALIDATORS, name);
+  const target = backup.replace(/\.mutation-backup$/, '');
+  const pristine = readFileSync(backup, 'utf8');
+  const restored = existsSync(target) && readFileSync(target, 'utf8') !== pristine;
+  if (restored) writeFileSync(target, pristine);
+  unlinkSync(backup);
+  console.warn(`mutation-audit: found a stale ${name} — a previous run was interrupted mid-mutation.`);
+  console.warn(restored
+    ? `  ${target} was still MUTATED and has been restored from it. Re-run any suite you ran since.`
+    : `  ${target} already matched it; only the stale backup was removed.`);
+}
+
+// The tree the mutants are written to. Copied once (~2s), thrown away at the end, and never the
+// repository you are working in. `.git` is included because check-domain-placeholders and
+// check-lifecycle read `git ls-files`; without it validate-template fails and the audit cannot start.
+// Sockets are skipped (git's fsmonitor IPC endpoint lives in .git and cpSync refuses to copy it),
+// and node_modules is skipped because none of the three suites import from it.
+const workRoot = mkdtempSync(join(tmpdir(), 'agentsmyth-mutation-'));
+const WORK_VALIDATORS = join(workRoot, 'src/workflow/validators');
+let workRootRemoved = false;
+function removeWorkRoot() {
+  if (workRootRemoved) return;
+  workRootRemoved = true;
+  try { rmSync(workRoot, { recursive: true, force: true }); } catch { /* best-effort */ }
+}
+// Tidiness only. Nothing in the repository depends on these firing — that is the point of copying.
+process.on('exit', removeWorkRoot);
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { removeWorkRoot(); process.exit(130); });
+}
+cpSync(repoRoot, workRoot, {
+  recursive: true,
+  filter: (src) => !/(^|[/\\])node_modules$/.test(src) && !lstatSync(src).isSocket(),
+});
+
 // A rule may be exercised by the fixture suites or by validate-template running the validator over
 // this repo's real artifacts. Both must run, or a survivor is an artefact of the harness rather than
 // a gap in the suite.
@@ -44,9 +95,20 @@ const SUITES = [
   ['test/run-conformance-tests.mjs'],
 ];
 
+// Run against the COPY. Every suite resolves its own root from `import.meta.url`, and the validators
+// they invoke resolve theirs from `git rev-parse --show-toplevel`, so a suite living in workRoot
+// checks workRoot — no path plumbing and no env override is needed for the redirection to hold.
+// fsmonitor is disabled for the copy: the audit spawns these suites once per mutation site, and a
+// per-run daemon started against a throwaway directory is cost with no benefit.
+const suiteEnv = {
+  ...process.env,
+  GIT_CONFIG_COUNT: '1',
+  GIT_CONFIG_KEY_0: 'core.fsmonitor',
+  GIT_CONFIG_VALUE_0: 'false',
+};
 function suitesPass() {
   for (const suiteArgs of SUITES) {
-    if (spawnSync(process.execPath, suiteArgs, { cwd: repoRoot, encoding: 'utf8' }).status !== 0) return false;
+    if (spawnSync(process.execPath, suiteArgs, { cwd: workRoot, encoding: 'utf8', env: suiteEnv }).status !== 0) return false;
   }
   return true;
 }
@@ -64,10 +126,13 @@ if (!suitesPass()) {
   process.exit(1);
 }
 
-const targets = readdirSync(VALIDATORS)
+// Enumerated from the copy, so the file that is read for mutation sites is byte-identical to the
+// file that runs. Reading the real tree here would let a mid-run edit shift line numbers under the
+// audit and silently mutate the wrong statement.
+const targets = readdirSync(WORK_VALIDATORS)
   .filter((f) => f.endsWith('.mjs'))
   .filter((f) => !only || f === only)
-  .filter((f) => readFileSync(join(VALIDATORS, f), 'utf8').includes('errors.push('));
+  .filter((f) => readFileSync(join(WORK_VALIDATORS, f), 'utf8').includes('errors.push('));
 
 if (targets.length === 0) {
   console.error(only ? `mutation-audit: no validator named ${only}` : 'mutation-audit: no targets');
@@ -79,33 +144,28 @@ let mutants = 0;
 const survivorDetail = [];
 
 for (const name of targets) {
-  const file = join(VALIDATORS, name);
+  // The mutated path is inside workRoot. There is no backup file and no restore step, because the
+  // file being overwritten is a throwaway copy: interrupt the run at any point, by any signal, and
+  // the repository is exactly as it was. The write-back below is only so the next mutant starts from
+  // a clean file, not a safety mechanism.
+  const file = join(WORK_VALIDATORS, name);
   const original = readFileSync(file, 'utf8');
-  const backup = `${file}.mutation-backup`;
-  copyFileSync(file, backup);
   const lines = original.split('\n');
   const sites = lines.map((l, i) => [l, i]).filter(([l]) => l.includes('errors.push('));
   let survived = 0;
 
-  try {
-    for (const [line, idx] of sites) {
-      mutants++;
-      const mutated = [...lines];
-      // Keep the statement syntactically valid; remove only its effect.
-      mutated[idx] = line.replace('errors.push(', 'void (');
-      writeFileSync(file, mutated.join('\n'));
-      const green = suitesPass();
-      writeFileSync(file, original);
-      if (green) {
-        survived++;
-        survivorDetail.push(`${name}:${idx + 1}`);
-      }
+  for (const [line, idx] of sites) {
+    mutants++;
+    const mutated = [...lines];
+    // Keep the statement syntactically valid; remove only its effect.
+    mutated[idx] = line.replace('errors.push(', 'void (');
+    writeFileSync(file, mutated.join('\n'));
+    const green = suitesPass();
+    writeFileSync(file, original);
+    if (green) {
+      survived++;
+      survivorDetail.push(`${name}:${idx + 1}`);
     }
-  } finally {
-    // Restore from the backup even if the run is interrupted — a half-mutated validator committed
-    // by accident is a far worse outcome than an incomplete audit.
-    copyFileSync(backup, file);
-    unlinkSync(backup);
   }
 
   results[name] = { rules: sites.length, undefended: survived };

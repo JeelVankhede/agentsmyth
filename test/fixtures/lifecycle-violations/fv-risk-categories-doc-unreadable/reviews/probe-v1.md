@@ -80,7 +80,7 @@ reaches this section, and every member that produced one is cited by name.
 | Member | Role | Round | Capabilities | Input | Status | Sandbox |
 |---|---|---|---|---|---|---|
 | m1 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
-| m2 | reviewer | 1 | read, fetch, search | diff+manifest | failed | |
+| m2 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
 | c1 | challenger | 1 | read, fetch, search | diff+manifest | ran | |
 
 ### Rounds
@@ -112,7 +112,7 @@ resolves. Disagreements are never collapsed: each is recorded in Conflicts with 
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |
 |---|---|---|---|---|---|
-| verification, lifecycle, requirement, generated-output, source-of-truth, release, security, maintainability | m2 failed | coverage gap |  | no | R1 |
+| requirement, generated-output, source-of-truth, release, security, maintainability | cap of 2 reviewers over ten categories | those six areas of the diff went unread | workflow owner | no | R1 |
 
 ### Termination
 

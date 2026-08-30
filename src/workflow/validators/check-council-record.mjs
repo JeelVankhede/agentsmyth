@@ -131,6 +131,19 @@ function tableObjects(text) {
   });
 }
 
+// The declared COLUMN NAMES of a section's table, lowercased. Reading the header line is the only
+// way to ask "does this table declare column X": a scan for the word anywhere in the section is
+// answered by any row whose prose happens to use it, and `tableObjects(...)[0]` is a data row, so an
+// empty-but-declared table answers `undefined`. Both mistakes shipped in this file — a Round-column
+// requirement satisfied by a rationale reading "in the first round", and a Fix-column ban that
+// passed the one record it most needed to reject. Line selection mirrors tableObjects exactly, so
+// the two never disagree about which line is the header.
+function headerCells(sectionText) {
+  if (!sectionText) return [];
+  const line = sectionText.split('\n').map((l) => l.trim()).find((l) => l.startsWith('|'));
+  return line ? line.slice(1, -1).split('|').map((c) => c.trim().toLowerCase()) : [];
+}
+
 // First header present wins, so one reader serves both records where they name the same concept
 // differently — Think dispatches "researchers", Review dispatches "reviewers".
 function col(row, ...names) {
@@ -779,7 +792,12 @@ for (const file of artifactFiles) {
     // round 1 was then reported as an overlap that never happened, and the record it was reading had
     // no column to be wrong about. lifecycle-review's output schema has always declared the column;
     // nothing produced it and nothing asked for it.
-    if (tableObjects(assignmentSection).length > 0 && !/^\s*\|[^\n]*\bround\b/im.test(assignmentSection)) {
+    // Asked of the HEADER, not of the section. The first form of this check tested every table line
+    // for `\bround\b`, so a record that deleted the column and wrote "the diff changes a schema in
+    // the first round" in a rationale cell satisfied it — and then every row collapsed to round 1,
+    // which is precisely the outcome the error below describes. Rationales mention rounds; that is
+    // how rationales are written.
+    if (tableObjects(assignmentSection).length > 0 && !headerCells(assignmentSection).includes('round')) {
       errors.push(`${file} "### Risk Category Assignment" has no Round column; disjointness is a per-round property, and without the round every row is read as round 1 — which turns a legitimate round-2 reassignment into a reported overlap`);
     }
     for (const row of tableObjects(assignmentSection)) {
@@ -799,37 +817,52 @@ for (const file of artifactFiles) {
     // N2 — a finding's risk_category must be one its own member was assigned. The field was parsed
     // and discarded; review-council's output schema declares the rule ("a `risk_category` that member
     // was assigned") and only the source_member half was enforced. categoryOwner is already built.
-      for (const f of findings) {
-        if (f.role === 'challenger' || !f.member || !f.riskCategory) continue;
-        const owned = [...(assignedByMember.get(f.member) ?? [])];
-        if (owned.length > 0 && !owned.includes(f.riskCategory)) {
-          errors.push(`${file} finding ${f.id} declares risk category "${f.riskCategory}" but member ${f.member} was assigned ${owned.map((c) => `"${c}"`).join(', ')}; a finding filed outside its member's assignment means either the assignment or the finding is wrong, and the coverage claim rests on the assignment`);
-        }
+    for (const f of findings) {
+      if (f.role === 'challenger' || !f.member || !f.riskCategory) continue;
+      const owned = [...(assignedByMember.get(f.member) ?? [])];
+      if (owned.length > 0 && !owned.includes(f.riskCategory)) {
+        errors.push(`${file} finding ${f.id} declares risk category "${f.riskCategory}" but member ${f.member} was assigned ${owned.map((c) => `"${c}"`).join(', ')}; a finding filed outside its member's assignment means either the assignment or the finding is wrong, and the coverage claim rests on the assignment`);
       }
+    }
 
     // N1 — coverage is claimed by review-risk-categories.md ("A category assigned to nobody ...
     // is recorded as a skipped check") and was enforced nowhere. With the Review default at 2
     // reviewers over ten categories, under-coverage is the DEFAULT configuration, not an edge case.
     // The ten names are read from their source file rather than restated here, the same anti-drift
     // shape as r22-fan-out-defaults-agree: a list copied into a validator is a list that rots.
-    const categoriesDoc = pathExists(defsPath('skills/lifecycle-review/references/review-risk-categories.md'))
-      ? readText(defsPath('skills/lifecycle-review/references/review-risk-categories.md'))
-      : null;
-    if (categoriesDoc) {
+    const skippedRows = tableObjects(subSection(logSection, 'Skipped Checks'));
+    const SKIPPED_FIELDS = ['check', 'why skipped', 'risk', 'owner', 'blocks ship', 'manifest ids'];
+    const categoriesPath = defsPath('skills/lifecycle-review/references/review-risk-categories.md');
+    const categoriesDoc = pathExists(categoriesPath) ? readText(categoriesPath) : null;
+    if (!categoriesDoc) {
+      // Gate, don't skip. An unreadable categories doc used to disable the coverage rule outright,
+      // so the one condition under which coverage cannot be established reported the same green as
+      // full coverage. check-definitions refuses to report `ok` having validated nothing for exactly
+      // this reason; a checker that cannot check must say so, not pass.
+      errors.push(`${file} is a council-mode review but the risk-category list at ${categoriesPath} could not be read; coverage is claimed against that list, and a run that cannot read it cannot establish coverage — it can only fail to notice a gap`);
+    } else {
       const known = [...categoriesDoc.matchAll(/^- ([a-z][a-z-]*):/gm)].map((m) => m[1]);
       const assigned = new Set([...categoryOwner.keys()].map((k) => k.split('::')[1]));
-      const skippedText = (subSection(logSection, 'Skipped Checks') ?? '').toLowerCase();
-      const unaccounted = known.filter((c) => !assigned.has(c) && !skippedText.includes(c));
+      // Read the CHECK COLUMN as a comma-separated category list — the shape review-council's output
+      // schema declares (`check: <the risk categories left unread>`) — and match tokens exactly.
+      // The first form of this rule ran `includes()` over the whole lowercased section, so a row
+      // about an unrelated deferred check counted as coverage for every category its prose happened
+      // to name: "a release risk", "the security posture", "maintainability of the generated-output
+      // path" silently accounted for four categories that row does not cover. Keyword matching
+      // without regard to clause is the failure this repo has shipped twice; this rule was the
+      // third, and it was worse than absent because it reported coverage it had not established.
+      const skippedCategories = new Set(
+        skippedRows.flatMap((r) => col(r, 'check').split(',').map((c) => c.trim().toLowerCase())).filter(Boolean)
+      );
+      const unaccounted = known.filter((c) => !assigned.has(c) && !skippedCategories.has(c));
       if (unaccounted.length > 0) {
-        errors.push(`${file} risk category ${unaccounted.map((c) => `"${c}"`).join(', ')} is neither assigned to a reviewer nor recorded in "### Skipped Checks"; a category nobody read is a coverage gap, and with a two-reviewer default over ten categories that is the normal case rather than an unusual one`);
+        errors.push(`${file} risk category ${unaccounted.map((c) => `"${c}"`).join(', ')} is neither assigned to a reviewer nor named in the Check column of "### Skipped Checks"; a category nobody read is a coverage gap, and with a two-reviewer default over ten categories that is the normal case rather than an unusual one. Naming the category in a Why skipped or Risk cell does not account for it — the Check column is the list of what went unread`);
       }
     }
 
     // RI18 — a member that failed must have its unread categories recorded as a skipped check. A
     // council that lost a member and says nothing reports the same coverage as one that did not,
     // which is the more dangerous of the two because it reads as complete.
-    const skippedRows = tableObjects(subSection(logSection, 'Skipped Checks'));
-    const SKIPPED_FIELDS = ['check', 'why skipped', 'risk', 'owner', 'blocks ship', 'manifest ids'];
     for (const m of members.filter((x) => x.status === 'failed')) {
       // The predicate used to end `|| col(r, 'check')`, which is true for any row with a non-empty
       // Check cell — so a single unrelated skipped check covered every failed member and the
@@ -894,18 +927,12 @@ for (const file of artifactFiles) {
   // so an empty table yields no rows and `[0]` is undefined — and this rule then silently passed the
   // one record it most needs to reject: a Findings table that declares a `Fix` column and has not
   // been filled in yet. The column is the violation; whether anyone has written a row under it is
-  // not the question.
+  // not the question. The header read goes through the shared `headerCells` helper, so this rule and
+  // the Round-column rule above cannot drift into disagreeing about which line is the header.
   const findingsSection = isReviewRecord ? subSection(logSection, 'Findings') : null;
-  const findingsHeader = findingsSection
-    ? (findingsSection.split('\n').find((l) => /^\s*\|/.test(l)) ?? null)
-    : null;
-  if (findingsHeader) {
-    const fixColumn = findingsHeader
-      .split('|').slice(1, -1).map((h) => h.trim().toLowerCase())
-      .find((h) => /\bfix\b|recommendation/.test(h));
-    if (fixColumn) {
-      errors.push(`${file} council-log Findings table declares a "${fixColumn}" column; a council finding states what is wrong and where, and a fix recommendation switches the candidate to Build scope. The parent's consolidated "## Findings" entries carry fixes — council-log rows do not`);
-    }
+  const fixColumn = headerCells(findingsSection).find((h) => /\bfix\b|recommendation/.test(h));
+  if (fixColumn) {
+    errors.push(`${file} council-log Findings table declares a "${fixColumn}" column; a council finding states what is wrong and where, and a fix recommendation switches the candidate to Build scope. The parent's consolidated "## Findings" entries carry fixes — council-log rows do not`);
   }
 
   // --- evidence-class availability ---------------------------------------------------------

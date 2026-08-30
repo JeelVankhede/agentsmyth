@@ -22,7 +22,7 @@
       "undefended": 0
     },
     "check-council-record.mjs": {
-      "rules": 72,
+      "rules": 73,
       "undefended": 0
     },
     "check-coverage-ledger.mjs": {

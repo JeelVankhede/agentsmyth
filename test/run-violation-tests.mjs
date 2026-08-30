@@ -320,11 +320,23 @@ const fixtures = [
   { id: 'fm', dir: 'test/fixtures/definitions/empty', description: '(WP-R22, RI21) check-definitions validated nothing and must not report ok — check-definitions', validator: validatorPath('check-definitions.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/empty' }, expect: 'validated no definitions file' },
   // External review pass on PR #65: B3 — row ids were unique per file, not across the split.
   { id: 'fn', dir: 'test/fixtures/lifecycle-violations/fn-ledger-id-reused-across-files', description: '(WP-R22, RI6) the same row id names different findings in the two ledger files — check-finding-quality', validator: validatorPath('check-finding-quality.mjs'), expect: 'row id FQ-1 is already used in' },
-  { id: 'fo', dir: 'test/fixtures/lifecycle-violations/fo-risk-category-unaccounted', description: '(WP-R22, RI17) a risk category is neither assigned to a reviewer nor recorded as skipped — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'risk category "security" is neither assigned to a reviewer nor recorded' },
+  { id: 'fo', dir: 'test/fixtures/lifecycle-violations/fo-risk-category-unaccounted', description: '(WP-R22, RI17) a risk category is neither assigned to a reviewer nor recorded as skipped — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'risk category "security" is neither assigned to a reviewer nor named in the Check column' },
   { id: 'fp', dir: 'test/fixtures/lifecycle-violations/fp-finding-outside-member-assignment', description: '(WP-R22, RI17) a finding declares a risk category its own member was never assigned — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'finding F1 declares risk category "lifecycle" but member m1 was assigned' },
   { id: 'fq', dir: 'test/fixtures/definitions/per-phase-review-missing', description: '(WP-R22) council.per_phase declares think but not review — check-definitions', validator: validatorPath('check-definitions.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/per-phase-review-missing' }, expect: 'council.per_phase.review is required' },
   { id: 'fr', dir: 'test/fixtures/lifecycle-violations/fr-assignment-no-round-column', description: '(WP-R22, RI17) the Risk Category Assignment table omits the Round column — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'has no Round column; disjointness is a per-round property' },
   { id: 'fs', dir: 'test/fixtures/lifecycle-violations/fs-fix-column-empty-table', description: '(WP-R22, RI2) a Fix column declared on a Findings table with no rows — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'council-log Findings table declares a "fix recommendation" column' },
+  // Second external review pass on PR #65: B4/B5 — both rules read the right idea out of the wrong
+  // structure, and both were found by mutating the council-review conformance fixture. `fo` and `fr`
+  // cover the plain forms (a category named nowhere, a Round column simply absent); these two cover
+  // the forms an honest record actually takes, where ordinary review prose satisfies a scan that was
+  // never anchored to a column. Each differs from its wellformed base in exactly one place.
+  { id: 'ft', dir: 'test/fixtures/lifecycle-violations/ft-skipped-check-prose-not-check-column', description: '(WP-R22, RI17) a skipped-check row names a category in its prose but not in the Check column — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'risk category "security" is neither assigned to a reviewer nor named in the Check column' },
+  { id: 'fu', dir: 'test/fixtures/lifecycle-violations/fu-assignment-round-in-rationale-only', description: '(WP-R22, RI17) the Round column is absent and only a rationale cell says "round" — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'has no Round column; disjointness is a per-round property' },
+  // N12 — the coverage rule used to disable itself when the categories list was unreadable, so the
+  // one condition under which coverage cannot be established reported the same green as full
+  // coverage. AGENTSMYTH_WF points the definitions root at the fixture's own directory, which has no
+  // skills/ tree: the artifact is well-formed, only the list it is measured against is missing.
+  { id: 'fv', dir: 'test/fixtures/lifecycle-violations/fv-risk-categories-doc-unreadable', description: '(WP-R22, RI17) the risk-category list is unreadable and coverage must gate, not skip — check-council-record', validator: validatorPath('check-council-record.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/lifecycle-violations/fv-risk-categories-doc-unreadable' }, expect: 'could not be read; coverage is claimed against that list' },
 ];
 
 let passed = 0;
