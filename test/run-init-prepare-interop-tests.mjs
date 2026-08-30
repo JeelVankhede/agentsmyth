@@ -30,6 +30,7 @@ const binPath = join(repoRoot, 'bin', 'agentsmyth.mjs');
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
 const cleanup = [];
 
 function check(id, description, condition) {
@@ -132,7 +133,24 @@ function spawnCli(args, { cwd, home, input }) {
 }
 
 // ── Scenario E: a prepare failure during init is surfaced clearly, no partial state (R2) ────
-{
+// Constructs the failure with an unwritable HOME (mode 000). Root ignores permission bits, so under
+// root the condition cannot be built at all: `prepare` succeeds and all three checks fail for a
+// reason that has nothing to do with the code under test. That false alarm reached three consecutive
+// external review passes and cost time on each. Skipped rather than passed — a check that could not
+// construct its precondition has not verified anything, and counting it as green would be the same
+// "reports coverage it did not establish" failure this suite exists to catch. The skip is counted
+// into the denominator so the totals line cannot quietly shrink instead.
+const E_CHECKS = [
+  ['E1-exit', 'init exits non-zero when prepare cannot install'],
+  ['E2-message', 'init surfaces the underlying error, not a raw stack trace'],
+  ['E3-no-partial-state', 'the repo directory has no partial .agentsmyth/ or workflow/'],
+];
+if (process.getuid?.() === 0) {
+  for (const [id, description] of E_CHECKS) {
+    console.log(`[SKIP] ${id}: ${description} — running as root, which ignores mode bits, so an unwritable HOME cannot be constructed`);
+    skipped++;
+  }
+} else {
   const home = mkScratchDir('wpr7-failhome-');
   const repo = mkScratchDir('wpr7-failrepo-');
   cleanup.push(home, repo);
@@ -142,10 +160,10 @@ function spawnCli(args, { cwd, home, input }) {
 
   chmodSync(home, 0o755); // restore before cleanup can recurse into it
 
-  check('E1-exit', 'init exits non-zero when prepare cannot install', result.status !== 0);
-  check('E2-message', 'init surfaces the underlying error, not a raw stack trace',
+  check('E1-exit', E_CHECKS[0][1], result.status !== 0);
+  check('E2-message', E_CHECKS[1][1],
     /could not install the global lifecycle definitions/.test(result.stderr) && !/at Object/.test(result.stderr));
-  check('E3-no-partial-state', 'the repo directory has no partial .agentsmyth/ or workflow/',
+  check('E3-no-partial-state', E_CHECKS[2][1],
     !existsSync(join(repo, '.agentsmyth')) && !existsSync(join(repo, 'workflow')));
 }
 
@@ -293,7 +311,10 @@ for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }
 
-console.log(`\n${passed}/${passed + failed} init/prepare interoperability checks passed`);
+// Skips stay in the denominator. Dropping them would let the suite report a full pass while three
+// checks silently stopped running, which is the one outcome a skip must never look like.
+console.log(`\n${passed}/${passed + failed + skipped} init/prepare interoperability checks passed`
+  + (skipped > 0 ? ` (${skipped} skipped: running as root)` : ''));
 
 if (failed > 0) {
   console.error(`${failed} check(s) failed`);
