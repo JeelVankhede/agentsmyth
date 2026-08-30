@@ -2,7 +2,7 @@
 slug: wp-r22-review-council
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-08-30
 updated: 2026-08-30
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21, RI22, RI23, RI24, RI25]
@@ -14,7 +14,7 @@ upstream:
   - workflow/artifacts/verify/wp-r22-review-council-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -147,8 +147,16 @@ none
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending — not yet presented to the user
-- User's own words (verbatim, this turn): "<awaiting the user's decision on merging PR #65>"
+- Status: approved
+- User's own words (verbatim, this turn): "Continue with reflect"
+- Date: 2026-08-30
+- **Scope of this approval, stated precisely because the two are not the same thing.** The user was
+  shown this artifact's `ship` recommendation and its three residual risks, and instructed the chain
+  to proceed. That is acceptance of the ship *decision* and of the phase transition. It is **not**
+  authorization to merge PR #65: no merge has been performed, `release/1.1.0` is untouched, and the
+  branch remains 26 commits ahead. Reading "continue with reflect" as consent to an irreversible
+  outward action would be exactly the kind of inferred approval `workflow/rules.md` forbids.
+- Outstanding: the merge of PR #65 into `release/1.1.0`, which needs its own explicit go-ahead.
 
 ## Next Phase
 
@@ -166,5 +174,6 @@ records what it learned, and files follow-ups through `follow-up-owner-assigner`
 - [x] Rollback trigger, action and owner recorded — and the rollback is real, not nominal: the
       preserved single-agent Review path is byte-locked and CI-exercised.
 - [x] Residual risk stated, including the two open items and the un-re-reviewed remediation.
-- [ ] **User approved the ship.** Not met. The merge into `release/1.1.0` is not self-authorized;
-      `orchestration.status` stays `blocked-for-user` until the user's own words are recorded above.
+- [x] **User approved the ship decision**, recorded verbatim above, and Reflect may proceed.
+- [ ] **Merge of PR #65 into `release/1.1.0` — still outstanding.** Deliberately not inferred from
+      the approval above. The chain can close without it; the release cannot.

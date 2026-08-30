@@ -367,6 +367,9 @@ to one example.
   `test/mutation-baseline.json`,
   `package.json`,
   `workflow/artifacts/open-items.yaml`,
+  `workflow/artifacts/ship/`,
+  `workflow/artifacts/reflect/`,
+  `workflow/learnings/sessions/`,
   `src/workflow/validators/check-council-record.mjs`
 - Touches extended 2026-08-29 during Build: the validator is listed because this phase had to
   RESTORE the Review-only rules Phase 9 deleted. See the task artifact — the deletion is the

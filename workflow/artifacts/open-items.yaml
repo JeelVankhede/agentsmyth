@@ -457,6 +457,24 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-84
+    source: follow-up
+    owner: user
+    next_action: "Merge PR #65 (feat/wp-r22-review-council) into release/1.1.0. The chain is complete through Reflect and CI is green off-machine (run 33296889442), but the merge was deliberately not inferred from the user's approval to proceed to Reflect - that approval covered the ship decision and the phase transition, not an irreversible outward action. The branch is 26 commits ahead and the PR is open. Once merged, move the Notion WP-R22 page to Done with the PR reference; that update is recorded as NOT done in the reflect artifact rather than claimed."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-85
+    source: follow-up
+    owner: user
+    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-86
+    source: follow-up
+    owner: workflow owner
+    next_action: "Make the pre-commit hook prefer the repo's own bin/agentsmyth.mjs when one exists. Today .githooks/pre-commit resolves `agentsmyth` from PATH, which on this machine is a globally installed 1.0.0 package shipping only three validators - so the mandatory gate a developer experiences depends on what they happen to have installed rather than on the repo under change. The validators themselves resolve from ~/.agentsmyth and were byte-identical here, so nothing was broken by it, but the coupling is wrong in principle and is a plausible contributor to OI-83."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
   - id: OI-83
     source: follow-up
     owner: workflow owner
