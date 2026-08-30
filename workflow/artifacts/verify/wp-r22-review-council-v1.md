@@ -64,6 +64,63 @@ Two structural fixes came out of it, both permanent:
 Fixture count rose 92 → **119**, and 27 of those exist because a rule was found undefended rather
 than because a rule was added.
 
+## Package-Wide Mutation Audit
+
+Extending the technique past this package's own four validators, on the reasoning that a 31%
+survival rate in the most recently reviewed code says nothing about the other 25 either way.
+
+**106 of 217 rules are undefended** — deletable with `validate`, `violations:test` and
+`conformance:test` all green. Ten validators score 100%:
+
+| Validator | Rules | Undefended |
+|---|---|---|
+| `check-lifecycle` | 17 | **16** |
+| `check-artifacts` | 16 | 12 |
+| `check-setup-complete` | 10 | **10** |
+| `lib.mjs` | 14 | 9 |
+| `check-pending-setup` | 8 | **8** |
+| `check-config` | 9 | 7 |
+| `check-setup-refs` / `check-starter-blocks` / `check-trigger-predicates` | 5 each | **5** each |
+| `check-domain-placeholders` | 4 | **4** |
+| `check-scope-fence` | 5 | 4 |
+| … 13 more | | |
+
+`check-lifecycle` is the worst and the most consequential: it is the phase gate `agentsmyth check`
+runs in every consumer repo and the pre-commit hook invokes.
+
+**The cause is structural, not careless.** This repo validates its own artifacts, its artifacts are
+healthy, and a rule that fires only on malformed input has therefore never executed. Every validator
+with dedicated violation fixtures measures zero survivors. Every validator exercised only through
+`npm run validate` against the real corpus measures near-total. `check-setup-complete` has its own
+suite, `setup-checks:test`, and still scores 10 of 10 — because that suite tests the happy path.
+
+**Filed as OI-82, deliberately not fixed here.** These rules predate WP-R22, the work spans every
+validator in the package, and folding it into a chain already at Ship is the scope creep this
+lifecycle exists to prevent.
+
+### Two wrong measurements before the right one
+
+Both produced confident numbers, and neither announced a problem. Recorded because the failure modes
+generalise well beyond this repo.
+
+- **Run 1 reported 106 and I disbelieved it.** I ran it in the background while continuing to work
+  in the same repo. A harness that mutates shared state cannot share that state, so I treated the
+  result as contaminated.
+- **Run 2 reported 0 undefended across all 217** — perfect coverage. The cause: fixture `ep`'s
+  expected error had baked in "`package.json` … has 63 lines". Adding the `mutation:audit` script
+  made it 64. The fixture broke, `violations:test` failed, `suitesPass()` returned false for every
+  mutant, and every mutant scored as *killed*. **The most reassuring possible output, produced by
+  everything being broken.**
+- **My "proof" that run 1 was wrong was itself broken.** I manually checked one survivor
+  (`check-waivers:157`) *after* introducing the `ep` breakage, saw `violations:test` fail, and read
+  that as the mutant being killed. It was the unrelated failure. Run 3, clean, agrees with run 1 on
+  **every validator** — the sweep was right and my check of it was not.
+
+Two harness fixes came from this: the expectation no longer encodes a volatile line count, and the
+audit now **refuses to run unless the unmutated tree is green**, since that is the one check that
+distinguishes "nothing survived because everything is defended" from "nothing survived because
+nothing works". The guard was verified by breaking a fixture and confirming the audit stops.
+
 ## Automated Checks
 
 Every command run, with its real exit status. Nothing here is inferred from a previous run.
@@ -162,6 +219,9 @@ invisible to every check that existed before this phase.
 | T-1 | 27 of 86 validator rules could be deleted with all suites green — no fixture exercised them | fixed: 22 new fixtures, plus 4 reachable only after adding per-fixture `env` |
 | T-2 | `cp-missing-classification` rejected via a different rule than its description names, so the named rule had no coverage and the attribution sweep could not tell | fixed: `cp` re-targeted, `em` added for the subsection rule, and every fixture now asserts *which* rule fired |
 | T-3 | The violations harness could not express a rule that fires only against a crafted definitions root, so four such rules were unfixturable by design | fixed: per-fixture `env`, with fixtures `fj`–`fm` |
+| T-4 | 106 of 217 rules across the package are undefended, including 16 of 17 in `check-lifecycle` | **not fixed** — filed as OI-82 with the per-validator measurement and a ratchet baseline; out of scope for this chain |
+| T-5 | A fixture expectation encoded a volatile fact (`package.json has 63 lines`), so an unrelated one-line change broke it | fixed: expectation trimmed to the stable part |
+| T-6 | The mutation harness reported perfect coverage when a suite was already failing, because every mutant then scores as killed | fixed: fail-fast guard on the unmutated tree, verified by breaking a fixture |
 
 These are Test findings, not Review findings: they are defects in the *verification*, which is what
 this phase owns. The shipped behaviour was correct in every case — the suite simply would not have
@@ -171,7 +231,7 @@ noticed had it stopped being correct.
 
 | Check | Why Skipped | Risk | Owner | Blocks Ship | Manifest IDs |
 |---|---|---|---|---|---|
-| Mutation testing of the other 20 validators | Only the four validators this package created or changed were mutated. The rest of `src/workflow/validators/` is unmeasured | Rules elsewhere may be equally undefended; the 31% survival rate found here is not evidence about them either way | workflow owner | no | — |
+| Fixing the 106 undefended rules outside this package's four validators | Measured and filed as OI-82. The work spans every validator, the rules predate WP-R22, and bundling it into a chain at Ship is the scope creep the lifecycle exists to prevent | Half the package's enforcement can be deleted without any suite noticing — including 16 of 17 rules in the phase gate every consumer repo runs | workflow owner | no | — |
 | Second Review council over the remediation | The remediation of the council's 31 findings was written by the same agent the council exists to check, and no second council was run over it | A defect introduced while fixing would be caught only by the suites, which is exactly the coverage the first council proved insufficient | user | no | R1–R7, RI1–RI25 |
 | Review-council cost baseline | No single-agent Review baseline was run against this diff, so the council's cost-per-finding is unmeasured for this phase | `council.enabled` defaults on for Complex work with the Review cost unquantified; WP-R21 measured ~6x for Think | user | no | RI5 |
 

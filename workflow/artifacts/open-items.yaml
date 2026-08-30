@@ -457,6 +457,12 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-82
+    source: follow-up
+    owner: workflow owner
+    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 217 validator rules can be deleted with every suite green. Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
   - id: OI-81
     source: follow-up
     owner: workflow owner

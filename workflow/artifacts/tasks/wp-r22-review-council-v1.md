@@ -540,6 +540,33 @@ when a change reaches outside the active phase's declared scope.
 
 </details>
 
+## Package-Wide Mutation Audit (2026-08-30)
+
+The harness is promoted into the repo as `npm run mutation:audit`, with
+`test/mutation-baseline.json` as a ratchet: per-validator undefended counts that can shrink and
+never grow, and a new validator starts at zero rather than inheriting the allowance — the same
+mechanism `workflow/config/artifact-baseline.yaml` uses for its 96 grandfathered violations.
+
+Named `mutation:audit` rather than `:test` deliberately, so `r22-every-suite-runs-in-ci` does not
+force a half-hour job onto every push. The trade-off is stated in the file: it runs when a validator
+changes and before a release, not per commit.
+
+**106 of 217 rules undefended**, filed as OI-82 and not fixed here. Ten validators at 100%;
+`check-lifecycle` at 16 of 17. Cause is structural — this repo validates healthy artifacts, so rules
+that fire only on malformed input have never executed.
+
+**Three runs, two of them wrong, and the second wrong one is the instructive failure.** Run 2
+reported *zero* undefended across all 217 — perfect coverage — because a fixture expectation had
+baked in "package.json has 63 lines", adding a script made it 64, `violations:test` failed, and
+every mutant therefore scored as killed. The most reassuring possible output, produced by everything
+being broken. My manual attempt to disprove run 1 was contaminated by the same bug, so I briefly
+recorded the sweep as unreliable when it was correct; run 3 agrees with run 1 on every validator.
+
+Fixed: the expectation no longer encodes a volatile count, and the audit refuses to run unless the
+unmutated tree is green — the one check that separates "nothing survived because everything is
+defended" from "nothing survived because nothing works". Verified by breaking a fixture and
+confirming the audit stops rather than reporting success.
+
 ## Test Phase — Mutation Testing (2026-08-30)
 
 The first Test pass re-ran the suites, found them green, and recommended ship. The user rejected it:
