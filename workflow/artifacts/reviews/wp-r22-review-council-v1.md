@@ -273,11 +273,11 @@ that was ignored.
 
 ### Risk Category Assignment
 
-| Member | Risk categories | Rationale |
-|---|---|---|
-| m1 | contract, compatibility, generated-output | The diff changes three schemas and a closed config object; additivity is the release's stated constraint |
-| m2 | requirement, verification, lifecycle | 32 acceptance criteria to test against the diff, and the artifact chain's own state |
-| m3 | security, maintainability, source-of-truth, release | The CLI writes into consumer repos; the shared schema engine changed; 1.1.0 is unreleased |
+| Member | Round | Risk categories | Rationale |
+|---|---|---|---|
+| m1 | 1 | contract, compatibility, generated-output | The diff changes three schemas and a closed config object; additivity is the release's stated constraint |
+| m2 | 1 | requirement, verification, lifecycle | 32 acceptance criteria to test against the diff, and the artifact chain's own state |
+| m3 | 1 | security, maintainability, source-of-truth, release | The CLI writes into consumer repos; the shared schema engine changed; 1.1.0 is unreleased |
 
 ### Members
 

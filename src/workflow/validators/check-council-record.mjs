@@ -768,15 +768,60 @@ for (const file of artifactFiles) {
     // Keying globally rejected the hand-off while leaving the rule the requirement actually states
     // ("in the same round") unexpressible.
     const categoryOwner = new Map();
+    // Separate from categoryOwner on purpose. categoryOwner is category -> member and is only sound
+    // while the partition holds; the moment two members share a category the last write wins, so
+    // reading a member's own assignment back out of it reports the wrong answer for exactly the
+    // records that violate disjointness. assignedByMember is member -> categories and is correct
+    // either way.
+    const assignedByMember = new Map();
+    // The Round column is required, not defaulted. `?? 1` used to stand in for a missing column,
+    // which quietly collapsed every round into round 1: a round-2 reassignment of a category read in
+    // round 1 was then reported as an overlap that never happened, and the record it was reading had
+    // no column to be wrong about. lifecycle-review's output schema has always declared the column;
+    // nothing produced it and nothing asked for it.
+    if (tableObjects(assignmentSection).length > 0 && !/^\s*\|[^\n]*\bround\b/im.test(assignmentSection)) {
+      errors.push(`${file} "### Risk Category Assignment" has no Round column; disjointness is a per-round property, and without the round every row is read as round 1 — which turns a legitimate round-2 reassignment into a reported overlap`);
+    }
     for (const row of tableObjects(assignmentSection)) {
       const member = col(row, 'member');
       const roundKey = intOf(col(row, 'round')) ?? 1;
       for (const cat of col(row, 'risk categories').split(',').map((c) => c.trim().toLowerCase()).filter(Boolean)) {
+        if (!assignedByMember.has(member)) assignedByMember.set(member, new Set());
+        assignedByMember.get(member).add(cat);
         const key = `${roundKey}::${cat}`;
         if (categoryOwner.has(key) && categoryOwner.get(key) !== member) {
           errors.push(`${file} risk category "${cat}" is assigned to both ${categoryOwner.get(key)} and ${member} in round ${roundKey}; categories are partitioned disjointly within a round, and two reviewers sharing one means another category went unread`);
         }
         categoryOwner.set(key, member);
+      }
+    }
+
+    // N2 — a finding's risk_category must be one its own member was assigned. The field was parsed
+    // and discarded; review-council's output schema declares the rule ("a `risk_category` that member
+    // was assigned") and only the source_member half was enforced. categoryOwner is already built.
+      for (const f of findings) {
+        if (f.role === 'challenger' || !f.member || !f.riskCategory) continue;
+        const owned = [...(assignedByMember.get(f.member) ?? [])];
+        if (owned.length > 0 && !owned.includes(f.riskCategory)) {
+          errors.push(`${file} finding ${f.id} declares risk category "${f.riskCategory}" but member ${f.member} was assigned ${owned.map((c) => `"${c}"`).join(', ')}; a finding filed outside its member's assignment means either the assignment or the finding is wrong, and the coverage claim rests on the assignment`);
+        }
+      }
+
+    // N1 — coverage is claimed by review-risk-categories.md ("A category assigned to nobody ...
+    // is recorded as a skipped check") and was enforced nowhere. With the Review default at 2
+    // reviewers over ten categories, under-coverage is the DEFAULT configuration, not an edge case.
+    // The ten names are read from their source file rather than restated here, the same anti-drift
+    // shape as r22-fan-out-defaults-agree: a list copied into a validator is a list that rots.
+    const categoriesDoc = pathExists(defsPath('skills/lifecycle-review/references/review-risk-categories.md'))
+      ? readText(defsPath('skills/lifecycle-review/references/review-risk-categories.md'))
+      : null;
+    if (categoriesDoc) {
+      const known = [...categoriesDoc.matchAll(/^- ([a-z][a-z-]*):/gm)].map((m) => m[1]);
+      const assigned = new Set([...categoryOwner.keys()].map((k) => k.split('::')[1]));
+      const skippedText = (subSection(logSection, 'Skipped Checks') ?? '').toLowerCase();
+      const unaccounted = known.filter((c) => !assigned.has(c) && !skippedText.includes(c));
+      if (unaccounted.length > 0) {
+        errors.push(`${file} risk category ${unaccounted.map((c) => `"${c}"`).join(', ')} is neither assigned to a reviewer nor recorded in "### Skipped Checks"; a category nobody read is a coverage gap, and with a two-reviewer default over ten categories that is the normal case rather than an unusual one`);
       }
     }
 
@@ -790,9 +835,7 @@ for (const file of artifactFiles) {
       // Check cell — so a single unrelated skipped check covered every failed member and the
       // attribution half never ran. Matching is now exact-token, so member m1 is not satisfied by a
       // row mentioning m10, and a row may also cover by naming one of that member's categories.
-      const memberCategories = [...categoryOwner.entries()]
-        .filter(([, owner]) => owner === m.id)
-        .map(([key]) => key.split('::')[1]);
+      const memberCategories = [...(assignedByMember.get(m.id) ?? [])];
       const namesMember = (text) => new RegExp(`(^|[^A-Za-z0-9])${m.id}([^A-Za-z0-9]|$)`).test(text);
       const covering = skippedRows.filter((r) => {
         const text = Object.values(r).join(' ');
@@ -847,9 +890,19 @@ for (const file of artifactFiles) {
   // README.md rather than papered over — prose smuggled into a reason field is not detectable here.
   // Scoped to reviews, matching the requirement: the rule is about a READ-ONLY reviewer proposing an
   // edit. A Think council brief has no reviewer, so binding briefs was stricter than specified.
-  const findingsHeaderRow = isReviewRecord ? tableObjects(subSection(logSection, 'Findings'))[0] : null;
-  if (findingsHeaderRow) {
-    const fixColumn = Object.keys(findingsHeaderRow).find((h) => /\bfix\b|recommendation/.test(h));
+  // Read the HEADER LINE, not tableObjects(...)[0]. tableObjects returns data rows keyed by header,
+  // so an empty table yields no rows and `[0]` is undefined — and this rule then silently passed the
+  // one record it most needs to reject: a Findings table that declares a `Fix` column and has not
+  // been filled in yet. The column is the violation; whether anyone has written a row under it is
+  // not the question.
+  const findingsSection = isReviewRecord ? subSection(logSection, 'Findings') : null;
+  const findingsHeader = findingsSection
+    ? (findingsSection.split('\n').find((l) => /^\s*\|/.test(l)) ?? null)
+    : null;
+  if (findingsHeader) {
+    const fixColumn = findingsHeader
+      .split('|').slice(1, -1).map((h) => h.trim().toLowerCase())
+      .find((h) => /\bfix\b|recommendation/.test(h));
     if (fixColumn) {
       errors.push(`${file} council-log Findings table declares a "${fixColumn}" column; a council finding states what is wrong and where, and a fix recommendation switches the candidate to Build scope. The parent's consolidated "## Findings" entries carry fixes — council-log rows do not`);
     }

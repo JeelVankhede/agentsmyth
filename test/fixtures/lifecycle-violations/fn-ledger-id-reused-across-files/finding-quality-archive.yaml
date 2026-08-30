@@ -1,0 +1,11 @@
+version: 1
+kind: finding-quality-archive
+items:
+  - id: FQ-1
+    finding_id: F9
+    source_artifact: workflow/artifacts/reviews/other-v1.md
+    first_seen_run: other-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: fixed

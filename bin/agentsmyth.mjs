@@ -312,14 +312,33 @@ function appendPendingItems(configDir, specs, marker) {
   if (content.includes(marker)) return 0;
 
   // Appending a sequence entry is only valid if the document actually ends in an `items:` block
-  // that can take one. A file whose body reads `items: []` is schema-valid — it is the shape a repo
-  // reaches once every item is resolved and pruned — and appending to it produces YAML this
-  // package's own parser rejects, leaving the consumer with an unloadable config they never
-  // touched. Refuse rather than corrupt; the caller treats 0 as "nothing added".
-  const tail = content.replace(/\s*$/, '');
-  const hasOpenItemsBlock = /(^|\n)items:\s*(\n\s*-\s|\s*$)/.test(tail) && !/(^|\n)items:\s*\[\s*\]\s*$/.test(tail);
-  const lastKeyIsItems = /(^|\n)items:[\s\S]*$/.test(tail) && !/(^|\n)[A-Za-z_][A-Za-z0-9_]*:\s*[\s\S]*$/.test(tail.slice(tail.lastIndexOf('\nitems:') + 1).replace(/^items:[^\n]*\n?/, '').replace(/^\s*-[\s\S]*/gm, ''));
-  if (!hasOpenItemsBlock || !lastKeyIsItems) return 0;
+  // that can take one. Proven by a positive line scan rather than by regex subtraction: the previous
+  // guard tried to show "nothing follows items:" by stripping the block and testing the remainder,
+  // and the stripping was wrong. A schema-valid file whose top-level keys are ordered `items:` first
+  // passed it, so the appended entries landed after `kind:` and the parser then rejected the whole
+  // file — corrupting a consumer config on upgrade, which is the exact outcome this guard exists to
+  // prevent.
+  const lines = content.replace(/\s*$/, '').split('\n');
+  const itemsIdx = lines.findIndex((l) => /^items:/.test(l));
+  const emptySequence = itemsIdx !== -1 && /^items:\s*\[\s*\]\s*$/.test(lines[itemsIdx]);
+  // A top-level key after the block means an append would be inserted into the wrong document
+  // position. Only top-level keys matter: sequence entries and their nested mappings are indented.
+  const keyFollowsItems = itemsIdx !== -1 && lines.slice(itemsIdx + 1).some((l) => /^[A-Za-z_]/.test(l));
+
+  if (itemsIdx === -1 || keyFollowsItems) return 0;
+
+  // `items: []` is the steady state of a mature repo — every item resolved and pruned. Refusing it
+  // silently meant such a repo could never be offered a new item family, on this upgrade or any
+  // later one, and was told nothing. Rewrite the empty sequence into a block header instead, which
+  // is the same document with room for the entries.
+  if (emptySequence) {
+    const rebuilt = [...lines];
+    rebuilt[itemsIdx] = 'items:';
+    const existing = [...content.matchAll(/^\s*-\s*id:\s*PS-(\d+)/gm)].map((m) => Number(m[1]));
+    const start = existing.length > 0 ? Math.max(...existing) + 1 : 1;
+    writeFileSync(pendingPath, `${rebuilt.join('\n')}\n${pendingItemsFrom(specs, start).join('\n')}\n`);
+    return specs.length;
+  }
 
   // Continue the ID sequence from the highest existing PS-N rather than assuming a count — a repo
   // may have had items added by an earlier upgrade or by the setup skill itself.

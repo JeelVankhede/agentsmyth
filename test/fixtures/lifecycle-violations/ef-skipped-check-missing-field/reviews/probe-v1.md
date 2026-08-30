@@ -70,10 +70,10 @@ reaches this section, and every member that produced one is cited by name.
 
 ### Risk Category Assignment
 
-| Member | Risk categories | Rationale |
-|---|---|---|
-| m1 | contract, compatibility | The diff changes a schema |
-| m2 | verification, lifecycle | Evidence and artifact state |
+| Member | Round | Risk categories | Rationale |
+|---|---|---|---|
+| m1 | 1 | contract, compatibility | The diff changes a schema |
+| m2 | 1 | verification, lifecycle | Evidence and artifact state |
 
 ### Members
 
@@ -112,7 +112,7 @@ resolves. Disagreements are never collapsed: each is recorded in Conflicts with 
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |
 |---|---|---|---|---|---|
-| m2 categories unread | member failed | coverage gap |  | no | R1 |
+| m2 categories unread; requirement, generated-output, source-of-truth, release, security, maintainability | member failed | coverage gap |  | no | R1 |
 
 ### Termination
 

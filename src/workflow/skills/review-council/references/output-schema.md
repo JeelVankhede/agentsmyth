@@ -59,6 +59,14 @@ Rules:
   per-repo. Any declared value makes it `configured`. The Review council's default comes from
   `council.per_phase.review.default_fan_out`, never from Think's.
 - `stage: 1` and `stage: 2` members are capped separately; neither stage may exceed `cap_resolved`.
+- **`stage` and `round` are different axes, and the recorded log has a column for only one of them.**
+  `round` is the outer loop `max_rounds` bounds; `stage` separates the reviewer pass from the
+  challenger pass *within* one round. The markdown tables `lifecycle-review` writes carry a `Round`
+  column and no `Stage` column, because stage is a function of role — a reviewer is stage 1, a
+  challenger is stage 2 — and a column that restates another column is a column that can disagree
+  with it. So a challenger in round 1 records `Round` 1, never 2. Reading the `Round` column as
+  this block's `stage` is the one mapping error the two names invite; it inverts the disjointness
+  check, which is per round.
 - A member with `role: challenger` has no `risk_categories` — it reviews findings, not a category.
 - `risk_categories` are drawn from `lifecycle-review/references/review-risk-categories.md` and are
   **disjoint across reviewers**. Two reviewers sharing a category means another category went

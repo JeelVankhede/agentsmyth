@@ -119,6 +119,18 @@ function all_ids(rows) {
 const activeRows = indexRows(active, activePath);
 const archiveRows = indexRows(archive, archivePath);
 
+// Row ids are unique across BOTH files, not within each. indexRows runs per file, and the rotation
+// checks deliberately key on artifact-plus-finding rather than on row id, so nothing compared ids
+// across the split — two different findings could each be FQ-1. The schema says "Never renumbered,
+// never reused", and the two-file design is what makes reuse likely: the active file is the working
+// file, so an author writing into an empty one reaches for FQ-1 while the archive already holds it.
+for (const [id, row] of activeRows) {
+  const clash = archiveRows.get(id);
+  if (clash && (clash.source_artifact !== row.source_artifact || clash.finding_id !== row.finding_id)) {
+    errors.push(`${activePath}: row id ${id} is already used in ${archivePath} for finding ${clash.finding_id} of ${clash.source_artifact}; row ids are unique across both ledger files, and the active file being the working file is exactly why a fresh id gets reused`);
+  }
+}
+
 // Rotation, direction 1: copied rather than moved. Keyed by the SAME identity the coverage check
 // uses — artifact plus finding — not by ledger row id. Keying on FQ-N let a row copied to the
 // archive under a fresh id escape the check whose whole job is to catch that, while being counted

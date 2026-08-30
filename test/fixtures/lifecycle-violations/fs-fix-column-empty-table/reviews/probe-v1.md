@@ -79,7 +79,7 @@ reaches this section, and every member that produced one is cited by name.
 
 | Member | Role | Round | Capabilities | Input | Status | Sandbox |
 |---|---|---|---|---|---|---|
-| m1 | reviewer | 1 | read, fetch, search | build session transcript | ran | |
+| m1 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
 | m2 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
 | c1 | challenger | 1 | read, fetch, search | diff+manifest | ran | |
 
@@ -91,11 +91,8 @@ reaches this section, and every member that produced one is cited by name.
 
 ### Findings
 
-| Finding | Member | Role | Round | Risk category | Surface | Evidence class | Citation | Disposition | Reason / merged into |
+| Finding | Member | Role | Round | Risk category | Surface | Evidence class | Citation | Disposition | Fix recommendation | Reason / merged into |
 |---|---|---|---|---|---|---|---|---|---|
-| F1 | m1 | reviewer | 1 | contract | package.json | repo | see `package.json` scripts block | accepted | |
-| F2 | m2 | reviewer | 1 | verification | package.json | repo | `package.json` engines field | accepted | |
-| F3 | c1 | challenger | 1 | contract | package.json | repo | `package.json` — re-read against F1 | rejected-with-reason | F1's reading of the scripts block does not survive the engines constraint |
 
 ### Reconcile Contract
 

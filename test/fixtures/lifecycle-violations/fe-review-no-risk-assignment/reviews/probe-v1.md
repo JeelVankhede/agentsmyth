@@ -105,6 +105,7 @@ resolves. Disagreements are never collapsed: each is recorded in Conflicts with 
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |
 |---|---|---|---|---|---|
+| requirement, contract, generated-output, verification, source-of-truth, release, security, compatibility, maintainability, lifecycle | cap of 2 reviewers over ten categories | those six areas of the diff went unread | workflow owner | no | R1 |
 
 ### Termination
 

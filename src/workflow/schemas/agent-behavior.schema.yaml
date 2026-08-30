@@ -199,8 +199,16 @@ properties:
           nested - read as a special case and invited the next phase to be bolted on the same ad-hoc
           way. It also risked the failure this rule exists to prevent, where extending councils to a
           new phase silently bills every unconfigured consumer there too.
+          Both entries are required HERE, in the shipped invariant, and neither is required in
+          repo-profile's override map. Absence is meaningful for a consumer - a repo tunes the
+          phases it cares about and inherits the rest - but this file is where the fallback comes
+          FROM. A council skill ships for each of these two phases, so a phase missing here has no
+          fallback to inherit and drops to the global default of 1, and a one-member council is not
+          a council. Requiring only `think` was the same asymmetry described above, surviving one
+          level down.
         required:
           - think
+          - review
         properties:
           think:
             type: object

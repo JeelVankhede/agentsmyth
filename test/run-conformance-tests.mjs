@@ -236,6 +236,14 @@ check('r22-every-suite-runs-in-ci', 'every :test script is invoked by CI and by 
   notInCi.length === 0 && notInRelease.length === 0,
   notInCi.length || notInRelease.length ? `ci: ${notInCi.join(', ') || 'none'} | release: ${notInRelease.join(', ') || 'none'}` : '');
 
+// The mutation audit is the one suite the sweep above cannot catch, because it is deliberately not
+// named `:test` — it costs tens of minutes and must not run on every push. That exemption is what
+// makes it easy to lose: it was added, recorded a baseline, and was invoked by nothing. Pin it to
+// release explicitly, so the ratchet has a run that actually enforces it.
+check('r22-mutation-audit-runs-at-release', 'the mutation-coverage ratchet is invoked by the release workflow',
+  releaseYml.includes('npm run mutation:audit'),
+  releaseYml.includes('npm run mutation:audit') ? '' : 'release.yml never invokes mutation:audit');
+
 // WP-R22 P1-7 — the Ship closure gate must be scoped to the chain being shipped. Unscoped, one
 // chain's unsettled finding blocked every other chain AND re-failed every ship artifact already
 // committed, because a historical release cannot answer for a finding raised after it shipped. This
@@ -390,6 +398,18 @@ const validateTemplateCode = validateTemplateSrc.replace(/^\s*\/\/.*$/gm, '');
 const unwired = validatorFiles.filter((f) => !validateTemplateCode.includes(f));
 check('every-validator-wired', 'no validator exists without being registered in validate-template',
   unwired.length === 0, unwired.length ? `unregistered: ${unwired.join(', ')}` : '');
+
+// The exemption list above was asserted, never checked — which makes it the softest spot in a check
+// written specifically to catch soft spots. A validator named in CLI_INVOKED is excused from the
+// wiring requirement on the strength of a claim in this file; if the CLI ever stops invoking it, the
+// claim silently becomes false and the validator is exempt from BOTH checks at once, which is worse
+// than never having been exempted. Verify the claim against the CLI, comments stripped for the same
+// reason as above.
+const cliCode = readFileSync(join(repoRoot, 'bin/agentsmyth.mjs'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+const falselyExempt = [...CLI_INVOKED].filter((f) => !cliCode.includes(f));
+check('cli-invoked-exemptions-are-real', 'every validator excused as CLI-invoked is actually invoked by the CLI',
+  falselyExempt.length === 0,
+  falselyExempt.length ? `claimed CLI-invoked but absent from bin/agentsmyth.mjs: ${falselyExempt.join(', ')}` : '');
 
 // The definitions schema check must run under AGENTSMYTH_WF, i.e. in the SOURCE command list.
 // Registered anywhere else it validates whichever copy the two-root resolver returns — the global

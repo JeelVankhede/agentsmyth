@@ -222,6 +222,65 @@ function spawnCli(args, { cwd, home, input }) {
     !existsSync(join(repo, 'workflow', 'config', 'repo-profile.yaml')));
 }
 
+// ── Scenario J: appendPendingItems must never corrupt a consumer's pending-setup.yaml ──────────
+// External review B1/B2 on PR #65. The append runs inside `agentsmyth check` on version skew, in a
+// CONSUMER repo, so a wrong guard leaves a config the user never touched unloadable. Both shapes are
+// schema-valid, and the previous guard accepted the first and silently refused the second forever.
+{
+  const home = mkScratchDir('wpr22-append-home-');
+  cleanup.push(home);
+  spawnCli(['prepare'], { cwd: home, home });
+
+  const profile = [
+    'agentsmyth_version: 1.0.0', 'version: 1', 'kind: repo-profile', 'repository:',
+    '  mode: single-repository', '  root: .', '  default_branch: main',
+    '  workflow_root: workflow', '  artifacts_root: workflow/artifacts',
+    '  definitions_root: ~/.agentsmyth/workflow',
+  ].join('\n');
+
+  function runAppend(label, pendingBody) {
+    const repo = mkScratchDir(`wpr22-append-${label}-`);
+    cleanup.push(repo);
+    spawnSync('git', ['init', '-q'], { cwd: repo });
+    mkdirSync(join(repo, 'workflow', 'config'), { recursive: true });
+    writeFileSync(join(repo, 'workflow', 'config', 'repo-profile.yaml'), `${profile}\n`);
+    const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+    writeFileSync(pendingPath, pendingBody);
+    spawnCli(['check'], { cwd: repo, home });
+    const after = readFileSync(pendingPath, 'utf8');
+    let parses = true;
+    try {
+      const r = spawnSync(process.execPath, ['-e',
+        `import('${JSON.stringify(join(repoRoot, 'src/workflow/validators/lib.mjs')).slice(1, -1)}')` +
+        `.then(m => { m.loadYaml(${JSON.stringify(pendingPath)}); })`,
+      ], { encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: 'src/workflow' }, cwd: repoRoot });
+      parses = r.status === 0;
+    } catch { parses = false; }
+    return { after, parses };
+  }
+
+  // items: first, then other top-level keys. The old guard said "safe to append" and the appended
+  // entries landed after `kind:`, which the parser then rejected.
+  const itemsFirst = runAppend('itemsfirst', [
+    'items:', '  - id: PS-1', '    config: repo-profile.yaml',
+    '    field: "intent.repo_character"', '    question: "q"', '    hint: "h"', '    status: open',
+    'version: 1', 'kind: pending-setup', '',
+  ].join('\n'));
+  check('J1-itemsfirst-parses', 'a pending-setup.yaml with items: first is still parseable after check',
+    itemsFirst.parses);
+  check('J2-itemsfirst-untouched', 'the append refuses rather than writing into the wrong position',
+    !itemsFirst.after.includes('tuning.council.per_phase'));
+
+  // items: [] — the steady state of a repo that resolved and pruned everything. Previously a
+  // permanent silent no-op, so such a repo could never be offered a new item family.
+  const emptySeq = runAppend('emptyseq',
+    'version: 1\nkind: pending-setup\nitems: []\n');
+  check('J3-emptyseq-parses', 'an items: [] pending-setup.yaml is still parseable after check',
+    emptySeq.parses);
+  check('J4-emptyseq-populated', 'items: [] is rewritten into a block rather than silently skipped',
+    emptySeq.after.includes('tuning.council.per_phase'));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }
