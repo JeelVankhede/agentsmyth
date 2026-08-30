@@ -39,6 +39,10 @@ for (const schemaPath of listFiles(defsPath('schemas')).filter((file) => file.en
   }
 }
 
+// Definitions files are NOT validated here. They live under the definitions root, which on a
+// developer machine is the global install and only moves when `agentsmyth prepare` runs — so a
+// check from here would validate a stale copy and report a source change clean. They are validated
+// by check-definitions.mjs, which validate-template runs under AGENTSMYTH_WF against src/workflow/.
 for (const configPath of listFiles(configDir).filter((file) => file.endsWith('.yaml'))) {
   const config = loadYaml(configPath);
   if (!config.kind) {

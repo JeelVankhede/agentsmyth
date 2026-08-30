@@ -1,0 +1,125 @@
+{
+  "generated": "2026-08-30",
+  "results": {
+    "check-artifacts.mjs": {
+      "rules": 16,
+      "undefended": 12
+    },
+    "check-assumptions.mjs": {
+      "rules": 4,
+      "undefended": 3
+    },
+    "check-commit-coverage.mjs": {
+      "rules": 1,
+      "undefended": 1
+    },
+    "check-config.mjs": {
+      "rules": 9,
+      "undefended": 7
+    },
+    "check-constraint-conflicts.mjs": {
+      "rules": 1,
+      "undefended": 0
+    },
+    "check-council-record.mjs": {
+      "rules": 73,
+      "undefended": 0
+    },
+    "check-coverage-ledger.mjs": {
+      "rules": 2,
+      "undefended": 1
+    },
+    "check-coverage-range-shorthand.mjs": {
+      "rules": 1,
+      "undefended": 0
+    },
+    "check-definitions.mjs": {
+      "rules": 3,
+      "undefended": 0
+    },
+    "check-domain-placeholders.mjs": {
+      "rules": 4,
+      "undefended": 4
+    },
+    "check-evidence-citations.mjs": {
+      "rules": 1,
+      "undefended": 0
+    },
+    "check-finding-quality.mjs": {
+      "rules": 10,
+      "undefended": 0
+    },
+    "check-followups.mjs": {
+      "rules": 1,
+      "undefended": 0
+    },
+    "check-lifecycle.mjs": {
+      "rules": 17,
+      "undefended": 16
+    },
+    "check-manifest-coverage.mjs": {
+      "rules": 3,
+      "undefended": 2
+    },
+    "check-open-items.mjs": {
+      "rules": 3,
+      "undefended": 3
+    },
+    "check-pending-setup.mjs": {
+      "rules": 8,
+      "undefended": 8
+    },
+    "check-phase-map.mjs": {
+      "rules": 2,
+      "undefended": 1
+    },
+    "check-release-readiness.mjs": {
+      "rules": 5,
+      "undefended": 0
+    },
+    "check-schema-keywords.mjs": {
+      "rules": 2,
+      "undefended": 2
+    },
+    "check-scope-fence.mjs": {
+      "rules": 5,
+      "undefended": 4
+    },
+    "check-setup-complete.mjs": {
+      "rules": 10,
+      "undefended": 10
+    },
+    "check-setup-refs.mjs": {
+      "rules": 5,
+      "undefended": 5
+    },
+    "check-skill-triggers.mjs": {
+      "rules": 2,
+      "undefended": 2
+    },
+    "check-skipped-accounting.mjs": {
+      "rules": 3,
+      "undefended": 2
+    },
+    "check-starter-blocks.mjs": {
+      "rules": 5,
+      "undefended": 5
+    },
+    "check-trigger-predicates.mjs": {
+      "rules": 5,
+      "undefended": 5
+    },
+    "check-verify-matrix.mjs": {
+      "rules": 4,
+      "undefended": 3
+    },
+    "check-waivers.mjs": {
+      "rules": 3,
+      "undefended": 1
+    },
+    "lib.mjs": {
+      "rules": 14,
+      "undefended": 9
+    }
+  }
+}

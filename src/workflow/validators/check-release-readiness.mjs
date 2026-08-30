@@ -2,7 +2,7 @@
 // release-readiness-gate. For ship artifacts, confirms the Ship Status section
 // declares exactly one of ship/hold/hold-with-waiver, and that a "ship" declaration is not
 // contradicted by unresolved orchestration.blockers or an unwaived P0/P1 in the upstream review.
-import { finish, listFiles, parseFrontmatter, readText, wf } from './lib.mjs';
+import { finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -154,6 +154,45 @@ for (const file of artifactFiles) {
       return n > Number(best.match(/-v([0-9]+)\.md$/)?.[1] ?? 0) ? f : best;
     })
     : null;
+  // RI7 — a finding raised at Review must be settled by Ship. The finding-quality ledger is the
+  // record; a row still `pending` when a chain declares "ship" is a finding nobody came back to.
+  // Mirrors the open-P0/P1 handling directly above, waiver escape included: this is the same shape
+  // of claim — "there is unfinished business, and shipping anyway is a decision someone has to
+  // record" — so it gets the same mechanism rather than a second one that drifts from it.
+  if (recommendation === 'ship') {
+    const ledgerPath = `${artifactsDir}/finding-quality.yaml`;
+    if (pathExists(ledgerPath)) {
+      const ledger = loadYaml(ledgerPath);
+      // Scoped to THIS chain. The ledger is repo-global and cross-run by design, so an unscoped
+      // read makes one chain's unsettled finding block every other chain's ship — and re-fails every
+      // ship artifact already committed, because a historical release cannot answer for a finding
+      // raised after it shipped. Both scoping fields are required by finding-quality.schema.yaml;
+      // reading neither was the defect. Found by this package's own Review council (P1-7), which
+      // broke the repository the moment it wrote its first ledger rows.
+      const shipSlug = parsed.frontmatter?.slug;
+      const pending = (ledger?.items ?? []).filter((row) => {
+        if (row?.outcome !== 'pending') return false;
+        if (!shipSlug) return true;
+        const run = String(row.first_seen_run ?? '');
+        const src = String(row.source_artifact ?? '');
+        return run.startsWith(shipSlug) || src.includes(`/${shipSlug}-v`);
+      });
+      if (pending.length > 0) {
+        // Bounded to the Waivers SECTION, and the waiver must name the rows it covers. The earlier
+        // regex ran to the end of the document, so any mention of "finding-quality" anywhere after
+        // the heading cleared every pending row — including a sentence denying that a waiver was
+        // given. It was also blanket while the error it suppressed enumerated rows individually.
+        // This repo already ships a conformance check against exactly this clause-blind shape.
+        const waiverSection = parsed.body.match(/## Waivers\s*\n([\s\S]*?)(?=\n## [^#]|\s*$)/)?.[1] ?? '';
+        const uncovered = pending.filter((row) => !row.id || !new RegExp(`(^|[^A-Za-z0-9])${row.id}([^A-Za-z0-9]|$)`).test(waiverSection));
+        if (uncovered.length > 0) {
+          const ids = uncovered.map((row) => row.id).filter(Boolean).join(', ');
+          errors.push(`${file} declares "ship" but the finding-quality ledger has ${uncovered.length} row(s) still pending (${ids}) with no Waivers entry naming them; a finding raised at Review is settled by Ship or waived by ID, never left open`);
+        }
+      }
+    }
+  }
+
   if (recommendation === 'ship' && latestReview) {
     const reviewText = readText(latestReview);
     let reviewParsed;

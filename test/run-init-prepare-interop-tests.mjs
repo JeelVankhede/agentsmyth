@@ -30,6 +30,7 @@ const binPath = join(repoRoot, 'bin', 'agentsmyth.mjs');
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
 const cleanup = [];
 
 function check(id, description, condition) {
@@ -132,7 +133,24 @@ function spawnCli(args, { cwd, home, input }) {
 }
 
 // ── Scenario E: a prepare failure during init is surfaced clearly, no partial state (R2) ────
-{
+// Constructs the failure with an unwritable HOME (mode 000). Root ignores permission bits, so under
+// root the condition cannot be built at all: `prepare` succeeds and all three checks fail for a
+// reason that has nothing to do with the code under test. That false alarm reached three consecutive
+// external review passes and cost time on each. Skipped rather than passed — a check that could not
+// construct its precondition has not verified anything, and counting it as green would be the same
+// "reports coverage it did not establish" failure this suite exists to catch. The skip is counted
+// into the denominator so the totals line cannot quietly shrink instead.
+const E_CHECKS = [
+  ['E1-exit', 'init exits non-zero when prepare cannot install'],
+  ['E2-message', 'init surfaces the underlying error, not a raw stack trace'],
+  ['E3-no-partial-state', 'the repo directory has no partial .agentsmyth/ or workflow/'],
+];
+if (process.getuid?.() === 0) {
+  for (const [id, description] of E_CHECKS) {
+    console.log(`[SKIP] ${id}: ${description} — running as root, which ignores mode bits, so an unwritable HOME cannot be constructed`);
+    skipped++;
+  }
+} else {
   const home = mkScratchDir('wpr7-failhome-');
   const repo = mkScratchDir('wpr7-failrepo-');
   cleanup.push(home, repo);
@@ -142,10 +160,10 @@ function spawnCli(args, { cwd, home, input }) {
 
   chmodSync(home, 0o755); // restore before cleanup can recurse into it
 
-  check('E1-exit', 'init exits non-zero when prepare cannot install', result.status !== 0);
-  check('E2-message', 'init surfaces the underlying error, not a raw stack trace',
+  check('E1-exit', E_CHECKS[0][1], result.status !== 0);
+  check('E2-message', E_CHECKS[1][1],
     /could not install the global lifecycle definitions/.test(result.stderr) && !/at Object/.test(result.stderr));
-  check('E3-no-partial-state', 'the repo directory has no partial .agentsmyth/ or workflow/',
+  check('E3-no-partial-state', E_CHECKS[2][1],
     !existsSync(join(repo, '.agentsmyth')) && !existsSync(join(repo, 'workflow')));
 }
 
@@ -222,11 +240,81 @@ function spawnCli(args, { cwd, home, input }) {
     !existsSync(join(repo, 'workflow', 'config', 'repo-profile.yaml')));
 }
 
+// ── Scenario J: appendPendingItems must never corrupt a consumer's pending-setup.yaml ──────────
+// External review B1/B2 on PR #65. The append runs inside `agentsmyth check` on version skew, in a
+// CONSUMER repo, so a wrong guard leaves a config the user never touched unloadable. Both shapes are
+// schema-valid, and the previous guard accepted the first and silently refused the second forever.
+{
+  const home = mkScratchDir('wpr22-append-home-');
+  cleanup.push(home);
+  spawnCli(['prepare'], { cwd: home, home });
+
+  const profile = [
+    'agentsmyth_version: 1.0.0', 'version: 1', 'kind: repo-profile', 'repository:',
+    '  mode: single-repository', '  root: .', '  default_branch: main',
+    '  workflow_root: workflow', '  artifacts_root: workflow/artifacts',
+    '  definitions_root: ~/.agentsmyth/workflow',
+  ].join('\n');
+
+  function runAppend(label, pendingBody) {
+    const repo = mkScratchDir(`wpr22-append-${label}-`);
+    cleanup.push(repo);
+    spawnSync('git', ['init', '-q'], { cwd: repo });
+    mkdirSync(join(repo, 'workflow', 'config'), { recursive: true });
+    writeFileSync(join(repo, 'workflow', 'config', 'repo-profile.yaml'), `${profile}\n`);
+    const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+    writeFileSync(pendingPath, pendingBody);
+    const cli = spawnCli(['check'], { cwd: repo, home });
+    const output = `${cli.stdout ?? ''}${cli.stderr ?? ''}`;
+    const after = readFileSync(pendingPath, 'utf8');
+    let parses = true;
+    try {
+      const r = spawnSync(process.execPath, ['-e',
+        `import('${JSON.stringify(join(repoRoot, 'src/workflow/validators/lib.mjs')).slice(1, -1)}')` +
+        `.then(m => { m.loadYaml(${JSON.stringify(pendingPath)}); })`,
+      ], { encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: 'src/workflow' }, cwd: repoRoot });
+      parses = r.status === 0;
+    } catch { parses = false; }
+    return { after, parses, output };
+  }
+
+  // items: first, then other top-level keys. The old guard said "safe to append" and the appended
+  // entries landed after `kind:`, which the parser then rejected.
+  const itemsFirst = runAppend('itemsfirst', [
+    'items:', '  - id: PS-1', '    config: repo-profile.yaml',
+    '    field: "intent.repo_character"', '    question: "q"', '    hint: "h"', '    status: open',
+    'version: 1', 'kind: pending-setup', '',
+  ].join('\n'));
+  check('J1-itemsfirst-parses', 'a pending-setup.yaml with items: first is still parseable after check',
+    itemsFirst.parses);
+  check('J2-itemsfirst-untouched', 'the append refuses rather than writing into the wrong position',
+    !itemsFirst.after.includes('tuning.council.per_phase'));
+  // Second external review pass, N11. Refusing is right; refusing silently is not — the marker never
+  // lands, so the family is never offered again and the repo is never told why. A warning nobody
+  // asserts is a warning that can quietly disappear, so it is asserted here rather than eyeballed.
+  check('J2b-itemsfirst-warns', 'the refusal names the file and the family it could not add',
+    itemsFirst.output.includes('tuning.council.per_phase') &&
+    itemsFirst.output.includes('pending-setup.yaml') &&
+    /a top-level key follows the "items:" block/.test(itemsFirst.output));
+
+  // items: [] — the steady state of a repo that resolved and pruned everything. Previously a
+  // permanent silent no-op, so such a repo could never be offered a new item family.
+  const emptySeq = runAppend('emptyseq',
+    'version: 1\nkind: pending-setup\nitems: []\n');
+  check('J3-emptyseq-parses', 'an items: [] pending-setup.yaml is still parseable after check',
+    emptySeq.parses);
+  check('J4-emptyseq-populated', 'items: [] is rewritten into a block rather than silently skipped',
+    emptySeq.after.includes('tuning.council.per_phase'));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }
 
-console.log(`\n${passed}/${passed + failed} init/prepare interoperability checks passed`);
+// Skips stay in the denominator. Dropping them would let the suite report a full pass while three
+// checks silently stopped running, which is the one outcome a skip must never look like.
+console.log(`\n${passed}/${passed + failed + skipped} init/prepare interoperability checks passed`
+  + (skipped > 0 ? ` (${skipped} skipped: running as root)` : ''));
 
 if (failed > 0) {
   console.error(`${failed} check(s) failed`);

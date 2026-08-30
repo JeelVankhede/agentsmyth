@@ -59,6 +59,16 @@ jobs:
           npm run init-prepare-interop:test
           npm run checkpoint-approval:test
           npm run setup-validator-definitions-root:test
+          npm run tuning-merge:test
+          npm run commit-coverage:test
+
+      # Deliberately here and not in ci.yml. The audit mutates every validator rule in turn and
+      # re-runs three suites for each, so it costs tens of minutes — too slow for every push, and
+      # exactly why it is named `mutation:audit` rather than `:test`. But a coverage ratchet that
+      # never runs is not a ratchet, and a release is the one moment the question "would the suite
+      # notice if this rule stopped working" has to have a current answer.
+      - name: Mutation audit (coverage ratchet)
+        run: npm run mutation:audit
 
       - name: Bump version
         id: version

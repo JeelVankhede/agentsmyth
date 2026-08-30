@@ -173,6 +173,7 @@ left out of `intent.derived_keys[]`, which is what stops a later upgrade from ov
 | Repo path vocabulary | `tuning.skill_scoring.path_glob_categories` | Merged per entry. Derived from `intent.surface_map`. |
 | Skill firing thresholds | `tuning.skill_scoring.thresholds` | Lower a number to make that skill fire more often. Derived from `intent.concerns`. |
 | Extra sign-off phases | `tuning.pause_resume.user_checkpoint_required_for[]` | **Union** with the global list — you may add checkpoints, never remove one. |
+| Council size per phase | `tuning.council.per_phase.think.default_fan_out`, `…per_phase.review.default_fan_out` | 1–10. **`think` and `review` are the only phases the schema accepts** — the map is closed, so a third phase is rejected rather than ignored. Merged per entry: naming `review` leaves `think` at its global value. Shipped defaults are 3 for Think and 2 for Review. Replaces the single per-repo council fan-out key that existed before per-phase configuration; a repo-profile still carrying it is rejected by the closed object. |
 
 ### How values resolve
 

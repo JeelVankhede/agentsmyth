@@ -80,7 +80,16 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+
+// lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
+// at the machine-local ~/.agentsmyth/workflow — and exits at import time when that path is absent.
+// A developer machine has it; a CI runner does not, so importing lib.mjs directly made this suite
+// pass locally and die on a fresh checkout with "global definitions root not found". The env
+// override is what the validators themselves are run under (see scripts/validate-template.mjs), so
+// it is set here BEFORE the dynamic import — a static import is hoisted and would run first.
+process.env.AGENTSMYTH_HOME ??= 'src/workflow';
+const { validateSchema } = await import('../src/workflow/validators/lib.mjs');
 const wtDoc = readFileSync(join(repoRoot, 'test/fixtures/conformance/waived-test/verify/probe-v1.md'), 'utf8');
 check('r4-gate-ready', 'waived-Test verify is ready-for-next-phase + hold-with-waiver',
   /status: ready-for-next-phase/.test(wtDoc) && /Recommendation: hold-with-waiver/.test(wtDoc));
@@ -137,7 +146,7 @@ const cwf = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/
 check('r21-council-wellformed', 'well-formed council brief passes check-council-record',
   cwf.status === 0);
 check('r21-council-summary', 'check-council-record reports texture, not a bare pass',
-  /summary: \d+ council brief\(s\), \d+ round\(s\), \d+ finding\(s\)/.test(cwf.out) &&
+  /summary: \d+ council brief\(s\), \d+ council review\(s\), \d+ round\(s\), \d+ finding\(s\)/.test(cwf.out) &&
   /\d+ recall-only hypothes\(es\) accepted without corroboration/.test(cwf.out) &&
   /\d+ citation\(s\) mechanically resolved vs \d+ shape-checked only/.test(cwf.out));
 
@@ -195,6 +204,223 @@ check('r21-termination-enum', 'validator TERMINATIONS and schema termination_rea
   validatorTerminations.length > 0 &&
   schemaTerminations.length > 0 &&
   validatorTerminations.join('|') === schemaTerminations.join('|'));
+
+// WP-R22 P3-5 — the shipped fan-out defaults are restated in six documents. Nothing derived them,
+// so changing agent-behavior.yaml would leave five files asserting the old numbers. Pinned against
+// the config rather than against each other, so the config stays the single source.
+const behaviorYaml = readFileSync(join(repoRoot, 'src/workflow/agent-behavior.yaml'), 'utf8');
+const perPhase = behaviorYaml.match(/per_phase:\s*\n\s*think:\s*\n\s*default_fan_out:\s*(\d+)\s*\n\s*review:\s*\n\s*default_fan_out:\s*(\d+)/);
+const phaseCapsDoc = readFileSync(join(repoRoot, 'src/workflow/skills/dispatch-subagents/references/phase-caps.md'), 'utf8');
+const configMapDoc = readFileSync(join(repoRoot, 'src/setup/references/config-map.md'), 'utf8');
+const reviewSkillDoc = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/SKILL.md'), 'utf8');
+check('r22-fan-out-defaults-agree', 'every document restating the fan-out defaults matches agent-behavior.yaml',
+  Boolean(perPhase) &&
+  new RegExp(`\\| \`think\` \\| ${perPhase[1]} \\|`).test(phaseCapsDoc) &&
+  new RegExp(`\\| \`review\` \\| ${perPhase[2]} \\|`).test(phaseCapsDoc) &&
+  new RegExp(`default_fan_out\` is \\*\\*${perPhase[2]}\\*\\*`).test(phaseCapsDoc) &&
+  new RegExp(`${perPhase[1]} for Think and ${perPhase[2]} for Review`).test(configMapDoc) &&
+  new RegExp(`default ${perPhase[2]}`).test(reviewSkillDoc));
+
+// Every test suite must be RUN by CI, for the same reason every validator must be wired: a suite in
+// package.json that no workflow invokes is counted as coverage and provides none. tuning-merge and
+// commit-coverage sat in exactly that state, and tuning-merge held the only automated evidence for
+// per-repo council tuning. Release is checked too — a suite that gates CI but not the publish is a
+// gap at the moment it matters most.
+const pkgScripts = Object.keys(JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')).scripts)
+  .filter((name) => name.endsWith(':test'));
+const ciYml = readFileSync(join(repoRoot, '.github/workflows/ci.yml'), 'utf8');
+const releaseYml = readFileSync(join(repoRoot, '.github/workflows/release.yml'), 'utf8');
+const notInCi = pkgScripts.filter((name) => !ciYml.includes(`npm run ${name}`));
+const notInRelease = pkgScripts.filter((name) => !releaseYml.includes(`npm run ${name}`));
+check('r22-every-suite-runs-in-ci', 'every :test script is invoked by CI and by release',
+  notInCi.length === 0 && notInRelease.length === 0,
+  notInCi.length || notInRelease.length ? `ci: ${notInCi.join(', ') || 'none'} | release: ${notInRelease.join(', ') || 'none'}` : '');
+
+// The mutation audit is the one suite the sweep above cannot catch, because it is deliberately not
+// named `:test` — it costs tens of minutes and must not run on every push. That exemption is what
+// makes it easy to lose: it was added, recorded a baseline, and was invoked by nothing. Pin it to
+// release explicitly, so the ratchet has a run that actually enforces it.
+check('r22-mutation-audit-runs-at-release', 'the mutation-coverage ratchet is invoked by the release workflow',
+  releaseYml.includes('npm run mutation:audit'),
+  releaseYml.includes('npm run mutation:audit') ? '' : 'release.yml never invokes mutation:audit');
+
+// WP-R22 P1-7 — the Ship closure gate must be scoped to the chain being shipped. Unscoped, one
+// chain's unsettled finding blocked every other chain AND re-failed every ship artifact already
+// committed, because a historical release cannot answer for a finding raised after it shipped. This
+// repo's own Review council broke the tree with it: writing 56 ledger rows failed 26 past ship
+// artifacts at once. The fixture ships an unrelated chain's ship artifact beside a pending row that
+// belongs to a different chain — it must pass.
+const shipScoped = run(V('check-release-readiness'), ['--dir', 'test/fixtures/conformance/ship-gate-chain-scoped']);
+check('r22-ship-gate-chain-scoped', "another chain's pending finding does not block this chain's ship",
+  shipScoped.status === 0);
+
+// WP-R22 RI10 (OI-81) — the negative half of the per-question join, which is the whole reason the
+// change was made. A genuinely external question, resting on web alone and naming a bucket whose
+// classification names only web, must NOT be flagged. Under the old brief-wide approximation it
+// was, because some other requirement in the brief happened to be repo-classified.
+const ceq = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-external-question']);
+check('r22-external-question-not-flagged', 'a question whose own bucket is external passes on web evidence',
+  ceq.status === 0);
+
+// WP-R22 RI8 — the quality figure must be computed over BOTH ledger files. The fixture holds one
+// pending row in the active file and two closed rows in the archive, so a tally taken from the
+// active file alone reports "0 proved real" and fails this check. That is the whole hazard the
+// two-file split creates: rotation keeps the working file lean, and a figure read from it silently
+// stops being a baseline while still looking like one.
+const fq = run(V('check-finding-quality'), ['--dir', 'test/fixtures/conformance/finding-quality-both-files']);
+check('r22-finding-quality-spans-both-files', 'quality tally counts active and archived rows together',
+  fq.status === 0 &&
+  /1 proved real, 1 noise, 0 waived, 0 unresolved at reflect, 1 pending/.test(fq.out) &&
+  /% of settled findings proved real/.test(fq.out));
+
+// Absence is valid. A repo that has never run a Review council has no ledger, and a checker that
+// failed on absence would make the feature mandatory by the back door.
+const fqAbsent = run(V('check-finding-quality'), ['--dir', 'test/fixtures/conformance/council-wellformed']);
+check('r22-finding-quality-absent-ok', 'a repo with no ledger passes rather than failing',
+  fqAbsent.status === 0 && /no finding-quality ledger/.test(fqAbsent.out));
+
+// WP-R22 RI1 — positive control for the REVIEW record. Without it, the Review-specific rejection
+// rules would be satisfied by a validator that rejects every review, and the filter widening would
+// be unverified in the direction that matters: a council-mode review must be CHECKED, not skipped.
+const crw = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-review-wellformed']);
+check('r22-council-review-wellformed', 'well-formed council REVIEW passes check-council-record',
+  crw.status === 0);
+check('r22-council-review-counted', 'a review is counted as a review, not mislabelled a brief',
+  /0 council brief\(s\), 1 council review\(s\)/.test(crw.out));
+
+// WP-R22 RI3 — the preserved single-agent Review path must stay a verbatim copy, not a paraphrase.
+// A "preserved" path that drifts into a reconstruction is not a rollback surface. The steps are
+// byte-compared against the pre-council text; the closing step is included because a truncated copy
+// is the likeliest drift.
+const reviewSingleAgent = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/references/single-agent-path.md'), 'utf8');
+const preservedSteps = reviewSingleAgent.split('\n').filter((l) => /^\d+\. /.test(l));
+check('r22-review-single-agent-verbatim', 'preserved single-agent Review path retains ALL ten pre-council steps verbatim',
+  preservedSteps.length === 10 &&
+  preservedSteps.join('\n') === '1. Ground the review in the active manifest IDs, plan phase, task evidence, and diff target.\n2. Inspect actual changed files and relevant unchanged context.\n3. Review generated-output changes against their configured source or regeneration path.\n4. Review source-of-truth handling against configured source policy and task evidence.\n5. Review verification evidence: exact commands, manual QA, generated-output checks, skipped checks, and not-run risks.\n6. Run a blocking pass for missing requirements, contract mismatch, data loss, security risk, compatibility break, generated-output drift, release risk, and invalid lifecycle state.\n7. Run a non-blocking pass for maintainability, docs gaps, unclear evidence, and follow-up-worthy cleanup.\n8. Map every active `R` and `RI` to `covered`, `partial`, or `missing`.\n9. Write `workflow/artifacts/reviews/<slug>-v<N>.md` with findings first, severity summary, requirement coverage, architecture notes, verification reviewed, residual risk, and recommendation.\n10. Set `orchestration.status` to `blocked` when findings require Build changes, otherwise `ready-for-next-phase` with `next_phase: test`.');
+
+// The Severity Summary starter block must match what real reviews and check-release-readiness
+// actually use. It declared two columns while every real review used five, and the validator had
+// been widened to tolerate the extra ones — the block a reviewer copies was the thing left stale.
+const reviewOutputSchema = readFileSync(join(repoRoot, 'src/workflow/skills/lifecycle-review/references/output-schema.md'), 'utf8');
+check('r22-review-severity-columns', 'Severity Summary starter block carries the columns real reviews use',
+  /\| Severity \| Open \| Found \| IDs \| Status \|/.test(reviewOutputSchema) &&
+  !/\| Severity \| Count \|/.test(reviewOutputSchema));
+
+// Council mode and single-agent mode must produce ONE artifact shape. The Council Log is the only
+// difference, and it is omitted entirely in single-agent mode.
+check('r22-review-council-log-block', 'review output schema carries the Council Log starter block',
+  /## Council Log/.test(reviewOutputSchema) &&
+  /### Risk Category Assignment/.test(reviewOutputSchema) &&
+  /### Reconcile Contract/.test(reviewOutputSchema) &&
+  /Required only when frontmatter has council\.mode: council/.test(reviewOutputSchema));
+
+// WP-R22 RI12 — review-council's charter must keep naming the sections the validator and
+// lifecycle-review are written against, in order. Same anti-drift shape as r21-think-stages: the
+// contract and its documentation rot apart unless something pins them together. The fences are
+// pinned by name because each is a rule a member loading only this charter has to see.
+const reviewCouncilSkill = readFileSync(join(repoRoot, 'src/workflow/skills/review-council/SKILL.md'), 'utf8');
+check('r22-review-council-sections', 'review-council SKILL.md names its charter sections in order',
+  ['## Purpose', '## Invocation Context', '## Authorization', '## Member Capability', '## Roles',
+   '## Risk Category Assignment', '## The Challenge Pass', '## Findings Carry No Fix',
+   '## Members That Fail', '## Evidence And Dispositions', '## Refusal / Stop Conditions',
+   '## Determinism Rules', '## Exit Gate']
+    .every((sec, i, arr) => {
+      const idx = reviewCouncilSkill.indexOf(sec);
+      return idx !== -1 && (i === 0 || idx > reviewCouncilSkill.indexOf(arr[i - 1]));
+    }));
+
+// The three fences that license a Review council to fire unprompted, each stated in the charter
+// itself rather than only by reference. A member loads this file; a rule it must follow a pointer
+// to find is one it can miss.
+check('r22-review-council-fences', 'charter states the repo, outward and input fences explicitly',
+  /Repo axis — absolute/.test(reviewCouncilSkill) &&
+  /Outward axis/.test(reviewCouncilSkill) &&
+  /Input fence/.test(reviewCouncilSkill) &&
+  /does not\s+receive the Build session transcript/i.test(reviewCouncilSkill) &&
+  /Do not nest dispatch/.test(reviewCouncilSkill));
+
+// Review produces a verdict; a Review council does not. The phase name invites the opposite
+// reading, and getting it wrong is what would let a member's finding read as authority.
+check('r22-review-council-no-verdict', 'charter scopes the no-verdict rule to the council output',
+  /Review produces a verdict; a Review council does not/.test(reviewCouncilSkill));
+
+// The schema engine must enforce `required` independently of `properties`. It did not: the check
+// was nested inside `if (schema.properties && ...)`, so a schema declaring `required` alone
+// enforced nothing — and that is the exact shape every `then:` branch of an if/then takes, since
+// the branch names newly-mandatory keys and re-declares no properties. Conditional requirements
+// were accepted whatever they said, while `pattern` and `additionalProperties` in the same schema
+// worked, so the schema looked live.
+//
+// check-schema-keywords cannot cover this: it asserts a keyword is IMPLEMENTED, not that it is
+// reachable in the position a schema uses it. Asserted directly against the engine instead.
+{
+  const requiredOnly = { required: ['b'] };
+  const missing = [];
+  validateSchema({ a: 1 }, requiredOnly, 'probe', missing, {}, requiredOnly);
+  const present = [];
+  validateSchema({ a: 1, b: 2 }, requiredOnly, 'probe', present, {}, requiredOnly);
+  check('schema-required-without-properties', 'required is enforced with no properties sibling',
+    missing.length === 1 && present.length === 0);
+
+  const conditional = {
+    allOf: [{ if: { properties: { kind: { const: 'x' } }, required: ['kind'] }, then: { required: ['extra'] } }],
+  };
+  const fires = [];
+  validateSchema({ kind: 'x' }, conditional, 'probe', fires, {}, conditional);
+  const quiet = [];
+  validateSchema({ kind: 'y' }, conditional, 'probe', quiet, {}, conditional);
+  const satisfied = [];
+  validateSchema({ kind: 'x', extra: 1 }, conditional, 'probe', satisfied, {}, conditional);
+  check('schema-conditional-required', 'if/then required fires on match, stays quiet otherwise',
+    fires.length === 1 && quiet.length === 0 && satisfied.length === 0);
+}
+
+// Every validator must be WIRED, not merely present. Three separate instances of the same defect
+// surfaced in one work package: agent-behavior.schema.yaml was never loaded by anything,
+// check-definitions had to be created to load it, and check-pending-setup.mjs existed for months
+// registered nowhere — run by hand it failed immediately. A validator nothing invokes is a file
+// that looks like a guarantee and is not one. This asserts the wiring itself, so the next one
+// cannot slip in silently.
+//
+// The exemptions are real and named: two are invoked by the CLI rather than by validate-template,
+// and repo-digest is a tool that prints a hash, not a check that can pass or fail.
+const validateTemplateSrc = readFileSync(join(repoRoot, 'scripts/validate-template.mjs'), 'utf8');
+const CLI_INVOKED = new Set(['check-setup-complete.mjs', 'check-commit-coverage.mjs']);
+const NOT_A_CHECK = new Set(['lib.mjs', 'repo-digest.mjs']);
+const validatorFiles = readdirSync(join(repoRoot, 'src/workflow/validators'))
+  .filter((f) => f.endsWith('.mjs'))
+  .filter((f) => !CLI_INVOKED.has(f) && !NOT_A_CHECK.has(f));
+// Comments stripped first. A bare substring test counted a validator named only inside a comment as
+// wired — and validate-template.mjs does mention validators in comments, so the check could pass on
+// a file nothing invokes. That is the exact defect this check exists to catch, present in the check
+// itself.
+const validateTemplateCode = validateTemplateSrc.replace(/^\s*\/\/.*$/gm, '');
+const unwired = validatorFiles.filter((f) => !validateTemplateCode.includes(f));
+check('every-validator-wired', 'no validator exists without being registered in validate-template',
+  unwired.length === 0, unwired.length ? `unregistered: ${unwired.join(', ')}` : '');
+
+// The exemption list above was asserted, never checked — which makes it the softest spot in a check
+// written specifically to catch soft spots. A validator named in CLI_INVOKED is excused from the
+// wiring requirement on the strength of a claim in this file; if the CLI ever stops invoking it, the
+// claim silently becomes false and the validator is exempt from BOTH checks at once, which is worse
+// than never having been exempted. Verify the claim against the CLI, comments stripped for the same
+// reason as above.
+const cliCode = readFileSync(join(repoRoot, 'bin/agentsmyth.mjs'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+const falselyExempt = [...CLI_INVOKED].filter((f) => !cliCode.includes(f));
+check('cli-invoked-exemptions-are-real', 'every validator excused as CLI-invoked is actually invoked by the CLI',
+  falselyExempt.length === 0,
+  falselyExempt.length ? `claimed CLI-invoked but absent from bin/agentsmyth.mjs: ${falselyExempt.join(', ')}` : '');
+
+// The definitions schema check must run under AGENTSMYTH_WF, i.e. in the SOURCE command list.
+// Registered anywhere else it validates whichever copy the two-root resolver returns — the global
+// install on a developer machine, the build-synced copy in CI — so local and CI check different
+// files and a source change reads clean until `agentsmyth prepare` runs.
+const sourceBlock = validateTemplateCode.slice(
+  validateTemplateCode.indexOf('const sourceCommands'),
+  validateTemplateCode.indexOf('const artifactEnv')
+);
+check('definitions-checked-at-source', 'check-definitions runs under AGENTSMYTH_WF against src/workflow',
+  sourceBlock.includes('check-definitions.mjs'));
 
 // Coverage-ledger drop detection must read a STATUS, not a keyword. A row whose prose merely
 // mentions "dropped" or "removed" — "availability recorded, never silently dropped" — is not a drop

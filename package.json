@@ -1,7 +1,7 @@
 {
   "name": "@jeelvankhede/agentsmyth",
   "version": "1.0.1",
-  "description": "Portable AI lifecycle workflow — drop into any repo and let your agent drive structured, evidence-based engineering.",
+  "description": "Portable AI lifecycle workflow \u2014 drop into any repo and let your agent drive structured, evidence-based engineering.",
   "type": "module",
   "bin": {
     "agentsmyth": "./bin/agentsmyth.mjs"
@@ -50,7 +50,8 @@
     "setup-validator-definitions-root:test": "node test/run-setup-validator-definitions-root-tests.mjs",
     "commit-coverage:test": "node test/run-commit-coverage-tests.mjs",
     "site:dev": "vitepress dev site",
-    "site:build": "vitepress build site"
+    "site:build": "vitepress build site",
+    "mutation:audit": "node test/run-mutation-audit.mjs"
   },
   "devDependencies": {
     "@clack/prompts": "^1.7.0",

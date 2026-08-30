@@ -457,12 +457,43 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed by OI-72. With the NUL bytes gone, grep no longer classifies check-trigger-predicates.mjs as binary, so a repo-wide text sweep of src/ can no longer return a false-clean result for it. The shipped-neutrality conformance check remains as the belt to that braces."
+  - id: OI-84
+    source: follow-up
+    owner: user
+    next_action: "Merge PR #65 (feat/wp-r22-review-council) into release/1.1.0. The chain is complete through Reflect and CI is green off-machine (run 33296889442), but the merge was deliberately not inferred from the user's approval to proceed to Reflect - that approval covered the ship decision and the phase transition, not an irreversible outward action. The branch is 26 commits ahead and the PR is open. Once merged, move the Notion WP-R22 page to Done with the PR reference; that update is recorded as NOT done in the reflect artifact rather than claimed."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-85
+    source: follow-up
+    owner: user
+    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-86
+    source: follow-up
+    owner: workflow owner
+    next_action: "Make the pre-commit hook prefer the repo's own bin/agentsmyth.mjs when one exists. Today .githooks/pre-commit resolves `agentsmyth` from PATH, which on this machine is a globally installed 1.0.0 package shipping only three validators - so the mandatory gate a developer experiences depends on what they happen to have installed rather than on the repo under change. The validators themselves resolve from ~/.agentsmyth and were byte-identical here, so nothing was broken by it, but the coupling is wrong in principle and is a plausible contributor to OI-83."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-83
+    source: follow-up
+    owner: workflow owner
+    next_action: "Explain why commit 537eebb passed the mandatory pre-commit gate while staging two files (test/run-mutation-audit.mjs, test/mutation-baseline.json) that no task artifact's Changed Files covered, then close the hole or the record-keeping error it exposes. What was verified: the hook is installed (core.hooksPath=.githooks); it invokes `agentsmyth` from PATH, which is a GLOBALLY INSTALLED 1.0.0 package rather than this repo's bin/; that CLI resolves validators from ~/.agentsmyth/workflow/validators, whose check-commit-coverage.mjs is byte-identical to the repo source; and the gate DOES fire correctly - staging an uncovered test/*.mjs probe produced the expected rejection naming the path. Both files were in 537eebb and neither is covered. The cause is therefore not a missing hook, a stale validator, or a broken rule, and I could not determine it. Two things worth fixing regardless. (1) A gate that fires on a probe but not on a real commit is worse than no gate, because it is trusted; reproduce it deliberately before relying on the gate for scope discipline again. (2) The hook resolves `agentsmyth` from PATH, so the gate a developer experiences depends on which version they happen to have installed globally - here a 1.0.0 package that ships only three validators - rather than on the repo being developed. Consider preferring the repo's own bin/ when one exists, so the gate tests the code under change."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-82
+    source: follow-up
+    owner: workflow owner
+    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 217 validator rules can be deleted with every suite green. Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
   - id: OI-81
     source: follow-up
     owner: workflow owner
     next_action: "Give a Questions For User entry a bucket reference so the repo-shaped evidence rule can join on it. check-council-record's `web`/`recall` rule asks whether the question it is judging is repo-shaped, but Requirement Classification is keyed by manifest ID while a Q line names only finding IDs — there is no join, so the check uses a brief-wide approximation: true whenever ANY classification row names repo. A genuinely external question in a brief that also holds one repo-classified requirement is therefore flagged wrongly. The second external review of the council PR classed it non-blocking and it is now stated in the error text and in the validators README non-claims, rather than implied. Fix: add a `Bucket` (or `Manifest IDs`) column to the Questions For User starter block in lifecycle-think's output-schema, then narrow the rule to that question's own classification rows. It is a record-shape change to a starter block every council brief already written follows, so it belongs with the Review-council work that is revising those blocks anyway, not as a drive-by."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed in WP-R22 Phase 9 (RI10). A Questions For User entry now names the manifest ID(s) whose Requirement Classification covers it — its bucket — and check-council-record joins on that instead of asking whether ANY row in the brief names repo. The bucket reference is required only of a question the rule would actually judge: one resting on no repo or trial finding. A question already grounded in repo or trial evidence never reaches the rule and needs no bucket, so the record-shape cost falls only where it buys something. Three fixtures: dp (own bucket names repo, fires), dq (no bucket declared, cannot be judged), and conformance r22-external-question-not-flagged (own bucket is external, correctly silent) — that last is the case the approximation got wrong. The stated non-claim in validators/README.md is removed, since the approximation it described no longer exists."
   - id: OI-80
     source: follow-up
     owner: user

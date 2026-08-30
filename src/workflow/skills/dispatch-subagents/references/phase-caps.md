@@ -28,23 +28,48 @@ For all other phases, the cap is the resolved `dispatch.max_parallel_workstreams
 ### Council exception to the default-to-1 rule
 
 Council-mode dispatch is the one documented departure. When no `max_parallel_workstreams` is
-declared anywhere, a council resolves its cap from `council.default_fan_out` (shipped default 3)
+declared anywhere, a council resolves its cap from `council.per_phase.<phase>.default_fan_out`
 rather than falling back to 1, because a one-member council is not a council.
 
 This departure is stated here rather than left to be discovered because it has a real cost: an
-unconfigured consumer gets a multi-member council on every Complex Think without having chosen one.
-Two things make it visible rather than silent — the artifact records `cap_source: council-default`
-when this branch applies (as opposed to `configured`), and `council.depth` exists so that cost can
-be reduced without shrinking the council.
+unconfigured consumer gets a multi-member council on every Complex chain of that phase without
+having chosen one. Two things make it visible rather than silent — the artifact records
+`cap_source: council-default` when this branch applies (as opposed to `configured`), and
+`council.depth` exists so that cost can be reduced without shrinking the council.
 
 The departure is bounded: it changes the *default*, never the ceiling. A declared
-`max_parallel_workstreams` still wins, and `council.default_fan_out` is itself capped by the schema.
+`max_parallel_workstreams` still wins, and each `default_fan_out` is itself capped by the schema.
 
-**Scope: the Think council only.** This departure applies to the Think council and to no
-other phase. It is written that way deliberately — a phase-agnostic default would mean that the
-moment a council is extended to another phase, every unconfigured consumer silently acquires a
-multi-member council there too, having chosen nothing. Any package extending councils to a new
-phase must decide that phase's default explicitly rather than inheriting this one.
+**Every phase that gets a departure declares it, and no phase inherits another's.** There is no
+phase-agnostic value: **a phase absent from `per_phase` gets no departure at all** and falls back to
+default-to-1. Forgetting to decide therefore fails safe rather than billing silently, which is the
+failure this rule exists to prevent — the moment a council is extended to a new phase, every
+unconfigured consumer would otherwise acquire a multi-member council there too, having chosen
+nothing.
+
+Shipped values:
+
+| Phase | `default_fan_out` | Why |
+|---|---|---|
+| `think` | 3 | A one-member council is not a council, and Think's three research buckets were the shape the mechanism was designed against |
+| `review` | 2 | Lower, and decided rather than inherited — see below |
+| every other phase | none — falls back to 1 | No council runs there yet; adding one means adding a row here |
+
+### Review council default
+
+`council.per_phase.review.default_fan_out` is **2**.
+
+Three reasons it is lower than Think's 3. The Think council was measured against a real
+single-agent baseline at roughly 6× the invocations for less coverage, and Review runs on every
+Complex chain carrying that same bill. Review's output blocks a commit, so a confident wrong finding
+is more expensive here than in Think, and a smaller council is easier to hold to account. And the
+property Review actually needs — reviewers carrying fresh context over disjoint risk categories — is
+delivered by two reviewers as well as by three, given the ten categories in
+`lifecycle-review/references/review-risk-categories.md` are assigned disjointly.
+
+The challenge pass is not counted in this number: stages are capped independently (below), and the
+challenge pass is where the Think council's distinctive value actually showed — it refuted a
+researcher's wrong headline claim, which a single-agent Review has no mechanism for.
 
 ### Council stages are capped independently
 

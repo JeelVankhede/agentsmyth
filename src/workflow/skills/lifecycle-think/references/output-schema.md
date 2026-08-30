@@ -135,7 +135,14 @@ skill_trigger_log:
 ## Questions For User
 
 <!-- Every surviving Q carries a recommendation and the finding IDs it rests on.
-     Evidence references must not be exclusively `recall`. -->
+     Evidence references must not be exclusively `recall`.
+
+     A Q whose recommendation rests on no `repo` or `trial` finding must also name the manifest
+     ID(s) whose Requirement Classification covers it — its BUCKET, e.g. "(bucket R3)". That
+     reference is the join: without it, "would repo evidence settle this question" can only be
+     approximated from the brief as a whole, which flags a genuinely external question whenever
+     some other requirement happens to be repo-classified. A Q already grounded in repo or trial
+     evidence needs no bucket, because the rule never judges it. -->
 
 ## Council Log
 

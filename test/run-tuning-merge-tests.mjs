@@ -7,7 +7,14 @@
 // scenario cannot distinguish a NaN complexity_score from a legitimately low one. A suite that
 // already passes with the defect present cannot be the proof that the defect is fixed. These are
 // positive assertions on the merge itself, and case 2 fails against the pre-fix shallow spread.
-import { mergeTunedMap } from '../src/workflow/validators/lib.mjs';
+// lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
+// at the machine-local ~/.agentsmyth/workflow — and exits at import time when that path is absent.
+// A developer machine has it; a CI runner does not, so importing lib.mjs directly made this suite
+// pass locally and die on a fresh checkout with "global definitions root not found". The env
+// override is what the validators themselves are run under (see scripts/validate-template.mjs), so
+// it is set here BEFORE the dynamic import — a static import is hoisted and would run first.
+process.env.AGENTSMYTH_HOME ??= 'src/workflow';
+const { loadYaml, mergeTunedMap } = await import('../src/workflow/validators/lib.mjs');
 
 const results = [];
 
@@ -71,6 +78,33 @@ const score =
   (raw.touches_contract ? merged.touches_contract : 0) +
   (raw.new_surface ? merged.new_surface : 0) +
   merged.task_class[raw.task_class];
+// 12-14 (WP-R22 RI22) — council fan-out is per phase, and a repo overriding one phase must leave
+// the other at its global value. This is the same per-entry rule cases 2 and 3 prove for
+// skill_scoring weights, asserted against the council map because that is where a mistake now costs
+// the user real invocations on every Complex chain.
+// Read from the SHIPPED config, not written as a literal. As literals, m12-m14 passed identically
+// with council.per_phase deleted from every file — they asserted the helper's semantics and nothing
+// about this package. The same argument the header makes for m1-m8.
+const globalCouncilPerPhase = loadYaml('src/workflow/agent-behavior.yaml')?.council?.per_phase;
+check('m12a', 'the shipped config actually declares per-phase council fan-out',
+  Boolean(globalCouncilPerPhase && globalCouncilPerPhase.think && globalCouncilPerPhase.review), true);
+
+check('m12', 'overriding review leaves think at the global value',
+  mergeTunedMap(globalCouncilPerPhase, { review: { default_fan_out: 1 } }),
+  { ...globalCouncilPerPhase, review: { default_fan_out: 1 } });
+
+check('m13', 'overriding neither phase inherits both',
+  mergeTunedMap(globalCouncilPerPhase, {}),
+  globalCouncilPerPhase);
+
+// m14 previously asserted that a `plan` phase survives the merge — true of the helper, and
+// unreachable through the config contract, since both schemas close per_phase to think|review.
+// A test that locks in behaviour the schema forbids teaches the next reader the wrong contract.
+// What is worth asserting is that overriding one phase does not disturb the OTHER declared phase.
+check('m14', 'overriding think leaves review at the global value',
+  mergeTunedMap(globalCouncilPerPhase, { think: { default_fan_out: 1 } }).review,
+  globalCouncilPerPhase.review);
+
 check('m8', 'complexity_score stays finite under a partial nested edit (F1 consequence)',
   Number.isFinite(score) && score === 54, true);
 

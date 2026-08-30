@@ -1,0 +1,123 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "finding-quality"
+title: "Finding Quality Ledger"
+type: object
+kind: finding-quality
+description: >-
+  Durable, cross-run record of what each council finding turned out to be worth. A finding's
+  DISPOSITION - accepted, merged, rejected-with-reason - is decided by the parent at consolidation
+  and lives in the council record. Whether an accepted finding actually PROVED REAL is knowable only
+  later, when someone acts on it: at Test the fix held or the claim reproduced, at Ship it was
+  waived, at Reflect it turned out to be nothing. So this ledger is a second write at a later phase,
+  not a wider column on the review table, and it is deliberately not a lifecycle artifact - it is a
+  persistent file, the same shape as the open-items ledger.
+  Two files carry it. The ACTIVE ledger holds rows still awaiting an outcome plus those closed in
+  the current cycle; the ARCHIVE holds closed rows moved out of it, and is append-only. Rotation is
+  a move: a row closes in the active file and is written to the archive in one operation, so it is
+  present in exactly one of them. Any figure reported from this ledger must be computed over BOTH
+  files - a count taken from the lean active file alone reports the current cycle and silently stops
+  being a baseline, which is the one thing this ledger exists to provide.
+required: [version, kind, items]
+additionalProperties: false
+properties:
+  version:
+    type: integer
+    enum: [1]
+  kind:
+    type: string
+    enum: [finding-quality, finding-quality-archive]
+    description: >-
+      finding-quality for the active ledger, finding-quality-archive for the archive. Distinct kinds
+      rather than one, so a file cannot be mistaken for the other by a reader or a validator, and so
+      the archive's append-only rule has something to attach to.
+  items:
+    type: array
+    items:
+      type: object
+      required: [id, finding_id, source_artifact, first_seen_run, disposition, outcome]
+      additionalProperties: false
+      description: >-
+        One row per council finding. additionalProperties is false deliberately: the open-items
+        ledger it is modelled on accepts a `resolution` key that 22 of its entries depend on and
+        that its schema never declares, because nothing closed the object. An undeclared field here
+        fails instead of passing silently.
+      properties:
+        id:
+          type: string
+          pattern: "^FQ-[0-9]+$"
+          description: "Format: FQ-N. Never renumbered, never reused."
+        finding_id:
+          type: string
+          description: >-
+            The finding's ID within its source artifact's council log, e.g. F3. Scoped by
+            source_artifact rather than globally unique, so two chains cannot collide.
+        source_artifact:
+          type: string
+          description: "Repo-relative path of the artifact whose council log recorded the finding."
+        first_seen_run:
+          type: string
+          description: "The slug-vN of the lifecycle chain whose Review phase created this entry."
+        disposition:
+          type: string
+          enum: [accepted, merged, rejected-with-reason]
+          description: >-
+            Carried from the council record unchanged. The disposition contract is frozen in
+            dispatch-subagents/references/council-contracts.md and is not re-decided here.
+        outcome:
+          type: string
+          enum: [pending, proved-real, waived, noise, unresolved-at-reflect]
+          description: >-
+            pending until a later phase settles it. proved-real - acting on it confirmed the
+            finding. waived - accepted as real but deliberately not acted on, which requires a
+            waiver. noise - it did not hold up. unresolved-at-reflect - the chain ended without the
+            truth being knowable, recorded honestly rather than guessed; the row stays in the ledger
+            and a later chain may update it, since this record is cross-run by construction.
+        closed_in_phase:
+          type: string
+          enum: [review, test, ship, reflect]
+          description: >-
+            Which phase settled the outcome. Required once the outcome is not pending. `review` is
+            included because a finding fixed during the same review that raised it is settled there:
+            the enum originally started at `test`, on the assumption that quality is never knowable
+            at Review, and the first real council disproved that on its own remediation pass. It is
+            still the exception rather than the norm - a finding whose truth needs someone to act on
+            it closes later, and guessing at Review is what `pending` exists to prevent.
+        resolution:
+          type: string
+          minLength: 1
+          description: "What actually happened, in one line. Required once the outcome is not pending."
+        waiver_ref:
+          type: string
+          minLength: 1
+          description: "The waiver covering a waived finding. Required when outcome is waived."
+        reason:
+          type: string
+          minLength: 1
+          description: "Why it was noise, or why it could not be resolved. Required for those two outcomes."
+      allOf:
+        # A closed outcome must say which phase closed it and what happened. Expressed here rather
+        # than in prose because a rule a reader has to remember is one a record can omit.
+        - if:
+            properties:
+              outcome:
+                enum: [proved-real, waived, noise, unresolved-at-reflect]
+            required: [outcome]
+          then:
+            required: [closed_in_phase, resolution]
+        # A waiver is the whole difference between "we decided not to act" and "we forgot".
+        - if:
+            properties:
+              outcome:
+                const: waived
+            required: [outcome]
+          then:
+            required: [waiver_ref]
+        # noise and unresolved-at-reflect are the two outcomes that assert an absence. Both have to
+        # say why, or the ledger cannot distinguish a considered judgement from a shrug.
+        - if:
+            properties:
+              outcome:
+                enum: [noise, unresolved-at-reflect]
+            required: [outcome]
+          then:
+            required: [reason]

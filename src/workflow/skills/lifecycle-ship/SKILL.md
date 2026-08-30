@@ -167,6 +167,28 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - The recommendation matches `release-readiness-gate`'s aggregation of verify, review, coverage, and waiver state.
 - Every claim tagged as verified passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
 
+## Finding Quality Closure
+
+A Review council's findings are recorded at Review with `outcome: pending` in
+`workflow/artifacts/finding-quality.yaml`. This phase settles the ones it can.
+
+For each pending row whose finding this phase acted on, set `outcome` to one of:
+
+| Outcome | Means | Also required |
+|---|---|---|
+| `proved-real` | acting on it confirmed the finding | `closed_in_phase`, `resolution` |
+| `noise` | it did not hold up | `closed_in_phase`, `resolution`, `reason` |
+| `waived` | real, and deliberately not acted on | `closed_in_phase`, `resolution`, `waiver_ref` |
+| `unresolved-at-reflect` | the chain ended without the truth being knowable | `closed_in_phase`, `resolution`, `reason` |
+
+**Closing a row moves it.** Delete it from `finding-quality.yaml` and append it to
+`finding-quality-archive.yaml` in the same operation — a row lives in exactly one file, and
+`check-finding-quality` rejects a row present in both or a closed row left in the active ledger.
+
+Leave a row `pending` when this phase genuinely did not settle it; do not guess. A row still pending
+at Ship blocks `ship` unless a `## Waivers` entry **names that row's ID** — a waiver that does not
+name the row does not cover it.
+
 ## Determinism Rules
 
 - Do not claim PRs, CI, releases, deployments, source updates, or external handoffs happened without tool output, artifact evidence, or user-provided evidence.

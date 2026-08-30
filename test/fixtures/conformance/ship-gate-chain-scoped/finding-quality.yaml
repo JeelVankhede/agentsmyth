@@ -1,0 +1,9 @@
+version: 1
+kind: finding-quality
+items:
+  - id: FQ-1
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/mine-v1.md
+    first_seen_run: mine-v1
+    disposition: accepted
+    outcome: pending

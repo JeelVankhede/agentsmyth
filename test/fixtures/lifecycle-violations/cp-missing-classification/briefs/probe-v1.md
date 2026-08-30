@@ -81,6 +81,7 @@ council:
 
 | Manifest ID | Question bucket | Evidence classes |
 |---|---|---|
+| R2 | a requirement that is not in manifest_ids | repo |
 
 ### Members
 

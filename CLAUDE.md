@@ -122,7 +122,7 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
 - [ ] Edited **source** (`src/`), not generated output.
 - [ ] Ran `npm run build` if `src/workflow/`, `src/setup/`, or `src/adapters/` changed.
 - [ ] Ran `npm run validate` and it passed.
-- [ ] Ran `npm run violations:test` and it passed (every fixture rejected — 60 as of 1.1.0).
+- [ ] Ran `npm run violations:test` and it passed — every fixture rejected, and the suite prints its own count. Do not restate the number here: it has drifted four times (44 → 60 → 69 → 84) because nothing derived it.
 - [ ] Ran `npm run conformance:test` and it passed.
 - [ ] Adapters still in sync if a gate changed.
 - [ ] No new runtime dependency introduced.
