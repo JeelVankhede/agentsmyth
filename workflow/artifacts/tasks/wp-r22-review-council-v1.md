@@ -95,6 +95,8 @@ schema-enforcement work lands early, where every later phase's constraints benef
 - `workflow/artifacts/open-items.yaml` — OI-82 (undefended rules), OI-83 (the gate discrepancy) — IDs: RI9
 - `test/fixtures/definitions/` — crafted definitions roots, so rules that fire only against one are
   fixturable at all — IDs: RI9
+- `workflow/artifacts/ship/wp-r22-review-council-v1.md` — new; Ship artifact, recommendation `ship`,
+  awaiting the user's decision on the merge — IDs: RI11
 
 **Phase 10 (RI9, RI11).**
 
