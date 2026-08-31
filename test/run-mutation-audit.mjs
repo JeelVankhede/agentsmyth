@@ -89,10 +89,30 @@ cpSync(repoRoot, workRoot, {
 // A rule may be exercised by the fixture suites or by validate-template running the validator over
 // this repo's real artifacts. Both must run, or a survivor is an artefact of the harness rather than
 // a gap in the suite.
+// EVERY suite that exercises a validator, not the three that happened to be here first. The audit
+// reports a rule as undefended when deleting it leaves "every suite" green — so a suite missing from
+// this list turns tested rules into phantom gaps. check-lifecycle's four checkpoint rules were the
+// clearest case: run-checkpoint-approval-tests.mjs drives them directly through `--phase` mode and
+// kills every one of those mutants, yet all four scored undefended because this list did not name
+// it. The seven additions below cost ~1.7s combined against ~8.8s for the original three; the
+// measurement was wrong for no meaningful saving.
+//
+// run-init-prepare-interop-tests.mjs is deliberately NOT here: it takes ~2 minutes because it does
+// real global npm installs, which at one run per mutation site would push the audit past two hours,
+// and it exercises the CLI installer rather than validator rules. That is a stated boundary — rules
+// reachable only through it will read as undefended.
 const SUITES = [
   ['scripts/validate-template.mjs'],
+  ['scripts/validate-example.mjs'],
   ['test/run-violation-tests.mjs'],
   ['test/run-conformance-tests.mjs'],
+  ['test/run-checkpoint-approval-tests.mjs'],
+  ['test/run-setup-complete-tests.mjs'],
+  ['test/run-setup-refs-tests.mjs'],
+  ['test/run-tuning-merge-tests.mjs'],
+  ['test/run-commit-coverage-tests.mjs'],
+  ['test/run-setup-validator-definitions-root-tests.mjs'],
+  ['test/run-root-resolution-drift-tests.mjs'],
 ];
 
 // Run against the COPY. Every suite resolves its own root from `import.meta.url`, and the validators

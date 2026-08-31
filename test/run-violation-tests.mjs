@@ -343,6 +343,19 @@ const fixtures = [
   // brief versions, and a plan that covers exactly what v1 declared: the fixture passes under the
   // old selection and rejects under the fix, which is the only shape that pins it.
   { id: 'fw', dir: 'test/fixtures/lifecycle-violations/fw-brief-revision-assumption-uncovered', description: '(OI-66) a plan is judged against a superseded brief version, hiding an unverified assumption — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'brief assumption A2 has no row in Assumptions Verified' },
+  // OI-82 — check-lifecycle's static contract check. These eight rules pin agent-behavior.yaml's
+  // artifact_chain and the frontmatter schema's enums to lib.mjs's artifactContracts, and every one
+  // of them could be deleted with the whole suite green: the contract has simply never been wrong,
+  // so the rules that guard it had never executed. Each fixture is a minimal definitions root with
+  // exactly one field diverged, reached through AGENTSMYTH_WF.
+  { id: 'fx', dir: 'test/fixtures/definitions/fx-chain-length-mismatch', description: '(OI-82) agent-behavior artifact_chain has too few entries — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/fx-chain-length-mismatch' }, expect: 'artifact_chain expected 7 entries, got 6' },
+  { id: 'fy', dir: 'test/fixtures/definitions/fy-chain-artifact-mismatch', description: '(OI-82) artifact_chain entry names the wrong artifact — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/fy-chain-artifact-mismatch' }, expect: 'artifact_chain[2].artifact expected task' },
+  { id: 'fz', dir: 'test/fixtures/definitions/fz-chain-phase-mismatch', description: '(OI-82) artifact_chain entry names the wrong phase — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/fz-chain-phase-mismatch' }, expect: 'artifact_chain[2].phase expected build' },
+  { id: 'ga', dir: 'test/fixtures/definitions/ga-chain-next-phase-mismatch', description: '(OI-82) artifact_chain entry names the wrong next_phase — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/ga-chain-next-phase-mismatch' }, expect: 'artifact_chain[2].next_phase expected review' },
+  { id: 'gb', dir: 'test/fixtures/definitions/gb-chain-path-mismatch', description: '(OI-82) artifact_chain entry names the wrong artifact path — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gb-chain-path-mismatch' }, expect: 'artifact_chain[2].path expected workflow/artifacts/tasks/' },
+  { id: 'gc', dir: 'test/fixtures/definitions/gc-schema-missing-artifact', description: '(OI-82) frontmatter schema omits an artifact the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gc-schema-missing-artifact' }, expect: 'schema missing artifact reflect' },
+  { id: 'gd', dir: 'test/fixtures/definitions/gd-schema-missing-phase', description: '(OI-82) frontmatter schema omits a phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gd-schema-missing-phase' }, expect: 'schema missing phase reflect' },
+  { id: 'ge', dir: 'test/fixtures/definitions/ge-schema-missing-next-phase', description: '(OI-82) frontmatter schema omits a next_phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/ge-schema-missing-next-phase' }, expect: 'schema missing next_phase done' },
 ];
 
 let passed = 0;

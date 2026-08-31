@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-30",
+  "generated": "2026-08-31",
   "results": {
     "check-artifacts.mjs": {
       "rules": 16,
@@ -55,7 +55,7 @@
     },
     "check-lifecycle.mjs": {
       "rules": 17,
-      "undefended": 16
+      "undefended": 0
     },
     "check-manifest-coverage.mjs": {
       "rules": 3,
