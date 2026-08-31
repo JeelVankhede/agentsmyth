@@ -176,6 +176,15 @@ for (const name of targets) {
 const totalUndefended = Object.values(results).reduce((a, r) => a + r.undefended, 0);
 console.log(`\n${totalUndefended}/${mutants} rules undefended`);
 
+// The survivor list was collected and then thrown away, which made the audit able to say HOW MANY
+// rules were undefended but not WHICH — so acting on the number meant re-running the audit by hand
+// per validator to rediscover what it already knew. Each entry is `file:line` of an `errors.push(`
+// that can be deleted with every suite still green; that line is the rule needing a fixture.
+if (survivorDetail.length > 0) {
+  console.log('\nundefended rules (file:line of an errors.push that no fixture kills):');
+  for (const entry of survivorDetail) console.log(`  ${entry}`);
+}
+
 if (writeBaseline) {
   writeFileSync(BASELINE, `${JSON.stringify({ generated: new Date().toISOString().slice(0, 10), results }, null, 2)}\n`);
   console.log(`baseline written to ${BASELINE}`);

@@ -91,26 +91,26 @@ See Requirement Manifest below; every `R`/`RI` carries its own acceptance criter
 
 ### Explicit (R)
 
-- R1: `agentsmyth init` installs a local git pre-commit hook into the consumer repo automatically, with no separate opt-in command required.
+- **R1**: `agentsmyth init` installs a local git pre-commit hook into the consumer repo automatically, with no separate opt-in command required.
   Acceptance: running `agentsmyth init` in a fresh test repo results in a working hook wired via `.git/hooks/pre-commit` or `core.hooksPath`, with no additional command run by the user.
-- R2: The hook blocks `git commit` when staged changes are not covered by a complete, evidenced lifecycle artifact chain, per the mechanical rule Plan defines for Q1.
+- **R2**: The hook blocks `git commit` when staged changes are not covered by a complete, evidenced lifecycle artifact chain, per the mechanical rule Plan defines for Q1.
   Acceptance: a staged non-trivial change with no matching artifact chain causes the commit to fail with a non-zero exit and a clear stderr message naming the missing coverage; a staged change with a matching chain commits successfully.
-- R3: Enforcement is local-only — no CI workflow file is added to or required by a consumer repo as part of this work.
+- **R3**: Enforcement is local-only — no CI workflow file is added to or required by a consumer repo as part of this work.
   Acceptance: repo diff for this work contains no `.github/workflows/*.yml` addition; `init`/`prepare` write no such file.
-- R4: The only bypass is git's own `--no-verify` — no new custom bypass flag, env var, or config toggle is introduced.
+- **R4**: The only bypass is git's own `--no-verify` — no new custom bypass flag, env var, or config toggle is introduced.
   Acceptance: code review of the hook and its installer shows no new bypass mechanism beyond what `--no-verify` already provides natively.
-- R5: The hook works identically regardless of which AI tool (or a human) staged the commit — no per-tool branching logic in the hook itself.
+- **R5**: The hook works identically regardless of which AI tool (or a human) staged the commit — no per-tool branching logic in the hook itself.
   Acceptance: hook script contains no tool-detection logic; enforcement point is git, which is tool-agnostic by construction.
 
 ### Implicit (RI)
 
-- RI1: This repo's own existing `.githooks/pre-commit` (opt-in, dev-contract-only) must remain unchanged and untouched by this work — a different, pre-existing mechanism for a different purpose.
+- **RI1**: This repo's own existing `.githooks/pre-commit` (opt-in, dev-contract-only) must remain unchanged and untouched by this work — a different, pre-existing mechanism for a different purpose.
   Acceptance: `.githooks/pre-commit` has no diff in this work; the new consumer-facing hook's source lives at a separate path (e.g. `src/assets/hooks/pre-commit`).
-- RI2: The hook installer must not silently overwrite a user's own pre-existing custom pre-commit hook.
+- **RI2**: The hook installer must not silently overwrite a user's own pre-existing custom pre-commit hook.
   Acceptance: if `.git/hooks/pre-commit` (or the configured hooksPath file) already exists and isn't agentsmyth's own marker-tagged content, the installer chains/appends or refuses with a clear message, rather than clobbering it.
-- RI3: `agentsmyth prepare` (global-only, writes zero repo-level files per existing CLAUDE.md invariant) must not attempt hook installation — only `init`, which operates on a specific repo, does.
+- **RI3**: `agentsmyth prepare` (global-only, writes zero repo-level files per existing CLAUDE.md invariant) must not attempt hook installation — only `init`, which operates on a specific repo, does.
   Acceptance: `runPrepare()` has no diff related to hook installation; the new logic lives only in the `init` command path.
-- RI4: Hook installation must degrade gracefully (clear warning, non-fatal) when `.git/hooks/` doesn't exist or isn't writable, rather than failing `init` itself.
+- **RI4**: Hook installation must degrade gracefully (clear warning, non-fatal) when `.git/hooks/` doesn't exist or isn't writable, rather than failing `init` itself.
   Acceptance: `init` run against a non-git directory, or a directory where hook installation fails for permissions reasons, still completes with a visible warning, not a crash.
 
 ## Questions For User

@@ -29,8 +29,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Watch for recurrence of the mid-session unexplained auto-staging anomaly; investigate if it happens again"
-    status: open
+    status: done
     first_seen_run: power-skills-spine-v1
+    resolution: "Closed 2026-08-31 on the user decision to close the watch if it had stopped, having first checked that it had. The anomaly is named in exactly two files repo-wide: workflow/artifacts/reflect/power-skills-spine-v1.md, the chain that filed it, and this open-items file. 25 further reflect artifacts have been written since with no recurrence recorded. Reopen if it is ever seen again — the original observation stands, it simply has not repeated."
   - id: OI-6
     source: follow-up
     owner: user (to schedule)
@@ -107,7 +108,7 @@ items:
   - id: OI-18
     source: follow-up
     owner: user
-    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does."
+    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does. User decision 2026-08-31: KEEP OPEN. Deliberately unimplemented until a real polyrepo-member use case exists to build against; the Notion design proposal is the artifact, and it should be revisited rather than re-derived when one appears."
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-19
@@ -252,13 +253,13 @@ items:
   - id: OI-41
     source: follow-up
     owner: user/repo maintainer
-    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes."
+    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes. User decision 2026-08-31: KEEP THE WATCH. Nothing is actionable until OpenAI actually removes custom-prompt support; the item exists so the migration is not a surprise."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-42
     source: follow-up
     owner: user
-    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships."
+    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships. User decision 2026-08-31: KEEP OPEN. This is the one item that is a genuine gap in 1.1.0 evidence rather than deferred work — the /agentsmyth command is verified for file placement, content and idempotency, but has never been watched firing in Cursor, Windsurf, VS Code+Copilot or Codex CLI, and this environment cannot reach them. Needs a manual pass by someone with the tools installed."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-43
@@ -375,7 +376,7 @@ items:
   - id: OI-60
     source: follow-up
     owner: user
-    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note."
+    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note. User decision 2026-08-31: KEEP TIED TO WP-R6. Both README and site/introduction.md saying \"Not a scaffolder\" is accurate for the shipped product; it only becomes wrong when WP-R6 ships, and WP-R6 does not exist yet."
     status: open
     first_seen_run: wp-r17-readme-positioning-v1
   - id: OI-61
@@ -409,8 +410,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Assign an owner and a schedule to the 96 grandfathered artifact violations recorded in workflow/config/artifact-baseline.yaml, or explicitly accept them as permanent debt. Two shapes dominate: `status: complete` used where the frontmatter enum allows only `done` (42 artifacts), and structural type drift in `upstream` / `user_checkpoint` (16). The ratchet guarantees the list can only shrink and that new violations fail, but nothing schedules repair of what exists. VERIFIED STILL OPEN 2026-08-31: workflow/config/artifact-baseline.yaml still carries exactly 96 entries. Unowned and unscheduled."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — user directed repair rather than acceptance, and all 96 are fixed at source; workflow/config/artifact-baseline.yaml is now empty and check-artifacts reports 0 live violations without it. The breakdown matters more than the count: 40 were status/orchestration.status reading \"complete\" or \"ship\" against an enum allowing neither; 8 were upstream entries written as {artifact, slug, version} objects instead of path strings; 8 were user_checkpoint booleans (false -> none, true -> approved); 1 brief was missing upstream, restored to the spike its own Source Links name; 2 phase-split tasks had next_phase \"build\" where every other -pN task says \"review\". The remaining 35 — the largest group, and the one this item described as structural type drift — were manifest IDs reported as undeclared that were declared all along, in brief bodies writing \"- R1 (T-D1):\" or \"**R5 (added mid-chain...)**\" rather than the \"**R1**\" form check-artifacts scans for. No requirement was missing and no scope was unaccounted for; it was formatting drift. Worth recording because a baseline count read as a measure of debt would have badly overstated it."
   - id: OI-66
     source: follow-up
     owner: workflow owner
@@ -521,7 +523,7 @@ items:
   - id: OI-76
     source: follow-up
     owner: user
-    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think."
+    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think. User decision 2026-08-31: KEEP TARGETED AT 1.2.0. Re-measuring council cost needs several Complex chains to measure across, which is not reachable before this release. The on-for-complex default ships for 1.1.0 resting on one uncontrolled comparison, with that stated rather than implied."
     status: open
     first_seen_run: wp-r21-think-council-v1
   - id: OI-77
