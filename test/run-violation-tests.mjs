@@ -461,6 +461,7 @@ const fixtures = [
   { id: 'iz', dir: 'test/fixtures/definitions/tp-missing-trigger', description: '(OI-82) the sandbox fixture expects a trigger agent-behavior no longer declares — check-trigger-predicates', validator: validatorPath('check-trigger-predicates.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/tp-missing-trigger' }, expect: 'has no such entry (renamed or removed skill?)' },
   { id: 'ja', dir: 'test/fixtures/definitions/tp-bad-predicate', description: '(OI-82) a trigger predicate cannot be evaluated — check-trigger-predicates', validator: validatorPath('check-trigger-predicates.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/tp-bad-predicate' }, expect: 'unrecognized predicate term' },
   { id: 'jb', dir: 'test/fixtures/definitions/tp-nonfinite-weight', description: '(OI-82) a non-numeric weight makes complexity_score NaN, silently disabling every score-driven skill — check-trigger-predicates', validator: validatorPath('check-trigger-predicates.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/tp-nonfinite-weight' }, expect: 'not a finite number' },
+  { id: 'jc', dir: 'test/fixtures/lifecycle-violations/jc-coverage-id-untouched', description: '(OI-82) a review declares a manifest ID no task Changed Files entry touches — check-manifest-coverage', validator: validatorPath('check-manifest-coverage.mjs'), expect: 'declares manifest_id R2 but no task Changed Files entry touches it' },
 ];
 
 let passed = 0;

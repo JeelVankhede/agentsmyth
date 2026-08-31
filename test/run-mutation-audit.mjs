@@ -113,6 +113,7 @@ const SUITES = [
   ['test/run-commit-coverage-tests.mjs'],
   ['test/run-setup-validator-definitions-root-tests.mjs'],
   ['test/run-root-resolution-drift-tests.mjs'],
+  ['test/run-domain-placeholders-tests.mjs'],
 ];
 
 // Run against the COPY. Every suite resolves its own root from `import.meta.url`, and the validators
