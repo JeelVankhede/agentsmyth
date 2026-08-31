@@ -1,0 +1,6 @@
+version: 1
+kind: artifact-baseline
+recorded: 2026-01-01
+entries:
+  - file: "test/fixtures/lifecycle-violations/hn-artifact-stale-baseline/briefs/probe-v1.md"
+    message: "a violation that was fixed long ago"

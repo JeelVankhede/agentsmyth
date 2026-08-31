@@ -389,6 +389,23 @@ const fixtures = [
   { id: 'gy', dir: 'test/fixtures/lifecycle-violations/gy-assumption-bad-status', description: '(OI-82) an Assumptions Verified row uses a status outside the enum — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'has invalid status "assumed-true"' },
   { id: 'gz', dir: 'test/fixtures/lifecycle-violations/gz-assumption-empty-evidence', description: '(OI-82) an evidence-backed assumption has an empty evidence cell — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'but an empty evidence/question cell' },
   { id: 'ha', dir: 'test/fixtures/lifecycle-violations/ha-review-no-task', description: '(OI-82) a review has no task of its own slug to verify coverage against — check-manifest-coverage', validator: validatorPath('check-manifest-coverage.mjs'), expect: 'has no corresponding task in' },
+  // OI-82 — check-artifacts, the largest single block at 13 of 16. Worth recording WHY it grew to
+  // 13 mid-sweep: repairing the 96 grandfathered artifact violations (OI-65) removed the corpus
+  // violations that were incidentally exercising the next_phase rule, so a healthy corpus made the
+  // suite weaker and the ratchet caught it. The corpus had been acting as an accidental fixture.
+  { id: 'hb', dir: 'test/fixtures/lifecycle-violations/hb-artifact-placeholder-text', description: '(OI-82) an artifact still carries starter placeholder text — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'contains placeholder text' },
+  { id: 'hc', dir: 'test/fixtures/lifecycle-violations/hc-artifact-unparseable', description: '(OI-82) an artifact\'s frontmatter cannot be parsed — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'YAML' },
+  { id: 'hd', dir: 'test/fixtures/lifecycle-violations/hd-artifact-unknown-artifact', description: '(OI-82) an artifact declares a type with no contract — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'has unknown artifact' },
+  { id: 'he', dir: 'test/fixtures/lifecycle-violations/he-artifact-unknown-dir', description: '(OI-82) an artifact sits in a directory with no contract — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'is in unknown artifact directory notes' },
+  { id: 'hf', dir: 'test/fixtures/lifecycle-violations/hf-artifact-dir-mismatch', description: '(OI-82) an artifact\'s directory disagrees with its declared type — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'directory plans does not match artifact brief' },
+  { id: 'hg', dir: 'test/fixtures/lifecycle-violations/hg-artifact-bad-filename', description: '(OI-82) an artifact filename does not carry a version — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'filename must match <slug>-v<N>.md' },
+  { id: 'hh', dir: 'test/fixtures/lifecycle-violations/hh-artifact-slug-mismatch', description: '(OI-82) frontmatter slug disagrees with the filename slug — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'does not match filename slug probe' },
+  { id: 'hi', dir: 'test/fixtures/lifecycle-violations/hi-artifact-version-mismatch', description: '(OI-82) frontmatter version disagrees with the filename version — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'does not match filename version 1' },
+  { id: 'hj', dir: 'test/fixtures/lifecycle-violations/hj-artifact-phase-mismatch', description: '(OI-82) an artifact declares a phase its contract does not — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'phase expected think' },
+  { id: 'hk', dir: 'test/fixtures/lifecycle-violations/hk-artifact-next-phase-mismatch', description: '(OI-82) an unblocked artifact declares the wrong next_phase — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'unblocked next_phase expected plan' },
+  { id: 'hl', dir: 'test/fixtures/lifecycle-violations/hl-artifact-ready-with-blockers', description: '(OI-82) an artifact claims ready-for-next-phase with open blockers — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'claims ready-for-next-phase but has unresolved blockers' },
+  { id: 'hm', dir: 'test/fixtures/lifecycle-violations/hm-artifact-task-no-brief', description: '(OI-82) a task has no brief of its own slug — check-artifacts', validator: validatorPath('check-artifacts.mjs'), expect: 'has no corresponding brief in' },
+  { id: 'hn', dir: 'test/fixtures/lifecycle-violations/hn-artifact-stale-baseline', description: '(OI-82) a baseline entry no longer matches any violation — check-artifacts', validator: validatorPath('check-artifacts.mjs'), args: ['--baseline', 'test/fixtures/lifecycle-violations/hn-artifact-stale-baseline/baseline.yaml'], expect: 'has a stale entry that no longer matches any violation' },
 ];
 
 let passed = 0;
@@ -397,7 +414,10 @@ let gaps = 0;
 for (const fixture of fixtures) {
   const result = spawnSync(
     process.execPath,
-    [fixture.validator, '--dir', fixture.dir],
+    // `args` appends validator flags beyond --dir. One rule — check-artifacts' stale-baseline
+    // guard — only fires when a baseline is supplied, so without this it had no reachable fixture
+    // at all, the same shape of gap that `env` was added to close for definitions-root rules.
+    [fixture.validator, '--dir', fixture.dir, ...(fixture.args ?? [])],
     // Some rules only fire against a crafted DEFINITIONS root — a missing schema, a file with no
     // kind — which `--dir` cannot express, since it scopes artifacts rather than definitions.
     // Without a per-fixture env those rules had no fixture at all, and mutation testing showed they
