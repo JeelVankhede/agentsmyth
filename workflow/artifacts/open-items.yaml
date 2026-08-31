@@ -64,7 +64,7 @@ items:
   - id: OI-11
     source: follow-up
     owner: user/agent
-    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification"
+    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification. TRIAGED 2026-08-31: closer than it was, but NOT closed by OI-77. That item shipped a Plan-phase Touches check in check-scope-fence, so the mechanism and the hook point now exist — it validates that each declared path is a real repo-relative path, catching interior globs and non-existent parent directories. What it does not do is the cross-check this item names: comparing a spec card's declared phase list against the Touches actually declared for those phases. OI-77 proves a path is well-formed; OI-11 asks whether the right paths are listed at all. Implement as an extension of the existing check rather than a new validator."
     status: open
     first_seen_run: power-skills-domain-experts-v1
   - id: OI-12
@@ -95,8 +95,9 @@ items:
     source: follow-up
     owner: user
     next_action: "WP-R4 is now fully complete (all 4 waves, 26 total skills) — decide what initiative comes next"
-    status: open
+    status: done
     first_seen_run: power-skills-wave4-v1
+    resolution: "Superseded by events, closed in the 2026-08-31 pre-1.1.0 triage. The question was 'what comes next after WP-R4', and it has since been answered repeatedly and shipped: WP-R5 (repo-shape taxonomy), R7 (init/prepare), R8 (behavior tuning), R9a/b/c, R11 (docs site), R12, R13, R15/R16/R17 (1.0.1), R19 (starter-block sync), R21 (Think council) and R22 (Review council). Initiative sequencing is now tracked on the Notion roadmap and the release lines, not by this item. Closed as answered, not as abandoned."
   - id: OI-17
     source: follow-up
     owner: user
@@ -212,7 +213,7 @@ items:
   - id: OI-35
     source: follow-up
     owner: user/repo maintainer
-    next_action: "Revisit the waived npm audit finding (3 vulnerabilities in esbuild/vite, transitively via vitepress, dev-server-only, no fix upstream as of this WP) after any future vitepress upgrade; re-run npm audit and drop the waiver once clean. Full waiver record in workflow/artifacts/ship/wp-r11-docs-site-v1.md."
+    next_action: "Revisit the waived npm audit finding (3 vulnerabilities in esbuild/vite, transitively via vitepress, dev-server-only, no fix upstream as of this WP) after any future vitepress upgrade; re-run npm audit and drop the waiver once clean. Full waiver record in workflow/artifacts/ship/wp-r11-docs-site-v1.md. RE-MEASURED 2026-08-31 in the pre-1.1.0 triage, and the waiver's own premise no longer holds. The set has grown from 3 to 8 (6 moderate, 2 high): dompurify, esbuild, mermaid, nanoid (high), postcss, vite (high), vitepress, vitepress-plugin-mermaid. Two things changed. (1) 'No fix upstream' is now true of only four of them — dompurify, mermaid, nanoid and postcss all report fixAvailable, so half the set is reachable by npm audit fix rather than waivable. (2) Severity rose: nanoid and vite are high, where the original waiver covered moderates only. Still dev-only — npm audit --omit=dev reports 0 vulnerabilities, consistent with the zero-runtime-dependency invariant, so no consumer is exposed either way. The waiver should not be re-asserted verbatim at 1.1.0 Ship: take the four available fixes first, then waive only what genuinely has no upstream fix, at its real severity."
     status: open
     first_seen_run: wp-r11-docs-site-v1
   - id: OI-36
@@ -427,7 +428,7 @@ items:
   - id: OI-69
     source: follow-up
     owner: user
-    next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced."
+    next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced. TRIAGED 2026-08-31 as the one open item whose own wording makes it a gate on THIS release rather than a later one, and it is actionable: `npm view @jeelvankhede/agentsmyth versions` confirms 1.0.0 and 1.0.1 are both published, so `npm pack @jeelvankhede/agentsmyth@1.0.0` yields the genuine artifact the simulation stood in for. 1.1.0 carries the upgrade paths this rehearsal is meant to cover — appendPendingItems' item-family append on version skew, the two-root definitions resolver, and the pending-setup shapes WP-R22's B2/N11 work touched — so the rehearsal is worth more now than when it was filed. Do it before the release dispatch, not after."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
   - id: OI-70
@@ -461,12 +462,13 @@ items:
     source: follow-up
     owner: user
     next_action: "Merge PR #65 (feat/wp-r22-review-council) into release/1.1.0. The chain is complete through Reflect and CI is green off-machine (run 33296889442), but the merge was deliberately not inferred from the user's approval to proceed to Reflect - that approval covered the ship decision and the phase transition, not an irreversible outward action. The branch is 26 commits ahead and the PR is open. Once merged, move the Notion WP-R22 page to Done with the PR reference; that update is recorded as NOT done in the reflect artifact rather than claimed."
-    status: open
+    status: done
     first_seen_run: wp-r22-review-council-v1
+    resolution: "Merged 2026-08-30 as commit 7c224dc (PR #65 state MERGED, base release/1.1.0). Two external review passes landed on the branch before the merge — 78c3bf8 closed 2 blocking and 4 non-blocking findings, 49ae292 made init-prepare-interop scenario E root-safe — and CI was green off-machine on the merged head (run 33326292659). The Notion WP-R22 page move to Done is NOT done and is recorded here as still outstanding rather than claimed; it is a user action, carried forward on OI-87."
   - id: OI-85
     source: follow-up
     owner: user
-    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output."
+    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output. PARTIALLY ADDRESSED before the merge, and the distinction matters: two external review passes did run over the remediation and found real defects the remediation had introduced — pass 1 found 3 blocking (including a guard that corrupted a consumer config on upgrade), pass 2 found 2 blocking, both of which were bugs in code pass 1 had just added, and both of the same class the file's own comments warn about (a check reading the right idea out of the wrong structure). That is independent scrutiny, and it worked. It is NOT what this item asks for: those were external reviews of a diff, not a Review council dispatched by the mechanism under test. The question 'does the council find what the council's own remediation broke' is still unanswered, and the two passes make it a more interesting question, not a settled one."
     status: open
     first_seen_run: wp-r22-review-council-v1
   - id: OI-86
@@ -484,7 +486,7 @@ items:
   - id: OI-82
     source: follow-up
     owner: workflow owner
-    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 217 validator rules can be deleted with every suite green. Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
+    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 222 validator rules can be deleted with every suite green (was 106 of 217 when filed; the denominator moved with WP-R22's post-review fixes, the undefended count did not). Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
     status: open
     first_seen_run: wp-r22-review-council-v1
   - id: OI-81
@@ -540,3 +542,9 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed: check-lifecycle checkpointApprovalSection now terminates on the next column-0 bullet or true end-of-string instead of the first line end under /m, so a multi-line verbatim approval is preserved whole. Verified across three shapes — a four-line quote containing a blank line, a single-line quote, and a placeholder that must still be rejected."
+  - id: OI-87
+    source: follow-up
+    owner: user
+    next_action: "Close out the 1.1.0 release. Successor to OI-84, opened by the 2026-08-31 pre-release triage. All four work packages are merged into release/1.1.0 (PR #62 WP-R8, #63 WP-R19, #64 WP-R21, #65 WP-R22), no PRs are open, and the branch is 50 commits ahead of main. Remaining, in order: (1) settle OI-69 — rehearse the upgrade against the real published 1.0.0 tarball, the one open item whose own wording gates this release; (2) re-derive the npm audit position per OI-35 rather than re-asserting the old waiver, since the set grew 3 to 8 and half of it is now fixable; (3) write the CHANGELOG 1.1.0 entry and bump package.json, which still reads 1.0.1 with no 1.1.0 section; (4) merge release/1.1.0 into main — the single end-of-line merge this release plan calls for; (5) fire release.yml via workflow_dispatch with bump=minor (Trusted Publishing/OIDC, environment production, and note the run carries the full mutation audit, so it takes tens of minutes); (6) move the Notion WP-R22 page to Done with the PR #65 reference, inherited from OI-84 and still not done. Steps 4 and 5 are irreversible outward actions and are the user's to authorize."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
