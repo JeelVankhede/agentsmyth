@@ -356,6 +356,18 @@ const fixtures = [
   { id: 'gc', dir: 'test/fixtures/definitions/gc-schema-missing-artifact', description: '(OI-82) frontmatter schema omits an artifact the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gc-schema-missing-artifact' }, expect: 'schema missing artifact reflect' },
   { id: 'gd', dir: 'test/fixtures/definitions/gd-schema-missing-phase', description: '(OI-82) frontmatter schema omits a phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gd-schema-missing-phase' }, expect: 'schema missing phase reflect' },
   { id: 'ge', dir: 'test/fixtures/definitions/ge-schema-missing-next-phase', description: '(OI-82) frontmatter schema omits a next_phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/ge-schema-missing-next-phase' }, expect: 'schema missing next_phase done' },
+  // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
+  // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
+  // no fixture could reach any of its rules. Adding the flag every other validator already carries
+  // made all eight reachable at once.
+  { id: 'gf', dir: 'test/fixtures/lifecycle-violations/gf-pending-wrong-kind', description: '(OI-82) pending-setup.yaml declares the wrong kind — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'missing or wrong kind field' },
+  { id: 'gg', dir: 'test/fixtures/lifecycle-violations/gg-pending-items-not-array', description: '(OI-82) pending-setup items is not a list — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'items must be an array' },
+  { id: 'gh', dir: 'test/fixtures/lifecycle-violations/gh-pending-item-no-id', description: '(OI-82) a pending-setup item has no id — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'item missing id' },
+  { id: 'gi', dir: 'test/fixtures/lifecycle-violations/gi-pending-item-no-config', description: '(OI-82) a pending-setup item names no config file — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'missing config' },
+  { id: 'gj', dir: 'test/fixtures/lifecycle-violations/gj-pending-item-no-field', description: '(OI-82) a pending-setup item names no field — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'missing field' },
+  { id: 'gk', dir: 'test/fixtures/lifecycle-violations/gk-pending-item-no-question', description: '(OI-82) a pending-setup item carries no question — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'missing question' },
+  { id: 'gl', dir: 'test/fixtures/lifecycle-violations/gl-pending-bad-status', description: '(OI-82) a pending-setup item has a status outside the enum — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'invalid status "nearly-done"' },
+  { id: 'gm', dir: 'test/fixtures/lifecycle-violations/gm-pending-resolved-no-resolved-by', description: '(OI-82) a resolved pending-setup item records no resolved_by — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'status is resolved but resolved_by is not set' },
 ];
 
 let passed = 0;
