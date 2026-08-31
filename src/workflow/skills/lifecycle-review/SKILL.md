@@ -117,6 +117,11 @@ Stop and ask, or return a blocked review artifact, when any of these apply:
 Review runs in one of two modes. **Both produce the same artifact against the same output schema**;
 only the route differs.
 
+In both modes, run the repo's configured validate command right after writing the review artifact
+rather than leaving it to Test. The failures it catches are failures in the artifact's own prose —
+a coverage cell whose wording reads as a drop claim, a table missing a required column — and they
+are far cheaper to fix while the reasoning that produced the cell is still at hand.
+
 Mode is resolved before stage 1, in this order, first answer winning:
 
 1. resolved `dispatch.enabled` is `disabled` → single-agent, log a refusal

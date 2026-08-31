@@ -121,10 +121,20 @@ Stop and write a `hold` ship artifact when any of these apply:
 2. Read upstream artifacts and collect active `R`/`RI` coverage, skipped checks, review findings, waivers, blockers, and residual risk.
 3. Read release config and identify required gates: PR, CI, release, deployment, docs, package, rollback, source handoff, or none.
 4. Inspect repository readiness for configured branch, PR, CI, release, or deployment gates.
-4a. When the repository has a remote and the branch's base may have advanced since work
-    started, fetch and compare the current branch against the remote default branch. Treat
-    meaningful divergence as something to surface explicitly (a merge/rebase decision point),
-    not a silent risk absorbed into the ship recommendation.
+4a. Whenever the repository has a remote, fetch and compare the current branch against the
+    remote default branch — always, before acting on the plan's Branch Strategy, not only when
+    the base "may have advanced". Whether it advanced is the thing being checked, so making the
+    check conditional on the answer left it to be triggered by someone noticing. A plan's Branch
+    Strategy has gone stale mid-Ship and been caught only because a person volunteered the news.
+    Treat meaningful divergence as something to surface explicitly (a merge/rebase decision
+    point), not a silent risk absorbed into the ship recommendation.
+4b. When step 4a finds the base has advanced, reconcile identifiers before reconciling content.
+    Git surfaces overlapping edits as a conflict, but two branches that independently allocated
+    the SAME identifier to DIFFERENT things merge clean and silently: open-items entries claiming
+    one `OI-<n>`, work packages claiming one `WP-R<n>`, artifacts claiming one `-v<N>`. Nothing
+    flags it, and both sides look correct in isolation. Grep the identifier spaces the merge
+    touched, confirm each ID still names one thing, and fix collisions before continuing. This is
+    narrow by design: it is a duplicate-ID check, not general merge-conflict guidance.
 5. Verify source-of-truth handoff: updated, not required, blocked with copy-ready handoff, or waived.
 6. Map every active `R` and `RI` to shipped, deferred, blocked, or waived.
 6a. For any Build or Review discovery not already covered by the plan's declared scope, first

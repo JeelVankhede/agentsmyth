@@ -34,12 +34,16 @@ echo "run 'npm run build' so dist/ and generated assets stay in sync before push
 # to gate a repo whose own bin/ ships thirty. Git runs hooks from the repo root, so this relative
 # path is the repo being committed to; in any repo without one, the PATH and npx branches are
 # reached exactly as before.
+# Defined as a FUNCTION, not a variable holding a command string. The artifact loop below sets IFS
+# to a newline so it can iterate paths safely, and an unquoted $VAR carrying "node ./bin/..." then
+# stops word-splitting on spaces and is looked up as a single command name. A function is immune to
+# whatever IFS happens to be when it is called.
 if [ -f "./bin/agentsmyth.mjs" ]; then
-  AGENTSMYTH_BIN="node ./bin/agentsmyth.mjs"
+  run_agentsmyth() { node ./bin/agentsmyth.mjs "$@"; }
 elif command -v agentsmyth >/dev/null 2>&1; then
-  AGENTSMYTH_BIN="agentsmyth"
+  run_agentsmyth() { agentsmyth "$@"; }
 else
-  AGENTSMYTH_BIN="npx --yes @jeelvankhede/agentsmyth"
+  run_agentsmyth() { npx --yes @jeelvankhede/agentsmyth "$@"; }
 fi
 
 # OI-79: run the coverage proxy as an `if` condition, not as a bare command followed by `status=$?`.
@@ -50,7 +54,7 @@ fi
 # author who fixed the coverage failure was then met by a second, previously-invisible rejection.
 # A command in an `if` condition is exempt from `set -e`, so both checks now always report in one pass.
 status=0
-if ! $AGENTSMYTH_BIN check --staged; then
+if ! run_agentsmyth check --staged; then
   status=1
 fi
 
@@ -103,7 +107,7 @@ if [ -n "$ARTIFACT_FILES" ]; then
     if [ -n "$orch_status" ] && [ "$orch_status" != "ready-for-next-phase" ]; then
       continue
     fi
-    if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
+    if ! run_agentsmyth check --phase "$phase" --slug "$slug"; then
       status=1
     fi
   done

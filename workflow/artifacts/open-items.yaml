@@ -120,8 +120,9 @@ items:
     source: follow-up
     owner: user
     next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
-    status: open
+    status: done
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
+    resolution: "Done 2026-08-31 — the fixture it said did not exist now does, and it found a real problem on first run. test/run-root-resolution-drift-tests.mjs Scenario 5 builds a polyrepo-member workspace with two real sibling git checkouts, each tracking a file only it has, and asserts five things through lib.mjs as a subprocess: target_repo routes to the named checkout; trackedFiles run through it lists that sibling files and not the other; a different target_repo resolves elsewhere; no target_repo stays on repoRoot; an unknown target_repo falls back to repoRoot rather than throwing. Suite 16 -> 21 checks. Worth recording what the first run caught: sibling_repos[].path is RELATIVE TO workspace_root per repo-profile.schema.yaml own field description, and a fixture written with absolute paths produced <workspace_root><absolute path> silently. The resolver is correct for conforming input; the hazard is that a non-conforming absolute path is neither used nor rejected, just quietly corrupted. Noted, not changed — the schema documents the contract and changing join() semantics is beyond this item."
   - id: OI-21
     source: follow-up
     owner: user
@@ -277,8 +278,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience. ASSESSED 2026-07-26: recommend yes, but scoped narrower than 'general git conflict handling' -- this session (site-docs-remediation-v1) independently found a second live instance of the exact same failure class, at the Notion level rather than git: two entirely separate Notion Work Packages both titled/numbered 'WP-R12' (OI-57), created independently with no shared numbering check. Git-level branch divergence (this WP's original case) at least surfaces as a mergeable/conflicting diff; a duplicate-ID collision across two independently-authored records (open-items.yaml entries, Notion WP numbers) is worse because nothing flags it at all -- both sides can add non-overlapping content under the same identifier and no tool notices. Recommendation: add a narrow reconciliation sub-step to step 4a (or a sibling check) that greps for duplicate identifiers (OI-N in open-items.yaml, WP-RN against the Notion roadmap) specifically when a branch-base-advance is detected, rather than broadening it into generic merge-conflict-resolution guidance. Not yet implemented -- this is the recommendation, not the fix. VERIFIED STILL OPEN 2026-08-31: lifecycle-ship/SKILL.md step 4a (line 124) has no reconciliation sub-step; the recommendation stands unimplemented."
-    status: open
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
+    resolution: "Done 2026-08-31. lifecycle-ship/SKILL.md gained step 4b: when 4a finds the base advanced, reconcile IDENTIFIERS before content. Scoped exactly as the assessment recommended — a duplicate-ID check over the identifier spaces the merge touched (OI-<n>, WP-R<n>, artifact -v<N>), not general merge-conflict guidance. The rationale is stated in the step: git surfaces overlapping edits as a conflict, but two branches that independently allocated the same ID to different things merge clean and silently, and both sides look correct in isolation."
   - id: OI-46
     source: follow-up
     owner: user
@@ -339,14 +341,16 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs. VERIFIED STILL OPEN 2026-08-31: step 4a still reads \"When the repository has a remote and the branch's base may have advanced\" — conditional, unchanged."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Done 2026-08-31. lifecycle-ship/SKILL.md step 4a is now unconditional — fetch and compare whenever the repository has a remote, before acting on the plan Branch Strategy, rather than \"when the base may have advanced\". The reword states why: whether it advanced is the thing being checked, so gating the check on the answer left it to be triggered by someone noticing."
   - id: OI-56
     source: follow-up
     owner: workflow owner
     next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs. VERIFIED STILL OPEN 2026-08-31: neither lifecycle-build/SKILL.md nor lifecycle-review/SKILL.md names the configured validate command; their only \"validate\" mentions are the exemplar-quality line."
-    status: open
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Done 2026-08-31. lifecycle-build/SKILL.md gained step 8a and lifecycle-review/SKILL.md a Workflow preamble paragraph applying to both modes: run the configured validate command right after writing or updating an artifact, not at end of phase. Named the concrete failures it catches — a coverage cell whose wording reads as a drop claim, a malformed phase number, a table missing a required column — since those are artifact-prose failures that get expensive once the context is gone. lifecycle-review references/single-agent-path.md was deliberately NOT touched: its ten steps are byte-locked by conformance check r22-review-single-agent-verbatim."
   - id: OI-57
     source: follow-up
     owner: user
@@ -418,8 +422,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Add `x_enforcement: warn-until-<version>` marker removal to the 1.2.0 release checklist. The deprecation window is matched by string prefix and has no expiry mechanism — nothing fails when 1.2.0 ships with warn-until-1.2.0 markers still present, so previously-deferred type violations would remain permanently unenforced."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — the checklist it asked to add to did not exist, so it now does: docs/release-checklist.md, with a Deprecation windows section carrying the grep command, the instruction to delete the marker lines for the version being released, and a table of currently-open windows (the six warn-until-1.2.0 declarations, one in verification.schema.yaml and five in agent-behavior.schema.yaml). Generalised beyond 1.2.0 to every release, since the no-expiry problem recurs with each window rather than being specific to this one."
   - id: OI-68
     source: follow-up
     owner: workflow owner
@@ -431,8 +436,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced. TRIAGED 2026-08-31 as the one open item whose own wording makes it a gate on THIS release rather than a later one, and it is actionable: `npm view @jeelvankhede/agentsmyth versions` confirms 1.0.0 and 1.0.1 are both published, so `npm pack @jeelvankhede/agentsmyth@1.0.0` yields the genuine artifact the simulation stood in for. 1.1.0 carries the upgrade paths this rehearsal is meant to cover — appendPendingItems' item-family append on version skew, the two-root definitions resolver, and the pending-setup shapes WP-R22's B2/N11 work touched — so the rehearsal is worth more now than when it was filed. Do it before the release dispatch, not after."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — rehearsed against the REAL published tarball, not a simulation. npm pack @jeelvankhede/agentsmyth@1.0.0 (235.4K) installed into an isolated scratch HOME, used to bootstrap a consumer repo (stamped agentsmyth_version: 1.0.0, 7 pending-setup items, portable definitions_root: ~/.agentsmyth/workflow), then the 1.1.0 candidate installed over the top. Results: version skew correctly detected and reported as informational; BOTH pending-setup item families appended cleanly, 7 -> 11 items (intent.repo_character, intent.surface_map, intent.concerns, tuning.council.per_phase) — the append path the council work touched, exercised on a genuine 1.0.0 file; both configs still parse through the package own loader; prepare refreshed the global tree with the review-council skill and check-council-record.mjs present. check exits 1 on a headless-bootstrapped repo purely because setup was never completed (unfilled placeholders, no knowledge map, no adapter) with check-lifecycle: ok — so the setup was then completed, after which check exits 0 with check-setup-complete: ok and check-lifecycle: ok. NO DEFECTS FOUND. Procedure is written up in docs/release-checklist.md so 1.2.0 can repeat it."
   - id: OI-70
     source: follow-up
     owner: workflow owner
