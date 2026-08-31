@@ -7,11 +7,24 @@
 // 217 rules as undefended: ten validators at 100%, including `check-lifecycle`, the phase gate
 // `agentsmyth check` runs in every consumer repo, at 16 of 17.
 //
-// The cause is structural rather than careless. This repo validates its own artifacts, and its
-// artifacts are healthy, so a rule that only fires on malformed input has never executed. Validators
-// with dedicated violation fixtures score zero survivors; validators exercised only through
-// `npm run validate` against the real corpus score near-total. `check-setup-complete` has its own
-// suite and still measured 10 of 10, because that suite tests the happy path.
+// The cause was structural rather than careless. This repo validates its own artifacts, and its
+// artifacts are healthy, so a rule that only fires on malformed input had never executed. Validators
+// with dedicated violation fixtures scored zero survivors; validators exercised only through
+// `npm run validate` against the real corpus scored near-total. `check-setup-complete` had its own
+// suite and still measured 10 of 10, because that suite tested the happy path.
+//
+// That gap is now closed: every validator measures 0 undefended over 221 rules. Three things came
+// out of closing it that are worth keeping in mind when reading a future number here.
+//
+// 1. A fifth of the original figure was measurement error. This list named three of eleven suites,
+//    so rules that WERE tested scored as gaps. Check SUITES before believing a count.
+// 2. A rule can be defended by accident. Repairing the grandfathered artifact violations removed
+//    the only thing exercising check-artifacts' next_phase rule, and the count went UP. A rule
+//    whose only exercise is a real violation in this repo's own artifacts stops being defended the
+//    moment someone fixes the artifact.
+// 3. Two fixtures passed while leaving their rule undefended, both by asserting something broader
+//    than the rule — one matched a message that was a prefix of another rule's message, one matched
+//    a filename while a different rule produced the output. Assert the rule's own wording.
 //
 // NOT a per-commit gate: a full run mutates every rule and re-runs three suites for each, which
 // takes tens of minutes. It is named `mutation:audit` rather than `:test` deliberately, so the
