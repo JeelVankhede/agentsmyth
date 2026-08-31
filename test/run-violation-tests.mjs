@@ -418,6 +418,17 @@ const fixtures = [
   { id: 'ht', dir: 'test/fixtures/lifecycle-violations/ht-schema-uniqueitems', description: '(OI-82) an array declared uniqueItems has duplicates — lib.mjs schema engine', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/schema-keyword-probe' }, expect: 'has duplicate items' },
   { id: 'hu', dir: 'test/fixtures/lifecycle-violations/hu-schema-contains', description: '(OI-82) an array lacks the value its contains schema requires — lib.mjs schema engine', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/schema-keyword-probe' }, expect: 'does not contain required value' },
   { id: 'hv', dir: 'test/fixtures/lifecycle-violations/hv-schema-oneof', description: '(OI-82) a value matches more than one oneOf branch — lib.mjs schema engine', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/schema-keyword-probe' }, expect: 'expected exactly one matching schema, got 2' },
+  // OI-82 — check-config's own rules: five meta-checks on the schemas themselves, and two on the
+  // configs. Each definitions root carries a VALID probe schema so the config validates cleanly,
+  // plus one deliberately malformed schema — otherwise the config's own "no matching schema" error
+  // fires alongside and the fixture rejects for two reasons.
+  { id: 'hw', dir: 'test/fixtures/lifecycle-violations/hw-config-schema-missing-schema', description: '(OI-82) a schema declares no $schema — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-schema' }, expect: 'missing $schema' },
+  { id: 'hx', dir: 'test/fixtures/lifecycle-violations/hx-config-schema-missing-id', description: '(OI-82) a schema declares no $id — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-id' }, expect: 'missing $id' },
+  { id: 'hy', dir: 'test/fixtures/lifecycle-violations/hy-config-schema-missing-title', description: '(OI-82) a schema declares no title — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-title' }, expect: 'missing title' },
+  { id: 'hz', dir: 'test/fixtures/lifecycle-violations/hz-config-schema-missing-type', description: '(OI-82) a schema declares no type — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-type' }, expect: 'missing type' },
+  { id: 'ia', dir: 'test/fixtures/lifecycle-violations/ia-config-schema-missing-properties', description: '(OI-82) an object schema declares no properties — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-properties' }, expect: 'object schema missing properties' },
+  { id: 'ib', dir: 'test/fixtures/lifecycle-violations/ib-config-missing-kind', description: '(OI-82) a config file declares no kind — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-valid-schemas' }, expect: 'missing kind' },
+  { id: 'ic', dir: 'test/fixtures/lifecycle-violations/ic-config-no-matching-schema', description: '(OI-82) a config declares a kind with no schema — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-valid-schemas' }, expect: 'has no matching schema' },
 ];
 
 let passed = 0;
