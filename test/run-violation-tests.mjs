@@ -368,6 +368,24 @@ const fixtures = [
   { id: 'gk', dir: 'test/fixtures/lifecycle-violations/gk-pending-item-no-question', description: '(OI-82) a pending-setup item carries no question — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'missing question' },
   { id: 'gl', dir: 'test/fixtures/lifecycle-violations/gl-pending-bad-status', description: '(OI-82) a pending-setup item has a status outside the enum — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'invalid status "nearly-done"' },
   { id: 'gm', dir: 'test/fixtures/lifecycle-violations/gm-pending-resolved-no-resolved-by', description: '(OI-82) a resolved pending-setup item records no resolved_by — check-pending-setup', validator: validatorPath('check-pending-setup.mjs'), expect: 'status is resolved but resolved_by is not set' },
+  // OI-82 — check-open-items, 3 of 3 undefended. The ledger this repo keeps has always been
+  // well-formed, so none of these had ever run.
+  { id: 'gn', dir: 'test/fixtures/lifecycle-violations/gn-open-items-wrong-kind', description: '(OI-82) open-items.yaml declares the wrong kind — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'missing or wrong kind field' },
+  { id: 'go', dir: 'test/fixtures/lifecycle-violations/go-open-items-schema-absent', description: '(OI-82) open-items schema absent from the registry — check-open-items', validator: validatorPath('check-open-items.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/no-open-items-schema' }, expect: 'not found in schema registry' },
+  { id: 'gp', dir: 'test/fixtures/lifecycle-violations/gp-open-items-duplicate-id', description: '(OI-82) two open-items entries share one id — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'duplicate item id OI-1' },
+  // OI-82 — check-verify-matrix, 3 of 4 undefended. Only the pass-with-empty-evidence rule had ever
+  // fired against the real corpus; the three that catch a missing section, a missing row and an
+  // unnamed method had not.
+  { id: 'gq', dir: 'test/fixtures/lifecycle-violations/gq-verify-no-matrix-section', description: '(OI-82) verify artifact declares manifest IDs but has no Manifest Coverage section — check-verify-matrix', validator: validatorPath('check-verify-matrix.mjs'), expect: 'has no "## Manifest Coverage" section' },
+  { id: 'gr', dir: 'test/fixtures/lifecycle-violations/gr-verify-id-no-row', description: '(OI-82) a declared manifest ID has no Manifest Coverage row — check-verify-matrix', validator: validatorPath('check-verify-matrix.mjs'), expect: 'manifest ID R1 has no row in Manifest Coverage' },
+  { id: 'gs', dir: 'test/fixtures/lifecycle-violations/gs-verify-method-empty', description: '(OI-82) a Manifest Coverage row names no verification method — check-verify-matrix', validator: validatorPath('check-verify-matrix.mjs'), expect: 'has no named verification method' },
+  // OI-82 — one rule each from four more validators whose real corpus has never been malformed in
+  // the shape they guard against.
+  { id: 'gt', dir: 'test/fixtures/lifecycle-violations/gt-phase-no-exit-gate', description: '(OI-82) a plan phase declares manifest IDs but no exit gate — check-phase-map', validator: validatorPath('check-phase-map.mjs'), expect: 'declares manifest IDs but has no exit gate content' },
+  { id: 'gu', dir: 'test/fixtures/lifecycle-violations/gu-coverage-id-no-row', description: '(OI-82) a declared manifest ID has no coverage-table row — check-coverage-ledger', validator: validatorPath('check-coverage-ledger.mjs'), expect: 'manifest ID R1 has no row in the coverage table' },
+  { id: 'gv', dir: 'test/fixtures/lifecycle-violations/gv-skipped-missing-value', description: '(OI-82) a Skipped Checks row leaves a required field empty — check-skipped-accounting', validator: validatorPath('check-skipped-accounting.mjs'), expect: 'missing value for "risk"' },
+  { id: 'gw', dir: 'test/fixtures/lifecycle-violations/gw-automated-not-run-unaccounted', description: '(OI-82) an Automated Check is "not run" with no Skipped Checks entry — check-skipped-accounting', validator: validatorPath('check-skipped-accounting.mjs'), expect: 'has no matching Skipped Checks entry' },
+  { id: 'gx', dir: 'test/fixtures/lifecycle-violations/gx-waiver-short-row', description: '(OI-82) a Waivers row has fewer columns than the contract requires — check-waivers', validator: validatorPath('check-waivers.mjs'), expect: 'Waivers row 1 has 2 column(s), expected 6' },
 ];
 
 let passed = 0;
