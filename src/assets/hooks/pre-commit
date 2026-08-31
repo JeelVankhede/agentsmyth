@@ -7,14 +7,30 @@
 #    must have its entering phase's gate actually satisfied (agentsmyth check --phase/--slug),
 #    e.g. committing a Plan without its own Checkpoint Approval recorded is rejected.
 # Bypass deliberately, when you mean to: git commit --no-verify
-if command -v agentsmyth >/dev/null 2>&1; then
+# Prefer the repo's OWN bin/ when one exists. Resolving `agentsmyth` from PATH first meant the gate
+# a developer experiences was whichever version they happened to have installed globally, rather than
+# the code under change. Git runs hooks from the repo root, so this relative path is the repo being
+# committed to; in any repo without one — which is every consumer repo — the PATH and npx branches
+# are reached exactly as before, so this changes nothing for consumers.
+if [ -f "./bin/agentsmyth.mjs" ]; then
+  AGENTSMYTH_BIN="node ./bin/agentsmyth.mjs"
+elif command -v agentsmyth >/dev/null 2>&1; then
   AGENTSMYTH_BIN="agentsmyth"
 else
   AGENTSMYTH_BIN="npx --yes @jeelvankhede/agentsmyth"
 fi
 
-$AGENTSMYTH_BIN check --staged
-status=$?
+# Run the coverage proxy as an `if` condition, not as a bare command followed by `status=$?`. This
+# block is appended to a host pre-commit script that may well set `-e`, and under `set -e` a non-zero
+# exit from a bare command terminates the script immediately — so the `status=$?` assignment below it
+# never ran, and neither did the per-artifact phase-gate loop further down. The gate still blocked, so
+# nothing was let through, but it reported one class of problem while silently skipping another: an
+# author who fixed the coverage failure was then met by a second, previously-invisible rejection.
+# A command in an `if` condition is exempt from `set -e`, so both checks always report in one pass.
+status=0
+if ! $AGENTSMYTH_BIN check --staged; then
+  status=1
+fi
 
 STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
 ARTIFACT_FILES=$(printf '%s\n' "$STAGED" | grep -E '^workflow/artifacts/[^/]+/.+-v[0-9]+\.md$' || true)

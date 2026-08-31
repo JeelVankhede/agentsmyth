@@ -411,8 +411,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Audit remaining validators for `candidates[0]` selection over a versioned (-v<N>) artifact set. check-release-readiness.mjs cross-checked the OLDEST review because listFiles returns sorted paths, which made any chain whose first review raised a P0/P1 permanently unshippable however completely that finding was later fixed (WP-R8 Ship S1, fixed in Phase 19). S1 is unlikely to be the only instance of this selection bug. AUDIT STARTED 2026-08-31 in the pre-1.1.0 triage, and the prediction was right — a second instance exists. check-assumptions.mjs builds `briefCandidates` by filtering for an explicitly versioned set (`new RegExp('/' + slug + '-v[0-9]+\\\\.md$')`, line 52-54) and then reads `briefCandidates[0]` (lines 57 and 60). `[0]` is the oldest version under sorted order and arbitrary otherwise; under no reading is it the current brief. Impact: when a brief is revised to -v2 with different A IDs, the plan's `## Assumptions Verified` is validated against the SUPERSEDED brief — so a plan correctly covering v2 can be rejected, and a plan missing v2's new assumptions can pass. Not fixed here: it is a behavior change to a shipped validator and belongs in this item's own chain, alongside whatever else the full sweep turns up. The remaining `[0]` uses in the validator set were checked and are over non-versioned collections (table cells, staged-file lists, regex match groups), not artifact version sets."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Audit complete and its one finding fixed, 2026-08-31. Swept every `[0]` selection across the validator set: all but one are over non-versioned collections (table cells, staged-file lists, regex match groups). The exception was check-assumptions.mjs, which filtered an explicitly versioned brief set and then read briefCandidates[0] — the oldest under sorted order, arbitrary otherwise, never the current brief. Fixed by reducing to the highest -v<N>, compared NUMERICALLY, since -v10 sorts before -v2 as a string. Locked by violation fixture fw: two brief versions and a plan covering exactly what v1 declared, which passes under the old selection and rejects under the fix. Confirmed in both directions against a restored pre-fix copy."
   - id: OI-67
     source: follow-up
     owner: user
@@ -476,8 +477,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "Make the pre-commit hook prefer the repo's own bin/agentsmyth.mjs when one exists. Today .githooks/pre-commit resolves `agentsmyth` from PATH, which on this machine is a globally installed 1.0.0 package shipping only three validators - so the mandatory gate a developer experiences depends on what they happen to have installed rather than on the repo under change. The validators themselves resolve from ~/.agentsmyth and were byte-identical here, so nothing was broken by it, but the coupling is wrong in principle and is a plausible contributor to OI-83. VERIFIED STILL OPEN 2026-08-31: .githooks/pre-commit lines 31-34 still resolve agentsmyth from PATH with an npx fallback, with no preference for the repo's own bin/."
-    status: open
+    status: done
     first_seen_run: wp-r22-review-council-v1
+    resolution: "Fixed 2026-08-31. Both hook copies now try `./bin/agentsmyth.mjs` first and fall through to the PATH and npx branches unchanged when there is none. Git runs hooks from the repo root, so the relative path is the repo being committed to: in this repo the gate now runs the code under change rather than a globally installed 1.0.0 shipping three validators, and in every consumer repo — which has no bin/agentsmyth.mjs — resolution is byte-for-byte what it was. Verified: the resolution branch now selects \"node ./bin/agentsmyth.mjs\" here."
   - id: OI-83
     source: follow-up
     owner: workflow owner
@@ -507,8 +509,9 @@ items:
     source: follow-up
     owner: workflow owner
     next_action: "The mandatory pre-commit gate's artifact loop is unreachable whenever the coverage proxy fails. The hook runs under `set -e`, then does `$AGENTSMYTH_BIN check --staged` followed by `status=$?` — under set -e a non-zero exit terminates the script before that assignment, so the per-artifact phase-gate loop below it never runs, and the commit is rejected on coverage alone. The gate is not wrong (it still blocks), but it reports one class of problem while silently skipping another, so an author fixing coverage can be surprised by a second, previously-invisible rejection. Fix: run the coverage check with `if ! ...; then status=1; fi`, or scope `set +e` around it, so both checks always report in one pass. Noted during external review of the council PR; deliberately not bundled into that change since it predates it and touches the shared gate. VERIFIED STILL OPEN 2026-08-31: .githooks/pre-commit line 9 set -e, line 37 $AGENTSMYTH_BIN check --staged, line 38 status=$? — the unreachable-assignment bug is present exactly as described."
-    status: open
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed 2026-08-31. Both hook copies now run the coverage proxy as an `if` condition — `status=0; if ! $AGENTSMYTH_BIN check --staged; then status=1; fi` — which is exempt from `set -e`, so the per-artifact phase-gate loop below it always runs and both checks report in one pass. Applied to .githooks/pre-commit (which sets -e itself) and src/assets/hooks/pre-commit (which is appended to a host script that may). Verified: under set -e the line after a failing check is now reached with status=1, and sh -n passes on both copies."
   - id: OI-76
     source: follow-up
     owner: user

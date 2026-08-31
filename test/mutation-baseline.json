@@ -7,7 +7,7 @@
     },
     "check-assumptions.mjs": {
       "rules": 4,
-      "undefended": 3
+      "undefended": 2
     },
     "check-commit-coverage.mjs": {
       "rules": 1,

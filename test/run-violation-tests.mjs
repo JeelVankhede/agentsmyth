@@ -337,6 +337,12 @@ const fixtures = [
   // coverage. AGENTSMYTH_WF points the definitions root at the fixture's own directory, which has no
   // skills/ tree: the artifact is well-formed, only the list it is measured against is missing.
   { id: 'fv', dir: 'test/fixtures/lifecycle-violations/fv-risk-categories-doc-unreadable', description: '(WP-R22, RI17) the risk-category list is unreadable and coverage must gate, not skip — check-council-record', validator: validatorPath('check-council-record.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/lifecycle-violations/fv-risk-categories-doc-unreadable' }, expect: 'could not be read; coverage is claimed against that list' },
+  // OI-66 — the second instance of the versioned-artifact selection bug that made
+  // check-release-readiness cross-check the OLDEST review. check-assumptions read briefCandidates[0]
+  // over a `-v<N>` set, so a brief revised to v2 with a new assumption was judged against v1. Two
+  // brief versions, and a plan that covers exactly what v1 declared: the fixture passes under the
+  // old selection and rejects under the fix, which is the only shape that pins it.
+  { id: 'fw', dir: 'test/fixtures/lifecycle-violations/fw-brief-revision-assumption-uncovered', description: '(OI-66) a plan is judged against a superseded brief version, hiding an unverified assumption — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'brief assumption A2 has no row in Assumptions Verified' },
 ];
 
 let passed = 0;
