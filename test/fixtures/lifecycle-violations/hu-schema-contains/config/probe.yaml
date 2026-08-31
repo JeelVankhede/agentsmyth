@@ -1,0 +1,3 @@
+version: 1
+kind: probe
+needs: [something-else]
