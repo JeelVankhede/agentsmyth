@@ -386,6 +386,9 @@ const fixtures = [
   { id: 'gv', dir: 'test/fixtures/lifecycle-violations/gv-skipped-missing-value', description: '(OI-82) a Skipped Checks row leaves a required field empty — check-skipped-accounting', validator: validatorPath('check-skipped-accounting.mjs'), expect: 'missing value for "risk"' },
   { id: 'gw', dir: 'test/fixtures/lifecycle-violations/gw-automated-not-run-unaccounted', description: '(OI-82) an Automated Check is "not run" with no Skipped Checks entry — check-skipped-accounting', validator: validatorPath('check-skipped-accounting.mjs'), expect: 'has no matching Skipped Checks entry' },
   { id: 'gx', dir: 'test/fixtures/lifecycle-violations/gx-waiver-short-row', description: '(OI-82) a Waivers row has fewer columns than the contract requires — check-waivers', validator: validatorPath('check-waivers.mjs'), expect: 'Waivers row 1 has 2 column(s), expected 6' },
+  { id: 'gy', dir: 'test/fixtures/lifecycle-violations/gy-assumption-bad-status', description: '(OI-82) an Assumptions Verified row uses a status outside the enum — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'has invalid status "assumed-true"' },
+  { id: 'gz', dir: 'test/fixtures/lifecycle-violations/gz-assumption-empty-evidence', description: '(OI-82) an evidence-backed assumption has an empty evidence cell — check-assumptions', validator: validatorPath('check-assumptions.mjs'), expect: 'but an empty evidence/question cell' },
+  { id: 'ha', dir: 'test/fixtures/lifecycle-violations/ha-review-no-task', description: '(OI-82) a review has no task of its own slug to verify coverage against — check-manifest-coverage', validator: validatorPath('check-manifest-coverage.mjs'), expect: 'has no corresponding task in' },
 ];
 
 let passed = 0;
