@@ -1,0 +1,38 @@
+version: 1
+kind: artifact-frontmatter
+$id: artifact-frontmatter
+type: object
+properties:
+  artifact:
+    type: string
+    enum:
+          - brief
+          - plan
+          - task
+          - review
+          - verify
+          - ship
+          - reflect
+  orchestration:
+    type: object
+    properties:
+      phase:
+        type: string
+        enum:
+          - think
+          - plan
+          - build
+          - review
+          - test
+          - ship
+          - reflect
+      next_phase:
+        type: string
+        enum:
+          - plan
+          - build
+          - review
+          - test
+          - ship
+          - reflect
+          - done

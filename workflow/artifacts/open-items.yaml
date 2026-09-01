@@ -29,8 +29,9 @@ items:
     source: follow-up
     owner: user
     next_action: "Watch for recurrence of the mid-session unexplained auto-staging anomaly; investigate if it happens again"
-    status: open
+    status: done
     first_seen_run: power-skills-spine-v1
+    resolution: "Closed 2026-08-31 on the user decision to close the watch if it had stopped, having first checked that it had. The anomaly is named in exactly two files repo-wide: workflow/artifacts/reflect/power-skills-spine-v1.md, the chain that filed it, and this open-items file. 25 further reflect artifacts have been written since with no recurrence recorded. Reopen if it is ever seen again — the original observation stands, it simply has not repeated."
   - id: OI-6
     source: follow-up
     owner: user (to schedule)
@@ -64,7 +65,7 @@ items:
   - id: OI-11
     source: follow-up
     owner: user/agent
-    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification"
+    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification. TRIAGED 2026-08-31: closer than it was, but NOT closed by OI-77. That item shipped a Plan-phase Touches check in check-scope-fence, so the mechanism and the hook point now exist — it validates that each declared path is a real repo-relative path, catching interior globs and non-existent parent directories. What it does not do is the cross-check this item names: comparing a spec card's declared phase list against the Touches actually declared for those phases. OI-77 proves a path is well-formed; OI-11 asks whether the right paths are listed at all. Implement as an extension of the existing check rather than a new validator."
     status: open
     first_seen_run: power-skills-domain-experts-v1
   - id: OI-12
@@ -95,8 +96,9 @@ items:
     source: follow-up
     owner: user
     next_action: "WP-R4 is now fully complete (all 4 waves, 26 total skills) — decide what initiative comes next"
-    status: open
+    status: done
     first_seen_run: power-skills-wave4-v1
+    resolution: "Superseded by events, closed in the 2026-08-31 pre-1.1.0 triage. The question was 'what comes next after WP-R4', and it has since been answered repeatedly and shipped: WP-R5 (repo-shape taxonomy), R7 (init/prepare), R8 (behavior tuning), R9a/b/c, R11 (docs site), R12, R13, R15/R16/R17 (1.0.1), R19 (starter-block sync), R21 (Think council) and R22 (Review council). Initiative sequencing is now tracked on the Notion roadmap and the release lines, not by this item. Closed as answered, not as abandoned."
   - id: OI-17
     source: follow-up
     owner: user
@@ -106,7 +108,7 @@ items:
   - id: OI-18
     source: follow-up
     owner: user
-    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does."
+    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does. User decision 2026-08-31: KEEP OPEN. Deliberately unimplemented until a real polyrepo-member use case exists to build against; the Notion design proposal is the artifact, and it should be revisited rather than re-derived when one appears."
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-19
@@ -119,8 +121,9 @@ items:
     source: follow-up
     owner: user
     next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
-    status: open
+    status: done
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
+    resolution: "Done 2026-08-31 — the fixture it said did not exist now does, and it found a real problem on first run. test/run-root-resolution-drift-tests.mjs Scenario 5 builds a polyrepo-member workspace with two real sibling git checkouts, each tracking a file only it has, and asserts five things through lib.mjs as a subprocess: target_repo routes to the named checkout; trackedFiles run through it lists that sibling files and not the other; a different target_repo resolves elsewhere; no target_repo stays on repoRoot; an unknown target_repo falls back to repoRoot rather than throwing. Suite 16 -> 21 checks. Worth recording what the first run caught: sibling_repos[].path is RELATIVE TO workspace_root per repo-profile.schema.yaml own field description, and a fixture written with absolute paths produced <workspace_root><absolute path> silently. The resolver is correct for conforming input; the hazard is that a non-conforming absolute path is neither used nor rejected, just quietly corrupted. Noted, not changed — the schema documents the contract and changing join() semantics is beyond this item."
   - id: OI-21
     source: follow-up
     owner: user
@@ -212,7 +215,7 @@ items:
   - id: OI-35
     source: follow-up
     owner: user/repo maintainer
-    next_action: "Revisit the waived npm audit finding (3 vulnerabilities in esbuild/vite, transitively via vitepress, dev-server-only, no fix upstream as of this WP) after any future vitepress upgrade; re-run npm audit and drop the waiver once clean. Full waiver record in workflow/artifacts/ship/wp-r11-docs-site-v1.md."
+    next_action: "Revisit the waived npm audit finding (3 vulnerabilities in esbuild/vite, transitively via vitepress, dev-server-only, no fix upstream as of this WP) after any future vitepress upgrade; re-run npm audit and drop the waiver once clean. Full waiver record in workflow/artifacts/ship/wp-r11-docs-site-v1.md. RE-MEASURED 2026-08-31 in the pre-1.1.0 triage, and the waiver's own premise no longer holds. The set has grown from 3 to 8 (6 moderate, 2 high): dompurify, esbuild, mermaid, nanoid (high), postcss, vite (high), vitepress, vitepress-plugin-mermaid. Two things changed. (1) 'No fix upstream' is now true of only four of them — dompurify, mermaid, nanoid and postcss all report fixAvailable, so half the set is reachable by npm audit fix rather than waivable. (2) Severity rose: nanoid and vite are high, where the original waiver covered moderates only. Still dev-only — npm audit --omit=dev reports 0 vulnerabilities, consistent with the zero-runtime-dependency invariant, so no consumer is exposed either way. The waiver should not be re-asserted verbatim at 1.1.0 Ship: take the four available fixes first, then waive only what genuinely has no upstream fix, at its real severity."
     status: open
     first_seen_run: wp-r11-docs-site-v1
   - id: OI-36
@@ -250,21 +253,22 @@ items:
   - id: OI-41
     source: follow-up
     owner: user/repo maintainer
-    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes."
+    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes. User decision 2026-08-31: KEEP THE WATCH. Nothing is actionable until OpenAI actually removes custom-prompt support; the item exists so the migration is not a surprise."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-42
     source: follow-up
     owner: user
-    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships."
+    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships. User decision 2026-08-31: KEEP OPEN. This is the one item that is a genuine gap in 1.1.0 evidence rather than deferred work — the /agentsmyth command is verified for file placement, content and idempotency, but has never been watched firing in Cursor, Windsurf, VS Code+Copilot or Codex CLI, and this environment cannot reach them. Needs a manual pass by someone with the tools installed."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-43
     source: follow-up
     owner: whoever picks up the next small fix, or Reflect follow-up
     next_action: "wp-r12-local-install-fixes-v1's Review (Finding #1, P3): the exemplar.md files for lifecycle-think/lifecycle-plan/lifecycle-ship were never updated to demonstrate the new '## Checkpoint Approval' section, even though each skill's sibling output-schema.md was. Low risk (the actual check-lifecycle.mjs gate doesn't depend on the exemplar), but a future agent following only the exemplar as a template could omit the section."
-    status: open
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
+    resolution: "Stale entry, closed in the 2026-08-31 pre-1.1.0 triage after reading the files rather than the item. All three exemplars now carry `## Checkpoint Approval` as a real section heading — lifecycle-think/references/exemplar.md:112, lifecycle-plan:110, lifecycle-ship:88 — so an agent following only the exemplar as a template gets the section. Fixed at some point between filing and now by a chain that did not reference this item; no separate work needed."
   - id: OI-44
     source: follow-up
     owner: user
@@ -274,9 +278,10 @@ items:
   - id: OI-45
     source: follow-up
     owner: workflow owner
-    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience. ASSESSED 2026-07-26: recommend yes, but scoped narrower than 'general git conflict handling' -- this session (site-docs-remediation-v1) independently found a second live instance of the exact same failure class, at the Notion level rather than git: two entirely separate Notion Work Packages both titled/numbered 'WP-R12' (OI-57), created independently with no shared numbering check. Git-level branch divergence (this WP's original case) at least surfaces as a mergeable/conflicting diff; a duplicate-ID collision across two independently-authored records (open-items.yaml entries, Notion WP numbers) is worse because nothing flags it at all -- both sides can add non-overlapping content under the same identifier and no tool notices. Recommendation: add a narrow reconciliation sub-step to step 4a (or a sibling check) that greps for duplicate identifiers (OI-N in open-items.yaml, WP-RN against the Notion roadmap) specifically when a branch-base-advance is detected, rather than broadening it into generic merge-conflict-resolution guidance. Not yet implemented -- this is the recommendation, not the fix."
-    status: open
+    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience. ASSESSED 2026-07-26: recommend yes, but scoped narrower than 'general git conflict handling' -- this session (site-docs-remediation-v1) independently found a second live instance of the exact same failure class, at the Notion level rather than git: two entirely separate Notion Work Packages both titled/numbered 'WP-R12' (OI-57), created independently with no shared numbering check. Git-level branch divergence (this WP's original case) at least surfaces as a mergeable/conflicting diff; a duplicate-ID collision across two independently-authored records (open-items.yaml entries, Notion WP numbers) is worse because nothing flags it at all -- both sides can add non-overlapping content under the same identifier and no tool notices. Recommendation: add a narrow reconciliation sub-step to step 4a (or a sibling check) that greps for duplicate identifiers (OI-N in open-items.yaml, WP-RN against the Notion roadmap) specifically when a branch-base-advance is detected, rather than broadening it into generic merge-conflict-resolution guidance. Not yet implemented -- this is the recommendation, not the fix. VERIFIED STILL OPEN 2026-08-31: lifecycle-ship/SKILL.md step 4a (line 124) has no reconciliation sub-step; the recommendation stands unimplemented."
+    status: done
     first_seen_run: wp-r12-local-install-fixes-v1
+    resolution: "Done 2026-08-31. lifecycle-ship/SKILL.md gained step 4b: when 4a finds the base advanced, reconcile IDENTIFIERS before content. Scoped exactly as the assessment recommended — a duplicate-ID check over the identifier spaces the merge touched (OI-<n>, WP-R<n>, artifact -v<N>), not general merge-conflict guidance. The rationale is stated in the step: git surfaces overlapping edits as a conflict, but two branches that independently allocated the same ID to different things merge clean and silently, and both sides look correct in isolation."
   - id: OI-46
     source: follow-up
     owner: user
@@ -336,15 +341,17 @@ items:
   - id: OI-55
     source: follow-up
     owner: workflow owner
-    next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs."
-    status: open
+    next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs. VERIFIED STILL OPEN 2026-08-31: step 4a still reads \"When the repository has a remote and the branch's base may have advanced\" — conditional, unchanged."
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Done 2026-08-31. lifecycle-ship/SKILL.md step 4a is now unconditional — fetch and compare whenever the repository has a remote, before acting on the plan Branch Strategy, rather than \"when the base may have advanced\". The reword states why: whether it advanced is the thing being checked, so gating the check on the answer left it to be triggered by someone noticing."
   - id: OI-56
     source: follow-up
     owner: workflow owner
-    next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs."
-    status: open
+    next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs. VERIFIED STILL OPEN 2026-08-31: neither lifecycle-build/SKILL.md nor lifecycle-review/SKILL.md names the configured validate command; their only \"validate\" mentions are the exemplar-quality line."
+    status: done
     first_seen_run: site-docs-remediation-v1
+    resolution: "Done 2026-08-31. lifecycle-build/SKILL.md gained step 8a and lifecycle-review/SKILL.md a Workflow preamble paragraph applying to both modes: run the configured validate command right after writing or updating an artifact, not at end of phase. Named the concrete failures it catches — a coverage cell whose wording reads as a drop claim, a malformed phase number, a table missing a required column — since those are artifact-prose failures that get expensive once the context is gone. lifecycle-review references/single-agent-path.md was deliberately NOT touched: its ten steps are byte-locked by conformance check r22-review-single-agent-verbatim."
   - id: OI-57
     source: follow-up
     owner: user
@@ -369,7 +376,7 @@ items:
   - id: OI-60
     source: follow-up
     owner: user
-    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note."
+    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note. User decision 2026-08-31: KEEP TIED TO WP-R6. Both README and site/introduction.md saying \"Not a scaffolder\" is accurate for the shipped product; it only becomes wrong when WP-R6 ships, and WP-R6 does not exist yet."
     status: open
     first_seen_run: wp-r17-readme-positioning-v1
   - id: OI-61
@@ -402,21 +409,24 @@ items:
   - id: OI-65
     source: follow-up
     owner: user
-    next_action: "Assign an owner and a schedule to the 96 grandfathered artifact violations recorded in workflow/config/artifact-baseline.yaml, or explicitly accept them as permanent debt. Two shapes dominate: `status: complete` used where the frontmatter enum allows only `done` (42 artifacts), and structural type drift in `upstream` / `user_checkpoint` (16). The ratchet guarantees the list can only shrink and that new violations fail, but nothing schedules repair of what exists."
-    status: open
+    next_action: "Assign an owner and a schedule to the 96 grandfathered artifact violations recorded in workflow/config/artifact-baseline.yaml, or explicitly accept them as permanent debt. Two shapes dominate: `status: complete` used where the frontmatter enum allows only `done` (42 artifacts), and structural type drift in `upstream` / `user_checkpoint` (16). The ratchet guarantees the list can only shrink and that new violations fail, but nothing schedules repair of what exists. VERIFIED STILL OPEN 2026-08-31: workflow/config/artifact-baseline.yaml still carries exactly 96 entries. Unowned and unscheduled."
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — user directed repair rather than acceptance, and all 96 are fixed at source; workflow/config/artifact-baseline.yaml is now empty and check-artifacts reports 0 live violations without it. The breakdown matters more than the count: 40 were status/orchestration.status reading \"complete\" or \"ship\" against an enum allowing neither; 8 were upstream entries written as {artifact, slug, version} objects instead of path strings; 8 were user_checkpoint booleans (false -> none, true -> approved); 1 brief was missing upstream, restored to the spike its own Source Links name; 2 phase-split tasks had next_phase \"build\" where every other -pN task says \"review\". The remaining 35 — the largest group, and the one this item described as structural type drift — were manifest IDs reported as undeclared that were declared all along, in brief bodies writing \"- R1 (T-D1):\" or \"**R5 (added mid-chain...)**\" rather than the \"**R1**\" form check-artifacts scans for. No requirement was missing and no scope was unaccounted for; it was formatting drift. Worth recording because a baseline count read as a measure of debt would have badly overstated it."
   - id: OI-66
     source: follow-up
     owner: workflow owner
-    next_action: "Audit remaining validators for `candidates[0]` selection over a versioned (-v<N>) artifact set. check-release-readiness.mjs cross-checked the OLDEST review because listFiles returns sorted paths, which made any chain whose first review raised a P0/P1 permanently unshippable however completely that finding was later fixed (WP-R8 Ship S1, fixed in Phase 19). S1 is unlikely to be the only instance of this selection bug."
-    status: open
+    next_action: "Audit remaining validators for `candidates[0]` selection over a versioned (-v<N>) artifact set. check-release-readiness.mjs cross-checked the OLDEST review because listFiles returns sorted paths, which made any chain whose first review raised a P0/P1 permanently unshippable however completely that finding was later fixed (WP-R8 Ship S1, fixed in Phase 19). S1 is unlikely to be the only instance of this selection bug. AUDIT STARTED 2026-08-31 in the pre-1.1.0 triage, and the prediction was right — a second instance exists. check-assumptions.mjs builds `briefCandidates` by filtering for an explicitly versioned set (`new RegExp('/' + slug + '-v[0-9]+\\\\.md$')`, line 52-54) and then reads `briefCandidates[0]` (lines 57 and 60). `[0]` is the oldest version under sorted order and arbitrary otherwise; under no reading is it the current brief. Impact: when a brief is revised to -v2 with different A IDs, the plan's `## Assumptions Verified` is validated against the SUPERSEDED brief — so a plan correctly covering v2 can be rejected, and a plan missing v2's new assumptions can pass. Not fixed here: it is a behavior change to a shipped validator and belongs in this item's own chain, alongside whatever else the full sweep turns up. The remaining `[0]` uses in the validator set were checked and are over non-versioned collections (table cells, staged-file lists, regex match groups), not artifact version sets."
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Audit complete and its one finding fixed, 2026-08-31. Swept every `[0]` selection across the validator set: all but one are over non-versioned collections (table cells, staged-file lists, regex match groups). The exception was check-assumptions.mjs, which filtered an explicitly versioned brief set and then read briefCandidates[0] — the oldest under sorted order, arbitrary otherwise, never the current brief. Fixed by reducing to the highest -v<N>, compared NUMERICALLY, since -v10 sorts before -v2 as a string. Locked by violation fixture fw: two brief versions and a plan covering exactly what v1 declared, which passes under the old selection and rejects under the fix. Confirmed in both directions against a restored pre-fix copy."
   - id: OI-67
     source: follow-up
     owner: user
     next_action: "Add `x_enforcement: warn-until-<version>` marker removal to the 1.2.0 release checklist. The deprecation window is matched by string prefix and has no expiry mechanism — nothing fails when 1.2.0 ships with warn-until-1.2.0 markers still present, so previously-deferred type violations would remain permanently unenforced."
-    status: open
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — the checklist it asked to add to did not exist, so it now does: docs/release-checklist.md, with a Deprecation windows section carrying the grep command, the instruction to delete the marker lines for the version being released, and a table of currently-open windows (the six warn-until-1.2.0 declarations, one in verification.schema.yaml and five in agent-behavior.schema.yaml). Generalised beyond 1.2.0 to every release, since the no-expiry problem recurs with each window rather than being specific to this one."
   - id: OI-68
     source: follow-up
     owner: workflow owner
@@ -427,9 +437,10 @@ items:
   - id: OI-69
     source: follow-up
     owner: user
-    next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced."
-    status: open
+    next_action: "Rehearse a real 1.0.0 to 1.1.0 upgrade against a genuinely published 1.0.0 tarball before 1.1.0 ships. WP-R8's R8/RI9 evidence simulated a v1.0.0 consumer by editing a 1.0.1-generated repo down to 1.0.0 shape (version stamp reset, intent block removed, pending-setup truncated to PS-1..8). Faithful as far as it goes, but a real 1.0.0 tarball could differ in ways not reproduced. TRIAGED 2026-08-31 as the one open item whose own wording makes it a gate on THIS release rather than a later one, and it is actionable: `npm view @jeelvankhede/agentsmyth versions` confirms 1.0.0 and 1.0.1 are both published, so `npm pack @jeelvankhede/agentsmyth@1.0.0` yields the genuine artifact the simulation stood in for. 1.1.0 carries the upgrade paths this rehearsal is meant to cover — appendPendingItems' item-family append on version skew, the two-root definitions resolver, and the pending-setup shapes WP-R22's B2/N11 work touched — so the rehearsal is worth more now than when it was filed. Do it before the release dispatch, not after."
+    status: done
     first_seen_run: wp-r8-behavior-tuning-v1
+    resolution: "Done 2026-08-31 — rehearsed against the REAL published tarball, not a simulation. npm pack @jeelvankhede/agentsmyth@1.0.0 (235.4K) installed into an isolated scratch HOME, used to bootstrap a consumer repo (stamped agentsmyth_version: 1.0.0, 7 pending-setup items, portable definitions_root: ~/.agentsmyth/workflow), then the 1.1.0 candidate installed over the top. Results: version skew correctly detected and reported as informational; BOTH pending-setup item families appended cleanly, 7 -> 11 items (intent.repo_character, intent.surface_map, intent.concerns, tuning.council.per_phase) — the append path the council work touched, exercised on a genuine 1.0.0 file; both configs still parse through the package own loader; prepare refreshed the global tree with the review-council skill and check-council-record.mjs present. check exits 1 on a headless-bootstrapped repo purely because setup was never completed (unfilled placeholders, no knowledge map, no adapter) with check-lifecycle: ok — so the setup was then completed, after which check exits 0 with check-setup-complete: ok and check-lifecycle: ok. NO DEFECTS FOUND. Procedure is written up in docs/release-checklist.md so 1.2.0 can repeat it."
   - id: OI-70
     source: follow-up
     owner: workflow owner
@@ -440,7 +451,7 @@ items:
   - id: OI-71
     source: follow-up
     owner: workflow owner
-    next_action: "Consider wiring lifecycle-artifact.schema.yaml, whose 16 extra section requirements remain unenforced. It is also the only consumer schema for the if/then/else support implemented in lib.mjs during WP-R8, so that engine feature currently has unit coverage but no production exercise. Deliberately out of scope for WP-R8."
+    next_action: "Consider wiring lifecycle-artifact.schema.yaml, whose 16 extra section requirements remain unenforced. It is also the only consumer schema for the if/then/else support implemented in lib.mjs during WP-R8, so that engine feature currently has unit coverage but no production exercise. Deliberately out of scope for WP-R8. VERIFIED STILL OPEN 2026-08-31: lifecycle-artifact.schema.yaml appears only as a file-presence entry in check-setup-complete.mjs and a comment in lib.mjs — it is still never applied as a validation schema."
     status: open
     first_seen_run: wp-r8-behavior-tuning-v1
   - id: OI-72
@@ -461,20 +472,22 @@ items:
     source: follow-up
     owner: user
     next_action: "Merge PR #65 (feat/wp-r22-review-council) into release/1.1.0. The chain is complete through Reflect and CI is green off-machine (run 33296889442), but the merge was deliberately not inferred from the user's approval to proceed to Reflect - that approval covered the ship decision and the phase transition, not an irreversible outward action. The branch is 26 commits ahead and the PR is open. Once merged, move the Notion WP-R22 page to Done with the PR reference; that update is recorded as NOT done in the reflect artifact rather than claimed."
-    status: open
+    status: done
     first_seen_run: wp-r22-review-council-v1
+    resolution: "Merged 2026-08-30 as commit 7c224dc (PR #65 state MERGED, base release/1.1.0). Two external review passes landed on the branch before the merge — 78c3bf8 closed 2 blocking and 4 non-blocking findings, 49ae292 made init-prepare-interop scenario E root-safe — and CI was green off-machine on the merged head (run 33326292659). The Notion WP-R22 page move to Done is NOT done and is recorded here as still outstanding rather than claimed; it is a user action, carried forward on OI-87."
   - id: OI-85
     source: follow-up
     owner: user
-    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output."
+    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output. PARTIALLY ADDRESSED before the merge, and the distinction matters: two external review passes did run over the remediation and found real defects the remediation had introduced — pass 1 found 3 blocking (including a guard that corrupted a consumer config on upgrade), pass 2 found 2 blocking, both of which were bugs in code pass 1 had just added, and both of the same class the file's own comments warn about (a check reading the right idea out of the wrong structure). That is independent scrutiny, and it worked. It is NOT what this item asks for: those were external reviews of a diff, not a Review council dispatched by the mechanism under test. The question 'does the council find what the council's own remediation broke' is still unanswered, and the two passes make it a more interesting question, not a settled one."
     status: open
     first_seen_run: wp-r22-review-council-v1
   - id: OI-86
     source: follow-up
     owner: workflow owner
-    next_action: "Make the pre-commit hook prefer the repo's own bin/agentsmyth.mjs when one exists. Today .githooks/pre-commit resolves `agentsmyth` from PATH, which on this machine is a globally installed 1.0.0 package shipping only three validators - so the mandatory gate a developer experiences depends on what they happen to have installed rather than on the repo under change. The validators themselves resolve from ~/.agentsmyth and were byte-identical here, so nothing was broken by it, but the coupling is wrong in principle and is a plausible contributor to OI-83."
-    status: open
+    next_action: "Make the pre-commit hook prefer the repo's own bin/agentsmyth.mjs when one exists. Today .githooks/pre-commit resolves `agentsmyth` from PATH, which on this machine is a globally installed 1.0.0 package shipping only three validators - so the mandatory gate a developer experiences depends on what they happen to have installed rather than on the repo under change. The validators themselves resolve from ~/.agentsmyth and were byte-identical here, so nothing was broken by it, but the coupling is wrong in principle and is a plausible contributor to OI-83. VERIFIED STILL OPEN 2026-08-31: .githooks/pre-commit lines 31-34 still resolve agentsmyth from PATH with an npx fallback, with no preference for the repo's own bin/."
+    status: done
     first_seen_run: wp-r22-review-council-v1
+    resolution: "Fixed 2026-08-31. Both hook copies now try `./bin/agentsmyth.mjs` first and fall through to the PATH and npx branches unchanged when there is none. Git runs hooks from the repo root, so the relative path is the repo being committed to: in this repo the gate now runs the code under change rather than a globally installed 1.0.0 shipping three validators, and in every consumer repo — which has no bin/agentsmyth.mjs — resolution is byte-for-byte what it was. Verified: the resolution branch now selects \"node ./bin/agentsmyth.mjs\" here."
   - id: OI-83
     source: follow-up
     owner: workflow owner
@@ -484,9 +497,10 @@ items:
   - id: OI-82
     source: follow-up
     owner: workflow owner
-    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 217 validator rules can be deleted with every suite green. Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
-    status: open
+    next_action: "Close the undefended-rule gap measured by `npm run mutation:audit`: 106 of 222 validator rules can be deleted with every suite green (was 106 of 217 when filed; the denominator moved with WP-R22's post-review fixes, the undefended count did not). Ten validators are 100% undefended - check-setup-complete (10), check-pending-setup (8), check-setup-refs (5), check-starter-blocks (5), check-trigger-predicates (5), check-domain-placeholders (4), check-open-items (3), check-schema-keywords (2), check-skill-triggers (2), check-commit-coverage (1) - and the worst individually is check-lifecycle at 16 of 17, which is the phase gate `agentsmyth check` runs in every consumer repo. The cause is structural, not careless: this repo validates its own artifacts, its artifacts are healthy, and a rule that fires only on malformed input has therefore never executed. Every validator with dedicated violation fixtures measures zero survivors; every validator exercised only through `npm run validate` against the real corpus measures near-total. check-setup-complete has its own suite and still scores 10 of 10 because that suite tests the happy path. Fix by writing one rejection fixture per rule, the way WP-R22 did for its own four validators (86 rules, 0 survivors, 27 fixtures). test/mutation-baseline.json is a ratchet: the number can shrink and never grow, and a new validator starts at zero rather than inheriting the allowance. Deliberately NOT bundled into WP-R22 - these rules predate it, the work spans every validator in the package, and folding it into a chain at Ship is the scope creep the lifecycle exists to prevent."
+    status: done
     first_seen_run: wp-r22-review-council-v1
+    resolution: "Done 2026-09-01. Every validator in the package now measures 0 undefended, over 221 rules, verified by a full run whose survivor list is empty; test/mutation-baseline.json is recorded from that run. Violation fixtures went 125 to 209, plus a new domain-placeholders suite wired into package.json, ci.yml, release.yml and the audit itself. Three things are worth more than the count. (1) A FIFTH OF THE ORIGINAL FIGURE WAS MEASUREMENT ERROR: the audit reports a rule undefended when deleting it leaves "every suite" green, but its SUITES list named three of eleven scripts, so rules that were genuinely tested scored as gaps — check-lifecycle dropped 16 to 14 on that correction alone, with no test written. (2) TWO VALIDATORS WERE UNTESTABLE RATHER THAN UNTESTED: check-pending-setup was the only validator without --dir, so no fixture could reach any of its eight rules; check-domain-placeholders scans git ls-files, so a fixture living in this repo would have to contain the leakage it tests for and would be flagged on every run — it needed throwaway git repos. (3) A RULE CAN BE DEFENDED BY ACCIDENT: repairing the 96 grandfathered artifact violations under OI-65 removed the only thing exercising check-artifacts unblocked-next_phase rule, and the undefended count went UP mid-sweep. The ratchet caught that, not me. Any rule whose only exercise is a real violation in this repo own artifacts stops being defended the moment someone tidies the artifact. Also removed lib.mjs assertCondition — exported, called from nowhere, and undefendable by construction since the function never runs."
   - id: OI-81
     source: follow-up
     owner: workflow owner
@@ -503,13 +517,14 @@ items:
   - id: OI-79
     source: follow-up
     owner: workflow owner
-    next_action: "The mandatory pre-commit gate's artifact loop is unreachable whenever the coverage proxy fails. The hook runs under `set -e`, then does `$AGENTSMYTH_BIN check --staged` followed by `status=$?` — under set -e a non-zero exit terminates the script before that assignment, so the per-artifact phase-gate loop below it never runs, and the commit is rejected on coverage alone. The gate is not wrong (it still blocks), but it reports one class of problem while silently skipping another, so an author fixing coverage can be surprised by a second, previously-invisible rejection. Fix: run the coverage check with `if ! ...; then status=1; fi`, or scope `set +e` around it, so both checks always report in one pass. Noted during external review of the council PR; deliberately not bundled into that change since it predates it and touches the shared gate."
-    status: open
+    next_action: "The mandatory pre-commit gate's artifact loop is unreachable whenever the coverage proxy fails. The hook runs under `set -e`, then does `$AGENTSMYTH_BIN check --staged` followed by `status=$?` — under set -e a non-zero exit terminates the script before that assignment, so the per-artifact phase-gate loop below it never runs, and the commit is rejected on coverage alone. The gate is not wrong (it still blocks), but it reports one class of problem while silently skipping another, so an author fixing coverage can be surprised by a second, previously-invisible rejection. Fix: run the coverage check with `if ! ...; then status=1; fi`, or scope `set +e` around it, so both checks always report in one pass. Noted during external review of the council PR; deliberately not bundled into that change since it predates it and touches the shared gate. VERIFIED STILL OPEN 2026-08-31: .githooks/pre-commit line 9 set -e, line 37 $AGENTSMYTH_BIN check --staged, line 38 status=$? — the unreachable-assignment bug is present exactly as described."
+    status: done
     first_seen_run: wp-r21-think-council-v1
+    resolution: "Fixed 2026-08-31. Both hook copies now run the coverage proxy as an `if` condition — `status=0; if ! $AGENTSMYTH_BIN check --staged; then status=1; fi` — which is exempt from `set -e`, so the per-artifact phase-gate loop below it always runs and both checks report in one pass. Applied to .githooks/pre-commit (which sets -e itself) and src/assets/hooks/pre-commit (which is appended to a host script that may). Verified: under set -e the line after a failing check is now reached with status=1, and sh -n passes on both copies."
   - id: OI-76
     source: follow-up
     owner: user
-    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think."
+    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think. User decision 2026-08-31: KEEP TARGETED AT 1.2.0. Re-measuring council cost needs several Complex chains to measure across, which is not reachable before this release. The on-for-complex default ships for 1.1.0 resting on one uncontrolled comparison, with that stated rather than implied."
     status: open
     first_seen_run: wp-r21-think-council-v1
   - id: OI-77
@@ -540,3 +555,9 @@ items:
     status: done
     first_seen_run: wp-r21-think-council-v1
     resolution: "Fixed: check-lifecycle checkpointApprovalSection now terminates on the next column-0 bullet or true end-of-string instead of the first line end under /m, so a multi-line verbatim approval is preserved whole. Verified across three shapes — a four-line quote containing a blank line, a single-line quote, and a placeholder that must still be rejected."
+  - id: OI-87
+    source: follow-up
+    owner: user
+    next_action: "Close out the 1.1.0 release. Successor to OI-84, opened by the 2026-08-31 pre-release triage. All four work packages are merged into release/1.1.0 (PR #62 WP-R8, #63 WP-R19, #64 WP-R21, #65 WP-R22), no PRs are open, and the branch is 50 commits ahead of main. Remaining, in order: (1) settle OI-69 — rehearse the upgrade against the real published 1.0.0 tarball, the one open item whose own wording gates this release; (2) re-derive the npm audit position per OI-35 rather than re-asserting the old waiver, since the set grew 3 to 8 and half of it is now fixable; (3) write the CHANGELOG 1.1.0 entry and bump package.json, which still reads 1.0.1 with no 1.1.0 section; (4) merge release/1.1.0 into main — the single end-of-line merge this release plan calls for; (5) fire release.yml via workflow_dispatch with bump=minor (Trusted Publishing/OIDC, environment production, and note the run carries the full mutation audit, so it takes tens of minutes); (6) move the Notion WP-R22 page to Done with the PR #65 reference, inherited from OI-84 and still not done. Steps 4 and 5 are irreversible outward actions and are the user's to authorize."
+    status: open
+    first_seen_run: wp-r22-review-council-v1

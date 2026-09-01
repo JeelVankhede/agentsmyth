@@ -2,7 +2,7 @@
 slug: system-level-install
 version: 1
 artifact: ship
-status: ship
+status: done
 created: 2026-07-08T00:00:00Z
 updated: 2026-07-08T00:00:00Z
 manifest_ids:
@@ -18,15 +18,13 @@ manifest_ids:
   - RI4
   - RI5
 upstream:
-  - artifact: verify
-    slug: system-level-install
-    version: 1
+  - workflow/artifacts/verify/system-level-install-v1.md
 orchestration:
   phase: ship
-  status: complete
+  status: done
   next_phase: reflect
   blockers: []
-  user_checkpoint: true
+  user_checkpoint: approved
 ---
 
 ## Inputs

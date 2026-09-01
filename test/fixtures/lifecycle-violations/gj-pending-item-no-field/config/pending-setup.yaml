@@ -1,0 +1,7 @@
+version: 1
+kind: pending-setup
+items:
+  - id: PS-1
+    config: repo-profile.yaml
+    question: "q"
+    status: open

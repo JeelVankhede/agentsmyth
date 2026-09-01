@@ -17,15 +17,13 @@ manifest_ids:
   - RI4
   - RI5
 upstream:
-  - artifact: plan
-    slug: wp-r5-repo-shape-taxonomy
-    version: 1
+  - workflow/artifacts/plans/wp-r5-repo-shape-taxonomy-v1.md
 orchestration:
   phase: build
-  status: complete
+  status: done
   next_phase: review
   blockers: []
-  user_checkpoint: false
+  user_checkpoint: none
 ---
 
 ## Active Phase

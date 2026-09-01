@@ -80,7 +80,7 @@ None.
 
 ### Explicit (R)
 
-- R1: `check-config.mjs` resolves schemas via `defsPath('schemas')` and config via `dataPath('config')` instead of a hardcoded `workflow/` root, with no false failures against a real `definitions_root`-linked consumer repo.
+- **R1**: `check-config.mjs` resolves schemas via `defsPath('schemas')` and config via `dataPath('config')` instead of a hardcoded `workflow/` root, with no false failures against a real `definitions_root`-linked consumer repo.
   Acceptance: fresh scratch-repo reproduction (documented above) passes with zero errors after the fix; `npm run validate` (which exercises this file with `AGENTSMYTH_HOME=src/workflow`) still passes.
 
 ### Implicit (RI)

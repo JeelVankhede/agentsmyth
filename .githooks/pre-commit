@@ -28,14 +28,35 @@ echo "run 'npm run build' so dist/ and generated assets stay in sync before push
 #    must have its entering phase's gate actually satisfied (agentsmyth check --phase/--slug),
 #    e.g. committing a Plan without its own Checkpoint Approval recorded is rejected.
 # Bypass deliberately, when you mean to: git commit --no-verify
-if command -v agentsmyth >/dev/null 2>&1; then
-  AGENTSMYTH_BIN="agentsmyth"
+# OI-86: prefer the repo's OWN bin/ when one exists. Resolving `agentsmyth` from PATH first meant
+# the gate a developer experiences was whichever version they happened to have installed globally,
+# rather than the code under change — on one machine a 1.0.0 package shipping three validators, used
+# to gate a repo whose own bin/ ships thirty. Git runs hooks from the repo root, so this relative
+# path is the repo being committed to; in any repo without one, the PATH and npx branches are
+# reached exactly as before.
+# Defined as a FUNCTION, not a variable holding a command string. The artifact loop below sets IFS
+# to a newline so it can iterate paths safely, and an unquoted $VAR carrying "node ./bin/..." then
+# stops word-splitting on spaces and is looked up as a single command name. A function is immune to
+# whatever IFS happens to be when it is called.
+if [ -f "./bin/agentsmyth.mjs" ]; then
+  run_agentsmyth() { node ./bin/agentsmyth.mjs "$@"; }
+elif command -v agentsmyth >/dev/null 2>&1; then
+  run_agentsmyth() { agentsmyth "$@"; }
 else
-  AGENTSMYTH_BIN="npx --yes @jeelvankhede/agentsmyth"
+  run_agentsmyth() { npx --yes @jeelvankhede/agentsmyth "$@"; }
 fi
 
-$AGENTSMYTH_BIN check --staged
-status=$?
+# OI-79: run the coverage proxy as an `if` condition, not as a bare command followed by `status=$?`.
+# Under `set -e` — which this hook sets, and which a consumer's host script may also set — a non-zero
+# exit from a bare command terminates the script immediately, so the `status=$?` assignment below it
+# never ran and neither did the per-artifact phase-gate loop further down. The gate still blocked, so
+# nothing was let through, but it reported one class of problem while silently skipping another: an
+# author who fixed the coverage failure was then met by a second, previously-invisible rejection.
+# A command in an `if` condition is exempt from `set -e`, so both checks now always report in one pass.
+status=0
+if ! run_agentsmyth check --staged; then
+  status=1
+fi
 
 STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
 ARTIFACT_FILES=$(printf '%s\n' "$STAGED" | grep -E '^workflow/artifacts/[^/]+/.+-v[0-9]+\.md$' || true)
@@ -86,7 +107,7 @@ if [ -n "$ARTIFACT_FILES" ]; then
     if [ -n "$orch_status" ] && [ "$orch_status" != "ready-for-next-phase" ]; then
       continue
     fi
-    if ! $AGENTSMYTH_BIN check --phase "$phase" --slug "$slug"; then
+    if ! run_agentsmyth check --phase "$phase" --slug "$slug"; then
       status=1
     fi
   done

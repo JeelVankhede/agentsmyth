@@ -7,11 +7,24 @@
 // 217 rules as undefended: ten validators at 100%, including `check-lifecycle`, the phase gate
 // `agentsmyth check` runs in every consumer repo, at 16 of 17.
 //
-// The cause is structural rather than careless. This repo validates its own artifacts, and its
-// artifacts are healthy, so a rule that only fires on malformed input has never executed. Validators
-// with dedicated violation fixtures score zero survivors; validators exercised only through
-// `npm run validate` against the real corpus score near-total. `check-setup-complete` has its own
-// suite and still measured 10 of 10, because that suite tests the happy path.
+// The cause was structural rather than careless. This repo validates its own artifacts, and its
+// artifacts are healthy, so a rule that only fires on malformed input had never executed. Validators
+// with dedicated violation fixtures scored zero survivors; validators exercised only through
+// `npm run validate` against the real corpus scored near-total. `check-setup-complete` had its own
+// suite and still measured 10 of 10, because that suite tested the happy path.
+//
+// That gap is now closed: every validator measures 0 undefended over 221 rules. Three things came
+// out of closing it that are worth keeping in mind when reading a future number here.
+//
+// 1. A fifth of the original figure was measurement error. This list named three of eleven suites,
+//    so rules that WERE tested scored as gaps. Check SUITES before believing a count.
+// 2. A rule can be defended by accident. Repairing the grandfathered artifact violations removed
+//    the only thing exercising check-artifacts' next_phase rule, and the count went UP. A rule
+//    whose only exercise is a real violation in this repo's own artifacts stops being defended the
+//    moment someone fixes the artifact.
+// 3. Two fixtures passed while leaving their rule undefended, both by asserting something broader
+//    than the rule — one matched a message that was a prefix of another rule's message, one matched
+//    a filename while a different rule produced the output. Assert the rule's own wording.
 //
 // NOT a per-commit gate: a full run mutates every rule and re-runs three suites for each, which
 // takes tens of minutes. It is named `mutation:audit` rather than `:test` deliberately, so the
@@ -89,10 +102,31 @@ cpSync(repoRoot, workRoot, {
 // A rule may be exercised by the fixture suites or by validate-template running the validator over
 // this repo's real artifacts. Both must run, or a survivor is an artefact of the harness rather than
 // a gap in the suite.
+// EVERY suite that exercises a validator, not the three that happened to be here first. The audit
+// reports a rule as undefended when deleting it leaves "every suite" green — so a suite missing from
+// this list turns tested rules into phantom gaps. check-lifecycle's four checkpoint rules were the
+// clearest case: run-checkpoint-approval-tests.mjs drives them directly through `--phase` mode and
+// kills every one of those mutants, yet all four scored undefended because this list did not name
+// it. The seven additions below cost ~1.7s combined against ~8.8s for the original three; the
+// measurement was wrong for no meaningful saving.
+//
+// run-init-prepare-interop-tests.mjs is deliberately NOT here: it takes ~2 minutes because it does
+// real global npm installs, which at one run per mutation site would push the audit past two hours,
+// and it exercises the CLI installer rather than validator rules. That is a stated boundary — rules
+// reachable only through it will read as undefended.
 const SUITES = [
   ['scripts/validate-template.mjs'],
+  ['scripts/validate-example.mjs'],
   ['test/run-violation-tests.mjs'],
   ['test/run-conformance-tests.mjs'],
+  ['test/run-checkpoint-approval-tests.mjs'],
+  ['test/run-setup-complete-tests.mjs'],
+  ['test/run-setup-refs-tests.mjs'],
+  ['test/run-tuning-merge-tests.mjs'],
+  ['test/run-commit-coverage-tests.mjs'],
+  ['test/run-setup-validator-definitions-root-tests.mjs'],
+  ['test/run-root-resolution-drift-tests.mjs'],
+  ['test/run-domain-placeholders-tests.mjs'],
 ];
 
 // Run against the COPY. Every suite resolves its own root from `import.meta.url`, and the validators
@@ -175,6 +209,15 @@ for (const name of targets) {
 
 const totalUndefended = Object.values(results).reduce((a, r) => a + r.undefended, 0);
 console.log(`\n${totalUndefended}/${mutants} rules undefended`);
+
+// The survivor list was collected and then thrown away, which made the audit able to say HOW MANY
+// rules were undefended but not WHICH — so acting on the number meant re-running the audit by hand
+// per validator to rediscover what it already knew. Each entry is `file:line` of an `errors.push(`
+// that can be deleted with every suite still green; that line is the rule needing a fixture.
+if (survivorDetail.length > 0) {
+  console.log('\nundefended rules (file:line of an errors.push that no fixture kills):');
+  for (const entry of survivorDetail) console.log(`  ${entry}`);
+}
 
 if (writeBaseline) {
   writeFileSync(BASELINE, `${JSON.stringify({ generated: new Date().toISOString().slice(0, 10), results }, null, 2)}\n`);

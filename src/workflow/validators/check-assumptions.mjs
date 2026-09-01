@@ -54,10 +54,22 @@ for (const file of artifactFiles) {
   );
   if (briefCandidates.length === 0) continue;
 
-  const briefText = readText(briefCandidates[0]);
+  // Take the HIGHEST version, not `[0]`. The filter above matches an explicitly versioned set, and
+  // listFiles returns paths in directory order, so `[0]` was the oldest brief under sorted order and
+  // arbitrary otherwise — never the current one. A brief revised to -v2 with different A IDs meant
+  // the plan's "## Assumptions Verified" was checked against the SUPERSEDED brief: a plan correctly
+  // covering v2 could be rejected, and a plan missing v2's new assumptions could pass. This is the
+  // same selection bug that once made the release-readiness check cross-reference the oldest review
+  // in a chain rather than the current one. Compared NUMERICALLY, because -v10 sorts before -v2 as
+  // a string.
+  const briefPath = briefCandidates.reduce((best, f) => (
+    Number(f.match(/-v(\d+)\.md$/)[1]) > Number(best.match(/-v(\d+)\.md$/)[1]) ? f : best
+  ));
+
+  const briefText = readText(briefPath);
   let briefParsed;
   try {
-    briefParsed = parseFrontmatter(briefText, briefCandidates[0]);
+    briefParsed = parseFrontmatter(briefText, briefPath);
   } catch {
     continue;
   }

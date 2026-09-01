@@ -1,0 +1,3 @@
+version: 1
+kind: probe
+patterned: "NOT-lowercase"

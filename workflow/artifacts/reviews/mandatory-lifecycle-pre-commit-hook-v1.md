@@ -2,7 +2,7 @@
 slug: mandatory-lifecycle-pre-commit-hook
 version: 1
 artifact: review
-status: complete
+status: done
 created: 2026-07-21
 updated: 2026-07-21
 manifest_ids: [R1, R2, R3, R4, R5, RI1, RI2, RI3, RI4]
@@ -12,7 +12,7 @@ upstream:
   - workflow/artifacts/tasks/mandatory-lifecycle-pre-commit-hook-v1.md
 orchestration:
   phase: review
-  status: complete
+  status: done
   next_phase: test
   blockers: []
   user_checkpoint: none
