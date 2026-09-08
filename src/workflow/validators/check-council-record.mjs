@@ -283,8 +283,15 @@ for (const file of artifactFiles) {
       expectedMode = 'refused';
       expectedReason = 'council-disabled';
     } else if (res.task_class !== 'complex') {
-      expectedMode = 'refused';
-      expectedReason = 'not-complex';
+      // `single-agent`, NOT `refused`. A refusal means the council was applicable and did not fire
+      // — which is what the two kill switches above describe, and what this file's own schema says
+      // the mode is for. A chain that is not complex was never in scope for a council, so there is
+      // nothing to refuse: lifecycle-review's mode resolution reaches single-agent here and says in
+      // as many words that no refusal is needed. Expecting `refused` made the validator reject a
+      // record that followed the skill exactly, and tell it to declare a refusal the skill had just
+      // said was not owed. `not-complex` stays in the refusal_reason enum so records written under
+      // the old reading still parse; nothing produces it any more.
+      expectedMode = 'single-agent';
     }
 
     if (mode !== expectedMode) {

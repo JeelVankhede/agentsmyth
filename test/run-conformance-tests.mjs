@@ -4,7 +4,7 @@
 //   R12 — check-starter-blocks validates every real starter block, and fails a seeded broken one.
 //   R11 — check-artifacts accepts the documented `-p<P>` task filename.
 //   R10 — check-waivers suppresses enum/table false-positives yet still catches a real prose claim.
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -80,7 +80,8 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 // lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
 // at the machine-local ~/.agentsmyth/workflow — and exits at import time when that path is absent.
@@ -471,6 +472,66 @@ if (neutralityHits.length) {
 
 check('r15-scope-fence-bullet', 'bullet-dash-prefixed phase boundary keeps Touches correctly bounded',
   sfb.status !== 0 && /outside Phase 1's declared Touches/.test(sfb.out));
+
+// R8/F3 — validator RESOLUTION, not just which CLI binary runs. The pre-commit hook prefers the
+// repo's own bin/, but bin/agentsmyth.mjs resolved validator FILES from definitions_root first, so
+// a change to a validator was gated by the previously installed copy of that same validator. Both
+// directions are pinned here, because the risk of the fix is not that it fails to work — it is that
+// it leaks to consumers, who must keep resolving from their linked definitions tree.
+//
+// Built as two throwaway repos rather than asserted against the real one: the property is about
+// which of two identically-named files executes, and the only honest way to see that is to make the
+// two files say different things.
+function buildPrecedenceWorkspace() {
+  const root = mkdtempSync(join(tmpdir(), 'agentsmyth-precedence-'));
+  const stub = (marker) => `console.log(${JSON.stringify(marker)}); process.exit(0);\n`;
+
+  mkdirSync(join(root, 'defs', 'validators'), { recursive: true });
+  writeFileSync(join(root, 'defs', 'validators', 'check-lifecycle.mjs'), stub('LINKED-COPY'));
+  writeFileSync(join(root, 'defs', 'validators', 'check-setup-complete.mjs'), stub('linked-setup'));
+
+  // The "source repo": it IS the package (bin/ + src/workflow/validators/) and it is what gets checked.
+  const source = join(root, 'source-repo');
+  mkdirSync(join(source, 'bin'), { recursive: true });
+  mkdirSync(join(source, 'src', 'workflow', 'validators'), { recursive: true });
+  mkdirSync(join(source, 'workflow', 'config'), { recursive: true });
+  cpSync(join(repoRoot, 'bin', 'agentsmyth.mjs'), join(source, 'bin', 'agentsmyth.mjs'));
+  cpSync(join(repoRoot, 'bin', 'prompts.mjs'), join(source, 'bin', 'prompts.mjs'));
+  cpSync(join(repoRoot, 'package.json'), join(source, 'package.json'));
+  writeFileSync(join(source, 'src', 'workflow', 'validators', 'check-lifecycle.mjs'), stub('SOURCE-COPY'));
+  writeFileSync(join(source, 'src', 'workflow', 'validators', 'check-setup-complete.mjs'), stub('source-setup'));
+  const profile = `version: 1\nkind: repo-profile\nrepository:\n  mode: single-repository\n  definitions_root: ${join(root, 'defs')}\n`;
+  writeFileSync(join(source, 'workflow', 'config', 'repo-profile.yaml'), profile);
+  execFileSync('git', ['init', '-q'], { cwd: source });
+
+  // The "consumer repo": same linked definitions tree, but it is not the package.
+  const consumer = join(root, 'consumer-repo');
+  mkdirSync(join(consumer, 'workflow', 'config'), { recursive: true });
+  writeFileSync(join(consumer, 'workflow', 'config', 'repo-profile.yaml'), profile);
+  execFileSync('git', ['init', '-q'], { cwd: consumer });
+
+  return { root, source, consumer, cli: join(source, 'bin', 'agentsmyth.mjs') };
+}
+
+const pw = buildPrecedenceWorkspace();
+try {
+  const runCli = (cwd) => {
+    const r = spawnSync(process.execPath, [pw.cli, 'check', '--phase', 'review', '--slug', 'probe'], {
+      cwd, encoding: 'utf8',
+    });
+    return (r.stdout ?? '') + (r.stderr ?? '');
+  };
+
+  const inSource = runCli(pw.source);
+  check('r8-source-precedence', "a repo that IS the package runs its own src/ validator, not the linked copy",
+    /SOURCE-COPY/.test(inSource) && !/LINKED-COPY/.test(inSource));
+
+  const inConsumer = runCli(pw.consumer);
+  check('r8-consumer-precedence', 'a consumer repo still resolves from its linked definitions_root',
+    /LINKED-COPY/.test(inConsumer) && !/SOURCE-COPY/.test(inConsumer));
+} finally {
+  rmSync(pw.root, { recursive: true, force: true });
+}
 
 console.log(`\n${passed}/${passed + failed} conformance checks passed`);
 process.exit(failed === 0 ? 0 : 1);

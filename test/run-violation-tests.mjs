@@ -462,6 +462,12 @@ const fixtures = [
   { id: 'ja', dir: 'test/fixtures/definitions/tp-bad-predicate', description: '(OI-82) a trigger predicate cannot be evaluated — check-trigger-predicates', validator: validatorPath('check-trigger-predicates.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/tp-bad-predicate' }, expect: 'unrecognized predicate term' },
   { id: 'jb', dir: 'test/fixtures/definitions/tp-nonfinite-weight', description: '(OI-82) a non-numeric weight makes complexity_score NaN, silently disabling every score-driven skill — check-trigger-predicates', validator: validatorPath('check-trigger-predicates.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/tp-nonfinite-weight' }, expect: 'not a finite number' },
   { id: 'jc', dir: 'test/fixtures/lifecycle-violations/jc-coverage-id-untouched', description: '(OI-82) a review declares a manifest ID no task Changed Files entry touches — check-manifest-coverage', validator: validatorPath('check-manifest-coverage.mjs'), expect: 'declares manifest_id R2 but no task Changed Files entry touches it' },
+  // R8/F5 — the mode a non-Complex chain must record. `refused` means the council was applicable
+  // and did not fire; a Standard chain was never in scope for one, so it records `single-agent`
+  // with nothing to refuse. The validator used to demand `refused` here, rejecting a record that
+  // followed lifecycle-review's own mode resolution. Asserts the rule's own wording rather than
+  // just "an error occurred" — the mismatch message is shared with the two kill-switch branches.
+  { id: 'jd', dir: 'test/fixtures/lifecycle-violations/jd-mode-not-complex-refused', description: '(R8/F5) a non-Complex chain records "refused" where the contract expects single-agent — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'require "single-agent"' },
 ];
 
 let passed = 0;
