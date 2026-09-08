@@ -2,9 +2,9 @@
 slug: open-items-remediation
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-09-08
-updated: 2026-09-08
+updated: 2026-09-09
 manifest_ids:
   - R1
   - R2
@@ -22,7 +22,7 @@ upstream:
   - workflow/artifacts/verify/open-items-remediation-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -154,9 +154,19 @@ machine.
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: **pending** — the user has not yet responded to this ship decision. This section stays
-  pending until they do; it must never be self-authored, and Reflect is gated on it.
-- User's own words (verbatim, this turn): not yet given.
+- Status: approved
+- User's own words (verbatim, this turn): "Continue to reflect"
+- Date: 2026-09-09
+- **Scope of this approval, stated precisely because the two are not the same thing.** The user was
+  shown this artifact's `ship` recommendation, its residual risks, and an explicit three-way split
+  between approving the ship decision, pushing the branch, and merging PR #66. They approved the
+  first. That is acceptance of the ship decision and of the phase transition to Reflect. It is
+  **not** authorization to push: `origin/chore/open-items-triage-1.1.0` is still four commits
+  behind local, PR #66's head is still `b8fe90a`, and nothing has left this machine. It is **not**
+  authorization to merge into `release/1.1.0`. Both remain in Blocked Handoff. Reading "continue to
+  reflect" as consent to either would be exactly the inferred approval `workflow/rules.md` forbids —
+  and the three options were separated in the ask precisely so that this reading could not be
+  claimed later.
 
 ## Exit Gate
 
@@ -169,11 +179,11 @@ machine.
       stale, recorded as fact; `ci` not required by config and its last run describes an older
       head; `release`, `deployment`, `package`, `docs` not required by config; `source_of_truth`
       not applicable, no provider configured; `rollback` recorded above.
-- [ ] Checkpoint `ship-review` approved — **pending**, and the reason this artifact is
-      `blocked-for-user`.
+- [x] Checkpoint `ship-review` approved 2026-09-09, scoped to the ship decision and the phase
+      transition only — the push and the merge are not covered and have not happened.
 
 ## Next Phase
 
-blocked — Reflect cannot begin until the `ship-review` checkpoint carries the user's own words.
-`check-lifecycle --phase reflect` enforces that mechanically, which is the intended behaviour here,
-not an obstacle to work around.
+Reflect. The `ship-review` checkpoint carries the user's own words and `check-lifecycle --phase
+reflect` passes. The two outward actions in Blocked Handoff stay outstanding and are inherited by
+Reflect as open follow-ups, not closed by this transition.
