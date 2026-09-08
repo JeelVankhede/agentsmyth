@@ -4,13 +4,16 @@ version: 1
 artifact: brief
 status: ready-for-next-phase
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-09-08
 manifest_ids:
   - R1
   - R2
   - R3
   - R4
   - R5
+  - R6
+  - R7
+  - R8
 upstream:
   - user-request
 orchestration:
@@ -67,8 +70,11 @@ it has not established.
 
 - Do not close items that need a decision from the user, an event in the world, or a tool this
   environment cannot reach. Recording them as done would be fabricating verification.
-- Do not take on OI-82 (the undefended-rule sweep), OI-80, or OI-71: each is a sized work package
-  and folding them in here is the scope creep the lifecycle exists to prevent.
+- Do not take on OI-80 or OI-71: each is a sized work package and folding them in here is the
+  scope creep the lifecycle exists to prevent.
+- OI-82 (the undefended-rule sweep) was also a Non-Goal here, and that decision was reversed
+  mid-chain. See the scope-change note below; it is recorded rather than quietly deleted, because
+  the reversal is the more useful fact.
 - Do not bump `package.json`. The release workflow does its own version bump.
 
 ## Requirement Manifest
@@ -100,6 +106,26 @@ it has not established.
   - Acceptance: a scenario builds a polyrepo-member workspace with real sibling checkouts and
     asserts both the routing and the two fallbacks.
 
+- **R6** — Repair the 96 grandfathered artifact violations at source (OI-65, OI-5).
+  - Acceptance: every violation in `workflow/config/artifact-baseline.yaml` is fixed in the
+    artifact that carries it, not re-baselined; the baseline's `entries` list is empty and
+    `check-artifacts` reports zero live violations without it.
+
+- **R7** — Close the undefended-rule gap across the validator set (OI-82).
+  - Acceptance: `test/mutation-baseline.json` records zero undefended rules for every validator
+    it audits; each newly defended rule has a rejection fixture that asserts the rule's own
+    wording; any new suite is wired into `package.json`, `ci.yml`, `release.yml` and the audit's
+    own `SUITES` list.
+
+- **R8** — Remediate the findings this chain's own Review raised (F1–F5 of
+  `workflow/artifacts/reviews/open-items-remediation-v1.md`).
+  - Acceptance: the artifact chain declares the work actually on the branch (F1); the file that
+    reached the branch without task coverage is declared and the gate bypass is recorded on its
+    open item (F2); the pre-commit gate resolves validators from the repository under change, not
+    only its CLI (F3); the symbol removed from a shipped module is named in the release notes
+    (F4); `check-council-record` and `single-agent-path.md` agree on the expected mode for a
+    non-Complex chain (F5).
+
 ## Architecture Notes
 
 No architectural change. Every change either tightens an existing gate, corrects a selection
@@ -112,8 +138,30 @@ The hook fixes apply to both `.githooks/pre-commit` (this repo's own) and
 `src/assets/hooks/pre-commit` (the copy `init` appends into a consumer's hook), because the
 `set -e` hazard belongs to whatever host script the block is appended to.
 
+## Scope Change — 2026-09-08
+
+R6, R7 and R8 were added after Build closed on R1–R5, and the record should be plain about the
+order in which that happened.
+
+R6 and R7 are **retroactive**. The work landed on this branch in thirteen commits (`87e8a1b`, and
+`443a6c3..b8fe90a`) after the task artifact recorded all five phases complete, without a plan phase
+or a requirement covering it. R7 additionally reverses a Non-Goal this brief had stated. Review
+found this as F1 and held the chain; these requirements exist so the chain declares what it
+actually ships. They do not pretend the scoping happened first — writing them now is the repair,
+and the underlying discipline failure is recorded in R8's own finding.
+
+R8 is **scoped before its work**, in the ordinary way: the requirement and its plan phase were
+written before the first remediation edit.
+
+Splitting the thirteen commits onto their own chain was the alternative, and was weighed. Rejected
+because the work is already merged into this branch's history and PR #66 is open against
+`release/1.1.0`: rewriting that history to fabricate a cleaner chain would cost more truth than it
+buys.
+
 ## Exit Gate
 
-- R1–R5 are non-overlapping and each is acceptance-testable in this repo.
+- R1–R8 are non-overlapping and each is acceptance-testable in this repo.
 - Items that cannot be honestly closed are named in Non-Goals rather than silently omitted.
 - Classification confirmed Standard: a fixed list of known fixes, no design work outstanding.
+  Unchanged by R6–R8 — the added requirements are more of the same kind of work, not a different
+  kind, and none of them opens a design question.
