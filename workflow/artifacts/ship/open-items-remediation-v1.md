@@ -128,9 +128,13 @@ rejects a `ship` recommendation that carries blockers, and it is right to: no ga
 evidence is missing. What is outstanding is a decision, which the checkpoint models. Conflating the
 two would have reported this chain as having unfinished verification work when it has none.
 
-1. **Push** `chore/open-items-triage-1.1.0` (4 commits) to update PR #66 and let CI run against the
-   real head.
-2. **Merge** PR #66 into `release/1.1.0`.
+1. ~~**Push** `chore/open-items-triage-1.1.0` to update PR #66 and let CI run against the real
+   head.~~ **Done 2026-09-09**, on the user's explicit instruction and covering the push only:
+   `b8fe90a..caac39f`, PR #66 now at `caac39f`, CI run 34265740265 green (`validate`, 53s). The
+   run recorded above as describing a stale head has been superseded by one that describes this
+   work.
+2. **Merge** PR #66 into `release/1.1.0` — still outstanding, still not authorised. Tracked by
+   OI-90.
 
 Neither is inferred from the approval to commit. The commits exist locally; nothing has left this
 machine.
