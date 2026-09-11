@@ -15,6 +15,11 @@ const excluded = [
   // do not apply. Found via audit: ordinary English phrases and legitimate architecture
   // discussion terms were false-flagged here before this exclusion existed.
   /^workflow\/artifacts\//,
+  // Test fixtures are deliberately malformed — a fixture for the placeholder-text rule has to
+  // CONTAIN placeholder text to be a fixture at all, and nothing under test/ is shipped (see
+  // package.json's `files`). check-lifecycle's stray-artifact guard already exempts this tree for
+  // the same reason; this scan simply had not needed to yet.
+  /^test\/fixtures\//,
 ];
 
 const textFilePattern = /\.(md|mdc|yaml|yml|mjs|js|json|txt|rules)$/;

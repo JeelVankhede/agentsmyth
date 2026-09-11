@@ -1,0 +1,7 @@
+version: 1
+kind: pending-setup
+items:
+  - config: repo-profile.yaml
+    field: "domain.name"
+    question: "q"
+    status: open

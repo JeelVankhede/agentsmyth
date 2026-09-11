@@ -11,6 +11,8 @@ manifest_ids:
   - RI1
   - RI2
   - RI3
+upstream:
+  - wpr4-spike-notion-396972bd
 orchestration:
   phase: think
   status: ready-for-next-phase

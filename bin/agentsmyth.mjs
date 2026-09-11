@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
-import { join, dirname, isAbsolute } from 'node:path';
+import { join, dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { confirmPrompt } from './prompts.mjs';
 
@@ -79,11 +79,29 @@ function resolveValidator(checkRoot, profilePath, validatorFilename) {
   } catch { /* fall through */ }
   if (definitionsRoot?.startsWith('~/')) definitionsRoot = join(homedir(), definitionsRoot.slice(2));
 
+  // When the repository being checked IS this package — the source repo, developing the
+  // validators themselves — its own `src/workflow/validators/` wins over every installed copy.
+  // Without this, preferring the repo's own bin/ (which the pre-commit hook now does) changed
+  // only which CLI ran: the validator FILES still came from definitions_root, so the gate on a
+  // change to a validator kept running the previously installed version of that same validator.
+  // Not reachable from the environment either, before or after this change: the one env override
+  // this resolver consults (AGENTSMYTH_HOME) is checked AFTER definitions_root, so a stale linked
+  // tree could not be stepped around by setting a variable.
+  //
+  // Guarded so it can never fire for a consumer. It requires the resolved repo root and the
+  // package root to be the same directory AND that directory to contain the validator under
+  // `src/workflow/`, which is true only in a checkout of this repository: package.json's `files`
+  // never ships `src/workflow/`, so an installed copy has nothing at that path, and an install is
+  // in node_modules or an npx cache rather than at the repo root being checked.
+  const sourceCopy = join(pkgRoot, 'src', 'workflow', 'validators', validatorFilename);
+  const isSourceRepo = resolve(checkRoot) === resolve(pkgRoot) && existsSync(sourceCopy);
+
   const candidates = [
+    isSourceRepo && sourceCopy,
     definitionsRoot && join(definitionsRoot, 'validators', validatorFilename),
     process.env.AGENTSMYTH_HOME && join(process.env.AGENTSMYTH_HOME, 'validators', validatorFilename),
     join(checkRoot, 'workflow', 'validators', validatorFilename),
-    join(pkgRoot, 'src', 'workflow', 'validators', validatorFilename),
+    sourceCopy,
   ].filter(Boolean);
   const resolved = candidates.find((p) => existsSync(p));
   return { resolved, candidates };
@@ -133,7 +151,16 @@ if (command === 'check') {
         console.warn(`agentsmyth: version skew detected — repo-profile.yaml has no agentsmyth_version stamp (pre-dates version-stamping), CLI is v${currentPkgVersion}`);
       }
       console.warn('  Run "agentsmyth prepare" to refresh the global lifecycle definitions to the current version.');
-      console.warn('  This warning is informational — it does not block anything, and prepare does not update this repo\'s own repo-profile.yaml.');
+      console.warn('  This warning is informational — it does not block anything.');
+      // Naming what clears it matters: `prepare` is global-only by design and writes no repo-level
+      // file, so following the line above never removes this warning. Saying only "prepare does not
+      // update repo-profile.yaml" left the reader with advice that cannot work and no alternative —
+      // found by rehearsing a real 1.0.0 -> current upgrade, where the warning survived prepare and
+      // every subsequent check.
+      console.warn('  It persists until this repo\'s own agentsmyth_version stamp is updated, which');
+      console.warn('  prepare deliberately does not do — it is global-only and writes no repo files.');
+      console.warn('  Re-running "agentsmyth init" updates the stamp; note it also re-scaffolds');
+      console.warn('  .agentsmyth/ for your agent to remove once setup is finished.');
 
       // WP-R8 R8: a skew warning that leads nowhere is what this used to be. Now the newer
       // version's config surfaces get proposed as pending-setup items, which the router's existing

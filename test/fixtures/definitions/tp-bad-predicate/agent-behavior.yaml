@@ -1,0 +1,314 @@
+version: 1
+kind: agent-behavior
+
+canonical_source:
+  workflow_root: workflow
+  instructions_root: AGENTS.md
+  rule: workflow/ is the canonical workflow root in a consumer repo.
+
+task_classes:
+  trivial:
+    description: Single-location change with no architectural impact and no risk to other callers.
+    classification_signals:
+      - rename a variable or string literal in one file
+      - fix a typo or comment
+      - bump a version constant
+      - reorder import statements
+    required_phases: []
+    skippable_phases:
+      - think
+      - plan
+      - review
+      - test
+      - ship
+      - reflect
+    artifact_required: false
+    note: Handle inline. No lifecycle artifact needed. Document the change in the response.
+  standard:
+    description: Multi-file or cross-function change with defined scope and no architectural decisions pending.
+    classification_signals:
+      - new feature or endpoint within an existing pattern
+      - bug fix that touches multiple files
+      - refactor within a bounded module
+      - test suite addition or update
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - ship
+      - reflect
+    skippable_phases:
+      - test
+    skip_requires_waiver: true
+    artifact_required: true
+  complex:
+    description: Cross-cutting change, new architectural pattern, or work requiring multiple independent workstreams.
+    classification_signals:
+      - new layer, service, or integration
+      - schema or API contract change affecting multiple callers
+      - change to authentication, authorization, or data model
+      - work requiring parallel build workstreams
+    required_phases:
+      - think
+      - plan
+      - build
+      - review
+      - test
+      - ship
+      - reflect
+    skippable_phases: []
+    skip_requires_waiver: true
+    artifact_required: true
+
+lifecycle:
+  default_mode: standard
+  require_artifacts_for_standard_and_complex_work: true
+  allow_skipped_phase_with_waiver: true
+  artifact_chain:
+    - artifact: brief
+      phase: think
+      path: workflow/artifacts/briefs/<slug>-v<N>.md
+      next_phase: plan
+    - artifact: plan
+      phase: plan
+      path: workflow/artifacts/plans/<slug>-v<N>.md
+      next_phase: build
+    - artifact: task
+      phase: build
+      path: workflow/artifacts/tasks/<slug>-v<N>.md
+      next_phase: review
+    - artifact: review
+      phase: review
+      path: workflow/artifacts/reviews/<slug>-v<N>.md
+      next_phase: test
+    - artifact: verify
+      phase: test
+      path: workflow/artifacts/verify/<slug>-v<N>.md
+      next_phase: ship
+    - artifact: ship
+      phase: ship
+      path: workflow/artifacts/ship/<slug>-v<N>.md
+      next_phase: reflect
+    - artifact: reflect
+      phase: reflect
+      path: workflow/artifacts/reflect/<slug>-v<N>.md
+      next_phase: done
+
+pause_resume:
+  restore_from_artifacts_first: true
+  never_continue_from_chat_memory_only: true
+  unresolved_blockers_pause: true
+  user_checkpoint_required_for:
+    - brief-review
+    - plan-review
+    - ship-review
+
+evidence_policy:
+  no_external_claim_without_evidence: true
+  command_success_requires_current_output_or_cited_artifact: true
+  skipped_checks_are_risk: true
+  blocked_or_not_run_checks_require_owner: true
+  generated_output_requires_source_or_regeneration_evidence: true
+
+change_policy:
+  preserve_unrelated_changes: true
+  stage_only_approved_scope: true
+  default_branch_commit_requires_user_approval: true
+  destructive_action_requires_user_approval: true
+  external_write_requires_user_request_or_config: true
+
+waivers:
+  approvers:
+    - user
+    - configured_decision_owner
+  required_fields:
+    - waived_gate_or_requirement_id
+    - reason
+    - residual_risk
+    - owner
+    - follow_up_action
+    - approval_evidence
+  cannot_waive_false_evidence: true
+
+dispatch:
+  enabled: optional
+  max_parallel_workstreams: 3
+  require_independent_file_ownership: true
+  require_dispatch_log: true
+  merge_owner: primary_agent
+
+council:
+  enabled: on-for-complex
+  max_rounds: 4
+  depth: standard
+  # Fan-out is per phase, and every phase that gets one says so here. There is no phase-agnostic
+  # default: a phase absent from this map gets NO council departure and falls back to the global
+  # default-to-1 rule, so forgetting to decide fails safe instead of billing silently.
+  #
+  # Review is 2, not Think's 3, decided rather than inherited: the Think council was measured at
+  # roughly 6x invocations for less coverage than a single-agent baseline, Review runs on every
+  # Complex chain with the same bill, and Review's output blocks a commit, so a confident wrong
+  # finding costs more here than in Think. Two reviewers over disjoint risk categories keep the
+  # property that matters — fresh context, no overlap — and the challenge pass, which is where the
+  # Think council's distinctive value actually showed, is capped separately per stage.
+  per_phase:
+    think:
+      default_fan_out: 3
+    review:
+      default_fan_out: 2
+  sandbox_root: "~/.agentsmyth/sandbox"
+
+# RESOLUTION: whether a council fires is decided in this exact order, and the first
+# answer wins:
+#   1. resolved `dispatch.enabled` — if `disabled`, NO council, in any phase, for any task class.
+#      A repo that turned delegation off made a standing decision, and a council firing anyway
+#      would be a kill switch a later feature routed around. Log a refusal and run single-agent.
+#   2. resolved `council.enabled` — `disabled` means no council; `on-for-complex` continues.
+#   3. task class — the council fires for `complex` only. Trivial and Standard keep the
+#      single-agent path with no behavioral change.
+#
+# `default_fan_out` applies ONLY when neither the global `dispatch.max_parallel_workstreams` nor
+# `tuning.dispatch.max_parallel_workstreams` is declared. It is a deliberate departure from
+# phase-caps.md's global "default to 1 (no parallelism)" rule, because a one-member council is not
+# a council. The departure costs an unconfigured consumer real tokens without their having chosen
+# it, so the artifact records `cap_source: council-default` vs `configured` and the departure is
+# documented in phase-caps.md rather than left to be discovered on a bill.
+#
+# `depth` bounds per-member research effort, NOT member count. It exists so cost can be reduced
+# without shrinking the council — fan-out is the wrong knob for that, since fewer members means
+# less coverage rather than cheaper coverage.
+#
+# `sandbox_root` is where trial members write. It resolves global-then-repo-local exactly like
+# `definitions_root`, and defaults outside every repository by construction so that "no council
+# member modifies the repo" holds structurally rather than by per-run assertion.
+
+# RESOLUTION: three of the six keys a repo may override in workflow/config/repo-profile.yaml
+# under `tuning:` live in this block — complexity_score.weights, path_glob_categories, and
+# thresholds. (The other three are dispatch.max_parallel_workstreams, dispatch.enabled, and
+# pause_resume.user_checkpoint_required_for.) Before applying this rubric, resolve each PER ENTRY —
+# start from the global value here, then let any entry the repo declares under tuning.skill_scoring
+# replace that entry only. Entries the repo does not name keep the values below.
+#
+# "Per entry" reaches one level INTO a value that is itself a map. A weight like files_touched is
+# `{per_unit, cap}`: a repo tuning only per_unit keeps the global cap. Do not treat a repo's partial
+# map as the whole map at either level — a repo naming one weight, one sub-key of a weight, or one
+# glob category is changing that one thing, not deleting the rest. Getting this wrong is silent:
+# a dropped `cap` makes the score NaN, which makes every `complexity_score >= N` comparison false
+# and stops every score-driven skill firing, with no error anywhere.
+#
+# triggers is NOT tunable and is always read from this file. Only the numeric thresholds it compares
+# against were split out into `thresholds` — a repo moves numbers, never boolean structure.
+#
+# skill_scoring backs passive/scored power skills. There is no runtime that computes
+# these values mechanically: the agent reads a requirement/diff, applies this rubric itself, and
+# records the ran/skipped decision in the artifact's skill_trigger_log (see
+# artifact-frontmatter.schema.yaml). A validator cannot re-derive or verify the score itself. What
+# check-skill-triggers.mjs does enforce: (1) every recorded skill_trigger_log entry is well-formed
+# (skill, decision: ran|skipped, reason); and (2) presence + completeness for phases that mandate a
+# fixed skill set — such a phase's artifact MUST record a log covering all mandated skills (e.g.
+# Think's repo-alignment-scan / architecture-decision-advisor / constraint-conflict-scan). It never
+# evaluates a path/score predicate — only that each mandated decision was recorded.
+#
+# Not every power skill has an entry below — only Passive/scored skills do (Active and Gate-bound
+# skills fire on other conditions and have nothing to score here). Predicate strings use
+# `path~<category>_globs` as shorthand for "the diff touches a file matching that category's glob
+# set" — there is no runtime to evaluate this mechanically (see comment above); the agent applies
+# the predicate itself and records the decision in skill_trigger_log. check-skill-triggers.mjs
+# audits that recorded decisions are well-formed and (for mandating phases) complete, never that the
+# predicate was evaluated correctly.
+skill_scoring:
+  version: 1
+  signals:
+    files_touched:
+      source: diff
+      type: int
+    ri_count:
+      source: manifest
+      type: int
+    touches_protected:
+      source: repo-profile.paths.protected
+      type: bool
+    touches_contract:
+      source: repo-profile.paths.public_contracts
+      type: bool
+    touches_generated:
+      source: repo-profile.paths.generated_outputs
+      type: bool
+    new_surface:
+      source: diff
+      type: bool
+    task_class:
+      source: classification
+      type: string
+  complexity_score:
+    weights:
+      files_touched:
+        per_unit: 3
+        cap: 30
+      ri_count:
+        per_unit: 4
+        cap: 24
+      touches_protected: 15
+      touches_contract: 15
+      new_surface: 10
+      task_class:
+        trivial: 0
+        standard: 6
+        complex: 6
+  # thresholds holds the numeric cut-offs the predicates below compare against, split out of the
+  # predicate strings so a repo can say "review me harder" without rewriting logic. This
+  # is a tunable key (repo-profile.yaml `tuning.skill_scoring.thresholds`, per-entry merge); the
+  # `triggers` predicates themselves stay locked and global. That split is the whole point: a repo
+  # moves numbers, never boolean structure, so it can raise or lower how often a skill fires but
+  # can never make a skill unreachable by editing its logic. The values below are the literals that
+  # were previously inline, so behavior is unchanged.
+  thresholds:
+    repo-alignment-scan: 40
+    architecture-decision-advisor: 60
+    domain.system-design-advisor: 60
+    domain.clean-code-architect: 50
+    domain.performance-optimizer: 60
+  triggers:
+    repo-alignment-scan: "complexity_score >= thresholds.repo-alignment-scan OR new_surface OR task_class != trivial"
+    architecture-decision-advisor: "complexity_score >= thresholds.architecture-decision-advisor OR touches_contract OR new_surface"
+    constraint-conflict-scan: "path~"
+    domain.interface-contract-designer: "path~contract_globs OR touches_contract"
+    domain.data-schema-designer: "path~schema_globs"
+    domain.system-design-advisor: "complexity_score >= thresholds.domain.system-design-advisor OR new_surface"
+    domain.ui-ux-designer: "path~ui_globs"
+    domain.clean-code-architect: "complexity_score >= thresholds.domain.clean-code-architect"
+    domain.quality-gates-validator: "task_class != trivial"
+    domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= thresholds.domain.performance-optimizer"
+  # path_glob_categories gives the `path~<category>_globs` trigger shorthand above a concrete,
+  # checkable meaning — a starting, deliberately non-exhaustive set per category, editable without
+  # touching the trigger predicates themselves. Used by check-trigger-predicates.mjs against
+  # examples/power-skill-sandbox/ to catch a predicate or glob-category regression mechanically —
+  # the one part of skill-trigger correctness that doesn't require an LLM to evaluate.
+  path_glob_categories:
+    contract_globs:
+      - "**/routes/**"
+      - "**/api/**"
+      - "**/*.proto"
+      - "**/openapi*.yaml"
+      - "**/openapi*.yml"
+      - "**/*.graphql"
+      - "**/cli/**"
+    schema_globs:
+      - "**/migrations/**"
+      - "**/schema/**"
+      - "**/*.sql"
+      - "**/models/**"
+    ui_globs:
+      - "**/components/**"
+      - "**/views/**"
+      - "**/screens/**"
+      - "**/*.css"
+      - "**/*.tsx"
+      - "**/*.jsx"
+      - "**/*.vue"
+    hotpath_globs:
+      - "**/hot/**"
+      - "**/perf/**"
+
+extensions: {}

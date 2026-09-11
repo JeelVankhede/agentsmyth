@@ -85,9 +85,9 @@ None.
 
 ### Explicit (R)
 
-- R1: `writeDefinitionsRoot()`'s callers (`init`, `headlessBootstrap()`) write the literal `~/.agentsmyth/workflow` string, not an expanded absolute path, whenever the global install lives at the user's actual home directory (the default case).
+- **R1**: `writeDefinitionsRoot()`'s callers (`init`, `headlessBootstrap()`) write the literal `~/.agentsmyth/workflow` string, not an expanded absolute path, whenever the global install lives at the user's actual home directory (the default case).
   Acceptance: fresh `agentsmyth init` in a scratch repo produces `definitions_root: ~/.agentsmyth/workflow` verbatim in `repo-profile.yaml`; `agentsmyth check` resolves it correctly afterward.
-- R2: Backward compatibility — a `repo-profile.yaml` with the old, pre-fix expanded absolute-path form continues to resolve correctly (no regression for already-`init`'d repos).
+- **R2**: Backward compatibility — a `repo-profile.yaml` with the old, pre-fix expanded absolute-path form continues to resolve correctly (no regression for already-`init`'d repos).
   Acceptance: a scratch repo with a hand-written absolute-path `definitions_root` (no `~/` prefix) still resolves correctly via `agentsmyth check`.
 
 ### Implicit (RI)

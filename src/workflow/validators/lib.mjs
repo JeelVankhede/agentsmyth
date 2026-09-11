@@ -333,10 +333,6 @@ export function resolveGitCwd(frontmatter) {
   return join(_expandTilde(repository.workspace_root), sibling.path);
 }
 
-export function assertCondition(condition, message, errors) {
-  if (!condition) errors.push(message);
-}
-
 // Deferred-enforcement warnings. A schema declaration carrying
 // `x_enforcement: warn-until-<version>` is validated, but a failure is reported here instead of in
 // `errors`, so it is visible without failing the gate. See the branch in validateSchema.

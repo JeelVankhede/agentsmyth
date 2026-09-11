@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-08
+
+### Added
+- **Think council** — for Complex work, the Think phase fans out to independent researchers over
+  disjoint question buckets, followed by a challenge pass, and records the run in a Council Log that
+  `check-council-record` enforces. Off for Trivial and Standard work; `council.enabled` defaults to
+  `on-for-complex`.
+- **Review council** — the same shape for Review: reviewers over disjoint risk categories, a
+  challenger that attacks the raw findings, and a finding-quality ledger
+  (`workflow/artifacts/finding-quality.yaml`) that Ship is blocked on while rows remain pending.
+  Single-agent Review remains fully supported and is recorded in the artifact's frontmatter.
+- **Per-repo behavior tuning** — an optional `tuning:` block in `workflow/config/repo-profile.yaml`,
+  with an enumerated allowlist of tunables and the human-facing `intent:` block that derives them. A
+  tuned value may make behavior stricter or leave it unchanged, never looser, and that is enforced
+  rather than documented. Entirely additive: a `repo-profile.yaml` with no `tuning:` block validates
+  exactly as before.
+- **Mutation audit** (`npm run mutation:audit`) — disables one validator rule at a time and re-runs
+  the suites; a rule whose removal leaves everything green is a rule nothing defends.
+  `test/mutation-baseline.json` holds the result as a ratchet that can shrink and never grow. The
+  first run measured 106 undefended rules; the baseline now records 0 across 221 rules in 30
+  validators.
+- `docs/release-checklist.md` — the parts of a release the workflow cannot do for you, including the
+  do-not-pre-bump rule and the deprecation-window removal step.
+- `npm run domain-placeholders:test` — a suite for `check-domain-placeholders`, which scans tracked
+  files and so could not be fixtured from inside this repository.
+
+### Changed
+- `agentsmyth check` resolves validators from the repository's own `src/workflow/validators/` when
+  the repository being checked is the package itself. Consumer repos are unaffected and continue to
+  resolve from their linked `definitions_root`.
+- `check-council-record` expects `single-agent`, not `refused`, for a chain that is not Complex — a
+  refusal records that a council was applicable and did not fire, which a non-Complex chain never
+  was.
+- The Plan starter block carries the `## Assumptions Verified` section `check-assumptions` requires,
+  so a plan copied verbatim from the shipped starter block passes the shipped validators.
+- Ship's base-divergence check is unconditional, and gains a step for reconciling identifiers (not
+  just content) when the base has advanced — two branches that independently allocate the same ID to
+  different things merge clean and silently. Build and Review both instruct running the configured
+  validate command right after writing an artifact rather than at end of phase.
+
+### Fixed
+- The mandatory pre-commit hook ran its coverage check as a bare command under `set -e`, so a
+  failing check terminated the script before the per-artifact phase-gate loop could run: the gate
+  reported one class of problem while silently skipping another. It now runs as an `if` condition,
+  and both checks always report in one pass. Applies to the shipped hook and this repository's own.
+- The pre-commit hook prefers the repository's own `bin/agentsmyth.mjs` when one exists, instead of
+  whichever version happened to be on `PATH`.
+- `check-assumptions` selected the first brief in a versioned set rather than the highest, so a plan
+  could be validated against a superseded brief — passing when it missed a new assumption, and
+  failing when it covered one.
+- 96 grandfathered artifact violations were repaired in the artifacts that carried them rather than
+  re-accepted; `workflow/config/artifact-baseline.yaml` is now empty and must stay empty.
+
+### Removed
+- `assertCondition` from `src/workflow/validators/lib.mjs`. It had no callers anywhere in the
+  package and no fixture could reach it; `lib.mjs` is internal to the validators and is not a
+  documented extension point, but the symbol did ship, so its removal is recorded here.
+
 ## [1.0.1] - 2026-08-08
 
 ### Added

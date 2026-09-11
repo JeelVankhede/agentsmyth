@@ -18,15 +18,13 @@ manifest_ids:
   - RI4
   - RI5
 upstream:
-  - artifact: task
-    slug: system-level-install
-    version: 1
+  - workflow/artifacts/tasks/system-level-install-v1.md
 orchestration:
   phase: review
-  status: complete
+  status: done
   next_phase: test
   blockers: []
-  user_checkpoint: false
+  user_checkpoint: none
 ---
 
 ## Findings

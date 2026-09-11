@@ -12,7 +12,7 @@ upstream:
 orchestration:
   phase: build
   status: ready-for-next-phase
-  next_phase: build
+  next_phase: review
   blockers: []
   user_checkpoint: none
 ---

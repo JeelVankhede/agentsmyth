@@ -96,28 +96,28 @@ None blocking — D-1 and D-2 are resolved against source, see Requirement Manif
 
 ### Explicit (R)
 
-- R1 (T-D1): `site/install.md:43`'s false repo-root-write claim → correctly scoped promise + repo-root write list.
+- **R1** (T-D1): `site/install.md:43`'s false repo-root-write claim → correctly scoped promise + repo-root write list.
   Acceptance: `grep -r "never writes to your repo root" site/ README.md` returns zero hits.
-- R2 (T-D2): `site/setup.md:53-54`'s stale opt-in hook callout → deleted, replaced with mandatory framing; `site/install.md` gets a one-line hook mention.
+- **R2** (T-D2): `site/setup.md:53-54`'s stale opt-in hook callout → deleted, replaced with mandatory framing; `site/install.md` gets a one-line hook mention.
   Acceptance: `grep -rn "pre-commit" site/ README.md` shows one consistent (mandatory) story; zero hits for "opt-in" adjacent to "pre-commit".
-- R3 (T-D3): `README.md:66`'s "Six YAML files" sentence and its 6-row table → "Five", `agent-behavior.yaml` row dropped, shared-definitions-tree sentence added.
+- **R3** (T-D3): `README.md:66`'s "Six YAML files" sentence and its 6-row table → "Five", `agent-behavior.yaml` row dropped, shared-definitions-tree sentence added.
   Acceptance: README's Config Files section says "five"; table has exactly 5 rows.
-- R4 (T-D4): `site/setup.md:25-32`'s 6-row config table → `agent-behavior.yaml` row dropped, explanatory paragraph at line 34 left untouched.
+- **R4** (T-D4): `site/setup.md:25-32`'s 6-row config table → `agent-behavior.yaml` row dropped, explanatory paragraph at line 34 left untouched.
   Acceptance: table has exactly five rows.
-- R5 (T-D5): `README.md:61`'s stale `.cursor/rules/index.mdc` → `.cursor/rules/agentsmyth.mdc`, matching the actual write path in `bin/agentsmyth.mjs:686`.
+- **R5** (T-D5): `README.md:61`'s stale `.cursor/rules/index.mdc` → `.cursor/rules/agentsmyth.mdc`, matching the actual write path in `bin/agentsmyth.mjs:686`.
   Acceptance: `grep -n "\.cursor/rules/" README.md` returns one distinct path across both mentions.
-- R6 (T-D6): `site/setup.md:50`'s unscoped `AGENTS.md` sentence → reworded to name Codex explicitly.
+- **R6** (T-D6): `site/setup.md:50`'s unscoped `AGENTS.md` sentence → reworded to name Codex explicitly.
   Acceptance: both README and setup page describe `AGENTS.md` as Codex-specific only.
-- R7 (T-D7): `site/install.md:39`'s wrong `workflow-bundle.md` description ("used to seed local artifacts and learnings") → replaced with README's own accurate wording ("the full workflow... the agent expands").
+- **R7** (T-D7): `site/install.md:39`'s wrong `workflow-bundle.md` description ("used to seed local artifacts and learnings") → replaced with README's own accurate wording ("the full workflow... the agent expands").
   Acceptance: `grep -n "seed local artifacts and learnings"` returns zero hits.
-- R8 (T-D8): `site/validators.md`'s setup-gate table (2 rows) → add a third, explicitly non-blocking `check-pending-setup` row, reconciling with README's 3-command post-setup list.
+- **R8** (T-D8): `site/validators.md`'s setup-gate table (2 rows) → add a third, explicitly non-blocking `check-pending-setup` row, reconciling with README's 3-command post-setup list.
   Acceptance: `site/validators.md` names all three post-setup checks from `README.md:189-193`, with `check-pending-setup` marked non-blocking; no new hard validator count added anywhere on the page.
-- R9 (T-D18): `site/public/logo.svg`'s `prefers-color-scheme`-driven single file → split into `logo-light.svg`/`logo-dark.svg` (hardcoded ink, no `<style>` block), `config.ts`'s `themeConfig.logo` set to `{ light, dark, alt, width, height }`.
+- **R9** (T-D18): `site/public/logo.svg`'s `prefers-color-scheme`-driven single file → split into `logo-light.svg`/`logo-dark.svg` (hardcoded ink, no `<style>` block), `config.ts`'s `themeConfig.logo` set to `{ light, dark, alt, width, height }`.
   Acceptance: `grep -r "prefers-color-scheme" site/` returns nothing; logo visible in all four OS-theme × site-theme combinations by actual rendering, not just grep.
 
 ### Implicit (RI)
 
-- RI1: Every edit must not touch anything on the Notion "Do not touch" list. Acceptance: diff review confirms no touched line falls inside a "do not touch" quoted block.
+- **RI1**: Every edit must not touch anything on the Notion "Do not touch" list. Acceptance: diff review confirms no touched line falls inside a "do not touch" quoted block.
 
 ### Assumptions (A)
 

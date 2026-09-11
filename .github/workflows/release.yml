@@ -61,6 +61,7 @@ jobs:
           npm run setup-validator-definitions-root:test
           npm run tuning-merge:test
           npm run commit-coverage:test
+          npm run domain-placeholders:test
 
       # Deliberately here and not in ci.yml. The audit mutates every validator rule in turn and
       # re-runs three suites for each, so it costs tens of minutes — too slow for every push, and

@@ -4,19 +4,27 @@
  * Exits 0 always — open items are tracked debt, not errors.
  * Exits 1 only on malformed entries (missing required fields, bad status value).
  */
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { loadYaml, repoRoot } from './lib.mjs';
+import { dataPath, loadYaml, pathExists } from './lib.mjs';
 
-const pendingPath = join(repoRoot, 'workflow/config/pending-setup.yaml');
+// `--dir <path>` points the config read at a fixture tree instead of the repo's own
+// workflow/config, the same flag check-config.mjs and check-assumptions.mjs already carry and that
+// test/run-violation-tests.mjs invokes every validator with. This file was the one validator
+// without it: it resolved a hardcoded `join(repoRoot, 'workflow/config/pending-setup.yaml')`, so no
+// fixture could reach it and all eight of its rules were unreachable by the negative suite. It also
+// derived the same path twice, once absolute and once repo-relative, which is one more way for the
+// two to disagree.
+const args = process.argv.slice(2);
+const dirArgIdx = args.indexOf('--dir');
+const configDir = dirArgIdx !== -1 ? `${args[dirArgIdx + 1]}/config` : dataPath('config');
+const pendingPath = `${configDir}/pending-setup.yaml`;
 
-if (!existsSync(pendingPath)) {
+if (!pathExists(pendingPath)) {
   console.log('check-pending-setup: no pending-setup.yaml — all items resolved at setup time');
   process.exit(0);
 }
 
 const errors = [];
-const doc = loadYaml('workflow/config/pending-setup.yaml');
+const doc = loadYaml(pendingPath);
 
 if (!doc || doc.kind !== 'pending-setup') {
   errors.push('pending-setup.yaml: missing or wrong kind field');

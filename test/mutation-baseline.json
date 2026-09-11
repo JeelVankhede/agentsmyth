@@ -1,21 +1,21 @@
 {
-  "generated": "2026-08-30",
+  "generated": "2026-09-01",
   "results": {
     "check-artifacts.mjs": {
       "rules": 16,
-      "undefended": 12
+      "undefended": 0
     },
     "check-assumptions.mjs": {
       "rules": 4,
-      "undefended": 3
+      "undefended": 0
     },
     "check-commit-coverage.mjs": {
       "rules": 1,
-      "undefended": 1
+      "undefended": 0
     },
     "check-config.mjs": {
       "rules": 9,
-      "undefended": 7
+      "undefended": 0
     },
     "check-constraint-conflicts.mjs": {
       "rules": 1,
@@ -27,7 +27,7 @@
     },
     "check-coverage-ledger.mjs": {
       "rules": 2,
-      "undefended": 1
+      "undefended": 0
     },
     "check-coverage-range-shorthand.mjs": {
       "rules": 1,
@@ -39,7 +39,7 @@
     },
     "check-domain-placeholders.mjs": {
       "rules": 4,
-      "undefended": 4
+      "undefended": 0
     },
     "check-evidence-citations.mjs": {
       "rules": 1,
@@ -55,23 +55,23 @@
     },
     "check-lifecycle.mjs": {
       "rules": 17,
-      "undefended": 16
+      "undefended": 0
     },
     "check-manifest-coverage.mjs": {
       "rules": 3,
-      "undefended": 2
+      "undefended": 0
     },
     "check-open-items.mjs": {
       "rules": 3,
-      "undefended": 3
+      "undefended": 0
     },
     "check-pending-setup.mjs": {
       "rules": 8,
-      "undefended": 8
+      "undefended": 0
     },
     "check-phase-map.mjs": {
       "rules": 2,
-      "undefended": 1
+      "undefended": 0
     },
     "check-release-readiness.mjs": {
       "rules": 5,
@@ -79,47 +79,47 @@
     },
     "check-schema-keywords.mjs": {
       "rules": 2,
-      "undefended": 2
+      "undefended": 0
     },
     "check-scope-fence.mjs": {
       "rules": 5,
-      "undefended": 4
+      "undefended": 0
     },
     "check-setup-complete.mjs": {
       "rules": 10,
-      "undefended": 10
+      "undefended": 0
     },
     "check-setup-refs.mjs": {
       "rules": 5,
-      "undefended": 5
+      "undefended": 0
     },
     "check-skill-triggers.mjs": {
       "rules": 2,
-      "undefended": 2
+      "undefended": 0
     },
     "check-skipped-accounting.mjs": {
       "rules": 3,
-      "undefended": 2
+      "undefended": 0
     },
     "check-starter-blocks.mjs": {
       "rules": 5,
-      "undefended": 5
+      "undefended": 0
     },
     "check-trigger-predicates.mjs": {
       "rules": 5,
-      "undefended": 5
+      "undefended": 0
     },
     "check-verify-matrix.mjs": {
       "rules": 4,
-      "undefended": 3
+      "undefended": 0
     },
     "check-waivers.mjs": {
       "rules": 3,
-      "undefended": 1
+      "undefended": 0
     },
     "lib.mjs": {
-      "rules": 14,
-      "undefended": 9
+      "rules": 13,
+      "undefended": 0
     }
   }
 }

@@ -110,31 +110,31 @@ Every technical claim below was verified by direct read this session — anchors
 
 ### Explicit (R)
 
-- R1 (T-D9): New Uninstall and removal page, covering repo-root cleanup, hook removal (marker-based), `~/.agentsmyth/` shared-install caveat, and the definitions_root-linked-repo-loses-global-tree failure mode.
+- **R1** (T-D9): New Uninstall and removal page, covering repo-root cleanup, hook removal (marker-based), `~/.agentsmyth/` shared-install caveat, and the definitions_root-linked-repo-loses-global-tree failure mode.
   Acceptance: page exists, renders, appears in sidebar under "Use it"; all four sub-topics present; every technical claim traces to a `bin/agentsmyth.mjs` line cited in this brief.
-- R2 (T-D10): New Troubleshooting page covering the four named scenarios, without repeating R10's known-incorrect warning text verbatim.
+- **R2** (T-D10): New Troubleshooting page covering the four named scenarios, without repeating R10's known-incorrect warning text verbatim.
   Acceptance: page exists, renders, appears in sidebar under "Use it"; all four scenarios present; does not quote the pre-R10-fix warning text as if accurate.
-- R3 (T-D11): New page or install-page section on Updating, stating the no-auto-refresh behavior, the manual-`prepare`-required fix, and `definitions_root`'s stability across upgrades.
+- **R3** (T-D11): New page or install-page section on Updating, stating the no-auto-refresh behavior, the manual-`prepare`-required fix, and `definitions_root`'s stability across upgrades.
   Acceptance: content exists and is discoverable from the install page or its own sidebar entry; does not claim `prepare` clears the version-skew warning (see R10).
-- R4 (T-D12): Footer or new page linking `LICENSE` and `CHANGELOG.md`.
+- **R4** (T-D12): Footer or new page linking `LICENSE` and `CHANGELOG.md`.
   Acceptance: both links present in rendered site output and resolve without a 404.
-- R5 (T-D13): `README.md` restructured per the Notion spec (lockup/tagline/badges/doc-site-link/compressed-hook/refuses-to-be/install/Development), `## Project Knowledge` renamed.
+- **R5** (T-D13): `README.md` restructured per the Notion spec (lockup/tagline/badges/doc-site-link/compressed-hook/refuses-to-be/install/Development), `## Project Knowledge` renamed.
   Acceptance: README opens with pitch content before any `src/`-path inventory; "What it refuses to be" five bullets present verbatim; `## Project Knowledge` heading no longer exists under that name.
-- R6 (T-D14): Four-page contradiction sweep (`/lifecycle`, `/under-hood`, `/artifacts`, `/power-skills`); one real fix required (`site/artifacts.md:37-39`'s `upstream` example shape), one minor optional fix (missing example frontmatter fields), one already-tracked confirm-only item (OI-54).
+- **R6** (T-D14): Four-page contradiction sweep (`/lifecycle`, `/under-hood`, `/artifacts`, `/power-skills`); one real fix required (`site/artifacts.md:37-39`'s `upstream` example shape), one minor optional fix (missing example frontmatter fields), one already-tracked confirm-only item (OI-54).
   Acceptance: `site/artifacts.md`'s example `upstream` field uses array-of-strings form matching `src/workflow/schemas/artifact-frontmatter.schema.yaml`; `grep -n "brief: workflow/artifacts" site/artifacts.md` returns zero hits after the fix.
-- R7 (T-D15): `/in-action` disclaimer repositioned (not deleted); rate-limiting example varied between `/in-action` and `/run-it`.
+- **R7** (T-D15): `/in-action` disclaimer repositioned (not deleted); rate-limiting example varied between `/in-action` and `/run-it`.
   Acceptance: disclaimer no longer sits above-the-fold as a blocking callout but the fabrication label remains present somewhere on the page; the two pages no longer share an identical example scenario.
-- R8 (T-D16): Per-page `description` frontmatter added across site pages; one OG image added to `head`.
+- **R8** (T-D16): Per-page `description` frontmatter added across site pages; one OG image added to `head`.
   Acceptance: at least the pages this Work Package touches (new Tier 2 pages, restructured README-linked pages) carry distinct `description` values; an OG image tag exists in `site/.vitepress/config.ts`'s `head`.
-- R9 (T-D17): Two conceptual diagrams added (source-of-truth hierarchy; global-tree-vs-repo split).
+- **R9** (T-D17): Two conceptual diagrams added (source-of-truth hierarchy; global-tree-vs-repo split).
   Acceptance: both diagrams render on their target page(s) after `npm run site:build`; neither introduces a claim absent from existing site prose.
-- R10 (new, `bin/agentsmyth.mjs`): Fix the version-skew warning's inaccurate "re-stamp repo-profile.yaml" claim.
+- **R10** (new, `bin/agentsmyth.mjs`): Fix the version-skew warning's inaccurate "re-stamp repo-profile.yaml" claim.
   Acceptance: `grep -n "re-stamp repo-profile.yaml" bin/agentsmyth.mjs` returns zero hits after the fix; the corrected message accurately describes `prepare`'s actual (global-tree-only) effect.
 
 ### Implicit (RI)
 
-- RI1: No edit touches anything on the Notion "Do not touch" list. Acceptance: diff review confirms no touched line falls inside a "do not touch" quoted block.
-- RI2: `npm run site:build` exits 0 after all Tier 2/3 changes, and the new-page nav-entry count is recorded wherever the prior count (12, from WP-R11) was tracked, so it doesn't silently go stale a second time. Acceptance: build passes; nav count reference updated with a citation to this brief/plan.
+- **RI1**: No edit touches anything on the Notion "Do not touch" list. Acceptance: diff review confirms no touched line falls inside a "do not touch" quoted block.
+- **RI2**: `npm run site:build` exits 0 after all Tier 2/3 changes, and the new-page nav-entry count is recorded wherever the prior count (12, from WP-R11) was tracked, so it doesn't silently go stale a second time. Acceptance: build passes; nav count reference updated with a citation to this brief/plan.
 
 ### Assumptions (A)
 

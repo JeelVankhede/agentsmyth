@@ -2,7 +2,7 @@
 slug: wp-r5-repo-shape-taxonomy
 version: 1
 artifact: ship
-status: ship
+status: done
 created: 2026-07-12T00:00:00Z
 updated: 2026-07-12T00:00:00Z
 manifest_ids:
@@ -17,15 +17,13 @@ manifest_ids:
   - RI4
   - RI5
 upstream:
-  - artifact: verify
-    slug: wp-r5-repo-shape-taxonomy
-    version: 1
+  - workflow/artifacts/verify/wp-r5-repo-shape-taxonomy-v1.md
 orchestration:
   phase: ship
-  status: complete
+  status: done
   next_phase: reflect
   blockers: []
-  user_checkpoint: true
+  user_checkpoint: approved
 ---
 
 ## Inputs

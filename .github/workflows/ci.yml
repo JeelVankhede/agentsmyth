@@ -61,6 +61,9 @@ jobs:
       - name: Run commit-coverage tests
         run: npm run commit-coverage:test
 
+      - name: Run domain-placeholder tests
+        run: npm run domain-placeholders:test
+
       - name: Run setup-validator definitions_root tests
         run: npm run setup-validator-definitions-root:test
 

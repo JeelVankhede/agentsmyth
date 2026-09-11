@@ -1,0 +1,5 @@
+$id: broken
+title: Broken
+type: object
+properties:
+  x: {type: string}
