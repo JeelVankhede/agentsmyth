@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-09-08
 
 ### Added
+- **Generic `AGENTS.md` fallback** — `agentsmyth init` now writes a marked block into the
+  repository's root `AGENTS.md`, creating the file when absent. Any agent tool without a first-class
+  adapter can find the install root, the router, the lifecycle chain, and the fact that a pre-commit
+  hook refuses commits which skip phases — which the previous block never named. The block is
+  delimited by `<!-- agentsmyth:<version> BEGIN -->` / `<!-- agentsmyth:<version> END -->` and located
+  by pattern rather than literal string, so a later release finds a block an earlier one wrote,
+  replaces it in place, and can tell which version it is migrating from. Nothing outside the markers
+  is ever touched, including a stray unpaired marker. `AGENTS.md` is the one entry in `init`'s
+  enumerated placements that is create-or-replace rather than skip-if-exists, because a repo that
+  already has an `AGENTS.md` is exactly the case this serves. Codex's per-repo adapter placement is
+  subsumed by the same block: Codex reads `AGENTS.md` natively, so there is no longer a separate
+  Codex placement step. Five first-class adapters plus a best-effort generic fallback — the hook
+  remains the thing that actually enforces the gate.
 - **Think council** — for Complex work, the Think phase fans out to independent researchers over
   disjoint question buckets, followed by a challenge pass, and records the run in a Council Log that
   `check-council-record` enforces. Off for Trivial and Standard work; `council.enabled` defaults to

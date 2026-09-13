@@ -160,8 +160,7 @@ For each item in `.agentsmyth/assets/`, apply the collision rule:
 | Target path | Rule |
 |---|---|
 | `workflow/config/` (no existing populated configs) | Copy placeholder YAMLs — agent already filled them in Phase 3, so this is a no-op (configs were written directly to `workflow/config/`) |
-| `AGENTS.md` does not exist | Copy `.agentsmyth/assets/AGENTS.md` to repo root |
-| `AGENTS.md` exists | Read the existing file. Append the agentsmyth section from `.agentsmyth/assets/AGENTS.md` under a `## agentsmyth Workflow` heading. Never overwrite. |
+| `AGENTS.md` (any state) | **Do not touch it.** `agentsmyth init` owns this file and has already written its marked block before this skill starts — see the repo-local marker note in Step 5a.1. Copying or appending here would leave a second, unmarked copy that no later upgrade could find, refresh, or remove. |
 | `adapters/` does not exist | Copy `.agentsmyth/assets/adapters/` to repo root |
 | `adapters/<tool>/` exists | Copy only missing subdirs. Skip what is already there. |
 | `docs/knowledge-map/` does not exist | Create it and write `repo-mental-map.md` (already written in Phase 3) |
@@ -179,6 +178,24 @@ Before placing anything, check whether the chosen tool's **global** gate is alre
 | Copilot (macOS only) | `~/Library/Application Support/Code/User/prompts/agentsmyth.instructions.md` | `<!-- agentsmyth global gate BEGIN -->` / `<!-- agentsmyth global gate END -->` |
 | Cursor | none — no global mechanism exists for this tool | not applicable |
 
+##### Repo-local marker — not a global gate
+
+The table above lists **global** gate files, outside any repository. Separately from all of them,
+`agentsmyth init` writes one marked block into the repository's own root `AGENTS.md`:
+
+| Written by | File | Begin / end marker |
+|---|---|---|
+| `agentsmyth init` | `AGENTS.md` (repo root) | `<!-- agentsmyth:<version> BEGIN -->` / `<!-- agentsmyth:<version> END -->` |
+
+The stamp is the package version that wrote the block. `init` locates it by **pattern**, never by
+literal string, which is what lets a later release find a block an earlier release wrote, replace it
+in place, and tell which version it is migrating from. A literal match would make every release
+append a second block instead of replacing the first.
+
+Two consequences worth stating plainly. Content between those markers is overwritten by the next
+`init`, so never hand-edit it. Content outside them is the user's and is never touched — including a
+stray unpaired marker, which `init` deliberately leaves alone rather than absorbing.
+
 If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS). `agentsmyth init` already places both of these mechanically and deterministically before this skill starts (see Step 5a.2 below) — check whether the target path already exists before treating either as unplaced.
 
 Based on the agent tool identified during Phase 2's resolution pass, and only when the check above did not find an active global gate for it and the target path isn't already populated by `init` (Cursor / non-macOS Copilot), place the adapter at the path the tool reads automatically:
@@ -186,7 +203,7 @@ Based on the agent tool identified during Phase 2's resolution pass, and only wh
 | Agent tool | Source adapter | Target path in repo | Notes |
 |---|---|---|---|
 | Claude Code | `adapters/claude/CLAUDE.md` | `.claude/CLAUDE.md` | Create `.claude/` if missing. If `.claude/CLAUDE.md` exists, append agentsmyth gate under a `## agentsmyth` heading. |
-| Codex | `adapters/codex/AGENTS.md` | `AGENTS.md` (root) | Handled by Step 5a above — AGENTS.md placement already covers this. |
+| Codex | none — nothing to place | `AGENTS.md` (root) | Already written by `init` as the generic fallback block, which Codex reads natively. The generic block serves Codex and every tool with no first-class adapter, so there is no separate Codex placement. |
 | Copilot | `adapters/copilot/copilot-instructions.md` | `.github/copilot-instructions.md` | Create `.github/` if missing. Append if file exists. |
 | Cursor | `adapters/cursor/rules/index.mdc` | `.cursor/rules/agentsmyth.mdc` | Create `.cursor/rules/` if missing. |
 | Windsurf | `adapters/windsurf/.windsurfrules` | `.windsurfrules` (root) | Append if file exists. |
@@ -281,7 +298,7 @@ Before removing `.agentsmyth/`, output a one-line summary for each file written 
 copied   workflow/router.md
 copied   workflow/lifecycle.md
 ...
-skipped  AGENTS.md (exists — appended agentsmyth section instead)
+skipped  AGENTS.md (owned by init — marked block already written, not touched here)
 ```
 
 Show the log to the user and wait for acknowledgement before proceeding.

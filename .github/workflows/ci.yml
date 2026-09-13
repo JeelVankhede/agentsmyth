@@ -67,5 +67,8 @@ jobs:
       - name: Run setup-validator definitions_root tests
         run: npm run setup-validator-definitions-root:test
 
+      - name: Run AGENTS.md fallback tests
+        run: npm run agents-md:test
+
       - name: Build docs site
         run: npm run site:build

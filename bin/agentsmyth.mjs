@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
-import { join, dirname, isAbsolute, resolve } from 'node:path';
+import { join, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { confirmPrompt } from './prompts.mjs';
 
@@ -905,6 +905,107 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   }
 }
 
+// Where git will look for hooks in this repo: an explicit core.hooksPath (absolute, or relative to
+// the repo) when one is configured, otherwise .git/hooks. Shared deliberately by the function that
+// WRITES the hook (installPreCommitHook) and the one that TELLS THE READER where it landed
+// (placeAgentsMd). Those two must not be able to disagree — and they did: the AGENTS.md block once
+// hardcoded this repository's own .githooks path, which does not exist in a consumer repo that has
+// not set core.hooksPath. Caught as review finding F2.
+function resolveHooksDir(repoDir) {
+  try {
+    const configured = execFileSync('git', ['config', 'core.hooksPath'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    if (configured) return isAbsolute(configured) ? configured : join(repoDir, configured);
+  } catch { /* not a git repo, or core.hooksPath unset — fall through to the default */ }
+  return join(repoDir, '.git', 'hooks');
+}
+
+// Root AGENTS.md — the generic fallback (WP-R23) for every agent tool that has no first-class
+// adapter. Unlike the two placements above, this one is deliberately NOT skip-if-exists: a repo that
+// already has an AGENTS.md is the common case this exists to serve, and skipping would mean the block
+// never arrives. The write is bounded by markers instead — nothing outside them is touched (R3).
+//
+// The stamp is matched by PATTERN, never by the literal current version. A literal match would make
+// 1.2.0 fail to find a block that 1.1.0 wrote and append a second one, so every release would ADD a
+// block rather than replace the previous one — turning a version stamp from a migration aid into a
+// per-release duplication bug. Matching any stamp is also what lets a later release read which
+// version wrote a block and migrate it, which is the whole reason the stamp is there (brief Q1, R2).
+//
+// Differs from installPreCommitHook() on purpose: that function returns early when its marker is
+// already present, so it never refreshes a stale block. R2 requires replace-in-place, so this one
+// replaces. The extra-block sweep exists because R2's acceptance is "exactly one marker pair" — a
+// file that somehow carries two (a hand-copy, or a block written by a version with this bug) is
+// collapsed to one rather than left to accumulate.
+// The middle is a TEMPERED match: "any character, so long as another BEGIN does not start here".
+// A plain [\\s\\S]*? silently destroys user content. If the file carries an orphan BEGIN with no END
+// (a truncated write, a killed process, a pasted fragment), the first init appends a well-formed
+// block, and the second init then matches from the ORPHAN BEGIN to the new block's END and deletes
+// everything between them — the user's own text included. Reproduced before this guard existed.
+// Tempering makes the match start at the LAST BEGIN before an END, so an orphan is left untouched
+// as the stray text it is. Nothing outside a well-formed pair is ever ours to remove (R3).
+const AGENTS_BLOCK_PATTERN =
+  '<!-- agentsmyth:[^\\s>]+ BEGIN -->' +
+  '(?:(?!<!-- agentsmyth:[^\\s>]+ BEGIN -->)[\\s\\S])*?' +
+  '<!-- agentsmyth:[^\\s>]+ END -->';
+const AGENTS_BLOCK_RE = new RegExp(AGENTS_BLOCK_PATTERN);
+const AGENTS_BLOCK_RE_ALL = new RegExp(AGENTS_BLOCK_PATTERN, 'g');
+
+function agentsMdBlock(version, body) {
+  return `<!-- agentsmyth:${version} BEGIN -->\n${body.trim()}\n<!-- agentsmyth:${version} END -->`;
+}
+
+function placeAgentsMd(repoDir, pkgRootDir) {
+  const dest = join(repoDir, 'AGENTS.md');
+
+  // Reads are INSIDE the try on purpose. installPreCommitHook() reads its template outside its own
+  // try, so an unreadable template there takes init down; the degradation this function's catch
+  // promises is only real if the reads it depends on are covered by it too.
+  try {
+    const version = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
+    // renderAdapterTemplate() is a no-op on the current token-free asset, but routing through it
+    // keeps this consistent with the sibling placements and means a token added to the asset later
+    // resolves instead of shipping a literal {{TOKEN}} into a consumer's repo.
+    // HOOK_PATH is resolved per repo rather than hardcoded, so the block names the file that
+    // installPreCommitHook() actually wrote. Displayed repo-relative; an absolute core.hooksPath
+    // outside the repo stays absolute, which is still the true location.
+    const hookFile = join(resolveHooksDir(repoDir), 'pre-commit');
+    const displayed = relative(repoDir, hookFile);
+    const tokens = {
+      ...buildAdapterTokens(repoDir),
+      HOOK_PATH: displayed.startsWith('..') ? hookFile : displayed,
+    };
+    const body = renderAdapterTemplate(
+      readFileSync(join(pkgRootDir, 'src', 'assets', 'AGENTS.md'), 'utf8'),
+      tokens,
+    );
+    const block = agentsMdBlock(version, body);
+
+    if (!existsSync(dest)) {
+      writeFileSync(dest, block + '\n');
+      return;
+    }
+    const existing = readFileSync(dest, 'utf8');
+    if (AGENTS_BLOCK_RE.test(existing)) {
+      // Function replacement, not a string: a '$' in the block body would otherwise be read as a
+      // replacement pattern ($&, $1) and silently corrupt the written block.
+      let first = true;
+      writeFileSync(dest, existing.replace(AGENTS_BLOCK_RE_ALL, () => {
+        if (!first) return '';
+        first = false;
+        return block;
+      }));
+      return;
+    }
+    writeFileSync(dest, existing.endsWith('\n') ? `${existing}\n${block}\n` : `${existing}\n\n${block}\n`);
+  } catch (err) {
+    // A missing or unreadable asset, an unparseable package.json, or an unwritable repo root all
+    // land here and degrade to a warning: init must still scaffold config and artifacts.
+    console.warn(`agentsmyth: could not write AGENTS.md at ${dest} — skipping.`);
+    console.warn(`  ${err.message}`);
+  }
+}
+
 const HOOK_BEGIN_MARKER = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
 const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
 
@@ -916,15 +1017,9 @@ const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
 // Never fails `init` itself: a non-git directory or unwritable hooks path degrades to a warning
 // (RI4), since `init` must still be usable to scaffold config/artifacts even without git.
 function installPreCommitHook(repoDir, pkgRootDir) {
-  let hooksPath;
-  try {
-    const configured = execFileSync('git', ['config', 'core.hooksPath'], {
-      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-    hooksPath = configured ? (isAbsolute(configured) ? configured : join(repoDir, configured)) : join(repoDir, '.git', 'hooks');
-  } catch {
-    hooksPath = join(repoDir, '.git', 'hooks');
-  }
+  // Shared with placeAgentsMd() so the hook's real location and the location the AGENTS.md block
+  // advertises cannot drift apart (review finding F2).
+  const hooksPath = resolveHooksDir(repoDir);
 
   if (!existsSync(join(repoDir, '.git')) && !existsSync(hooksPath)) {
     console.warn('agentsmyth: not a git repository (or hooks path unavailable) — skipping mandatory pre-commit hook install.');
@@ -1214,6 +1309,11 @@ placeDeterministicAdapters(cwd, pkgRoot);
 
 // Mandatory local lifecycle gate (R1): installed unconditionally, no separate opt-in step.
 // Tool-agnostic — enforces at the git-commit layer, not any single AI tool's own mechanism.
+// Generic AGENTS.md fallback (WP-R23): the one enumerated placement that is create-or-replace rather
+// than skip-if-exists, because the repos that already have an AGENTS.md are exactly the ones this is
+// for. Runs after placeDeterministicAdapters() so it renders from the same resolved token set.
+placeAgentsMd(cwd, pkgRoot);
+
 installPreCommitHook(cwd, pkgRoot);
 
 // Copy bundles
