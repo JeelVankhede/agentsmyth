@@ -16,8 +16,6 @@ instead — this repo links to a global install rather than keeping a local copy
 `workflow/lifecycle.md` defines the phase order and the artifact each phase must write before the
 next one may start.
 
-**The gate is enforced, not advised.** A pre-commit hook at `{{HOOK_PATH}}` rejects any commit whose
-changed files are not covered by a lifecycle artifact in the required phase state. Skipping a phase
-does not produce a warning; it produces a failed commit.
+{{GATE_PARAGRAPH}}
 
 This block is a pointer to the contract, not the contract itself.

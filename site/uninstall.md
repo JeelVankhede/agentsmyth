@@ -9,14 +9,29 @@ Nothing agentsmyth writes is hidden, and nothing it writes requires agentsmyth i
 
 ## What `init` wrote to this repo
 
-Everything under `workflow/` and, for two specific tools, one adapter file:
+Everything under `workflow/`, one marked block inside your root `AGENTS.md`, and, for two specific tools, one adapter file:
 
 - `workflow/config/*.yaml` — five files (`domain.yaml`, `repo-profile.yaml`, `source-of-truth.yaml`, `release.yaml`, `verification.yaml`)
 - `workflow/artifacts/` — seven empty phase directories, plus whatever lifecycle artifacts you've since written into them
 - `workflow/learnings/`
+- `AGENTS.md` at the repo root — **not the whole file.** `init` writes one marked block into it and leaves every other byte alone, including an `AGENTS.md` you wrote yourself. It is the only file `init` edits rather than creates, which is why removal gets its own section below.
 - Cursor: `.cursor/rules/agentsmyth.mdc`. Non-macOS Copilot: `.github/copilot-instructions.md`. No other tool gets a per-repo adapter file — see [Under the hood](/under-hood) for why.
 
-Delete `workflow/` and, if present, the adapter file. That's the entire per-repo footprint. There's nothing else to find and nothing hidden in `node_modules` or a cache directory — agentsmyth has no runtime dependency and leaves no daemon or background process.
+Delete `workflow/`, the `AGENTS.md` block, and, if present, the adapter file. That's the entire per-repo footprint. There's nothing else to find and nothing hidden in `node_modules` or a cache directory — agentsmyth has no runtime dependency and leaves no daemon or background process.
+
+## Removing the `AGENTS.md` block
+
+`init` writes one version-stamped block into your root `AGENTS.md`, delimited by two marker lines:
+
+```
+<!-- agentsmyth:1.1.0 BEGIN -->
+...
+<!-- agentsmyth:1.1.0 END -->
+```
+
+The stamp is the agentsmyth version that wrote the block, so the version in your file is whichever one last ran `init` there.
+
+Delete the lines between the two markers, inclusive, and the file is back to exactly what you had. Everything outside them is yours and was never written by agentsmyth — `init` locates the block by pattern and replaces only what sits between a matched pair, so your own headings, house rules and notes above and below it are untouched by every run. If the block is the entire file, `rm AGENTS.md` is equivalent and just as safe.
 
 ## Removing the pre-commit hook
 

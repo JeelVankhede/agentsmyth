@@ -17,6 +17,14 @@
 //    content: a plain non-greedy block pattern matched from an orphan BEGIN to the *next* block's
 //    END, taking the user's own text with it. It is the only scenario here that ever caught a real
 //    defect, so treat it as load-bearing rather than an edge case worth trimming.
+//
+// 3. PAIR_RE below is the UNTEMPERED pattern, deliberately (see its own note) — but that has a
+//    consequence worth stating so nobody reads more into a green E3 than it carries. Under the
+//    mutation that reverts the implementation's tempering, the second init swallows the orphan
+//    BEGIN and the user's text between it and the new block's END; what remains still contains
+//    exactly one pair by the untempered count, so E3 PASSES. E3 is therefore not independent
+//    evidence of the tempering — E1, E2 and E4 are the three checks that fail under that mutation,
+//    and they are the ones to look at when judging whether the guard is still in place.
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -66,6 +74,14 @@ function newRepo(tag) {
   const dir = mkScratchDir(`wpr23-${tag}-repo-`);
   const home = mkScratchDir(`wpr23-${tag}-home-`);
   spawnSync('git', ['init', '-q'], { cwd: dir, encoding: 'utf8' });
+  return { dir, home };
+}
+
+// Same scratch pair, minus the `git init` — the directory scenario F needs. `init` must still run
+// here; only the hook install is expected to degrade.
+function newNonGitDir(tag) {
+  const dir = mkScratchDir(`wpr23-${tag}-dir-`);
+  const home = mkScratchDir(`wpr23-${tag}-home-`);
   return { dir, home };
 }
 
@@ -167,6 +183,38 @@ const pairCount = (text) => (text.match(PAIR_RE) || []).length;
   check('E3-one-pair', 'exactly one well-formed pair exists alongside the orphan', pairCount(text) === 1);
   check('E4-orphan-kept', 'the orphan BEGIN is left alone rather than absorbed',
     text.includes('<!-- agentsmyth:1.0.0 BEGIN -->'));
+}
+
+// ── Scenario F: a non-git directory — the block must not advertise a hook nobody installed ──
+// installPreCommitHook() warns and skips outside a git repo, but placeAgentsMd() used to run first
+// and resolve the hook path for itself, so the block named `.git/hooks/pre-commit` regardless. The
+// path was well-formed and the file did not exist. Scenario A cannot catch this: it runs in a git
+// repo, where the hook really is installed and the advertised path really does resolve.
+//
+// F depends on placeAgentsMd() receiving installPreCommitHook()'s return value, which is why the
+// call order in `init` is hook-first. Restoring the old arrangement — placeAgentsMd() first,
+// resolving the path itself — makes F2/F3 fail.
+{
+  const r = newNonGitDir('nongit');
+  const result = spawnCli(['init'], { cwd: r.dir, home: r.home });
+  rmSync(join(r.dir, '.agentsmyth'), { recursive: true, force: true });
+
+  check('F1-created', 'init still writes AGENTS.md when the directory is not a git repository',
+    existsSync(join(r.dir, 'AGENTS.md')));
+  const text = existsSync(join(r.dir, 'AGENTS.md')) ? readAgents(r.dir) : '';
+
+  // Premise check: if a hook somehow got installed, F2/F3 would be vacuous rather than wrong.
+  check('F2-no-hook-installed', 'no pre-commit hook exists in a non-git directory (scenario premise)',
+    !existsSync(join(r.dir, '.git', 'hooks', 'pre-commit')));
+
+  const named = text.match(/pre-commit hook at `([^`]+)`/);
+  check('F3-no-phantom-hook', 'the block names no hook path when no hook was installed',
+    !named);
+  check('F4-no-dangling-path', 'no path the block names in backticks is missing from disk',
+    ![...text.matchAll(/`([^`]*pre-commit)`/g)].some((m) => !existsSync(resolve(r.dir, m[1]))));
+  check('F5-no-token-leak', 'no unrendered {{TOKEN}} reaches the block on the non-git path',
+    text.length > 0 && !/\{\{[A-Z_]+\}\}/.test(text));
+  check('F6-init-survives', 'init exits 0 rather than failing on the absent hook', result.status === 0);
 }
 
 for (const dir of cleanup) {
