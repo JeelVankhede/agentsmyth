@@ -27,7 +27,10 @@ it, so the entry for the version being released has to be committed *before* the
       against it is still open.
 - [ ] `CHANGELOG.md` has an entry for the version about to be released, with a real date.
 - [ ] `workflow/artifacts/open-items.yaml` has been triaged against the release: anything whose own
-      wording gates this version is either resolved or explicitly accepted.
+      wording gates this version is either resolved or explicitly accepted. The ledger is two files —
+      triage the live one, but check `workflow/artifacts/open-items-archive.yaml` too before concluding
+      an `OI-N` cited in a PR or a Notion page no longer exists; closed items move there, they are not
+      deleted.
 - [ ] `npm audit` re-run and its position re-derived, not copied forward. A waiver written for an
       earlier release describes the dependency tree of that release. Check both `--omit=dev` (what
       consumers actually get) and the full tree, and check `fixAvailable` — "no fix upstream" stops

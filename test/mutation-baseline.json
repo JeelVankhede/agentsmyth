@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-01",
+  "generated": "2026-09-13",
   "results": {
     "check-artifacts.mjs": {
       "rules": 16,
@@ -62,7 +62,7 @@
       "undefended": 0
     },
     "check-open-items.mjs": {
-      "rules": 3,
+      "rules": 8,
       "undefended": 0
     },
     "check-pending-setup.mjs": {

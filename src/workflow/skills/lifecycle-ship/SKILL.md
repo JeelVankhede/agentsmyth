@@ -135,6 +135,9 @@ Stop and write a `hold` ship artifact when any of these apply:
     flags it, and both sides look correct in isolation. Grep the identifier spaces the merge
     touched, confirm each ID still names one thing, and fix collisions before continuing. This is
     narrow by design: it is a duplicate-ID check, not general merge-conflict guidance.
+    Note the open-items ledger is TWO files: grep `open-items.yaml` and `open-items-archive.yaml`
+    together, or the half of the `OI-<n>` space that has been rotated out goes unchecked — and the
+    live file being the lean one is exactly why a number gets taken twice.
 5. Verify source-of-truth handoff: updated, not required, blocked with copy-ready handoff, or waived.
 6. Map every active `R` and `RI` to shipped, deferred, blocked, or waived.
 6a. For any Build or Review discovery not already covered by the plan's declared scope, first

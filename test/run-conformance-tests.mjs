@@ -280,6 +280,18 @@ const fqAbsent = run(V('check-finding-quality'), ['--dir', 'test/fixtures/confor
 check('r22-finding-quality-absent-ok', 'a repo with no ledger passes rather than failing',
   fqAbsent.status === 0 && /no finding-quality ledger/.test(fqAbsent.out));
 
+// WP-R20 RI5 — the consumer upgrade guarantee, as a POSITIVE control. Every other new open-items
+// fixture is a rejection, and a rejection-only set leaves this direction untested: the one that
+// matters for a repo that installs the new release and has never rotated. Its live ledger is full of
+// `done` entries and it has no archive, and it must keep passing untouched. The conditional in
+// check-open-items.mjs is the single line that makes that true, so this check is what fails if a
+// later tidying pass "simplifies" it into symmetry with check-finding-quality.
+const oiLegacy = run(V('check-open-items'), ['--dir', 'test/fixtures/conformance/open-items-legacy-no-archive']);
+check('r20-open-items-legacy-no-archive-ok', 'an un-rotated ledger full of done entries still passes',
+  oiLegacy.status === 0 &&
+  /1 open, 2 done, 0 blocked, 0 deferred/.test(oiLegacy.out) &&
+  /has not rotated yet/.test(oiLegacy.out));
+
 // WP-R22 RI1 — positive control for the REVIEW record. Without it, the Review-specific rejection
 // rules would be satisfied by a validator that rejects every review, and the filter widening would
 // be unverified in the direction that matters: a council-mode review must be CHECKED, not skipped.

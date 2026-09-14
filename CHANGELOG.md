@@ -43,6 +43,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   do-not-pre-bump rule and the deprecation-window removal step.
 - `npm run domain-placeholders:test` — a suite for `check-domain-placeholders`, which scans tracked
   files and so could not be fixtured from inside this repository.
+- **Open-items ledger closure** — the open-items ledger is now two files. The live
+  `workflow/artifacts/open-items.yaml` holds only what is unresolved; closed items rotate into
+  `workflow/artifacts/open-items-archive.yaml`, which no phase reads. Archiving rather than deleting,
+  because closed entries carry reasoning later chains cite, and `OI-N` IDs are referenced from PRs and
+  trackers, so deletion would leave dangling references while an archive stays greppable. The item
+  object gains `resolution` and `closed_in_run`, both optional, so closure has a declared place to live
+  instead of being written into `next_action` as prose describing work already finished. The object is
+  also closed (`additionalProperties: false`): an undeclared key used to validate silently, which is how
+  `resolution` came to be present in 39 entries while the schema never mentioned it. That is the one
+  tightening in this change — a ledger carrying some other key an agent invented will now fail where it
+  previously passed. `resolution` was the only such key in practice and is now declared, so the expected
+  impact is nil; if you hit it, the key was never part of the contract and the failure names it exactly. `check-open-items`
+  now reads both files, because the failures that matter are invisible from one — an item copied rather
+  than moved, an ID reused across the split, an unresolved item parked where nothing will read it.
+  **Upgrade is a no-op**: a `done` entry in the live ledger is an error only once an archive file
+  exists, so a repo that has never rotated keeps passing untouched, and neither new field is required.
 
 ### Changed
 - `agentsmyth check` resolves validators from the repository's own `src/workflow/validators/` when
@@ -57,6 +73,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   just content) when the base has advanced — two branches that independently allocate the same ID to
   different things merge clean and silently. Build and Review both instruct running the configured
   validate command right after writing an artifact rather than at end of phase.
+- `follow-up-owner-assigner` rotates closed items out of the live open-items ledger at the Reflect exit
+  gate, after its existing append. Its determinism rule against overwriting the ledger wholesale is
+  replaced by a narrower and stricter one — every item leaving the live file must arrive in the archive
+  in the same operation, with every field intact — and the skill still never decides that an item is
+  closed. The next free `OI-N` is now the highest issued across both files, not the highest the live
+  file shows; reading the lean file alone is how a number gets taken twice.
 
 ### Fixed
 - The mandatory pre-commit hook ran its coverage check as a bare command under `set -e`, so a
