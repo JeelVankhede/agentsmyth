@@ -196,6 +196,13 @@ Two consequences worth stating plainly. Content between those markers is overwri
 `init`, so never hand-edit it. Content outside them is the user's and is never touched — including a
 stray unpaired marker, which `init` deliberately leaves alone rather than absorbing.
 
+One known limitation, recorded so it is not discovered the hard way. The match is a text pattern,
+not a Markdown parse, so it has no notion of a fenced code block. A well-formed marker pair shown
+inside a fenced sample in `AGENTS.md` — documentation of this very convention, most likely — is
+indistinguishable from a real block and will be replaced by a live one on the next `init`. If that
+file must document the markers, escape the angle brackets or split the marker across lines. Nothing
+outside `AGENTS.md` is affected: `init` reads no other file for markers.
+
 If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS). `agentsmyth init` already places both of these mechanically and deterministically before this skill starts (see Step 5a.2 below) — check whether the target path already exists before treating either as unplaced.
 
 Based on the agent tool identified during Phase 2's resolution pass, and only when the check above did not find an active global gate for it and the target path isn't already populated by `init` (Cursor / non-macOS Copilot), place the adapter at the path the tool reads automatically:
