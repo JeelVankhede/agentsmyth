@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
-import { join, dirname, isAbsolute, resolve } from 'node:path';
+import { join, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { confirmPrompt } from './prompts.mjs';
 
@@ -905,6 +905,144 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   }
 }
 
+// Where git will look for hooks in this repo: an explicit core.hooksPath (absolute, or relative to
+// the repo) when one is configured, otherwise .git/hooks. Single caller by design —
+// installPreCommitHook(), which returns the path it actually wrote so placeAgentsMd() can advertise
+// that value rather than re-deriving it. The earlier fix for F2 had both functions call this and
+// agree by construction; returning the written path is strictly stronger, because it also carries
+// the one thing a shared resolver cannot express — whether a hook was written at all (F5).
+function resolveHooksDir(repoDir) {
+  try {
+    const configured = execFileSync('git', ['config', 'core.hooksPath'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    if (configured) return isAbsolute(configured) ? configured : join(repoDir, configured);
+  } catch { /* not a git repo, or core.hooksPath unset — fall through to the default */ }
+  return join(repoDir, '.git', 'hooks');
+}
+
+// Root AGENTS.md — the generic fallback (WP-R23) for every agent tool that has no first-class
+// adapter. Unlike the two placements above, this one is deliberately NOT skip-if-exists: a repo that
+// already has an AGENTS.md is the common case this exists to serve, and skipping would mean the block
+// never arrives. The write is bounded by markers instead — nothing outside them is touched (R3).
+//
+// The stamp is matched by PATTERN, never by the literal current version. A literal match would make
+// 1.2.0 fail to find a block that 1.1.0 wrote and append a second one, so every release would ADD a
+// block rather than replace the previous one — turning a version stamp from a migration aid into a
+// per-release duplication bug. Matching any stamp is also what lets a later release read which
+// version wrote a block and migrate it, which is the whole reason the stamp is there (brief Q1, R2).
+//
+// Differs from installPreCommitHook() on purpose: that function returns early when its marker is
+// already present, so it never refreshes a stale block. R2 requires replace-in-place, so this one
+// replaces. The extra-block sweep exists because R2's acceptance is "exactly one marker pair" — a
+// file that somehow carries two (a hand-copy, or a block written by a version with this bug) is
+// collapsed to one rather than left to accumulate.
+// The middle is a TEMPERED match: "any character, so long as another BEGIN does not start here".
+// A plain [\\s\\S]*? silently destroys user content. If the file carries an orphan BEGIN with no END
+// (a truncated write, a killed process, a pasted fragment), the first init appends a well-formed
+// block, and the second init then matches from the ORPHAN BEGIN to the new block's END and deletes
+// everything between them — the user's own text included. Reproduced before this guard existed.
+// Tempering makes the match start at the LAST BEGIN before an END, so an orphan is left untouched
+// as the stray text it is. Nothing outside a well-formed pair is ever ours to remove (R3).
+const AGENTS_BLOCK_PATTERN =
+  '<!-- agentsmyth:[^\\s>]+ BEGIN -->' +
+  '(?:(?!<!-- agentsmyth:[^\\s>]+ BEGIN -->)[\\s\\S])*?' +
+  '<!-- agentsmyth:[^\\s>]+ END -->';
+const AGENTS_BLOCK_RE = new RegExp(AGENTS_BLOCK_PATTERN);
+const AGENTS_BLOCK_RE_ALL = new RegExp(AGENTS_BLOCK_PATTERN, 'g');
+
+// The gate paragraph has two forms because only one of them is ever true, and which one is decided
+// by whether installPreCommitHook() actually wrote a hook. It used to name `.git/hooks/pre-commit`
+// even when no hook had been installed, sending every agent that reads the block to a file nobody
+// created. Same class as F2 one step further out: F2 named the wrong path, this named a path for a
+// hook that does not exist. Review finding F5.
+//
+// The absent form is deliberately CAUSE-NEUTRAL, and that is finding F8. Its first version said
+// "found no git repository here", but installPreCommitHook() returns null from three places and
+// only one of them is that: the other two — an unwritable hooks directory and a failed hook write —
+// are both reachable inside a perfectly good git repo, where that sentence tells the reader to make
+// a git repo out of a directory that already is one. A return value of null carries "no hook", not
+// "here is why", so the paragraph may not claim a cause the call site never established. `init`
+// prints the real reason on the same run; the block points at it instead of guessing.
+//
+// This is why extending the return value to carry a reason was NOT the fix taken: it would rework
+// the F5 arrangement, which this pass is fenced out of. If a future pass wants per-cause wording,
+// that is the shape to build — and it must keep the property F5 bought, that the block cannot be
+// written before the hook's fate is known.
+//
+// Wrapped to the asset's own column width so the rendered block keeps its shape, and the installed
+// form keeps the literal phrase "pre-commit hook at `...`" because agents-md:test A4/A5 locate the
+// advertised path through it.
+const gateParagraphInstalled = (hookPath) =>
+  '**The gate is enforced, not advised.** A pre-commit hook at `' + hookPath + '` rejects any commit whose\n' +
+  'changed files are not covered by a lifecycle artifact in the required phase state. Skipping a phase\n' +
+  'does not produce a warning; it produces a failed commit.';
+
+const GATE_PARAGRAPH_ABSENT =
+  '**The gate is not installed.** No pre-commit hook was written, so nothing refuses a commit that\n' +
+  'skips a phase. `agentsmyth init` printed the reason on the run that produced this block — fix that\n' +
+  'and run it again. Until then the phase order holds, but only because you hold it.';
+
+function agentsMdBlock(version, body) {
+  return `<!-- agentsmyth:${version} BEGIN -->\n${body.trim()}\n<!-- agentsmyth:${version} END -->`;
+}
+
+// `hookPath` is installPreCommitHook()'s return value: the file it wrote, or null when it warned
+// and skipped. Taking it as a parameter — rather than re-deriving it — is what makes the block
+// unable to advertise a hook that was never installed, and is why the call order in `init` is
+// hook-first (F5).
+function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
+  const dest = join(repoDir, 'AGENTS.md');
+
+  // Reads are INSIDE the try on purpose. installPreCommitHook() reads its template outside its own
+  // try, so an unreadable template there takes init down; the degradation this function's catch
+  // promises is only real if the reads it depends on are covered by it too.
+  try {
+    const version = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
+    // renderAdapterTemplate() is load-bearing here, not ceremony for consistency's sake: the asset
+    // carries {{GATE_PARAGRAPH}}, and substituting it is the whole of the F5 fix — the installed
+    // variant also embeds the real hook path that closed F2. A6 in agents-md:test guards the
+    // failure mode this introduces, an unrendered {{TOKEN}} reaching a consumer's file.
+    // The advertised path is displayed repo-relative; an absolute core.hooksPath outside the repo
+    // stays absolute, which is still the true location.
+    const displayed = hookPath ? relative(repoDir, hookPath) : null;
+    const tokens = {
+      ...buildAdapterTokens(repoDir),
+      GATE_PARAGRAPH: displayed === null
+        ? GATE_PARAGRAPH_ABSENT
+        : gateParagraphInstalled(displayed.startsWith('..') ? hookPath : displayed),
+    };
+    const body = renderAdapterTemplate(
+      readFileSync(join(pkgRootDir, 'src', 'assets', 'AGENTS.md'), 'utf8'),
+      tokens,
+    );
+    const block = agentsMdBlock(version, body);
+
+    if (!existsSync(dest)) {
+      writeFileSync(dest, block + '\n');
+      return;
+    }
+    const existing = readFileSync(dest, 'utf8');
+    if (AGENTS_BLOCK_RE.test(existing)) {
+      // Function replacement, not a string: a '$' in the block body would otherwise be read as a
+      // replacement pattern ($&, $1) and silently corrupt the written block.
+      let first = true;
+      writeFileSync(dest, existing.replace(AGENTS_BLOCK_RE_ALL, () => {
+        if (!first) return '';
+        first = false;
+        return block;
+      }));
+      return;
+    }
+    writeFileSync(dest, existing.endsWith('\n') ? `${existing}\n${block}\n` : `${existing}\n\n${block}\n`);
+  } catch (err) {
+    // A missing or unreadable asset, an unparseable package.json, or an unwritable repo root all
+    // land here and degrade to a warning: init must still scaffold config and artifacts.
+    console.warn(`agentsmyth: could not write AGENTS.md at ${dest} — skipping.`);
+    console.warn(`  ${err.message}`);
+  }
+}
+
 const HOOK_BEGIN_MARKER = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
 const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
 
@@ -915,21 +1053,19 @@ const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
 // the marker block) and never clobbers a user's own pre-existing hook (RI2) — appends instead.
 // Never fails `init` itself: a non-git directory or unwritable hooks path degrades to a warning
 // (RI4), since `init` must still be usable to scaffold config/artifacts even without git.
+//
+// RETURNS the absolute path of the hook that is now installed, or null when this function warned
+// and skipped. placeAgentsMd() renders its gate paragraph from that return value, so every `return`
+// below must answer the question honestly: null means "no hook exists at any path", and a path
+// means "a hook is in place here" — including the idempotent case, where a previous run installed
+// it and this one had nothing to do (F5).
 function installPreCommitHook(repoDir, pkgRootDir) {
-  let hooksPath;
-  try {
-    const configured = execFileSync('git', ['config', 'core.hooksPath'], {
-      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-    hooksPath = configured ? (isAbsolute(configured) ? configured : join(repoDir, configured)) : join(repoDir, '.git', 'hooks');
-  } catch {
-    hooksPath = join(repoDir, '.git', 'hooks');
-  }
+  const hooksPath = resolveHooksDir(repoDir);
 
   if (!existsSync(join(repoDir, '.git')) && !existsSync(hooksPath)) {
     console.warn('agentsmyth: not a git repository (or hooks path unavailable) — skipping mandatory pre-commit hook install.');
     console.warn('  Lifecycle coverage will not be enforced at commit time until this repo is a git repo.');
-    return;
+    return null;
   }
 
   try {
@@ -937,7 +1073,7 @@ function installPreCommitHook(repoDir, pkgRootDir) {
   } catch (err) {
     console.warn(`agentsmyth: could not create hooks directory at ${hooksPath} — skipping pre-commit hook install.`);
     console.warn(`  ${err.message}`);
-    return;
+    return null;
   }
 
   const target = join(hooksPath, 'pre-commit');
@@ -946,18 +1082,20 @@ function installPreCommitHook(repoDir, pkgRootDir) {
   try {
     if (!existsSync(target)) {
       writeFileSync(target, template, { mode: 0o755 });
-      return;
+      return target;
     }
     const existing = readFileSync(target, 'utf8');
     if (existing.includes(HOOK_BEGIN_MARKER)) {
-      return; // already installed — idempotent across repeated init/upgrade runs
+      return target; // already installed — idempotent across repeated init/upgrade runs
     }
     const block = template.slice(template.indexOf(HOOK_BEGIN_MARKER));
     const appended = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
     writeFileSync(target, appended, { mode: 0o755 });
+    return target;
   } catch (err) {
     console.warn(`agentsmyth: could not write pre-commit hook at ${target} — skipping.`);
     console.warn(`  ${err.message}`);
+    return null;
   }
 }
 
@@ -1214,7 +1352,15 @@ placeDeterministicAdapters(cwd, pkgRoot);
 
 // Mandatory local lifecycle gate (R1): installed unconditionally, no separate opt-in step.
 // Tool-agnostic — enforces at the git-commit layer, not any single AI tool's own mechanism.
-installPreCommitHook(cwd, pkgRoot);
+const installedHookPath = installPreCommitHook(cwd, pkgRoot);
+
+// Generic AGENTS.md fallback (WP-R23): the one enumerated placement that is create-or-replace rather
+// than skip-if-exists, because the repos that already have an AGENTS.md are exactly the ones this is
+// for. Runs after placeDeterministicAdapters() so it renders from the same resolved token set, and
+// after installPreCommitHook() because the block's gate paragraph is written FROM that call's
+// result. The order is not stylistic and cannot be swapped back in isolation: the argument does not
+// exist until the hook's fate is decided, which is the structural half of F5's fix.
+placeAgentsMd(cwd, pkgRoot, installedHookPath);
 
 // Copy bundles
 mkdirSync(targetDir, { recursive: true });
