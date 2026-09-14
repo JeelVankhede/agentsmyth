@@ -217,6 +217,48 @@ const pairCount = (text) => (text.match(PAIR_RE) || []).length;
   check('F6-init-survives', 'init exits 0 rather than failing on the absent hook', result.status === 0);
 }
 
+// ── Scenario G: a real git repo whose hooks path cannot be created (R4) ─────────────────────
+// installPreCommitHook() returns null from three places, not one. Scenario F covers the first (no
+// git repo); this covers the second — core.hooksPath pointing at a regular file, so mkdirSync()
+// throws EEXIST and the hook install warns and skips INSIDE a repo that is unambiguously a git
+// repo. The absent gate paragraph used to hardcode "found no git repository here" and tell the
+// reader to re-run once the directory is a git repo, which it already was: a true "no hook" claim
+// wrapped around a false cause. Review finding F8.
+//
+// F cannot catch this and neither can A: F has no .git at all, so the hardcoded cause happened to
+// be right there, and A installs the hook successfully. The defect lived in the gap between them.
+{
+  const r = newRepo('badhooks');
+  // A regular file where git will look for the hooks DIRECTORY. resolveHooksDir() returns it, and
+  // mkdirSync(..., { recursive: true }) throws EEXIST rather than quietly succeeding.
+  const hooksFile = join(r.dir, 'hooksfile');
+  writeFileSync(hooksFile, 'not a directory\n');
+  spawnSync('git', ['config', 'core.hooksPath', 'hooksfile'], { cwd: r.dir, encoding: 'utf8' });
+
+  const result = spawnCli(['init'], { cwd: r.dir, home: r.home });
+  rmSync(join(r.dir, '.agentsmyth'), { recursive: true, force: true });
+
+  check('G1-init-survives', 'init exits 0 when the hooks path cannot be created', result.status === 0);
+  check('G2-created', 'init still writes AGENTS.md when the hook install fails',
+    existsSync(join(r.dir, 'AGENTS.md')));
+  const text = existsSync(join(r.dir, 'AGENTS.md')) ? readAgents(r.dir) : '';
+
+  // Premises: this IS a git repo, and no hook was installed. Without both, G4/G5 are vacuous.
+  check('G3-is-a-git-repo', 'the scenario really is a git repository (scenario premise)',
+    existsSync(join(r.dir, '.git')));
+  check('G4-no-hook-installed', 'no pre-commit hook was installed (scenario premise)',
+    !existsSync(join(hooksFile, 'pre-commit')) && !existsSync(join(r.dir, '.git', 'hooks', 'pre-commit')));
+
+  check('G5-no-phantom-hook', 'the block names no hook path when the install failed',
+    !/pre-commit hook at `([^`]+)`/.test(text));
+  // The F8 assertion. The block may say no hook exists; it may not say WHY, because the value it
+  // renders from carries no cause. Reverting to the old wording fails here and nowhere else.
+  check('G6-no-false-cause', 'the block does not claim this is not a git repository',
+    text.length > 0 && !/no git repository|not a git repo|once this directory is a git repo/i.test(text));
+  check('G7-no-token-leak', 'no unrendered {{TOKEN}} reaches the block on the failed-install path',
+    text.length > 0 && !/\{\{[A-Z_]+\}\}/.test(text));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }

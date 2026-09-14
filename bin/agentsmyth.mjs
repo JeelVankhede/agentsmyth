@@ -952,10 +952,23 @@ const AGENTS_BLOCK_RE = new RegExp(AGENTS_BLOCK_PATTERN);
 const AGENTS_BLOCK_RE_ALL = new RegExp(AGENTS_BLOCK_PATTERN, 'g');
 
 // The gate paragraph has two forms because only one of them is ever true, and which one is decided
-// by whether installPreCommitHook() actually wrote a hook. `init` degrades to a warning in a
-// non-git directory, and the block used to name `.git/hooks/pre-commit` anyway — sending every
-// agent that reads it to a file nobody created. Same class as F2 one step further out: F2 named the
-// wrong path, this named a path for a hook that does not exist. Review finding F5.
+// by whether installPreCommitHook() actually wrote a hook. It used to name `.git/hooks/pre-commit`
+// even when no hook had been installed, sending every agent that reads the block to a file nobody
+// created. Same class as F2 one step further out: F2 named the wrong path, this named a path for a
+// hook that does not exist. Review finding F5.
+//
+// The absent form is deliberately CAUSE-NEUTRAL, and that is finding F8. Its first version said
+// "found no git repository here", but installPreCommitHook() returns null from three places and
+// only one of them is that: the other two — an unwritable hooks directory and a failed hook write —
+// are both reachable inside a perfectly good git repo, where that sentence tells the reader to make
+// a git repo out of a directory that already is one. A return value of null carries "no hook", not
+// "here is why", so the paragraph may not claim a cause the call site never established. `init`
+// prints the real reason on the same run; the block points at it instead of guessing.
+//
+// This is why extending the return value to carry a reason was NOT the fix taken: it would rework
+// the F5 arrangement, which this pass is fenced out of. If a future pass wants per-cause wording,
+// that is the shape to build — and it must keep the property F5 bought, that the block cannot be
+// written before the hook's fate is known.
 //
 // Wrapped to the asset's own column width so the rendered block keeps its shape, and the installed
 // form keeps the literal phrase "pre-commit hook at `...`" because agents-md:test A4/A5 locate the
@@ -966,9 +979,9 @@ const gateParagraphInstalled = (hookPath) =>
   'does not produce a warning; it produces a failed commit.';
 
 const GATE_PARAGRAPH_ABSENT =
-  '**The gate is not installed.** `agentsmyth init` found no git repository here, so no pre-commit\n' +
-  'hook was written and nothing refuses a commit that skips a phase. Run `agentsmyth init` again once\n' +
-  'this directory is a git repo. Until then the phase order holds, but only because you hold it.';
+  '**The gate is not installed.** No pre-commit hook was written, so nothing refuses a commit that\n' +
+  'skips a phase. `agentsmyth init` printed the reason on the run that produced this block — fix that\n' +
+  'and run it again. Until then the phase order holds, but only because you hold it.';
 
 function agentsMdBlock(version, body) {
   return `<!-- agentsmyth:${version} BEGIN -->\n${body.trim()}\n<!-- agentsmyth:${version} END -->`;

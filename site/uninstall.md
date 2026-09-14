@@ -14,7 +14,7 @@ Everything under `workflow/`, one marked block inside your root `AGENTS.md`, and
 - `workflow/config/*.yaml` — five files (`domain.yaml`, `repo-profile.yaml`, `source-of-truth.yaml`, `release.yaml`, `verification.yaml`)
 - `workflow/artifacts/` — seven empty phase directories, plus whatever lifecycle artifacts you've since written into them
 - `workflow/learnings/`
-- `AGENTS.md` at the repo root — **not the whole file.** `init` writes one marked block into it and leaves every other byte alone, including an `AGENTS.md` you wrote yourself. It is the only file `init` edits rather than creates, which is why removal gets its own section below.
+- `AGENTS.md` at the repo root — **not the whole file.** `init` writes one marked block into it and leaves every other byte alone, including an `AGENTS.md` you wrote yourself. It and the pre-commit hook are the only two things agentsmyth ever edits rather than creates — everything else in this list it creates outright — which is why each of those two gets its own removal section below.
 - Cursor: `.cursor/rules/agentsmyth.mdc`. Non-macOS Copilot: `.github/copilot-instructions.md`. No other tool gets a per-repo adapter file — see [Under the hood](/under-hood) for why.
 
 Delete `workflow/`, the `AGENTS.md` block, and, if present, the adapter file. That's the entire per-repo footprint. There's nothing else to find and nothing hidden in `node_modules` or a cache directory — agentsmyth has no runtime dependency and leaves no daemon or background process.

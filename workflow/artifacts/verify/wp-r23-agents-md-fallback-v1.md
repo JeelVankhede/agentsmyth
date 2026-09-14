@@ -247,9 +247,12 @@ working tree.
 | Revert the tempered block pattern: middle back to a plain `[\s\S]*?` | fails exactly E1, E2, E4 | `23/26` — fails exactly `E1-content-survives`, `E2-section-survives`, `E4-orphan-kept`; `E3-one-pair` **passes** | md5 `1482138b4b0cd64d317e9b70a9b2e668` matches pre-mutation; `26/26` |
 
 Both mutations were run twice: once when the fixes landed, and again after a late robustness tweak
-to `placeAgentsMd()`'s `hookPath` test changed the file. The results above are the second run,
-against the exact bytes now in the working tree — a mutation result measured against a file that has
-since changed is not evidence about the file that ships.
+to `placeAgentsMd()`'s `hookPath` test changed the file. The results above are that second run,
+against the bytes as they stood **at the end of pass 2** — a mutation result measured against a file
+that has since changed is not evidence about the file that ships. Review pass 3 changed
+`bin/agentsmyth.mjs` again (F8), so this table is a historical record of pass 2 and the md5 above is
+no longer the working tree's; both mutations were re-run against the current file and are recorded
+with the current baseline under § Review Pass 3 Verification.
 
 The F5 mutation is necessarily the ordering *and* the argument threading together — the two cannot
 be separated, because `placeAgentsMd()`'s third argument does not exist until
@@ -288,8 +291,124 @@ of them.
 ship — unchanged. Nothing this pass found was a design flaw; F5 was the only code defect, and it is
 closed structurally rather than by correcting a string.
 
+## Review Pass 3 Verification (2026-09-14)
+
+Review pass 3 raised two findings, F8 (P2) and F9 (P3). Both fixes re-verified here against fresh
+runs, on the same rule applied to F1/F2 and F3-F7.
+
+### Suite re-run after the fixes
+
+Run at current working-tree state, after `npm run build`.
+
+| Command | Outcome | Evidence |
+|---|---|---|
+| `npm run build` | pass | Bundles regenerated. |
+| `npm run validate` | pass | exit 0. Configured required command. |
+| `npm run violations:test` | pass | exit 0; `93/93 council fixtures emit exactly one error`. Configured required command. |
+| `npm run conformance:test` | pass | exit 0; `48/48 conformance checks passed`. |
+| `npm run agents-md:test` | pass | exit 0; `33/33 AGENTS.md fallback checks passed`, up from 26/26 — scenario G adds seven. |
+| `npm run setup-refs:test` | pass | exit 0; `5/5`. |
+| `npm run setup-checks:test` | pass | exit 0; `13/13`. |
+| `npm run root-resolution:test` | pass | exit 0; `21/21`. |
+| `npm run init-prepare-interop:test` | pass | exit 0; `38/38`. |
+| `npm run checkpoint-approval:test` | pass | exit 0; `9/9`. |
+| `npm run setup-validator-definitions-root:test` | pass | exit 0; `3/3`. |
+| `npm run tuning-merge:test` | pass | exit 0; `15/15`. |
+| `npm run commit-coverage:test` | pass | exit 0; `7 passed, 0 failed`. |
+| `npm run domain-placeholders:test` | pass | exit 0; `5/5`. |
+| `node src/workflow/validators/check-scope-fence.mjs` | pass | exit 0. |
+| `npm run mutation:audit` | **not run** | Unchanged: no validator rule added or altered by this pass. Skipped Checks row still applies. |
+
+`test/mutation-baseline.json` unchanged. No validator rule added by this pass either.
+
+### F8 — reproduction before the fix
+
+Recorded because a finding about a false claim deserves the transcript, not a summary. Scratch repo,
+isolated scratch `HOME`, `git init` plus `git config core.hooksPath hooksfile` where `hooksfile` is a
+regular file:
+
+```
+agentsmyth: could not create hooks directory at …/f8repo/hooksfile — skipping pre-commit hook install.
+  EEXIST: file already exists, mkdir '…/f8repo/hooksfile'
+```
+
+and the block written by that same run:
+
+```
+**The gate is not installed.** `agentsmyth init` found no git repository here, so no pre-commit
+hook was written and nothing refuses a commit that skips a phase. Run `agentsmyth init` again once
+this directory is a git repo. …
+```
+
+`.git` was present throughout. The "no hook" half was true; the cause and the remedy were both false.
+
+### F8 — both null branches after the fix
+
+Real `agentsmyth init` subprocesses, isolated scratch `HOME`, not asset inspection.
+
+| Branch | How reached | Block now reads |
+|---|---|---|
+| non-git guard | plain directory, never `git init`-ed | `**The gate is not installed.** No pre-commit hook was written, so nothing refuses a commit that skips a phase. …` |
+| `mkdirSync` catch | `git init` + `core.hooksPath` → a regular file | byte-identical paragraph — no cause asserted in either |
+
+Rendered block body remains 23 lines in all three states (installed, and both absent branches), so
+R5's ≤ 25 bound is unaffected.
+
+**R4 in the failed-install state.** As with the non-git state recorded in pass 2, R4's acceptance
+("rendered block contains the hook's path and states that it refuses commits which skip phases") is
+vacuous when no hook exists. The block says so explicitly rather than going silent, and now without
+attributing a cause it cannot know.
+
+### F9 — verification
+
+Read the page end to end rather than diffing the one line. The `AGENTS.md` bullet now names the
+pre-commit hook as the second file agentsmyth edits rather than creates, which is consistent with
+*Removing the pre-commit hook* two sections below ("agentsmyth appended its block to the end of it
+rather than overwriting anything"). No other claim on the page asserts a count of modified files, so
+the contradiction is closed rather than relocated.
+
+### Mutation verification — all three
+
+Backups held **outside the repository** (session scratchpad); no `.mutation-backup` file was created
+under the working tree at any point. Baseline `bin/agentsmyth.mjs` md5
+`2df1ae4e967fe42a1467b21d36ce551c`, confirmed restored after each.
+
+| Mutation | Expected | Observed | Restored |
+|---|---|---|---|
+| **New — F8:** restore the cause-asserting wording (`found no git repository here …`) | scenario G fails | `32/33` — fails exactly `G6-no-false-cause`. **Scenario F stays green**, because in a non-git directory the hardcoded cause happens to be true | md5 matches; `33/33` |
+| **F5 ordering:** `placeAgentsMd()` back to `(repoDir, pkgRootDir)` resolving the hook path itself, called before `installPreCommitHook()` | F3, F4 — plus G5, see below | `30/33` — fails `F3-no-phantom-hook`, `F4-no-dangling-path`, `G5-no-phantom-hook` | md5 matches; `33/33` |
+| **Tempered pattern:** middle back to a plain `[\s\S]*?` | E1, E2, E4 | `23/33` → fails exactly `E1`, `E2`, `E4`; `E3-one-pair` **passes** | md5 matches; `33/33` |
+
+Two notes on the expected sets, since one of them moved.
+
+**The F5 ordering mutation now fails three checks, not two.** `G5-no-phantom-hook` joined `F3` and
+`F4`. This is coverage widening, not a changed defect: scenario G exercises a second `null`-returning
+branch, and the reverted arrangement advertises a phantom hook path on that branch exactly as it does
+on F's. The close-out expectation of "exactly F3/F4" was written before scenario G existed; the
+correct expectation from here is F3, F4, G5.
+
+**The F8 mutation failing only `G6` is the evidence that matters.** Had it also failed something in
+scenario F, F8 would have been a defect pass 2 could have caught and did not. It does not — F's
+directory genuinely has no git repository, so the old wording is accidentally true there. The
+defect lived strictly in the gap between scenario A (hook installs) and scenario F (no repo at all),
+which is the gap scenario G now occupies.
+
+### Findings from this pass
+
+none open. F8 and F9 both closed and re-verified above.
+
+### Manifest impact
+
+No manifest ID changes state. R4 gains evidence: it is now verified across three distinct hook
+states — installed, absent-because-no-repo, and absent-because-the-install-failed — where pass 2
+covered the first two and pass 1 covered only the first.
+
+### Recommendation
+
+ship — unchanged.
+
 ## Sign-Off
 
 - Verifier: agent (Senior QA), single-agent mode — councils are Complex-only and this chain is Standard
-- Date: 2026-09-13; re-verified 2026-09-14 after review pass 2 (see that section)
+- Date: 2026-09-13; re-verified 2026-09-14 after review pass 2, and again after review pass 3 (see those sections)
 - Recommendation: ship

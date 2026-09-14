@@ -402,6 +402,105 @@ Recorded without fix: 3. Filed to the release: 1 (OI-93).
 
 pass
 
+## Review Pass 3 (2026-09-14)
+
+A third pass over the same diff, run after pass 2's F3-F7 were verified closed. Two findings, both
+closed in the same session. Both sit in the surface pass 2 created — which is the useful thing to
+notice about them: F8 is a defect in F5's own fix, found by asking what the *other* null returns
+mean, and F9 is a contradiction introduced by F3's new prose against prose already on the page.
+
+Fixes re-verified at Test, not self-reported — see
+`workflow/artifacts/verify/wp-r23-agents-md-fallback-v1.md` § Review Pass 3 Verification.
+
+### F8 — P2 — RESOLVED 2026-09-14 — `bin/agentsmyth.mjs` — the absent gate paragraph names a cause the call site never established
+
+**Manifest IDs:** R4, RI4
+
+**Problem.** `GATE_PARAGRAPH_ABSENT` read *"`agentsmyth init` found no git repository here, so no
+pre-commit hook was written … Run `agentsmyth init` again once this directory is a git repo."*
+`installPreCommitHook()` returns `null` from three places, and only one of them is that:
+
+1. the non-git guard — `!existsSync('.git') && !existsSync(hooksPath)`;
+2. the `mkdirSync` catch — the hooks directory could not be created;
+3. the write catch — the hook file itself could not be written.
+
+Branches 2 and 3 are reachable inside a perfectly good git repository. There the paragraph tells the
+reader to make a git repo out of a directory that already is one, and the remedy it prescribes is
+one they have already performed.
+
+Worth being precise about the branch count, since the finding as filed said "three other places":
+there are three `return null` sites in total, so two others besides the one the wording named. The
+defect is the same either way — and branch 1 does not strictly establish the cause either, since its
+own warning hedges as "not a git repository (**or hooks path unavailable**)".
+
+**Reproduced before fixing**, not reasoned. A scratch repo with `git init` plus
+`git config core.hooksPath hooksfile`, where `hooksfile` is a regular file: `init` printed
+`could not create hooks directory at …/hooksfile` / `EEXIST: file already exists`, and the block it
+wrote in that same run claimed no git repository, in a directory whose `.git` was present.
+
+Same class as F5 one step in. F5 was *a hook that does not exist*; this is *a cause that is not
+true*. The common root is the same one F5 named and did not fully drain: a return value of `null`
+carries "no hook", not "here is why", so any sentence rendered from it that asserts a why is
+guessing.
+
+**Fix — cause-neutral, and the reason the other option was refused.** The finding offered two: make
+the paragraph cause-neutral, or extend `installPreCommitHook()` to return a reason alongside the
+path and render per reason. The second is the better end state and was **not** taken, because it
+reworks the F5 return-value arrangement this pass is explicitly fenced out of. Recorded rather than
+silently dropped: if a later pass wants per-cause wording, that is the shape to build, and it must
+preserve what F5 bought — that the block cannot be written before the hook's fate is known.
+
+The paragraph now states only what the return value supports: no hook was written, nothing refuses a
+commit that skips a phase, `agentsmyth init` printed the reason on the run that produced this block,
+fix that and run it again. The comment above it was rewritten to say why the neutrality is
+deliberate, so the next reader does not "improve" it back into a specific cause.
+
+**Evidence.** New scenario G in `test/run-agents-md-tests.mjs`, seven checks, driving the
+unwritable-hooks-path branch in a real git repo. Mutation-verified: restoring the old wording fails
+exactly `G6-no-false-cause` and nothing else — scenario F stays green under it, which is precisely
+why the defect survived pass 2. Suite 26 → 33 checks.
+
+### F9 — P3 — RESOLVED 2026-09-14 — `site/uninstall.md` — a claim contradicted lower down the same page
+
+**Manifest IDs:** R6, RI1
+
+**Problem.** The `AGENTS.md` bullet, added by F3 one pass earlier, ended "It is the only file `init`
+edits rather than creates". Two sections below, *Removing the pre-commit hook* says agentsmyth
+"appended its block to the end of it rather than overwriting anything" — an edit to a file the user
+already had. The page contradicts itself within one screen, and the false half is the one written to
+reassure a reader about what agentsmyth touched.
+
+Minor in consequence — no user is misled into losing data — but this is an uninstall page, where the
+whole value is that the inventory can be trusted. A page that miscounts what it modifies is the kind
+of thing a reader stops trusting entirely once they spot it.
+
+**Fix.** The exception is named rather than the claim narrowed to nothing: "It and the pre-commit
+hook are the only two things agentsmyth ever edits rather than creates — everything else in this
+list it creates outright — which is why each of those two gets its own removal section below." That
+also earns the two removal sections their place, instead of leaving the second looking like an
+afterthought.
+
+## Review Pass 3 — Severity Summary
+
+| Severity | Open | Found | IDs | Status |
+|---|---|---|---|---|
+| P0 | 0 | 0 | — | — |
+| P1 | 0 | 0 | — | — |
+| P2 | 0 | 1 | F8 | fixed and re-verified at Test |
+| P3 | 0 | 1 | F9 | fixed and re-verified at Test |
+
+## Review Pass 3 — Scope Note
+
+`bin/agentsmyth.mjs` and `test/run-agents-md-tests.mjs` are both inside the plan's declared Touches
+(Phases 2 and 4). `site/uninstall.md` is not, and carries forward the same treatment as pass 2: it
+is not added to the task artifact's Changed Files, because that would fail `check-scope-fence` and
+widening the plan is an amendment rather than a review fix. Unchanged from pass 2's scope note; no
+new file leaves the fence.
+
+## Review Pass 3 — Recommendation
+
+pass
+
 ## Recommendation
 
 pass
