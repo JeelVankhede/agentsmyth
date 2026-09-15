@@ -72,7 +72,7 @@ the CLI can resolve the validator from either the repo-local or global definitio
   A green result means the record is well-formed and internally consistent. It does not mean the thinking was good.
 - `check-verify-matrix.mjs` checks a verify artifact's `## Manifest Coverage` has a row with a named method for every active manifest ID, and no `pass` row with empty evidence.
 - `check-followups.mjs` checks every row in a reflect artifact's `## Follow-Ups` table has a non-empty, non-`TBD` owner.
-- `check-open-items.mjs` checks `workflow/artifacts/open-items.yaml` against its schema when present; exits 0 with an informative message when absent.
+- `check-open-items.mjs` checks the two-file open-items ledger — `workflow/artifacts/open-items.yaml` and `workflow/artifacts/open-items-archive.yaml` — against their shared schema when present; exits 0 with an informative message when absent. It reads both because the failures that matter are invisible from one: an item copied rather than moved, an `OI-N` reused across the split, an unresolved item parked in the archive where nothing reads it. A `done` item left in the live ledger is an error only once an archive file exists, so a repo that has never rotated keeps passing untouched.
 - `check-constraint-conflicts.mjs` checks every constraint-ID citation in a brief's `## Open Questions (Q)` section resolves to a real ID present in `domain.yaml`'s bracket-prefixed constraint arrays.
 
 `check-config.mjs` does two things beyond plain schema validation, both for per-repo behavior

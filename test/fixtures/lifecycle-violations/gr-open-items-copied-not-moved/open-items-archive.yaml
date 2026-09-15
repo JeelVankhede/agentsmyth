@@ -1,0 +1,11 @@
+version: 1
+kind: open-items-archive
+items:
+  - id: OI-1
+    source: follow-up
+    owner: user
+    next_action: "nothing pending"
+    status: done
+    first_seen_run: ledger-rotation-v1
+    resolution: "closed, but left behind in the live file too"
+    closed_in_run: ledger-rotation-v1

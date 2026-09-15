@@ -1,0 +1,12 @@
+# `outcome` is invented — the shape `resolution` had before it was declared. No archive file here,
+# so no rotation rule fires and the only thing wrong with this ledger is the undeclared key.
+version: 1
+kind: open-items
+items:
+  - id: OI-1
+    source: follow-up
+    owner: user
+    next_action: "still to do"
+    status: open
+    first_seen_run: undeclared-key-v1
+    outcome: "an agent needed somewhere to record this and the object used to be open"
