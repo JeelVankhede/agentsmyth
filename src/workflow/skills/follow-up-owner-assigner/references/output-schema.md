@@ -23,8 +23,9 @@ overall: pass | fail
 Rules:
 
 - `overall` is `fail` if any follow-up lacked an owner (Refusal condition — should not reach this
-  point), if either ledger file was malformed, or if a swept item did not arrive in the archive with
-  every field intact.
+  point), if either ledger file was malformed, if an item could not be moved without this skill
+  setting `status: done` on it first, or if a swept item did not arrive in the archive with every
+  field intact.
 - Zero follow-ups and zero unshipped requirements is a trivial pass (`follow_ups_processed: 0`).
 - `items_swept: 0` is equally a pass — a run with nothing already closed has nothing to rotate. Report
   it rather than omitting it, so "swept nothing" stays distinguishable from "did not sweep".

@@ -156,11 +156,23 @@ details.push(
 // many follow-ups a repo has ever filed, whether the next OI-N is free — is a question about the
 // pair. A figure taken from the lean live file describes the current cycle while still looking
 // like a total.
-if (archive) {
-  details.push(
-    `checked ${archivePath} against schema $id "open-items" (${archiveItems.size} archived) — ` +
-    `${liveItems.size + archiveItems.size} item(s) across both files`
-  );
+//
+// Guarded on the archive FILE existing, exactly as the rotation rule above is — and keyed on the
+// parsed document it contradicted that rule to the reader's face. An archive present but failing
+// its kind or schema check left `archive` null, so the same run printed "this repo has not rotated
+// yet, so a done entry is not an error here" directly above an error saying the archive was there
+// with the wrong kind, and a second saying the done entry WAS an error. Two of the three statements
+// could not both be true, and the one that was wrong was the reassuring one.
+//
+// A file that failed to parse contributes no indexed items, so its branch reports the same
+// `archiveItems.size` the healthy branch does — 0 — without claiming a schema check that did not
+// happen. Saying "uncounted" is what makes that 0 readable as "not known" rather than "none".
+if (pathExists(archivePath)) {
+  details.push(archive
+    ? `checked ${archivePath} against schema $id "open-items" (${archiveItems.size} archived) — ` +
+      `${liveItems.size + archiveItems.size} item(s) across both files`
+    : `read ${archivePath} but it did not parse as an archive (its own error is reported below), so its items are ` +
+      `uncounted: ${archiveItems.size} archived, ${liveItems.size + archiveItems.size} item(s) across both files`);
 } else {
   details.push(
     `no ${archivePath} — this repo has not rotated yet, so a "done" entry in the live ledger is not ` +

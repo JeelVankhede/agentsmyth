@@ -7,6 +7,12 @@ items:
     next_action: "Done: shipped in an earlier release, closure prose left in next_action"
     status: done
     first_seen_run: pre-rotation-chain-v1
+    # The key that made this change necessary, present in the fixture that proves the change is a
+    # no-op. Agents wrote `resolution` into real ledgers for releases before anything declared it —
+    # 39 of 92 entries in this repo's own. A legacy fixture without it tests the upgrade against a
+    # ledger cleaner than any that actually exists, and would have passed even if declaring the
+    # field had been forgotten.
+    resolution: "Closed in the release that shipped it; recorded here because the agent needed somewhere to put it, years before the field was declared."
   - id: OI-2
     source: requirement
     owner: user

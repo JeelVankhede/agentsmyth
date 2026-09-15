@@ -55,9 +55,12 @@ Stop or return an incomplete assignment instead of approving when:
 - a follow-up row has no owner, or `owner: TBD`
 - a deferred/waived `R`/`RI` has no corresponding follow-up entry anywhere
 - either ledger file is malformed (fails its own schema) — do not rewrite a malformed file; report it
-- the live ledger holds a `done` item whose `status` you cannot confirm was set by someone else. This
-  skill rotates items that are already closed; it never closes one, so an item it cannot attribute a
-  closure to is a stop, not a sweep
+- moving an item would require SETTING its `status` to `done` first. The test is scoped to this
+  invocation and to the read at step 4: an item whose `status` was already `done` in the files as
+  read there is rotatable, and an item this skill would have to close in order to move is a stop.
+  Nothing records WHO set a `status`, and this skill never sets one, so "who closed it" is not the
+  question this can ask — "was it already `done` when I read the file" is, and the step 4 read
+  answers it
 
 ## Workflow
 
@@ -82,9 +85,10 @@ Stop or return an incomplete assignment instead of approving when:
    rather than leaving `next_action` describing work already finished.
 8. Write the updated `open-items-archive.yaml`.
 
-The sweep decides **nothing about closure**. It acts only on `status: done` values that were already
-there when it started reading. An item this skill would have to close in order to move is an item it
-must leave alone and report.
+The sweep decides **nothing about closure**. It acts only on `status: done` values that were present
+in the step 4 read, before this skill changed anything. An item this skill would have to close in
+order to move is an item it must leave alone and report — the same test as the Refusal condition
+above, stated from the sweep's side.
 
 ## Exit Gate
 

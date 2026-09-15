@@ -4,7 +4,7 @@ version: 1
 artifact: ship
 status: ready-for-next-phase
 created: 2026-09-13
-updated: 2026-09-14
+updated: 2026-09-15
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8]
 upstream:
   - workflow/artifacts/briefs/wp-r20-ledger-closure-v1.md
@@ -213,3 +213,101 @@ left implicit because the ledger carries an open item recording a chain where it
 
 Reflect. Approved 2026-09-14. Reflect is a records phase and does not require any of the four Blocked
 Handoff actions to have been performed — it records that they are outstanding.
+
+## Review Pass 2 (2026-09-15)
+
+An independent pass over `86b4e7b` returned five items — one blocking. All five are closed. No design
+decision was reopened: the two-file split, the flat archive, the optional `resolution`/`closed_in_run`
+and the boolean `additionalProperties: false` all stand.
+
+### Ship Status — Review Pass 2
+
+`ship`. The change itself is unaltered in behaviour except for one validator *detail* line; the
+remaining four items corrected fixtures, a skill contract, and this chain's own account of itself.
+
+### What changed since the original Ship
+
+| Item | Change | Surface |
+|---|---|---|
+| R1 | Merged `release/1.1.0` (`c54d719`); `OI-93` collision resolved, base's item taken as `OI-105`, `OI-106` filed | `workflow/artifacts/open-items.yaml`, merge commit `1ff5a3d` |
+| R2 | Details block re-guarded on `pathExists(archivePath)`; `gu2` fixture; `reject` assertion added to the violations harness | `check-open-items.mjs`, `test/run-violation-tests.mjs` |
+| R3 | Refusal condition scoped to the step 4 read; `output-schema.md` can now report it | `follow-up-owner-assigner/SKILL.md` + `references/output-schema.md` |
+| R4 | `resolution` added to the legacy conformance fixture; `gv-open-items-undeclared-key` added | `test/fixtures/` |
+| R5 | "cannot be deferred" rewritten in six places; CHANGELOG no-op claim qualified | `CHANGELOG.md`, OI-102, review, verify, ship, reflect |
+
+### Evidence — required confirmations
+
+- **13/13 suites exit 0** against the post-merge tree. `npm run validate` plus all twelve `:test`
+  scripts, each invoked separately and its exit code recorded. The per-suite table is in
+  `workflow/artifacts/verify/wp-r20-ledger-closure-v1.md` → Review Pass 2 Verification.
+- **`violations:test` at its new count: `217/217 violations detected`**, up from 215. Two fixtures,
+  zero new validator errors — `gu2` (R2) and `gv2` (R4). `attribution sweep: 93/93 council fixtures
+  emit exactly one error`.
+- **`conformance:test` at its new count: `49/49 conformance checks passed`** — unchanged at 49. R4's
+  positive-direction fix edits the existing `open-items-legacy-no-archive` fixture rather than adding
+  a check; its assertion `1 open, 2 done, 0 blocked, 0 deferred` is still true with `resolution`
+  present.
+- **`check-open-items` at 0 undefended**: `check-open-items.mjs   8 rules   0 undefended  defended`,
+  from the full audit. The targeted `--only check-open-items.mjs` run confirms the same against the
+  baseline.
+- **`git status --porcelain` clean after the audit.** The audit mutates a copy under `$TMPDIR`; it
+  left no `.mutation-backup` and no modified validator in the working tree.
+
+### The mutation baseline
+
+`test/mutation-baseline.json` carried `"generated": "2026-09-13"`. The review read that as wrong
+because the chain ran on the 14th. It was **not** wrong as a date — Build, Review and Verify all ran
+on 2026-09-13 and the audit ran at Build; only Reflect and the Ship update carry 2026-09-14. What was
+genuinely wrong is that both the date and the `check-open-items` rule count were **hand-written**, so
+the file recorded a transcription rather than a measurement.
+
+Resolved by re-deriving rather than by editing a date: `node test/run-mutation-audit.mjs` was run in
+full on the final tree — **`0/226 rules undefended`, `mutation-audit: ok`, exit 0** — and every one of
+the 30 entries was compared against the recorded baseline programmatically. All 30 match exactly,
+rules and undefended alike. `generated` is now `2026-09-15`, the date the numbers were last actually
+measured. `--write-baseline` was deliberately **not** used: it exits before the ratchet comparison, so
+a newly undefended rule would have been silently written in as accepted rather than surfaced.
+
+**R4's open question, answered:** `run-mutation-audit.mjs` does **not** count the undeclared-key
+rejection as a rule of `check-open-items.mjs`. It enumerates `errors.push(` sites per file, and the
+boolean-`additionalProperties` error is `lib.mjs:766`, inside `lib.mjs`'s own set — measured this run
+at `13 rules, 0 undefended`, unchanged. So `check-open-items.mjs` stays at **8** and the baseline's
+rule counts are untouched. `gv2` adds a second defender for an already-defended rule.
+
+### Corrections made beyond the five items
+
+- `CHANGELOG.md`'s mutation-audit bullet still read "0 across **221** rules in 30 validators". This PR
+  is what moved that number to 226 — its own body says so — and the bullet had not followed. Now 226,
+  which is the figure the audit printed this run.
+- The task artifact said the plan's Architecture Notes "record why it cannot be deferred". The plan
+  records why it *should* not be deferred, which is a different and true statement. Corrected.
+
+### Not done, deliberately
+
+- `package.json` is **not** bumped. `release.yml` runs `npm version` itself.
+- The CHANGELOG's `1.1.0` date (2026-09-08) is **untouched**. It has slipped; that is a
+  release-dispatch step, not this PR's.
+- No schema change. The boolean `additionalProperties: false` stays, and RI5 stays `partial`.
+
+### Risk And Rollback — Review Pass 2
+
+The residual-risk list is unchanged in substance and one entry is now stated correctly: F2's
+tightening is real, and deferral is *declined* rather than unavailable. That makes the residual risk
+read slightly worse and the decision behind it considerably better supported, which is the direction
+a record should move under scrutiny.
+
+One new risk, small: the violations harness gained a `reject` field. It is opt-in, exercised by
+exactly one fixture, and a mis-typed `reject` string would silently pass rather than fail — the same
+shape of weakness `expect` had before the `[WRONG]` diagnostic was added for it. `gu2` was verified by
+reverting the fix and observing the failure, so this instance is known-good; the general weakness is
+noted rather than fixed.
+
+### Exit Gate — Review Pass 2
+
+- [x] All five review-pass items closed, none by re-litigating design.
+- [x] Every added rejection fixture asserts its own wording; no validator error added, so the ratchet
+      is untouched at 0 undefended across 30 validators.
+- [x] `node bin/agentsmyth.mjs prepare` re-run after every source edit and before every validator or
+      suite invocation (OI-99).
+- [x] 13/13 suites exit 0; full mutation audit `0/226`; working tree clean after the audit.
+- [x] The false compatibility claim rewritten in place, not annotated, in all six locations.

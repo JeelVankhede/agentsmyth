@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mutation audit** (`npm run mutation:audit`) — disables one validator rule at a time and re-runs
   the suites; a rule whose removal leaves everything green is a rule nothing defends.
   `test/mutation-baseline.json` holds the result as a ratchet that can shrink and never grow. The
-  first run measured 106 undefended rules; the baseline now records 0 across 221 rules in 30
+  first run measured 106 undefended rules; the baseline now records 0 across 226 rules in 30
   validators.
 - `docs/release-checklist.md` — the parts of a release the workflow cannot do for you, including the
   do-not-pre-bump rule and the deprecation-window removal step.
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   impact is nil; if you hit it, the key was never part of the contract and the failure names it exactly. `check-open-items`
   now reads both files, because the failures that matter are invisible from one — an item copied rather
   than moved, an ID reused across the split, an unresolved item parked where nothing will read it.
-  **Upgrade is a no-op**: a `done` entry in the live ledger is an error only once an archive file
+  **Upgrade is a no-op except for the tightening above**: a `done` entry in the live ledger is an error only once an archive file
   exists, so a repo that has never rotated keeps passing untouched, and neither new field is required.
 
 ### Changed

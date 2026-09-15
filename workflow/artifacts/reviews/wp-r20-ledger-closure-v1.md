@@ -4,7 +4,7 @@ version: 1
 artifact: review
 status: ready-for-next-phase
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-15
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8]
 upstream:
   - workflow/artifacts/briefs/wp-r20-ledger-closure-v1.md
@@ -60,14 +60,19 @@ Three findings, all **resolved in place** during Review and re-verified. Ordered
   This is not hypothetical: `resolution` reached 39 of this repo's own 92 entries precisely because
   agents invent keys when the schema gives them nowhere to write something, and that is the evidence
   that another repo could have invented a different one. `lib.mjs`'s `x_enforcement: warn-until-<version>`
-  deferral exists for exactly this class of upgrade break — but it is honoured only on a *schema-valued*
-  `additionalProperties`, never on the boolean form, so it cannot be used here. The CHANGELOG described
-  the closure as a fix and did not name it as the one behavioural tightening in the release.
+  deferral exists for exactly this class of upgrade break, and it **is** reachable here: written as
+  `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` the sub-schema is unsatisfiable for
+  every value (`lib.mjs:671`) and the marker is honoured (`lib.mjs:825`), so every undeclared key would
+  land in `deferredWarnings` instead of `errors`. It is declined rather than unavailable. A warn window
+  reopens the precise hole this change closes: `resolution` reached 39 of 92 entries **by validating
+  silently**, and a key that only warns is a key that validates silently for another release. The
+  CHANGELOG described the closure as a fix and did not name it as the one behavioural tightening in the
+  release.
 - Fix: the CHANGELOG bullet now names it explicitly — what changes, why the expected impact is nil
   (`resolution` was the only such key in practice and is now declared), and that a failure names the
   offending key exactly.
 - **Resolved as documented, not eliminated.** Removing the closure would undo the central defect fix,
-  and deferring it is not available. Carried as residual risk below.
+  and deferring it is available but self-defeating. Carried as residual risk below.
 
 ### F3 — P3 — the upgrade conditional keyed on parse success, not on the file existing
 
@@ -200,3 +205,147 @@ deferred with the mechanism the engine provides and should not be removed, becau
 The second reason for the qualifier is item 2 above. A single reader reviewed their own diff across all
 ten risk categories. That found three real defects, which is better than nothing and is not the same as
 independent review.
+
+## Review Pass 2 (2026-09-15)
+
+An independent pass ran the full suite, a scoped mutation audit, and a from-scratch migration
+reconstruction against `86b4e7b`. It confirmed the change and the numbers, and returned five items.
+Design was explicitly not reopened: the two-file split, the flat archive, the optional
+`resolution`/`closed_in_run`, and the boolean `additionalProperties: false` all stand.
+
+One of the five is a correction to **this artifact's own F2**, which is recorded below rather than
+appended to F2 as a caveat — F2's *finding* was right and its *reason* was wrong, and a reason that
+is wrong is rewritten, not annotated.
+
+### R1 — BLOCKING — the base advanced and OI-93 collided
+
+- Path: `workflow/artifacts/open-items.yaml`
+- Risk category: process / data integrity
+- Problem: `release/1.1.0` moved to `c54d719` when PR #68 merged. Both branches had independently
+  allocated `OI-93`, each with `first_seen_run: wp-r23-agents-md-fallback-v1` — this branch to the
+  OI-87 scope reconciliation, the base to the `check-setup-complete.mjs` marker-stamp item raised by
+  the WP-R23 review pass 2.
+- Fix: merged (not rebased). This branch's OI-93 through OI-104 are unchanged; the base's OI-93 is
+  taken in full as **OI-105**, appended after OI-104 with its `next_action` preserved verbatim
+  including the WP-R18 filing note. Nothing already issued was renumbered. `OI-106` files the
+  follow-up on step 4b itself.
+- Evidence: `check-open-items` reports `36 open, 0 done, 0 blocked, 0 deferred` live, 70 archived,
+  `106 item(s) across both files`, no duplicate-id error. Merge commit `1ff5a3d`.
+- **Note on the expected figure.** The pass asked for confirmation of **47 live items**. The measured
+  number is **36**, and 36 is correct: the merge base carried 92 items, this branch rotated 70 of them
+  into the archive and added OI-93..OI-104, and the merge added OI-105 and OI-106 — 34 + 2 live, 70
+  archived, 106 total. 47 does not correspond to any state of either side. Recorded rather than
+  quietly satisfied, because a count nobody can reconstruct is the failure mode this whole change
+  exists to remove.
+- **What step 4b got wrong, and it is in this PR.** F1 amended step 4b to grep both ledger files. The
+  step also asserts that this collision class "merges clean and silently". Here git *did* raise a
+  content conflict — both sides appended at the same offset in the same file. That is placement luck,
+  not detection: a base appending elsewhere, or an ID allocated into the archive half, merges clean
+  exactly as the step warns. OI-106 carries the question of whether step 4b should separate the two
+  cases, so a reader does not generalise from this instance that git catches the class.
+
+### R2 — `check-open-items` printed a detail that contradicted its own error
+
+- Path: `src/workflow/validators/check-open-items.mjs`
+- Manifest IDs: R5, RI5
+- Problem: F3 moved the *rotation rule* from the parsed `archive` object to `pathExists(archivePath)`.
+  The **details block** was left keyed on the parsed object. An archive that exists but fails its kind
+  or schema check therefore produced a run that said, in order: the archive is present with the wrong
+  kind; this repo has never rotated, so a `done` entry is not an error here; and this `done` entry is
+  an error. Two of those three cannot both hold, and the false one was the reassuring one.
+- Reproduced before fixing, with a wrong-`kind` archive beside `gu`'s live ledger — all three lines
+  present in one run.
+- Fix: the details block is now guarded on `pathExists(archivePath)`, matching the rule it explains.
+  A file that exists but did not parse reports `read <path> but it did not parse as an archive (its
+  own error is reported below), so its items are uncounted: 0 archived` — the same `archiveItems.size`
+  the healthy branch reports, without claiming a schema check that did not happen.
+- No new error, so `check-open-items` stays at **8 rules**.
+- Fixture: `gu2-open-items-done-not-rotated-malformed-archive`. It needed a capability the violations
+  harness did not have — `expect` can only assert that a string is *present*, and the contradiction
+  was an *extra* line alongside a correct error, so every existing fixture passed throughout. The
+  harness now takes a `reject` field, a substring the output must not contain. Confirmed as a real
+  regression test: with the guard reverted to `archive`, `gu2` fails `[WRONG] ... the output also
+  contradicts it` and the suite drops to 215/216.
+
+### R3 — the `follow-up-owner-assigner` refusal condition was unevaluable
+
+- Path: `src/workflow/skills/follow-up-owner-assigner/SKILL.md`, `references/output-schema.md`
+- Manifest IDs: R4, R7
+- Problem: the condition read "the live ledger holds a `done` item whose `status` you cannot confirm
+  was set by someone else." Nothing in the schema records *who* set a `status`; the skill reads both
+  files fresh at step 4 and never writes `done`. So the rule was either dead (every `done` was set
+  elsewhere) or total (attribution is never confirmable) — and the total reading contradicts Workflow
+  step 7, which says to move every `done`. OI-103 records that the sweep has never moved a real item,
+  which makes an agent hitting Refusal before Workflow the most likely first-run failure.
+- Fix: the condition is scoped to the invocation and anchored to the step 4 read — refuse only when
+  moving an item would require *setting* `status: done` first. "Who closed it" is replaced by "was it
+  already `done` when I read the file", which the read answers. Workflow step 7 is anchored to the
+  same read and now says so explicitly. The Determinism Rule "Never change an item's `status`" is
+  untouched.
+- `references/ledger-format.md` needed no change — "It moves items whose `status` is already `done`;
+  it never sets that value, in either direction" was already the correct framing. `output-schema.md`
+  did not carry the old framing either, but its `overall: fail` list named only two of the four
+  refusal conditions, so an unmovable item had no way to be *reported*: the same defect one level out.
+  Added.
+
+### R4 — the one upgrade-breaking change was untested in both directions
+
+- Path: `test/fixtures/conformance/open-items-legacy-no-archive/`, `test/fixtures/lifecycle-violations/gv-open-items-undeclared-key/`
+- Manifest IDs: RI5
+- Problem: `additionalProperties: false` is enforced by the schema engine, not by a rule in this
+  validator. `check-open-items` has no `errors.push(` for it, so its `0/8` says nothing about the one
+  change in this PR that can break a consumer.
+- Fix, positive direction: the legacy no-archive conformance fixture now carries `resolution` on a
+  `done` item. It is the key that made this change necessary and it was absent from the fixture that
+  proves the change is a no-op — a legacy ledger cleaner than any that actually exists. The existing
+  assertion `1 open, 2 done, 0 blocked, 0 deferred` is unchanged and still passes.
+- Fix, rejection direction: `gv-open-items-undeclared-key` carries an invented `outcome` key and
+  asserts the exact wording, `items[0].outcome is not allowed`. The wording is the mitigation — it
+  names the offending key, which is what makes a consumer's failure a one-line fix.
+- **Whether the audit counts it as a rule: it does not, for this validator.** `run-mutation-audit.mjs`
+  enumerates `errors.push(` sites per file. The boolean-`additionalProperties` error is
+  `lib.mjs:766`, inside `lib.mjs`'s own 13-rule set, which the baseline already records at 0
+  undefended. `check-open-items.mjs` stays at **8**, `lib.mjs` stays at **13**, and `gv2` adds a
+  second defender for an already-defended rule rather than a new one.
+
+### R5 — "cannot be deferred" was false, and it was load-bearing
+
+- Path: `CHANGELOG.md`, `workflow/artifacts/open-items.yaml` (OI-102), this artifact (F2),
+  `workflow/artifacts/verify|ship|reflect/wp-r20-ledger-closure-v1.md`
+- Manifest IDs: RI5
+- Problem: F2, OI-102, the verify finding and the reflect "surprise" all stated that
+  `x_enforcement: warn-until-<version>` is honoured only on a schema-valued `additionalProperties`
+  and therefore could not be used here. The first half is true; the conclusion is not. Written as
+  `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` the sub-schema is unsatisfiable
+  for every value (`lib.mjs:671`) under a marker the engine honours (`lib.mjs:825`), so every
+  undeclared key routes through `deferredWarnings` instead of `errors`. That is a warn window in
+  every respect that matters.
+- Verified directly rather than argued: calling `validateSchema` on an object with an undeclared key
+  gives `["probe.outcome is not allowed"]` for `additionalProperties: false`, and `[]` for
+  `{x_enforcement: warn-until-1.2.0, enum: []}` — the same sub-schema without the marker returns
+  `probe.outcome expected one of , got "invented key"`, which is what confirms the empty `enum` is
+  what rejects and the marker is what defers.
+- Fix: the schema does not change — the boolean form stays. Every statement of the claim is rewritten
+  to say that deferral is **mechanically available and was declined on design grounds**: a warn window
+  reopens the exact hole this change closes, because `resolution` reached 39 of 92 entries *by
+  validating silently*, and a key that only warns is a key that validates silently for another
+  release. That reason is stronger than the one it replaces, which is the point — the chain defended
+  a correct decision with an impossibility that was not one.
+- RI5 stays `partial`. The acceptance was a no-op upgrade; a declined deferral is still a tightening.
+- The CHANGELOG bullet named the tightening and then closed with a bold **"Upgrade is a no-op"**,
+  which is the sentence a skimmer keeps. Now **"Upgrade is a no-op except for the tightening above"**.
+
+### Review Pass 2 — Severity Summary
+
+| ID | Severity | Disposition |
+|---|---|---|
+| R1 | P1 (blocking) | Fixed — merged, OI-105/OI-106 allocated, expected-count discrepancy recorded |
+| R2 | P2 | Fixed — guard corrected, `gu2` fixture + `reject` harness support, verified by reversion |
+| R3 | P2 | Fixed — refusal scoped to the step 4 read; `output-schema.md` made able to report it |
+| R4 | P2 | Fixed — both directions covered; baseline unchanged, and why is recorded |
+| R5 | P2 | Fixed — claim rewritten in six places; mechanism verified by direct probe |
+
+### Review Pass 2 — Recommendation
+
+`ship`. No design change, no schema change, no new validator error, and the mutation ratchet is
+unmoved. The material residual risk is still F2's tightening, now carrying a reason that is true.

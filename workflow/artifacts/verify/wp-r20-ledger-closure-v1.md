@@ -4,7 +4,7 @@ version: 1
 artifact: verify
 status: ready-for-next-phase
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-15
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8]
 upstream:
   - workflow/artifacts/briefs/wp-r20-ledger-closure-v1.md
@@ -144,11 +144,14 @@ One, carried from Review rather than newly found here.
 
 - **F2 (P2, resolved-as-documented)** — `additionalProperties: false` on the item object is a tightening.
   A consumer ledger carrying an agent-invented key other than `resolution` will now fail where it
-  previously passed, and RI5's acceptance was that upgrade is a no-op. Not eliminable: removing the
-  closure undoes the central defect fix, and `lib.mjs`'s `x_enforcement: warn-until-<version>` deferral
-  is honoured only on a schema-valued `additionalProperties`, never the boolean form. Named in the
-  CHANGELOG so a consumer meets it as documentation. This is why RI5 is `partial` above and why Sign-Off
-  is not a clean `ship` on a clean sheet.
+  previously passed, and RI5's acceptance was that upgrade is a no-op. Removing the closure undoes the
+  central defect fix. Deferring it is mechanically available — the schema-valued form
+  `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` is unsatisfiable for every value
+  (`lib.mjs:671`) and carries the marker `lib.mjs:825` honours, routing each undeclared key through
+  `deferredWarnings` — and is declined, because a warn window reopens exactly the hole this change
+  closes: `resolution` reached 39 of 92 entries by validating silently. Named in the CHANGELOG so a
+  consumer meets it as documentation. This is why RI5 is `partial` above and why Sign-Off is not a clean
+  `ship` on a clean sheet.
 
 ## Skipped Checks
 
@@ -196,3 +199,114 @@ item with all seven fields and a zero-loss result.
 `ship` rather than `hold-with-waiver`: nothing here needs waiving. RI5's shortfall is a documented,
 accepted tightening recorded as a finding and a skipped check, not an unmet gate — and no waiver would
 make the two skipped checks performable.
+
+## Review Pass 2 Verification (2026-09-15)
+
+Re-run against the post-merge tree (`1ff5a3d` plus the pass-2 fixes), not against the tree Verify
+originally ran on. The merge with `release/1.1.0` brought WP-R23's `bin/agentsmyth.mjs`, `site/`,
+`src/setup/`, `src/assets/AGENTS.md` and `test/run-agents-md-tests.mjs` into scope, so every number
+below is a fresh measurement rather than a carry-forward.
+
+### Automated Checks — all 13 suites
+
+Every suite invoked as its own `npm run`; the bracketed value is the process exit code.
+
+| Suite | Exit | Result line |
+|---|---|---|
+| `npm run validate` | 0 | `render-adapters: adapter shims are current` |
+| `npm run violations:test` | 0 | `217/217 violations detected`; `attribution sweep: 93/93 council fixtures emit exactly one error` |
+| `npm run tuning-merge:test` | 0 | `15/15 tuning-merge assertions passed` |
+| `npm run setup-checks:test` | 0 | `13/13 setup-complete checks passed` |
+| `npm run setup-refs:test` | 0 | `5/5 setup-refs checks passed` |
+| `npm run conformance:test` | 0 | `49/49 conformance checks passed` |
+| `npm run root-resolution:test` | 0 | `21/21 root-resolution drift checks passed` |
+| `npm run checkpoint-approval:test` | 0 | `9/9 check-lifecycle phase-gate cases correct` |
+| `npm run setup-validator-definitions-root:test` | 0 | `3/3 setup-validator definitions_root cases correct` |
+| `npm run commit-coverage:test` | 0 | `7 passed, 0 failed` |
+| `npm run domain-placeholders:test` | 0 | `5/5 domain-placeholder checks passed` |
+| `npm run agents-md:test` | 0 | `33/33 AGENTS.md fallback checks passed` |
+| `npm run init-prepare-interop:test` | 0 | `38/38 init/prepare interoperability checks passed` |
+
+`node bin/agentsmyth.mjs prepare` was re-run after every source edit and before every validator or
+suite invocation, per OI-99 — a bare validator call in this repo resolves definitions from
+`~/.agentsmyth/workflow`, so a suite run against a stale global install is a green that means nothing.
+
+### Counts that moved, and why
+
+- `violations:test`: **215 → 217**. Two fixtures added, no validator error added. `gu2` (R2) asserts
+  that a malformed archive no longer produces the "has not rotated yet" line beside an error saying
+  the opposite. `gv2` (R4) asserts `items[0].outcome is not allowed` against an undeclared key.
+- `conformance:test`: **49 → 49**, unchanged. R4's positive-direction fix edits the existing
+  `open-items-legacy-no-archive` fixture rather than adding a check — `resolution` is now present on
+  one of its `done` items, and the assertion `1 open, 2 done, 0 blocked, 0 deferred` is still true
+  and still passes.
+
+### `check-open-items` against this repo's own ledger
+
+```
+checked workflow/artifacts/open-items.yaml against schema $id "open-items" (36 open, 0 done, 0 blocked, 0 deferred)
+checked workflow/artifacts/open-items-archive.yaml against schema $id "open-items" (70 archived) — 106 item(s) across both files
+check-open-items: ok
+```
+
+No duplicate-id error, and the live ledger still holds no `done` entry after the merge. The pass
+asked to confirm **47 live items**; the measured figure is **36** and 36 is the reconstructible one —
+92 at the merge base, 70 rotated out, OI-93..OI-104 added by this chain, OI-105 and OI-106 added by
+the merge. This is recorded as a discrepancy rather than silently accepted.
+
+### R2 verified by reversion, not by assertion
+
+The new fixture is only worth its line if it fails without the fix. With the details guard reverted
+from `pathExists(archivePath)` to `archive` and the tree rebuilt and re-prepared:
+
+```
+[WRONG] gu2: rejected by the right rule, but the output also contradicts it
+        must NOT contain: has not rotated yet
+[GAP]  gu2: ...
+215/216 violations detected
+```
+
+Restored, rebuilt, re-prepared, and back to 217/217.
+
+### R5 verified by direct probe, not by reading the source
+
+The claim being corrected is a claim about what `lib.mjs` does, so it was executed rather than read:
+
+```
+boolean false            -> errors: ["probe.outcome is not allowed"]
+schema-valued + marker   -> errors: []                                    (routed to deferredWarnings)
+schema-valued, no marker -> errors: ["probe.outcome expected one of , got \"invented key\""]
+```
+
+The empty `enum` is what rejects every value; the `x_enforcement: warn-until-1.2.0` marker is what
+defers it. Deferral is therefore available on the boolean form's behalf via the schema-valued form,
+and is declined rather than impossible.
+
+### Mutation audit
+
+`test/mutation-baseline.json` was re-derived on the final tree with
+`node test/run-mutation-audit.mjs --write-baseline`, replacing a hand-edited `generated` date and a
+hand-transcribed rule count with machine-written values. `node test/run-mutation-audit.mjs --only
+check-open-items.mjs` then ran against it. `git status --porcelain` was checked after the audit and
+is clean — the audit mutates a copy under `$TMPDIR`, never the working tree.
+
+### Findings
+
+- **F2 (P2, resolved-as-documented) — reason corrected, finding unchanged.** The tightening is real
+  and RI5 stays `partial`. What changed is why: the chain recorded deferral as mechanically
+  unavailable, and it is available and declined. See Review Pass 2 R5. The correction makes the
+  residual risk slightly *worse*-sounding and the decision better-supported, which is the right
+  direction for a record to move under scrutiny.
+
+### Skipped Checks — Review Pass 2
+
+| Check | Why Skipped | Risk | Owner | Blocks Ship | Manifest IDs |
+|---|---|---|---|---|---|
+| An upgrade rehearsal against a real consumer ledger carrying an undeclared key other than `resolution` | Unchanged from Verify: no such ledger exists. `gv2` now pins the rejection wording, which is the part a consumer actually meets, but a hand-authored fixture still only proves the schema rejects what it says it rejects | F2's tightening remains unquantified beyond "expected nil" | user | no | RI5 |
+| Independent review of this pass-2 remediation | The pass-2 items were raised by an independent reviewer and fixed by the agent that wrote the original chain. The fixes were verified by reversion (R2) and by direct execution (R5), which is evidence about the fixes, not a second reader | Same single-reader weakness the original chain recorded, one level down | user | no | all |
+
+### Sign-Off — Review Pass 2
+
+All 13 suites exit 0 against the post-merge tree. Two fixtures added, no validator error added, the
+mutation ratchet unmoved. One figure in the review pass could not be reproduced (47 live items) and
+the measured value is recorded with its derivation instead.

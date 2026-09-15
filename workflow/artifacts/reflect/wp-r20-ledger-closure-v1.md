@@ -4,7 +4,7 @@ version: 1
 artifact: reflect
 status: done
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, R8, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8]
 upstream:
   - workflow/artifacts/briefs/wp-r20-ledger-closure-v1.md
@@ -103,10 +103,16 @@ is reading the data the mechanism would run on.
   as the cautionary example while closing its own object. It was **39 of 92** by the time this chain
   measured it. A defect described in prose in a shipped schema, by an author who understood it precisely,
   still grew by 77% before anyone acted.
-- **The engine's compatibility escape hatch does not cover the boolean form.** `x_enforcement:
-  warn-until-<version>` exists for precisely the upgrade break that closing an object causes, and it is
-  honoured only on a *schema-valued* `additionalProperties`. So the one hardening in this change that
-  could break a consumer is the one that cannot be softened.
+- **The compatibility escape hatch reads as unavailable and is not.** `x_enforcement:
+  warn-until-<version>` is honoured only on a *schema-valued* `additionalProperties` (`lib.mjs:825`), so
+  on the boolean form this change uses, it does nothing — and this chain read that as "the one hardening
+  that could break a consumer is the one that cannot be softened". That is false: rewriting the boolean
+  as `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` gives an empty `enum` no value
+  can satisfy (`lib.mjs:671`) under a marker the engine honours, which is a warn window for undeclared
+  keys in every respect. The real reason for the boolean is a design one and is stronger than the
+  mechanical one it was mistaken for: a warn window reopens the hole this change closes, since
+  `resolution` reached 39 of 92 entries by validating silently. The surprise worth keeping is how a
+  keyword's *shape* was read as the absence of a *capability*.
 - **`Done` is not a closure marker in this ledger.** Three entries use it as a Notion status *value* —
   "update the page status to Done, with PR #42 link, once merged" — which is an action, not a closure.
   The word that looks most like the signal was the false one.
@@ -217,3 +223,73 @@ See `workflow/learnings/sessions/2026-09-14-wp-r20-ledger-closure.md`.
 - [x] `follow-up-owner-assigner` run: four new items filed, sweep executed with nothing to rotate.
 - [x] Raw session written, append-only, Curator Marks empty.
 - [x] `orchestration.status: done`, `next_phase: done`.
+
+## Review Pass 2 (2026-09-15)
+
+An independent pass over `86b4e7b` returned five items. Four were defects in this chain's own
+records rather than in the shipped change, which is itself the finding worth carrying.
+
+### What the pass changed in the shipped artefacts
+
+- The `check-open-items` details block was guarded on the parsed archive while the rule it explains
+  was guarded on the archive file. A malformed archive made the validator print a reassurance that
+  directly contradicted its own error. Fixed, with `gu2` and a new `reject` assertion in the
+  violations harness to hold it.
+- `follow-up-owner-assigner`'s refusal condition asked a question the data cannot answer — who set a
+  `status`. Rewritten to ask what the step 4 read can answer: was it already `done` when I read it.
+- Two fixtures, one per direction, for `additionalProperties: false` — the one upgrade-breaking
+  change in the PR and the one the mutation ratchet structurally cannot see.
+
+### What the pass changed in this chain's account of itself
+
+This is the part worth keeping.
+
+- **A "Surprise" recorded above was not true.** It read: *the engine's compatibility escape hatch does
+  not cover the boolean form … the one hardening that could break a consumer is the one that cannot
+  be softened.* The premise is right — `x_enforcement` is honoured only on a schema-valued
+  `additionalProperties` — and the conclusion does not follow.
+  `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` is an empty enum no value
+  satisfies, under a marker the engine honours, which is a warn window for undeclared keys. The
+  bullet has been rewritten in place rather than annotated, because a false surprise left standing
+  with a correction stapled to it still reads as a lesson.
+- **The false claim was load-bearing in five places** — the CHANGELOG's framing, OI-102, the Review's
+  F2, the Verify finding, and that Surprise. It propagated because it was written once at Build and
+  then cited rather than re-derived. Nothing in the chain re-executed it; the pass that caught it did,
+  in three lines of `validateSchema` calls.
+- **The decision it was defending was correct all along.** The boolean form should stay: a warn window
+  reopens the exact hole this change closes, since `resolution` reached 39 of 92 entries *by
+  validating silently*. The chain reached the right answer and then justified it with an
+  impossibility instead of a trade-off. A reason that is a trade-off invites the next reader to weigh
+  it; a reason that is an impossibility tells them not to look.
+
+### The lesson, stated as a class
+
+**A mechanism's *shape* was read as the absence of a *capability*.** `x_enforcement` was observed on
+one form of a keyword and concluded to be unavailable on the other, without asking whether the other
+form could be written in the first form's shape. The same move is available anywhere a schema keyword
+has a boolean and an object spelling.
+
+The generalisable guard is narrower than "verify claims": it is **re-execute a compatibility claim at
+the phase that publishes it.** Verify checked that the change worked; nothing checked that the reason
+given for a design decision was true, because the reason was prose and prose is not in the
+verification matrix. The three-line probe that settled it would have run in under a second at any
+point in the chain.
+
+### On step 4b, which this chain wrote
+
+F1 amended `lifecycle-ship` step 4b to grep both ledger files. Its first real exercise was this PR's
+own merge, one day later, and the collision it describes occurred exactly as written: two branches,
+one `OI-93`, two different items, same `first_seen_run`. The amendment earned its place immediately.
+
+It is also slightly wrong in a way this instance conceals. Step 4b says the class "merges clean and
+silently"; here git raised a content conflict, because both sides appended at the same offset in the
+same file. That is placement luck. `OI-106` carries the question of whether the step should separate
+the two cases — otherwise the next reader generalises from the one instance where git happened to
+catch it.
+
+### Follow-Ups — Review Pass 2
+
+| Follow-up | Owner | Ledger entry | Status |
+|---|---|---|---|
+| Decide whether `lifecycle-ship` step 4b should distinguish a collision git surfaces as a conflict from one that merges clean | workflow owner | OI-106 | open |
+| Change `check-setup-complete.mjs`'s adapter-presence check to a marker-stamp check (carried in from `release/1.1.0` at OI-93, renumbered) | workflow owner | OI-105 | open |

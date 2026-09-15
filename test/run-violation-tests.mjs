@@ -384,6 +384,21 @@ const fixtures = [
   { id: 'gs', dir: 'test/fixtures/lifecycle-violations/gs-open-items-id-reused-across-files', description: '(WP-R20, R5) two different items share one OI-N across the split — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'for a different item (first_seen_run' },
   { id: 'gt', dir: 'test/fixtures/lifecycle-violations/gt-open-items-archive-holds-open', description: '(WP-R20, RI6) the archive holds an unresolved item nothing will read — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'the archive holds settled items only' },
   { id: 'gu', dir: 'test/fixtures/lifecycle-violations/gu-open-items-done-not-rotated', description: '(WP-R20, R1) a closed item is still in the live ledger while an archive exists — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'has status "done" but is still in the live ledger' },
+  // Same shape as gu with the archive made unparseable, and it is the `reject` that carries it: the
+  // done-not-rotated rule is guarded on the archive FILE existing, while the detail line explaining
+  // why a done entry is tolerated was guarded on the archive DOCUMENT. A malformed archive split the
+  // two, and the run told the reader both that the entry was an error and that it was not. gu cannot
+  // catch that — its archive is well-formed, so the contradicting branch is never reached. Kept as a
+  // separate fixture rather than folded into gu so gu keeps rejecting for exactly one reason.
+  { id: 'gu2', dir: 'test/fixtures/lifecycle-violations/gu2-open-items-done-not-rotated-malformed-archive', description: '(WP-R20, R1 / pass 2) a done item is reported while the archive is malformed, with no "not rotated yet" contradiction — check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'has status "done" but is still in the live ledger', reject: 'has not rotated yet' },
+  // The ONE upgrade-breaking change in WP-R20, and the only rule here the mutation ratchet cannot
+  // see: `additionalProperties: false` is enforced by lib.mjs's schema engine, so there is no
+  // `errors.push(` in check-open-items.mjs to mutate and check-open-items' 0/8 says nothing about
+  // it. Asserts the exact wording because the wording is the mitigation — the message names the
+  // offending key, which is what makes a consumer's failure a one-line fix instead of a hunt.
+  // Fixture id is `gv2`: the directory is the one the review named, and `gv` was already taken by
+  // the unrelated gv-skipped-missing-value.
+  { id: 'gv2', dir: 'test/fixtures/lifecycle-violations/gv-open-items-undeclared-key', description: '(WP-R20, RI5 / pass 2) a live ledger carries an undeclared key — lib.mjs additionalProperties via check-open-items', validator: validatorPath('check-open-items.mjs'), expect: 'items[0].outcome is not allowed' },
   // OI-82 — check-verify-matrix, 3 of 4 undefended. Only the pass-with-empty-evidence rule had ever
   // fired against the real corpus; the three that catch a missing section, a missing row and an
   // unnamed method had not.
@@ -504,12 +519,24 @@ for (const fixture of fixtures) {
   // fixture at all and mutation testing showed it could be deleted with every suite green. Counting
   // errors cannot see that; matching the error can.
   const matched = !fixture.expect || combined.includes(fixture.expect);
-  const detected = result.status !== 0 && matched;
+  // `reject` is the inverse assertion: a substring the output must NOT contain. `expect` alone
+  // cannot express "and it no longer also says the opposite" — check-open-items printed a detail
+  // saying the repo had never rotated in the same run whose errors said the archive was there and
+  // malformed, and the fixture asserting the error passed throughout, because the error WAS
+  // present. A rule and its own contradiction can both be in the output; only this catches that.
+  const rejected = !fixture.reject || !combined.includes(fixture.reject);
+  const detected = result.status !== 0 && matched && rejected;
 
   if (result.status !== 0 && !matched) {
     console.error(`[WRONG] ${fixture.id}: rejected, but not by the rule it names`);
     console.error(`        expected to contain: ${fixture.expect}`);
     console.error(`        got: ${combined.split('\n').find((l) => l.startsWith('- ')) ?? '(no error line)'}`);
+  }
+
+  if (result.status !== 0 && matched && !rejected) {
+    console.error(`[WRONG] ${fixture.id}: rejected by the right rule, but the output also contradicts it`);
+    console.error(`        must NOT contain: ${fixture.reject}`);
+    console.error(`        got: ${combined.split('\n').find((l) => l.includes(fixture.reject)) ?? '(line not found)'}`);
   }
 
   if (detected) {

@@ -1,0 +1,5 @@
+# Deliberately malformed: `kind` is wrong, so the archive fails loadLedger before it is indexed.
+# The point of the fixture is what the run says about the OTHER file while this one is broken.
+version: 1
+kind: WRONG
+items: []

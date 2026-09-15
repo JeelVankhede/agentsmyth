@@ -125,7 +125,7 @@ Planned change to `src/workflow/schemas/open-items.schema.yaml`, and nothing els
 3. Declare `closed_in_run` — the slug-vN that closed it, with `unrecorded` valid for backfill only,
    carrying `pending-setup.schema.yaml:39-46`'s wording per Q2.
 4. `additionalProperties: false` on the item object, in the same change as 2 and 3 — the plan's
-   Architecture Notes record why it cannot be deferred.
+   Architecture Notes record why it should not be deferred.
 5. Neither new field joins `required`. RI5 depends on that: a required field would break every
    consumer ledger on upgrade and escalate the release past a minor bump.
 
