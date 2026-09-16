@@ -128,12 +128,12 @@ page: move to Done, and correct its "one is wrong" framing, which this chain dis
 
 | Action | Owner | Suggested artifact or ticket | Status |
 |---|---|---|---|
-| Commit the chain on `feat/wp-r24-enforcement-proof` | user | Ship Blocked Handoff #1 | open |
-| Push the branch | user | Ship Blocked Handoff #2 | open |
-| Open a PR against `feat/wp-r20-ledger-closure`, retargeting to `release/1.1.0` once #69 merges | user | Ship Blocked Handoff #3 | open |
-| Merge PR #69 | user | Ship Blocked Handoff #4 | open |
-| Update the Notion WP-R24 page: Done + PR reference, and correct the "one is wrong on a public surface" wording | user | Ship Blocked Handoff #5 | open |
-| Dispatch 1.1.0 once all seven packages are merged | user | Ship Blocked Handoff #6 | open |
+| Commit the chain on `feat/wp-r24-enforcement-proof` | user | Ship Blocked Handoff #1 | **done** 2026-09-17 — `c347ac4`, 17 files; the pre-commit gate ran and passed on it |
+| Push the branch | user | Ship Blocked Handoff #2 | **done** 2026-09-17 — `origin/feat/wp-r24-enforcement-proof` |
+| Open a PR against `feat/wp-r20-ledger-closure`, retargeting to `release/1.1.0` once #69 merges | user | Ship Blocked Handoff #3 | **done** 2026-09-17 — PR #70, base `feat/wp-r20-ledger-closure` |
+| Merge PR #69 | user | Ship Blocked Handoff #4 | open — **retained by the user deliberately**; they instructed the agent to complete every other handoff and merge this one themselves |
+| Update the Notion WP-R24 page: PR reference, and correct the "one is wrong on a public surface" wording | user | Ship Blocked Handoff #5 | **done** 2026-09-17 — see the deviation note below |
+| Dispatch 1.1.0 once all seven packages are merged | user | Ship Blocked Handoff #6 | open — **blocked by its own precondition**, not by authorisation: #69 and #70 must merge and `release/1.1.0` must reach `main` first |
 | Make `check-scope-fence`'s active-phase requirement discoverable before it fails | workflow owner | OI-107 | open |
 | Anchor `check-artifacts`'s Requirement Manifest extraction to a line start | workflow owner | OI-108 | open |
 | Give `check-scope-fence` a way to express a phase that deliberately touches no shipped file | workflow owner | OI-109 | open |
@@ -156,6 +156,16 @@ See `workflow/learnings/sessions/2026-09-17-wp-r24-enforcement-proof.md`.
   push, PR, merge, Notion and dispatch all remain unauthorised.
 - **constraint**: nothing in this chain was committed. Every follow-up that moves code is owned by the
   user.
+- **deviation from the commit strategy, recorded**: the plan's Branch Strategy specified one commit per
+  phase. The chain shipped as a single commit (`c347ac4`). Build completed as a unit before commit was
+  authorised, and carving seven commits out of a finished tree afterwards would have fabricated
+  boundaries the work did not have — artifacts in particular accrete across every phase and cannot be
+  split along phase lines honestly. Stated in the commit message as well as here.
+- **deviation from Blocked Handoff #5, recorded**: the handoff said "move to Done with the PR
+  reference". The page was set to **🔵 In Progress**, not Done, because PR #70 is open and WP-R20 — also
+  open at PR #69 — carries In Progress under the same rule the user chose on 2026-09-16 (Shipped Date
+  means the merge date). Marking this row Done while its PR is unmerged would have made the release log
+  disagree with itself. The page moves to Done on merge.
 - **downstream**: this is the seventh and final package of 1.1.0. The release becomes dispatchable when
   this and PR #69 are merged — five of the six open handoffs are on that path.
 
