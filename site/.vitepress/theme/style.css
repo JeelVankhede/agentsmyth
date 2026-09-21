@@ -373,3 +373,52 @@
 * {
   scrollbar-color: var(--vp-c-border) var(--vp-c-bg-alt);
 }
+
+
+/* WP-R24 — the enforcement proof on the home page, between hero actions and features.
+   Constrained and self-scrolling: the transcript has long lines and the page must never scroll
+   sideways because of it. Colours come from VitePress theme vars so both themes stay legible
+   without a second palette to maintain. */
+.gate-capture-wrap {
+  max-width: 760px;
+  margin: 40px auto 0;
+  padding: 0 24px;
+}
+
+.gate-capture-label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-2);
+}
+
+.gate-capture {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  background: var(--vp-code-block-bg, var(--vp-c-bg-alt));
+  color: var(--vp-c-text-1);
+  font-size: 12.5px;
+  line-height: 1.65;
+  tab-size: 2;
+}
+
+.gate-capture code {
+  font-family: var(--vp-font-family-mono);
+  white-space: pre;
+}
+
+.gate-capture-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--vp-c-text-3);
+}
+
+@media (max-width: 640px) {
+  .gate-capture-wrap { padding: 0 16px; margin-top: 28px; }
+  .gate-capture { font-size: 11.5px; }
+}

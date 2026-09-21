@@ -51,6 +51,7 @@
     "commit-coverage:test": "node test/run-commit-coverage-tests.mjs",
     "domain-placeholders:test": "node test/run-domain-placeholders-tests.mjs",
     "agents-md:test": "node test/run-agents-md-tests.mjs",
+    "capture:gate": "node scripts/capture-gate-refusal.mjs",
     "site:dev": "vitepress dev site",
     "site:build": "vitepress build site",
     "mutation:audit": "node test/run-mutation-audit.mjs"
