@@ -11,7 +11,9 @@ import {
   parseFrontmatter,
   readText,
   repoRoot,
+  schemaRegistry,
   trackedFiles,
+  validateSchema,
   wf,
 } from './lib.mjs';
 
@@ -300,6 +302,53 @@ for (const f of strayFiles) {
 
 if (strayFiles.length === 0) {
   details.push('RI1: no stray artifact files found outside artifacts tree');
+}
+
+// ── Provenance manifest ───────────────────────────────────────────────────
+// Presence and SHAPE only, never content. Whether a recorded digest is correct is not knowable
+// here — only `agentsmyth upgrade` can compare a digest against the file it describes, and it does.
+//
+// Hosted in this validator specifically. `check-config.mjs` would have been the obvious home and is
+// the wrong one: `agentsmyth check` hardcodes exactly two validator filenames and that is not one
+// of them, `scripts/` never ships, and the one documented manual invocation is broken for a linked
+// install — so a rule placed there would never run in a single consumer repo. This file is invoked
+// by name on every full `check`, and it imports lib.mjs, so it can actually schema-validate. Those
+// two properties together are why it is here and not in the validator that reads configs.
+// join(repoRoot, ...) deliberately: `wf` is a repo-root-relative NAME, and bare existsSync resolves
+// against process.cwd(). The body below reads through lib.mjs helpers that DO join repoRoot, so a
+// cwd-relative guard made the check silently pass from any subdirectory while claiming in its own
+// details line that no manifest was present.
+const provenancePath = `${wf}/provenance.yaml`;
+if (existsSync(join(repoRoot, provenancePath))) {
+  let manifest = null;
+  try {
+    manifest = loadYaml(provenancePath);
+  } catch (e) {
+    errors.push(`${provenancePath} is not parseable: ${e.message} — an unreadable manifest must be repaired or deleted, never left in place, because an upgrade cannot tell your edits from staleness without it`);
+  }
+
+  if (manifest) {
+    if (manifest.kind !== 'provenance') {
+      errors.push(`${provenancePath} has kind "${manifest.kind ?? '(none)'}", expected "provenance"`);
+    } else {
+      const schemaPath = defsPath('schemas', 'provenance.schema.yaml');
+      if (existsSync(schemaPath)) {
+        const schema = loadYaml(schemaPath);
+        validateSchema(manifest, schema, provenancePath, errors, schemaRegistry(), schema);
+        details.push(`checked ${provenancePath} against ${schemaPath}`);
+      }
+      for (const entry of manifest.entries ?? []) {
+        // A manifest entry names a file an upgrade will read, back up, and overwrite. A path that
+        // escapes the repository, or is absolute, would point that machinery outside the tree it
+        // is scoped to — so the shape check is a containment check, not a cosmetic one.
+        if (typeof entry?.path === 'string' && (entry.path.startsWith('/') || entry.path.split('/').includes('..'))) {
+          errors.push(`${provenancePath} entry path "${entry.path}" escapes the repository — governed paths must be repo-relative and must not traverse upward`);
+        }
+      }
+    }
+  }
+} else {
+  details.push('no provenance manifest present — repo predates delta upgrades, or has not been upgraded yet');
 }
 
 finish('check-lifecycle', errors, details);

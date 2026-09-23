@@ -234,6 +234,66 @@ if (presentAdapters.length === 0) {
   console.log(`  adapters present: ${presentAdapters.join(', ')}`);
 }
 
+// ── Check: AGENTS.md's marker stamp matches the installed version ─────────
+//
+// This repairs a check that could no longer fail, and gives a version stamp its first reader, in
+// one change — the two defects close each other.
+//
+// The presence check above became dead once `init` started always writing a root AGENTS.md: that
+// file is one of the five adapterPaths, so "at least one adapter present" cannot fail in any repo
+// `init` has touched. It was accepted as residual risk at the time because every repair considered
+// then was worse.
+//
+// Separately, `placeAgentsMd()` writes its block inside `<!-- agentsmyth:X.Y.Z BEGIN -->` markers
+// and its own source comment says the stamp exists so "a later release can read which version
+// wrote a block and migrate it". Nothing read it. A stamp with no reader is untested in the one
+// direction that matters, and stays untested until something consumes it.
+//
+// This is that reader. It restores a failure mode to the presence check by asking a question that
+// can actually be false, and it exercises the stamp against the installed version on every `check`.
+//
+// The reference version is repo-profile.yaml's `agentsmyth_version` stamp, not a package.json read.
+// This validator runs from the global install (`~/.agentsmyth/validators/`) where no package.json
+// sits alongside it, and it deliberately imports nothing from lib.mjs. repo-profile's stamp is the
+// right repo-local reference regardless: `writeDefinitionsRoot()` rewrites it on every `init` and
+// every `upgrade`, so the two stamps move together and a disagreement means one of them was left
+// behind.
+const agentsMdPath = 'AGENTS.md';
+const installedVersion = (read('workflow/config/repo-profile.yaml') ?? '').match(/^agentsmyth_version:\s*(\S+)/m)?.[1] ?? null;
+if (exists(agentsMdPath) && installedVersion) {
+  const text = read(agentsMdPath);
+  const begin = text.match(/<!--\s*agentsmyth:([0-9][^\s]*)\s+BEGIN\s*-->/);
+  const end = text.match(/<!--\s*agentsmyth:([0-9][^\s]*)\s+END\s*-->/);
+
+  // A file with NO agentsmyth marker at all is not a managed AGENTS.md and is not this check's
+  // business — the source repository's own AGENTS.md is hand-authored and legitimately has none.
+  // A file with a marker but no matching pair is a different thing entirely: something wrote a
+  // partial block, which is an interrupted write, and that must fail.
+  const hasAnyMarker = /<!--\s*agentsmyth:/.test(text);
+  if (!hasAnyMarker) {
+    console.log(`  ${agentsMdPath}: no agentsmyth marker block (not agent-managed — skipped)`);
+  } else if (!begin || !end) {
+    errors.push(
+      `${agentsMdPath} carries an agentsmyth marker but not a well-formed pair — expected ` +
+      '<!-- agentsmyth:<version> BEGIN --> ... <!-- agentsmyth:<version> END -->. ' +
+      'A partial block means an interrupted write; re-run "agentsmyth upgrade" to rewrite it.'
+    );
+  } else if (begin[1] !== end[1]) {
+    errors.push(
+      `${agentsMdPath} marker versions disagree: BEGIN says ${begin[1]}, END says ${end[1]}. ` +
+      'A half-rewritten block means an interrupted write — the block cannot be trusted to describe ' +
+      'which version produced it.'
+    );
+  } else if (begin[1] !== installedVersion) {
+    errors.push(
+      `${agentsMdPath} was written by agentsmyth v${begin[1]} but v${installedVersion} is installed. ` +
+      'Run "agentsmyth upgrade" to bring the block current.'
+    );
+  } else {
+    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches installed)`);
+  }
+}
+
 for (const warning of warnings) {
   console.warn(warning);
 }
