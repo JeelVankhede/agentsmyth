@@ -41,6 +41,13 @@ it, so the entry for the version being released has to be committed *before* the
       version skew is detected, any new pending-setup item families append without corrupting the
       file, the configs still parse, `prepare` refreshes the global tree, and `check` exits 0 once
       setup is completed.
+      Then rehearse `agentsmyth upgrade` on that same repo, which is the only place the delta path
+      meets a genuinely older published tarball rather than a synthesised manifest state. Confirm:
+      a repo carrying no `workflow/provenance.yaml` adopts its current files as the baseline instead
+      of reporting every file as edited; a file you edit by hand before upgrading is copied to
+      `workflow/backups/` byte-identically and raises exactly one reconcile item naming that path;
+      the pre-commit hook's marked block is refreshed while anything outside it survives; and a
+      second `upgrade` immediately afterwards reports nothing edited.
 - [ ] The release branch is merged into `main`, or you have accepted that `release.yml` will push
       the dispatched ref to `main` itself (`git push origin HEAD:main` is one of its steps).
 

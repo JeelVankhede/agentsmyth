@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-09-08
 
 ### Added
+- **Version-aware delta upgrades** (WP-R18) — a new `agentsmyth upgrade` command brings an
+  already-set-up repository current with the installed version. Until now there was no upgrade path
+  at all: `prepare` refreshes the shared global tree and writes nothing into a repo, and a second
+  `init` over a set-up repo changes no tracked file, so the files agentsmyth scaffolded stayed as
+  first written however many releases had passed.
+  `init` now records a digest of every file it writes into `workflow/provenance.yaml`, which is what
+  lets an upgrade tell a file you edited from one that is merely stale. Unchanged files are brought
+  current silently; an edited file is copied to `workflow/backups/` first, then brought current, and
+  flagged with a single item in `pending-setup.yaml` naming the backup — but only when the upgrade
+  actually has a change for it, so an edit to a file this release does not touch is simply left alone — your agent offers the
+  merge at the start of the next session, so nothing prompts in a terminal and CI behaves the same
+  as a laptop. A file you deleted stays deleted.
+  Repos created before this exists have no manifest; `upgrade` adopts their current files as the
+  baseline rather than reporting everything as drifted. A manifest that cannot be parsed, or one
+  written by a newer CLI than the one running, is a hard stop rather than a guess — both are cases
+  where continuing would overwrite files with no backup.
+  The mandatory pre-commit gate and `AGENTS.md` are also no longer frozen at whatever version first
+  installed them: their marked blocks are refreshed on upgrade while anything you wrote around them
+  survives byte-for-byte. Both are refreshed whether or not they are in the manifest — a hook in a
+  default repo lives under `.git/`, which is a protected path and so is never hashed or backed up,
+  and that is no reason to leave the gate stale.
+  A file agentsmyth did not write is never adopted: a pre-existing `.github/copilot-instructions.md`
+  stays yours, ungoverned and untouched.
+  Migration descriptors under `src/assets/workflow/migrations/` describe what changed shape between
+  two versions, so a value that merely moved is not mistaken for one you set.
+
 - **Enforcement proof on the README and the docs site home** (WP-R24) — the claim that the lifecycle
   is enforced mechanically rather than prompted is now shown rather than asserted: a real captured
   refusal, a `git commit` rejected because the plan it depended on was never approved, sits above the
@@ -104,6 +130,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file shows; reading the lean file alone is how a number gets taken twice.
 
 ### Fixed
+- **`check-setup-complete` can fail again, and the `AGENTS.md` version stamp finally has a reader**
+  (OI-105) — the adapter-presence check had become unfalsifiable once `init` started always writing
+  a root `AGENTS.md`, since that file is one of the five paths it accepts. It now parses the
+  `agentsmyth:<version>` marker pair and compares it against the repo's stamp, which both restores a
+  real failure mode and makes the stamp — written for this purpose and never read — actually load-bearing.
+- **Pending-setup ids are no longer re-issued after pruning** — allocation was `max(present) + 1`,
+  so removing `PS-9` from a file left `PS-1` and the next allocation handed out `PS-2` again,
+  colliding with an id that had existed and been pruned, in a file whose schema says ids are never
+  renumbered. A `next_id` high-water mark now advances monotonically. Latent since the mechanism
+  shipped; unreachable until reconcile items made pruning the expected lifecycle.
+
 - The mandatory pre-commit hook ran its coverage check as a bare command under `set -e`, so a
   failing check terminated the script before the per-artifact phase-gate loop could run: the gate
   reported one class of problem while silently skipping another. It now runs as an `if` condition,
