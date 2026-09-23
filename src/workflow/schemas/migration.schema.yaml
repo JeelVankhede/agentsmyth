@@ -1,0 +1,72 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "migration"
+title: "Migration Descriptor"
+type: object
+kind: migration
+description: >-
+  Describes one version-to-version shape change to a single governed config file, so an upgrade
+  knows WHAT changed rather than only that something did. Without descriptors an upgrade can compare
+  digests and tell you a file drifted; it cannot tell a value you set by hand from a value that
+  merely moved, which is the difference between preserving an edit and resurrecting a stale one.
+
+  Operations are line-anchored rather than tree-structured, and that is deliberate: the CLI has no
+  YAML parser and deliberately does not import the validators' one, so the only honest unit of
+  change here is the same one `writeDefinitionsRoot()` already operates on. A descriptor that needs
+  to restructure a document rather than adjust keys within it is out of scope and should raise a
+  reconcile item instead.
+required: [version, kind, from, to, target, changes]
+properties:
+  version:
+    type: integer
+    enum: [1]
+  kind:
+    type: string
+    enum: [migration]
+  from:
+    type: string
+    minLength: 1
+    description: "The agentsmyth version this descriptor migrates from."
+  to:
+    type: string
+    minLength: 1
+    description: "The agentsmyth version this descriptor migrates to."
+  target:
+    type: string
+    minLength: 1
+    description: "Repo-relative path of the governed file this descriptor applies to, e.g. workflow/config/repo-profile.yaml."
+  description:
+    type: string
+    description: "Why this change happened, in a sentence. Read by a human deciding whether to accept a merge."
+  changes:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [op, key]
+      additionalProperties: false
+      properties:
+        op:
+          type: string
+          enum: [ensure-key, set-machine-owned, rename-key]
+          description: >-
+            `ensure-key` adds a key with a default when absent and never touches it when present -
+            the additive case, and the only one safe to apply without asking. `set-machine-owned`
+            overwrites a value agentsmyth owns outright, such as a version stamp. `rename-key`
+            rewrites a key name in place, preserving whatever value the user had set - this is the
+            operation that stops a moved value being mistaken for one the user chose.
+        key:
+          type: string
+          minLength: 1
+          description: "The key being operated on, written as it appears at the start of its line."
+        to:
+          type: string
+          description: "Required by `rename-key`: the new key name."
+        value:
+          type: string
+          description: "Required by `ensure-key` and `set-machine-owned`: the value to write."
+        after:
+          type: string
+          description: >-
+            Optional anchor for `ensure-key`: the key line the new key is inserted after. Without
+            it a new key is appended at the end of the document, which is valid YAML but reads
+            badly in a file a human maintains.
