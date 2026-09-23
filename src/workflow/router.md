@@ -36,6 +36,24 @@ the task.
    These items are **non-blocking like every other pending-setup item**: until they resolve, every
    value falls back to the global install and behavior is unchanged. Never gate lifecycle work on
    them, and never treat an unresolved intent item as a reason to pause a phase.
+9. **Reconcile items** (`field: "reconcile.<from-version>.<path>"`, written by `agentsmyth upgrade`)
+   do not fit steps 4–5 and must not be run through them. Every other item means "find a value and
+   write it to `config`.`field`"; a reconcile item has no value to look up. It says: this file was
+   edited, your version was preserved at `backup_path`, and the upgrade has since brought the parts
+   agentsmyth owns up to date.
+   Resolve it by **reading both files and merging**, not by inspection:
+   - Read `backup_path` and the current file named by `config`. Diff them.
+   - What the user set by hand is in the backup; what agentsmyth owns has been brought current in
+     the live file. Re-apply the former onto the latter, and keep the latter wherever the two
+     conflict on a machine-owned key.
+   - When `migration_id` is present, read that descriptor first. It names what changed shape, so a
+     value that merely *moved* is not mistaken for one the user set.
+   - Surface the merge to the user before writing it. This is the one item family where the agent
+     proposes to change a file the user deliberately edited, so it is confirmed, never assumed.
+   - On acceptance set `status: resolved` and `resolved_by: merged-from-backup`, then delete the
+     backup the item names — it exists to serve this item and nothing else owns its cleanup.
+   Never hand-write a reconcile item. The CLI records every marker it has raised, so one you
+   resolve and prune stays gone; authoring one yourself defeats that.
 
 ## Inputs To Inspect
 

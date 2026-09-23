@@ -329,6 +329,29 @@ a real lifecycle task artifact, or the commit is rejected. The only bypass is gi
 `git commit --no-verify` — no new flag or config toggle exists. If the repo already had a custom
 `pre-commit` hook, `init` appended this check to the end of it rather than overwriting.
 
+#### Step 5f — Re-record the provenance baseline
+
+```bash
+agentsmyth upgrade --baseline
+```
+
+This is not optional and it is not a formality. `init` recorded a provenance baseline at the end
+of its run — a digest of every governed file as agentsmyth wrote it — but that was **before** this
+skill existed to fill anything in. Phase 3 of this skill rewrote all five config files, replacing
+placeholder templates with real values, so every digest `init` recorded is now stale by design.
+
+Leave it stale and the first `agentsmyth upgrade` this repo ever runs will read all five configs as
+user-edited, back up all five, and raise five reconcile items about edits the user never made. The
+feature that exists to tell deliberate edits from staleness would report drift on a repo nobody
+had touched.
+
+Re-running it here says "this filled state is what agentsmyth wrote", which is true, and is the
+point at which it becomes true.
+
+Confirm the command reported a non-zero file count, and include that count in the Output summary
+below. If it reports fewer files than `init` did, something this skill wrote is missing — stop and
+report rather than proceeding.
+
 This is the final step.
 
 ## Global Install Note
