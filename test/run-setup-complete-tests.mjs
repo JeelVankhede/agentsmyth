@@ -93,14 +93,14 @@ check('with-agentsmyth-home', 'AGENTSMYTH_HOME set is treated as equivalent to a
 // full local definitions tree, which would bury the rule under a dozen unrelated errors.
 const CONFIGS = ['domain.yaml', 'repo-profile.yaml', 'source-of-truth.yaml', 'verification.yaml', 'release.yaml'];
 
-function setupRepo({ omitConfig = null, placeholderIn = null, defaultBranch = true, map = 'real', agentsmythDir = false, adapter = true } = {}) {
+function setupRepo({ omitConfig = null, placeholderIn = null, defaultBranch = true, map = 'real', agentsmythDir = false, adapter = true, agentsMd = null, stamp = null } = {}) {
   const tmp = mkdtempSync(join(tmpdir(), 'setup-gate-'));
   mkdirSync(join(tmp, 'workflow', 'config'), { recursive: true });
   for (const name of CONFIGS) {
     if (name === omitConfig) continue;
     let body = `version: 1\nkind: ${name.replace('.yaml', '')}\n`;
     if (name === 'domain.yaml') body += 'domain:\n  name: probe\n  summary: a scratch repo\n';
-    if (name === 'repo-profile.yaml') body += `repository:\n  mode: single-repository\n${defaultBranch ? '  default_branch: main\n' : '  default_branch:\n'}`;
+    if (name === 'repo-profile.yaml') body = `${stamp ? `agentsmyth_version: ${stamp}\n` : ''}${body}repository:\n  mode: single-repository\n${defaultBranch ? '  default_branch: main\n' : '  default_branch:\n'}`;
     if (name === placeholderIn) body += 'extra: <PLACEHOLDER>\n';
     writeFileSync(join(tmp, 'workflow', 'config', name), body);
   }
@@ -110,7 +110,7 @@ function setupRepo({ omitConfig = null, placeholderIn = null, defaultBranch = tr
       map === 'placeholder' ? '# Map\n\nOwner: <PLACEHOLDER>\n' : '# Map\n\nA real mental map.\n');
   }
   if (agentsmythDir) mkdirSync(join(tmp, '.agentsmyth'), { recursive: true });
-  if (adapter) writeFileSync(join(tmp, 'AGENTS.md'), '# Probe\n');
+  if (adapter) writeFileSync(join(tmp, 'AGENTS.md'), agentsMd ?? '# Probe\n');
   const r = spawnSync(process.execPath, [validator], {
     cwd: tmp, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: join(repoRoot, 'src', 'workflow') },
   });
@@ -135,6 +135,34 @@ check('gate-agentsmyth-dir', 'a leftover .agentsmyth/ directory is reported',
   setupRepo({ agentsmythDir: true }).includes('.agentsmyth/ still exists'));
 check('gate-no-adapter', 'a repo with no tool-native adapter is reported',
   setupRepo({ adapter: false }).includes('no tool-native adapter found'));
+
+// ── AGENTS.md marker stamp rules ──────────────────────────────────────────────────────────────
+// Three reachable failures, each asserting its own wording. Together they give the version stamp
+// its first reader — before this, placeAgentsMd() wrote a stamp nothing ever read, so its
+// correctness in the direction that matters (a later release recognising which version wrote a
+// block) was untested and would have stayed untested.
+//
+// The un-stamped case is deliberately NOT an error: the source repository's own AGENTS.md is
+// hand-authored and has no marker, and failing it would be wrong.
+check('gate-agentsmd-unmanaged', 'an AGENTS.md with no agentsmyth marker is skipped, not failed',
+  setupRepo({ stamp: '1.0.1', agentsMd: '# My own AGENTS.md\n' })
+    .includes('no agentsmyth marker block'));
+
+check('gate-agentsmd-partial-block', 'an AGENTS.md with a marker but no matching pair is reported',
+  setupRepo({ stamp: '1.0.1', agentsMd: '<!-- agentsmyth:1.0.1 BEGIN -->\nbody\n' })
+    .includes('carries an agentsmyth marker but not a well-formed pair'));
+
+check('gate-agentsmd-version-disagree', 'BEGIN and END markers naming different versions are reported',
+  setupRepo({ stamp: '1.0.1', agentsMd: '<!-- agentsmyth:1.0.1 BEGIN -->\nbody\n<!-- agentsmyth:1.1.0 END -->\n' })
+    .includes('marker versions disagree'));
+
+check('gate-agentsmd-stale-stamp', 'a block written by an older version than the installed one is reported',
+  setupRepo({ stamp: '1.1.0', agentsMd: '<!-- agentsmyth:1.0.1 BEGIN -->\nbody\n<!-- agentsmyth:1.0.1 END -->\n' })
+    .includes('was written by agentsmyth v1.0.1 but v1.1.0 is installed'));
+
+check('gate-agentsmd-current-stamp', 'a current block passes without an error',
+  !setupRepo({ stamp: '1.1.0', agentsMd: '<!-- agentsmyth:1.1.0 BEGIN -->\nbody\n<!-- agentsmyth:1.1.0 END -->\n' })
+    .includes('Run "agentsmyth upgrade" to bring the block current'));
 
 console.log(`\n${passed}/${passed + failed} setup-complete checks passed`);
 

@@ -1,0 +1,5 @@
+version: 1
+kind: provenance
+entries:
+  - path: a
+   sha256: bad-indent
