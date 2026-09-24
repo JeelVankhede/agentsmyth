@@ -352,6 +352,12 @@ Confirm the command reported a non-zero file count, and include that count in th
 below. If it reports fewer files than `init` did, something this skill wrote is missing — stop and
 report rather than proceeding.
 
+Then run `agentsmyth check` and confirm it reports no drift. That check compares every recorded
+digest against the file on disk, so it is the mechanical confirmation that this step actually
+happened — without it, a skipped or failed 5f is invisible until the first real upgrade fires a
+reconcile item for every config. If `check` reports that all governed files differ from what is
+recorded, 5f did not take effect; re-run it before proceeding.
+
 This is the final step.
 
 ## Global Install Note

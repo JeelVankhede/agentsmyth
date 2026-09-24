@@ -43,6 +43,11 @@ the task.
    agentsmyth owns up to date.
    Resolve it by **reading both files and merging**, not by inspection:
    - Read `backup_path` and the current file named by `config`. Diff them.
+     If `backup_path` does not exist, stop and tell the user rather than guessing: the item is
+     describing an edit whose only copy is gone, and inventing a merge from the live file alone
+     would silently confirm a loss instead of reporting one. (The CLI no longer supersedes a backup
+     an open item names, so this should not happen for an item raised by a current version — a
+     missing one means the file was removed by hand or predates that fix.)
    - What the user set by hand is in the backup; what agentsmyth owns has been brought current in
      the live file. Re-apply the former onto the latter, and keep the latter wherever the two
      conflict on a machine-owned key.
@@ -54,6 +59,12 @@ the task.
      backup the item names — it exists to serve this item and nothing else owns its cleanup.
    Never hand-write a reconcile item. The CLI records every marker it has raised, so one you
    resolve and prune stays gone; authoring one yourself defeats that.
+   And never run `agentsmyth upgrade` yourself without asking. It rewrites files in the user's repo
+   — that is a destructive action under `[safety-2]`, and the approval it requires is the user
+   choosing to run it, not you deciding they would have. If a repo looks stale, say so and offer
+   `agentsmyth upgrade --dry-run`, which classifies every governed file and writes nothing. The CLI
+   never prompts by design (a prompt fails closed on a non-TTY and would break every CI upgrade),
+   so asking is your job, not its.
 
 ## Inputs To Inspect
 

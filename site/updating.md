@@ -41,7 +41,29 @@ agentsmyth upgrade
 
 It knows which is which because `init` records a digest of every file it writes, in `workflow/provenance.yaml`. Commit that file: without it there is no record of what agentsmyth wrote, and every file reads as edited.
 
-If you're upgrading a repo set up before this existed, there's no manifest to read. `upgrade` handles that case explicitly — it adopts your current files as the baseline, backs nothing up, and flags nothing, because with no record of what agentsmyth last wrote, your files are the only truth available. The upgrade after that one will be a real delta.
+If you're upgrading a repo set up before this existed, there's no manifest to read. `upgrade` handles that case explicitly — it adopts your current files as the baseline, backs nothing up, and flags nothing, because with no record of what agentsmyth last wrote, your files are the only truth available. It still refreshes the pre-commit hook, the `AGENTS.md` block, and the version stamp on that run, so `check` stops reporting skew immediately rather than after a second pass. The upgrade after that one will be a real delta.
+
+Re-running `init` on a repo that already has a manifest deliberately leaves it alone, and says so. Re-baselining there would quietly adopt every edit you had made as agentsmyth's own content, and the next upgrade would then overwrite it with no backup and no prompt. `upgrade` is the verb for an existing repo.
+
+## Seeing what an upgrade would do first
+
+```bash
+agentsmyth upgrade --dry-run
+```
+
+Classifies every governed file and prints what would happen — which files are unchanged, which you have edited, which migrations apply — and writes nothing. No backup is taken and no manifest is rewritten. It runs the same classification code the real command runs, so it cannot drift from it.
+
+`upgrade` does not check whether your working tree is clean. It warns when it isn't, and continues. Only files it reads as edited are backed up; a file you have never touched is brought current in place, and your own git history is the way back. Commit before upgrading.
+
+## `--baseline`
+
+```bash
+agentsmyth upgrade --baseline
+```
+
+Re-records the files currently on disk as the baseline, and upgrades nothing. This is what the agent-driven setup skill runs as its final step: `init` can only scaffold the five config files as templates, setup then fills them, and without a re-baseline the repo would reach its first upgrade with every config reading as edited.
+
+You would run it by hand in one case: after resolving a reconcile item manually, to tell agentsmyth that the merged file is now the reference. It performs the same manifest safety checks `upgrade` does — an unreadable manifest, or one written by a newer agentsmyth than you have installed, is refused rather than overwritten.
 
 ## The version-skew warning
 

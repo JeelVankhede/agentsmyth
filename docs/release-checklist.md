@@ -48,6 +48,15 @@ it, so the entry for the version being released has to be committed *before* the
       `workflow/backups/` byte-identically and raises exactly one reconcile item naming that path;
       the pre-commit hook's marked block is refreshed while anything outside it survives; and a
       second `upgrade` immediately afterwards reports nothing edited.
+      Then rehearse the sequence that neither this step nor the automated suite used to reach:
+      **edit the same file a second time and upgrade again WITHOUT resolving the first reconcile
+      item.** Confirm the `backup_path` the still-open item names continues to resolve. Both
+      deletion triggers this design names — superseded on upgrade, deleted when the item resolves —
+      fire on that file, and when they collided the user's original edit was destroyed while the
+      item still pointed at it. A single drift-and-upgrade cycle cannot see it, which is why it
+      shipped.
+      Finally, run `agentsmyth upgrade --dry-run` against a dirty tree and confirm it writes nothing
+      and takes no backup.
 - [ ] The release branch is merged into `main`, or you have accepted that `release.yml` will push
       the dispatched ref to `main` itself (`git push origin HEAD:main` is one of its steps).
 

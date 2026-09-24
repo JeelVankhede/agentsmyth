@@ -32,7 +32,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A file agentsmyth did not write is never adopted: a pre-existing `.github/copilot-instructions.md`
   stays yours, ungoverned and untouched.
   Migration descriptors under `src/assets/workflow/migrations/` describe what changed shape between
-  two versions, so a value that merely moved is not mistaken for one you set.
+  two versions, so a value that merely moved is not mistaken for one you set. A descriptor is
+  validated against its own schema before any of it is applied, and one naming an operation the CLI
+  does not implement is a hard error rather than a silently skipped line.
+  `agentsmyth upgrade --dry-run` classifies every governed file and prints what would change without
+  writing anything. `upgrade` warns — it does not block — when the working tree is dirty: only files
+  it reads as edited are backed up, so for everything else your own git history is the way back.
+  Re-running `init` on a repo that already has a manifest deliberately leaves the manifest alone and
+  says so. Re-baselining there would adopt whatever you had edited as agentsmyth's own content and
+  erase the drift the next upgrade needs to see; `upgrade` is the verb for an existing repo.
+  Paths are contained by construction rather than by convention: a value read from the manifest that
+  becomes part of a filesystem path is format-validated at read time and rejected if it is not a
+  version string, and a symlink at a governed path is followed only when its target resolves inside
+  a boundary the calling code declares — so neither a crafted manifest nor a checked-in symlink can
+  make an upgrade write, or read, outside the repository.
+  `agentsmyth check` now compares each recorded digest against the file on disk and reports drift
+  before an upgrade acts on it, which also makes a skipped post-setup baseline visible immediately
+  instead of at the first real upgrade.
 
 - **Enforcement proof on the README and the docs site home** (WP-R24) — the claim that the lifecycle
   is enforced mechanically rather than prompted is now shown rather than asserted: a real captured

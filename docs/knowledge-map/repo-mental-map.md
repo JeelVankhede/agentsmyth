@@ -49,7 +49,7 @@ planning history is not retained in the repo.
 | `src/adapters/` | Five tool gate shims (source of truth for the mandatory gate) |
 | `src/assets/` | Static package payload (adapters copy + placeholder configs + AGENTS.md) |
 | `scripts/build-bundle.mjs` | Compiles `src/workflow/` + `src/setup/` → `dist/` bundles |
-| `bin/agentsmyth.mjs` | The CLI — `prepare` expands the bundle to `~/.agentsmyth/` (global-only, no repo write); `init` copies payload into `.agentsmyth/` and links the repo to the global install (auto-running `prepare` first if needed) |
+| `bin/agentsmyth.mjs` | The CLI — `prepare` expands the bundle to `~/.agentsmyth/` (global-only, no repo write); `init` copies payload into `.agentsmyth/` and links the repo to the global install (auto-running `prepare` first if needed); `upgrade` brings an already-set-up repo current via key-level deltas against `workflow/provenance.yaml`, with `--dry-run` to preview and `--baseline` to re-record the current files as the baseline; `check` and `doctor` report |
 | `src/adapters/*/global-gate.md` | Token-free global gate templates installed by `prepare` to tool-native global paths |
 | `workflow/config/` | This repo's own per-repo lifecycle config (not shipped) |
 | `workflow/artifacts/` | This repo's dogfood lifecycle artifacts (not shipped) |
@@ -175,8 +175,11 @@ way. The prompt requires a real interactive TTY; a non-interactive session (CI, 
 fails closed with the path list rather than hanging or silently deciding either way.
 
 **Version skew:** `agentsmyth check` compares the `agentsmyth_version` stamped in
-`repo-profile.yaml` against the running CLI's version and emits a plain warning pointing at
-`prepare` on mismatch — there is no automatic re-link or version-pin enforcement. Since WP-R8 the
+`repo-profile.yaml` against the running CLI's version and emits a plain warning on mismatch — there
+is no automatic re-link or version-pin enforcement. The remedy is `agentsmyth upgrade`, not
+`prepare`: `prepare` refreshes the GLOBAL definitions tree and writes nothing into the repo, so the
+repo-local stamp it is complaining about never moves. `upgrade` runs `prepare` first, then brings
+the repo itself current and rewrites the stamp, which is what makes the warning's advice true. Since WP-R8 the
 warning also *leads somewhere*: on skew, the newer version's per-repo config surfaces are appended
 to `workflow/config/pending-setup.yaml` as open items, which the router's existing session-start
 pass resolves (inspect first, then one batched ask). Idempotent — a file already carrying
