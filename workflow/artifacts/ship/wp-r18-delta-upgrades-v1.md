@@ -2,7 +2,7 @@
 slug: wp-r18-delta-upgrades
 version: 1
 artifact: ship
-status: blocked-for-user
+status: ready-for-next-phase
 created: 2026-09-24
 updated: 2026-09-24
 manifest_ids: [R1, R2, R3, R4, R5, R6, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21]
@@ -14,7 +14,7 @@ upstream:
   - workflow/artifacts/verify/wp-r18-delta-upgrades-v1.md
 orchestration:
   phase: ship
-  status: blocked-for-user
+  status: ready-for-next-phase
   next_phase: reflect
   blockers: []
   user_checkpoint: ship-review
@@ -210,11 +210,20 @@ none
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending — the user has not yet responded to this ship decision
-- User's own words (verbatim, this turn): "Ship it, no version bump yet. Notion, changelog and PR. That's it"
-- Scope note: that instruction authorised the three actions performed here and excluded the version
-  bump and the merge. It is recorded as the instruction that scoped the work, not as approval of the
-  result — the result is what is being presented now.
+- Status: approved
+- User's own words (verbatim, this turn): "Continue to reflect"
+- Approved: 2026-09-24, after the ship result was presented — PR #72 open, both Notion pages
+  corrected, CHANGELOG closed, two waivers recorded by ID, and the version step explicitly noted as
+  untested. Directing the chain past Ship is acceptance of that state.
+- **What this approval does and does not cover.** It accepts the ship decision and releases Reflect.
+  It is not approval of the PR's contents — PR #72 is still open and unreviewed, and merging it is a
+  separate act. It does not accept the two waivers as closed: FQ-80 and FQ-63 remain waived-with-
+  owner, and FQ-80 in particular still needs a non-darwin runner or an explicit acceptance before
+  the 1.1.0 tag.
+- The earlier instruction, "Ship it, no version bump yet. Notion, changelog and PR. That's it", is
+  what SCOPED this phase. It is recorded separately from the approval above because scoping work and
+  accepting its result are different acts, and collapsing them is how a checkpoint stops meaning
+  anything.
 
 ## Exit Gate
 
