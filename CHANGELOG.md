@@ -151,6 +151,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a root `AGENTS.md`, since that file is one of the five paths it accepts. It now parses the
   `agentsmyth:<version>` marker pair and compares it against the repo's stamp, which both restores a
   real failure mode and makes the stamp — written for this purpose and never read — actually load-bearing.
+- **`AGENTS.md` no longer gains a second copy of its own block.** `init` looked for a
+  *version-marked* block; a file already carrying the same body **without** markers was invisible to
+  that test, so it appended and the file ended up saying the same thing twice — once as your copy,
+  once inside the marker. Reachable by pasting the block out of the docs before running `init`, by
+  copying an `AGENTS.md` between repos and losing the HTML comments in transit, or by any formatter
+  that strips them. The duplication was one-time rather than compounding, which made it worse in one
+  respect: every later upgrade found the marked block and never surfaced the stray copy again.
+  `init` and `upgrade` now adopt an unmarked copy in place. Extra copies beyond the first are left
+  alone and reported — they are yours, not agentsmyth's to remove — and a heading that merely
+  *starts* like agentsmyth's is never claimed.
+- **`prepare` no longer appends a blank line to your global config on every run, and cleans up the
+  ones it already added.** The gate text carried a trailing newline and the text preserved after the
+  END marker began with the newline that followed it, so each run kept both. `upgrade` runs
+  `prepare` unconditionally, so the file grew every time you upgraded anything — one real install
+  was found carrying 34 accumulated blank lines, with nothing ever surfacing it. The block is now
+  written byte-identically run over run, and a run also collapses whitespace a previous version left
+  behind, so existing files repair themselves rather than keeping the damage forever. Content you
+  wrote after the block is carried through untouched.
 - **Pending-setup ids are no longer re-issued after pruning** — allocation was `max(present) + 1`,
   so removing `PS-9` from a file left `PS-1` and the next allocation handed out `PS-2` again,
   colliding with an id that had existed and been pruned, in a file whose schema says ids are never

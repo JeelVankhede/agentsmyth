@@ -1041,3 +1041,27 @@ items:
     outcome: proved-real
     closed_in_phase: review
     resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-57
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: ship
+    resolution: "Ship performed the update directly rather than re-statusing and handing it on. The plan recorded source-of-truth as `not required`, which source-of-truth.yaml reserves for work with no external record; both Notion pages were corrected in place."
+  - id: FQ-58
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: ship
+    resolution: "The eight required handoff fields are recorded in the ship artifact Source-of-Truth Status section, and the update was performed rather than described."
+  - id: FQ-59
+    finding_id: F3
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: ship
+    resolution: "Both pages the prose claimed were stale are corrected. The research spike page is left as written and the reason is stated: it is a dated record of what was known on 2026-09-21, not a live contract."
