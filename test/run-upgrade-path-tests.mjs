@@ -992,6 +992,85 @@ const home = mkScratch('wpr18-home-');
     /workflow\/backups\/.*domain\.yaml/.test(status));
 }
 
+
+// ── V: the two Phase 12 fixes that could not fire, and the reason they could not ───────────────
+// Both of these shipped green. V1's condition could never be true in the case it targeted; V2's
+// code worked only when run from a directory no consumer has. Neither was reachable by adding
+// assertions to a suite that already passed — V1 needed a faithful post-setup state and V2 needed
+// the shipped validator layout. These two blocks build exactly those.
+
+// V1 — the post-setup baseline check must fire on a skipped step 5f, and stay silent after it ran.
+{
+  const CONFIGS = ['domain.yaml', 'release.yaml', 'repo-profile.yaml', 'source-of-truth.yaml', 'verification.yaml'];
+  const checkLifecycle = join(repoRoot, 'src', 'workflow', 'validators', 'check-lifecycle.mjs');
+
+  // Reproduce what the setup skill's Phase 3 actually does: REWRITE all five configs. An earlier
+  // version of this scenario only substituted <PLACEHOLDER> tokens, and two of the five carry
+  // none — so it produced 3 drifted of 7 and could not distinguish a working rule from a dead one.
+  const postSetup = (label, runStep5f) => {
+    const repo = freshRepo(home, label);
+    for (const name of CONFIGS) {
+      const f = join(repo, 'workflow', 'config', name);
+      writeFileSync(f, `${readFileSync(f, 'utf8').replace(/<PLACEHOLDER>/g, 'filled').replace(/<USER-TODO>/g, 'filled').replace(/\n*$/, '')}\n# filled during setup\n`);
+    }
+    if (runStep5f) run(['upgrade', '--baseline'], { cwd: repo, home });
+    const out = spawnSync(process.execPath, [checkLifecycle], { cwd: repo, encoding: 'utf8', env: { ...process.env, HOME: home } });
+    return `${out.stdout}${out.stderr}`;
+  };
+
+  const skipped = postSetup('v1skipped', false);
+  const ran = postSetup('v1ran', true);
+
+  // Guard the fixture itself: if setup did not actually drift the configs, both assertions below
+  // would pass vacuously and prove nothing.
+  check('V1-fixture-drifts-configs', 'the simulated setup really does leave every config differing from its recorded digest',
+    /(\d+) digest\(s\) compared against disk — [1-9]/.test(skipped));
+  check('V1-catches-skipped-5f', 'a baseline never re-taken after setup is reported, not left for the first upgrade to discover',
+    /EVERY one differs from what is on disk/.test(skipped));
+  check('V1-silent-after-5f', 'and running step 5f clears it — the rule is not just always-on',
+    !/EVERY one differs from what is on disk/.test(ran));
+  check('V1-not-whole-governed-set', 'the rule keys on the config files setup rewrites, not on the whole governed set',
+    // The hook and the adapter stay pristine after setup, so a rule requiring EVERY governed file
+    // to differ can never fire. This asserts the fixture is in exactly that state.
+    /0 recorded file\(s\) no longer present|unchanged/.test(skipped));
+}
+
+// V2 — the installed-version comparison must fire WHERE THE VALIDATOR SHIPS.
+//
+// This is the assertion whose absence let the defect through. The existing setup-checks suite runs
+// check-setup-complete out of src/, where a package.json resolves two levels up; in a consumer it
+// runs from ~/.agentsmyth/workflow/validators/, where nothing does. So the old code returned null,
+// the comparison never ran, and 20/20 stayed green over a check that was inert in deployment.
+{
+  const repo = freshRepo(home, 'v2layout');
+  const globalValidator = join(home, '.agentsmyth', 'workflow', 'validators', 'check-setup-complete.mjs');
+  check('V2-ships-to-global-tree', 'the validator really is installed into the global tree, which is what a consumer runs',
+    existsSync(globalValidator));
+  check('V2-no-package-json-there', 'and there is no package.json at either depth it probes — the reason the first fix was inert',
+    !existsSync(join(globalValidator, '..', '..', '..', 'package.json'))
+    && !existsSync(join(globalValidator, '..', '..', 'package.json')));
+  check('V2-version-stamp-written', 'prepare stamps the installed version into the global tree instead',
+    existsSync(join(home, '.agentsmyth', 'workflow', 'installed-version.txt')));
+
+  // Two stamps that agree with each other but trail the installed package — the exact state the
+  // repo-local comparison cannot see, and the one the requirement exists to catch.
+  const profile = join(repo, 'workflow', 'config', 'repo-profile.yaml');
+  writeFileSync(profile, readFileSync(profile, 'utf8').replace(/^agentsmyth_version:.*$/m, 'agentsmyth_version: 0.0.1'));
+  const agentsMd = join(repo, 'AGENTS.md');
+  if (existsSync(agentsMd)) {
+    writeFileSync(agentsMd, readFileSync(agentsMd, 'utf8').replace(/agentsmyth:[0-9][^\s]*/g, 'agentsmyth:0.0.1'));
+  }
+
+  const asShipped = spawnSync(process.execPath, [globalValidator], { cwd: repo, encoding: 'utf8', env: { ...process.env, HOME: home } });
+  const shipped = `${asShipped.stdout}${asShipped.stderr}`;
+  check('V2-fires-in-shipped-layout', 'a repo whose stamps agree but trail the installed version is reported, running the validator exactly as a consumer does',
+    /is installed — this repo is behind/.test(shipped));
+  check('V2-not-claiming-unresolvable', 'and it no longer reports the installed version as unresolvable from there',
+    !/installed version not resolvable/.test(shipped));
+  check('V2-still-a-warning', 'being behind stays a warning, not an error line — this rule reaches every repo on the machine',
+    !/^- .*is installed — this repo is behind/m.test(shipped));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
 }

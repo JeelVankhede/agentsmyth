@@ -4,12 +4,12 @@ format_version: 1
 written_by_version: 1.0.1
 normalization: lf-single-trailing-newline
 entries:
-  - path: package.json
+  - path: workflow/config/domain.yaml
     sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
     written_by_version: 1.0.1
-  - path: README.md
+  - path: workflow/config/release.yaml
     sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2
     written_by_version: 1.0.1
-  - path: CHANGELOG.md
+  - path: workflow/config/verification.yaml
     sha256: ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc3
     written_by_version: 1.0.1
