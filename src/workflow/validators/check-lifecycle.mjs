@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   artifactContracts,
@@ -305,8 +306,24 @@ if (strayFiles.length === 0) {
 }
 
 // ── Provenance manifest ───────────────────────────────────────────────────
-// Presence and SHAPE only, never content. Whether a recorded digest is correct is not knowable
-// here — only `agentsmyth upgrade` can compare a digest against the file it describes, and it does.
+// Shape, containment, AND content. The first version of this block checked shape only, on the
+// reasoning that "only `agentsmyth upgrade` can compare a digest against the file it describes".
+// That was wrong twice over, and the second way is what made RI14 unenforceable.
+//
+// It is not true that only `upgrade` can compare: the comparison is sha256 over a normalised read,
+// which needs node:crypto and nothing else. And deferring it to `upgrade` put the check on the one
+// code path where a mismatch is no longer actionable — by then the file is already being backed up
+// and rewritten. RI14 says a baseline stamping step runs after the agent finishes filling configs
+// (`src/setup/SKILL.md` step 5f), and NOTHING enforced it: a skipped 5f was invisible until the
+// first real upgrade fired spurious reconcile items across all five configs, for every fresh
+// consumer — RK2 shipping inverted, mitigated only by a sentence of prose.
+//
+// So the digest comparison lives here, where it runs on every `agentsmyth check`, and it reports a
+// DETAIL rather than an error. A recorded digest that no longer matches is the normal, expected
+// state of a repo whose user has edited a governed file — that is drift, which is the feature
+// working. What the reader needs is to be told it exists before the upgrade acts on it, and to be
+// told when EVERY governed file reads as drifted, which is the specific signature of a baseline
+// that was never taken.
 //
 // Hosted in this validator specifically. `check-config.mjs` would have been the obvious home and is
 // the wrong one: `agentsmyth check` hardcodes exactly two validator filenames and that is not one
@@ -337,12 +354,52 @@ if (existsSync(join(repoRoot, provenancePath))) {
         validateSchema(manifest, schema, provenancePath, errors, schemaRegistry(), schema);
         details.push(`checked ${provenancePath} against ${schemaPath}`);
       }
+      let compared = 0;
+      let drifted = 0;
+      let absent = 0;
       for (const entry of manifest.entries ?? []) {
         // A manifest entry names a file an upgrade will read, back up, and overwrite. A path that
         // escapes the repository, or is absolute, would point that machinery outside the tree it
         // is scoped to — so the shape check is a containment check, not a cosmetic one.
         if (typeof entry?.path === 'string' && (entry.path.startsWith('/') || entry.path.split('/').includes('..'))) {
           errors.push(`${provenancePath} entry path "${entry.path}" escapes the repository — governed paths must be repo-relative and must not traverse upward`);
+          continue;
+        }
+        // `written_by_version` reaches `writeBackup()` as a PATH SEGMENT on the upgrade path, and
+        // join() collapses "../". The CLI's own reader rejects a malformed value now, but this is
+        // the surface a user runs BEFORE upgrading, so it says so here too rather than leaving the
+        // first report to the command that would have acted on it.
+        if (typeof entry?.written_by_version === 'string' && !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(entry.written_by_version)) {
+          errors.push(`${provenancePath} entry "${entry.path}" has written_by_version "${entry.written_by_version}", which is not a version string — this value becomes a directory name under ${wf}/backups/, so a path fragment there writes backups outside the repository`);
+          continue;
+        }
+        if (typeof entry?.path !== 'string' || typeof entry?.sha256 !== 'string') continue;
+
+        const abs = join(repoRoot, entry.path);
+        if (!existsSync(abs)) { absent += 1; continue; }
+        try {
+          // Normalisation must match what the manifest DECLARES, not what this file assumes. A
+          // reader that hardcoded the rule would silently disagree with a manifest written under a
+          // different one, and report every file as drifted.
+          if (manifest.normalization !== 'lf-single-trailing-newline') continue;
+          const normalized = `${readFileSync(abs, 'utf8').replace(/\r\n/g, '\n').replace(/\n*$/, '')}\n`;
+          compared += 1;
+          if (createHash('sha256').update(normalized, 'utf8').digest('hex') !== entry.sha256) drifted += 1;
+        } catch { /* unreadable — not this check's business, and check-config reports it */ }
+      }
+
+      if (compared > 0) {
+        details.push(`${provenancePath}: ${compared} digest(s) compared against disk — ${drifted} drifted, ${compared - drifted} unchanged${absent > 0 ? `, ${absent} recorded file(s) no longer present` : ''}`);
+        // Every single governed file reading as edited is not drift, it is a baseline that was
+        // never taken: `init` hashes the config TEMPLATES, and setup then rewrites all five. RI14's
+        // step 5f is what re-stamps them, and this is the signature of it having been skipped.
+        if (drifted === compared && compared >= 3) {
+          errors.push(
+            `${provenancePath} records ${compared} governed file(s) and ALL of them differ from what is on disk. ` +
+            'That is the signature of a baseline never re-taken after setup filled the config files, not of ' +
+            'ordinary editing. Run "agentsmyth upgrade --baseline" to record the current files as the ' +
+            'baseline; otherwise the first real upgrade will raise a reconcile item for every one of them.'
+          );
         }
       }
     }

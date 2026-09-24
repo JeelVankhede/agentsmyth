@@ -2,7 +2,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Deliberately duplicated from lib.mjs's _resolveRepoRoot, not imported, even
 // though lib.mjs ships alongside this file at setup time: lib.mjs's module-level code includes
@@ -252,14 +253,52 @@ if (presentAdapters.length === 0) {
 // This is that reader. It restores a failure mode to the presence check by asking a question that
 // can actually be false, and it exercises the stamp against the installed version on every `check`.
 //
-// The reference version is repo-profile.yaml's `agentsmyth_version` stamp, not a package.json read.
-// This validator runs from the global install (`~/.agentsmyth/validators/`) where no package.json
-// sits alongside it, and it deliberately imports nothing from lib.mjs. repo-profile's stamp is the
-// right repo-local reference regardless: `writeDefinitionsRoot()` rewrites it on every `init` and
-// every `upgrade`, so the two stamps move together and a disagreement means one of them was left
-// behind.
+// TWO reference versions, because comparing against one of them alone was very nearly tautological.
+//
+// The first is repo-profile.yaml's `agentsmyth_version` stamp. `writeDefinitionsRoot()` and
+// `placeAgentsMd()` are called by the SAME `init`/`upgrade` invocation, so in normal operation these
+// two stamps cannot diverge — which means a check comparing only them fires on hand-editing and
+// nothing else. A repo whose two stamps agree with each other but are stale relative to whatever
+// agentsmyth is actually installed passed cleanly, printing the literal words "matches installed"
+// when nothing about the installed CLI had been consulted. That is the exact scenario this check
+// was restored for, so the first version of it could not catch the defect it existed to catch.
+//
+// The second is the installed package's own version, read from the package.json that sits two levels
+// above this file when it is running out of a real install. That read is BEST EFFORT: this validator
+// also runs from the global tree (`~/.agentsmyth/validators/`) where no package.json sits alongside
+// it, and it deliberately imports nothing from lib.mjs. When it resolves, it is the authority the
+// requirement actually names; when it does not, the repo-local comparison still runs and the output
+// says which question was answered rather than implying both were.
+//
+// Severity is deliberately split. A disagreement with repo-profile is an ERROR: the two are written
+// together, so divergence means an interrupted write or a hand-edit. A disagreement with the
+// installed package is a WARNING, and this is not timidity — this file ships through the shared
+// `~/.agentsmyth/validators/` tree, which `upgrade` refreshes unconditionally from ANY repo, and
+// `agentsmyth check` runs from the mandatory pre-commit hook. A new hard fail here would land on
+// every already-set-up repo on the machine, on its next commit, without that repo running anything.
+// A repo being behind the installed CLI is also a true and ordinary state — it is what `upgrade`
+// exists to fix — so the right report is "you are behind", not "you are broken".
 const agentsMdPath = 'AGENTS.md';
 const installedVersion = (read('workflow/config/repo-profile.yaml') ?? '').match(/^agentsmyth_version:\s*(\S+)/m)?.[1] ?? null;
+
+function readPackagedVersion() {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    for (const candidate of [join(here, '..', '..', '..', 'package.json'), join(here, '..', '..', 'package.json')]) {
+      if (!existsSync(candidate)) continue;
+      const parsed = JSON.parse(readFileSync(candidate, 'utf8'));
+      // The published name is SCOPED (`@scope/agentsmyth`). Testing for the bare name matched
+      // nothing, so this read silently returned null on the real package and the branch below fell
+      // through to "installed version not resolvable" every time — a check that cannot fail is the
+      // defect this whole reader exists to remove, reintroduced one level down.
+      const name = typeof parsed?.name === 'string' ? parsed.name : '';
+      if ((name === 'agentsmyth' || name.endsWith('/agentsmyth')) && typeof parsed.version === 'string') return parsed.version;
+    }
+  } catch { /* unreadable or not the package — the repo-local comparison still stands */ }
+  return null;
+}
+const packagedVersion = readPackagedVersion();
+
 if (exists(agentsMdPath) && installedVersion) {
   const text = read(agentsMdPath);
   const begin = text.match(/<!--\s*agentsmyth:([0-9][^\s]*)\s+BEGIN\s*-->/);
@@ -286,11 +325,21 @@ if (exists(agentsMdPath) && installedVersion) {
     );
   } else if (begin[1] !== installedVersion) {
     errors.push(
-      `${agentsMdPath} was written by agentsmyth v${begin[1]} but v${installedVersion} is installed. ` +
-      'Run "agentsmyth upgrade" to bring the block current.'
+      `${agentsMdPath} was written by agentsmyth v${begin[1]} but workflow/config/repo-profile.yaml ` +
+      `records v${installedVersion}. These two stamps are written by the same init/upgrade run, so a ` +
+      'disagreement means an interrupted write or a hand-edit. Run "agentsmyth upgrade" to rewrite both.'
     );
+  } else if (packagedVersion && begin[1] !== packagedVersion) {
+    warnings.push(
+      `  ${agentsMdPath}: marker stamp is v${begin[1]} but agentsmyth v${packagedVersion} is installed — ` +
+      'this repo is behind. Run "agentsmyth upgrade" to bring it current.'
+    );
+  } else if (packagedVersion) {
+    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches installed agentsmyth v${packagedVersion})`);
   } else {
-    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches installed)`);
+    // Say which question was answered. The earlier message read "(matches installed)" on this exact
+    // branch, where the installed version had not been read at all.
+    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches repo-profile.yaml; installed version not resolvable from here)`);
   }
 }
 

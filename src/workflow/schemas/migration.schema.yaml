@@ -54,6 +54,11 @@ properties:
             overwrites a value agentsmyth owns outright, such as a version stamp. `rename-key`
             rewrites a key name in place, preserving whatever value the user had set - this is the
             operation that stops a moved value being mistaken for one the user chose.
+            This enum is not documentation: the CLI rejects an op outside it at descriptor-load
+            time. It used to fall through three equality tests with no default branch, so an
+            unrecognised op - including a correctly-spelled one wrapped in single quotes, which the
+            reader did not strip - was dropped in silence and the file reported "no-change" for a
+            migration that never ran.
         key:
           type: string
           minLength: 1
