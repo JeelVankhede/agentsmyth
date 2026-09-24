@@ -1,0 +1,15 @@
+version: 1
+kind: provenance
+format_version: 1
+written_by_version: 1.0.1
+normalization: lf-single-trailing-newline
+entries:
+  - path: workflow/config/domain.yaml
+    sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1
+    written_by_version: 1.0.1
+  - path: workflow/config/release.yaml
+    sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2
+    written_by_version: 1.0.1
+  - path: workflow/config/verification.yaml
+    sha256: ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc3
+    written_by_version: 1.0.1

@@ -1,8 +1,13 @@
 #!/usr/bin/env node
-// OI-19 (WP-R5 T5.2 follow-up) — root-resolution drift detection. Three independent copies of
-// the same resolution algorithm exist (lib.mjs's _resolveRepoRoot, check-setup-complete.mjs's
-// resolveRepoRoot, bin/agentsmyth.mjs's resolveExistingRepoRoot), each duplicated for a
-// documented reason (see each file's own comment), with no automated check that they agree.
+// OI-19 (WP-R5 T5.2 follow-up) — root-resolution drift detection. FOUR independent copies of
+// git-root resolution exist (lib.mjs's _resolveRepoRoot, check-setup-complete.mjs's
+// resolveRepoRoot, bin/agentsmyth.mjs's resolveExistingRepoRoot, and bin/agentsmyth.mjs's
+// resolveGitRoot), each duplicated for a documented reason (see each file's own comment), with no
+// automated check that they agree.
+//
+// The fourth was added by the delta-upgrade work and was not added HERE, which is the failure this
+// file exists to prevent happening to itself: a drift harness that covers three of four copies
+// reports the same green as one that covers all four.
 // This test spawns all three as real subprocesses (not imports — check-setup-complete.mjs and
 // bin/agentsmyth.mjs both have side-effecting top-level/branch logic unsafe to import directly)
 // against the same set of scenarios and asserts identical output. A hand-written debug hook
@@ -182,6 +187,41 @@ function assertAllAgree(scenarioId, description, cwd, expected) {
     realpathSync(unknown.cwd) === realpathSync(workspaceRoot));
 
   rmSync(workspaceRoot, { recursive: true, force: true });
+}
+
+// ── The fourth copy ───────────────────────────────────────────────────────────────────────────
+// resolveGitRoot() answers a narrower question than the other three — "which git working tree is
+// this path in", with null outside one — so it is asserted against git's own answer rather than
+// against the other resolvers' output. What must not drift is the algorithm: `rev-parse
+// --show-toplevel` from the given directory, null on failure.
+{
+  const scenario = mkScenarioDir('drift-gitroot-');
+  spawnSync('git', ['init', '-q'], { cwd: scenario });
+  mkdirSync(join(scenario, 'workflow', 'config'), { recursive: true });
+  writeFileSync(join(scenario, 'workflow', 'config', 'repo-profile.yaml'),
+    'version: 1\nkind: repo-profile\nrepository:\n  mode: single-repository\n');
+  const nested = join(scenario, 'packages', 'a');
+  mkdirSync(nested, { recursive: true });
+
+  const probeGit = (cwd) => spawnSync(process.execPath, [binPath, 'check'], {
+    cwd, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_DEBUG_ROOT: 'git' },
+  }).stdout.trim().split('\n').pop();
+
+  const expected = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd: scenario, encoding: 'utf8' }).stdout.trim();
+  check('gitroot-agrees-at-root', "the fourth copy agrees with git's own answer at the repo root",
+    realpathSync(probeGit(scenario)) === realpathSync(expected));
+  check('gitroot-agrees-from-subdir', 'and from a package subdirectory, where cwd is not the root',
+    realpathSync(probeGit(nested)) === realpathSync(expected));
+
+  const outside = mkScenarioDir('drift-gitroot-outside-');
+  mkdirSync(join(outside, 'workflow', 'config'), { recursive: true });
+  writeFileSync(join(outside, 'workflow', 'config', 'repo-profile.yaml'),
+    'version: 1\nkind: repo-profile\nrepository:\n  mode: single-repository\n');
+  check('gitroot-null-outside-repo', 'and returns null outside a git repo rather than guessing',
+    probeGit(outside) === '(null)');
+
+  rmSync(scenario, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
 }
 
 console.log(`\n${passed}/${passed + failed} root-resolution drift checks passed`);

@@ -36,6 +36,35 @@ the task.
    These items are **non-blocking like every other pending-setup item**: until they resolve, every
    value falls back to the global install and behavior is unchanged. Never gate lifecycle work on
    them, and never treat an unresolved intent item as a reason to pause a phase.
+9. **Reconcile items** (`field: "reconcile.<from-version>.<path>"`, written by `agentsmyth upgrade`)
+   do not fit steps 4–5 and must not be run through them. Every other item means "find a value and
+   write it to `config`.`field`"; a reconcile item has no value to look up. It says: this file was
+   edited, your version was preserved at `backup_path`, and the upgrade has since brought the parts
+   agentsmyth owns up to date.
+   Resolve it by **reading both files and merging**, not by inspection:
+   - Read `backup_path` and the current file named by `config`. Diff them.
+     If `backup_path` does not exist, stop and tell the user rather than guessing: the item is
+     describing an edit whose only copy is gone, and inventing a merge from the live file alone
+     would silently confirm a loss instead of reporting one. (The CLI no longer supersedes a backup
+     an open item names, so this should not happen for an item raised by a current version — a
+     missing one means the file was removed by hand or predates that fix.)
+   - What the user set by hand is in the backup; what agentsmyth owns has been brought current in
+     the live file. Re-apply the former onto the latter, and keep the latter wherever the two
+     conflict on a machine-owned key.
+   - When `migration_id` is present, read that descriptor first. It names what changed shape, so a
+     value that merely *moved* is not mistaken for one the user set.
+   - Surface the merge to the user before writing it. This is the one item family where the agent
+     proposes to change a file the user deliberately edited, so it is confirmed, never assumed.
+   - On acceptance set `status: resolved` and `resolved_by: merged-from-backup`, then delete the
+     backup the item names — it exists to serve this item and nothing else owns its cleanup.
+   Never hand-write a reconcile item. The CLI records every marker it has raised, so one you
+   resolve and prune stays gone; authoring one yourself defeats that.
+   And never run `agentsmyth upgrade` yourself without asking. It rewrites files in the user's repo
+   — that is a destructive action under `[safety-2]`, and the approval it requires is the user
+   choosing to run it, not you deciding they would have. If a repo looks stale, say so and offer
+   `agentsmyth upgrade --dry-run`, which classifies every governed file and writes nothing. The CLI
+   never prompts by design (a prompt fails closed on a non-TTY and would break every CI upgrade),
+   so asking is your job, not its.
 
 ## Inputs To Inspect
 

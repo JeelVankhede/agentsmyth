@@ -12,6 +12,17 @@ properties:
   kind:
     type: string
     enum: [pending-setup]
+  next_id:
+    type: integer
+    minimum: 1
+    description: >-
+      High-water mark for PS-N allocation. OPTIONAL - a file without it allocates from the highest
+      id currently present, which is the historical behavior and stays correct for any file that
+      has never had an item pruned. It exists because that behavior is NOT correct once pruning
+      happens: ids were allocated as max(present)+1, so pruning PS-9 from a file left PS-1 and the
+      next allocation re-issued PS-2 - colliding with a PS-2 that had existed and been pruned, in a
+      file whose own contract above says ids are never renumbered. Reconcile items make pruning the
+      expected lifecycle rather than a rarity, which is what turned a latent bug into a real one.
   items:
     type: array
     items:
@@ -36,9 +47,24 @@ properties:
         status:
           type: string
           enum: [open, resolved, waived]
+        backup_path:
+          type: string
+          description: >-
+            Reconcile items only. Repo-relative path of the preserved copy of this file as it was
+            before the upgrade overwrote it. Named in the item rather than only printed to the
+            terminal so it survives scrollback.
+        migration_id:
+          type: string
+          description: "Reconcile items only. The migration descriptor that applies to this change, when one exists."
+        upgrade_from:
+          type: string
+          description: "Reconcile items only. The agentsmyth version that last wrote the file before this upgrade."
+        upgrade_to:
+          type: string
+          description: "Reconcile items only. The agentsmyth version performing the upgrade."
         resolved_by:
           type: string
-          enum: [inspect, user, lifecycle-plan, lifecycle-build, unrecorded]
+          enum: [inspect, user, lifecycle-plan, lifecycle-build, merged-from-backup, unrecorded]
           description: >-
             How the value was settled. `unrecorded` is only valid for items resolved before this
             field was required and whose provenance is genuinely not recoverable - it exists so

@@ -51,6 +51,8 @@ workflow/
   config/          your five YAML configs, filled during setup
   artifacts/       the lifecycle artifact chain lives here
   learnings/       raw and curated learning records
+  provenance.yaml  what agentsmyth last wrote to each governed file
+  backups/         only appears once an upgrade has preserved a file you edited
 .claude/CLAUDE.md  or AGENTS.md / .cursor/rules / etc, your adapter
 
 ~/.agentsmyth/workflow/   the shared definitions, one copy per machine

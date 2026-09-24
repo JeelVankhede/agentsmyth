@@ -1,0 +1,86 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "provenance"
+title: "Provenance Manifest"
+type: object
+kind: provenance
+description: >-
+  Machine-managed record of what agentsmyth last wrote to each governed artifact in a consumer
+  repo. Its only job is to let an upgrade tell a pristine file from one the user edited, so a
+  delta can be applied to the first and preserved around the second. Never hand-edited: an
+  unparseable manifest is a hard stop, never an absent one, because treating it as absent would
+  adopt the user's edited files as pristine and lose them on the following upgrade.
+required: [version, kind, format_version, written_by_version, normalization, entries]
+properties:
+  version:
+    type: integer
+    enum: [1]
+  kind:
+    type: string
+    enum: [provenance]
+  format_version:
+    type: integer
+    minimum: 1
+    description: >-
+      Shape version of this manifest, independent of the agentsmyth release that wrote it. A CLI
+      reading a manifest whose format_version exceeds its own must hard-stop rather than compare:
+      every entry would read as mismatched and the older CLI would back up and overwrite files
+      that were already current. That is the downgrade case, and it is indistinguishable from
+      ordinary drift without this field.
+  written_by_version:
+    type: string
+    minLength: 1
+    description: "The agentsmyth version that last wrote this manifest as a whole."
+  normalization:
+    type: string
+    enum: [lf-single-trailing-newline]
+    description: >-
+      How content was transformed before hashing. Declared rather than implied because the repo
+      ships no .gitattributes, so nothing else states a line-ending contract - a Windows checkout
+      under core.autocrlf=true would otherwise change every digest and read as user edits on every
+      governed file. Recorded in the file so a later reader can tell which rule produced a digest
+      rather than assuming the current one.
+  reconcile_raised:
+    type: array
+    description: >-
+      Markers for every (version, path) pair that has already had a reconcile item raised, in the
+      grammar `reconcile.<from-version>.<path>`. Durable here rather than inferred from
+      pending-setup.yaml, because that file's reconcile items are TRANSIENT by nature: the user
+      merges their backup, the agent marks the item resolved, and a mature repo prunes it - which
+      `bin/agentsmyth.mjs` itself calls the steady state. The existing idempotency guard is a
+      substring test against the current file, so a pruned item takes its marker with it and the
+      next upgrade raises the same prompt again, about a backup the user already merged. Recording
+      the raise here survives the prune.
+    items:
+      type: string
+      minLength: 1
+  entries:
+    type: array
+    description: >-
+      One entry per governed artifact. A file absent from this list is never HASHED, backed up, or
+      compared — the manifest does not claim to know anything about it. Two files are deliberately
+      absent and are still refreshed: the pre-commit hook and AGENTS.md. Both are marker-bounded, so
+      the markers already say which span belongs to agentsmyth and no digest is needed to refresh
+      them safely; the hook is additionally excluded because a default git repo puts it under
+      `.git/**`, a protected path, and backing it up would copy protected content into version
+      control. Governance and refreshability are separate questions, and conflating them once
+      already disabled the gate refresh for every consumer who had not set `core.hooksPath`.
+    items:
+      type: object
+      required: [path, sha256, written_by_version]
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+          minLength: 1
+          description: "Repo-relative path of the governed artifact, forward-slash separated."
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: "Hex sha256 of the file's normalized content as agentsmyth last wrote it."
+        written_by_version:
+          type: string
+          minLength: 1
+          description: >-
+            The agentsmyth version that wrote this particular entry. Per-entry rather than only
+            per-manifest because an upgrade refreshes entries it touched and leaves the rest, so a
+            single manifest can legitimately carry entries from several releases.
