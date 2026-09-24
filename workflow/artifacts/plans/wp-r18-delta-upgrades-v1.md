@@ -47,7 +47,9 @@ orchestration:
 
 ## Summary
 
-Ten phases. Build the provenance primitives first (manifest schema, path resolution, hashing,
+Twelve phases - ten planned, plus Phase 11 (round-2 defect remediation) and Phase 12 (Review
+council remediation), both added after the original approval and both dated in their own headings.
+Build the provenance primitives first (manifest schema, path resolution, hashing,
 atomic write), record a baseline at the two points where agentsmyth actually finishes writing
 config, then add the `agentsmyth upgrade` command that classifies drift per key, backs up, and
 records reconcile items. Descriptors, the marker-block strategy for rendered files, the validator
@@ -55,7 +57,9 @@ host, OI-105, and the doc corrections follow.
 
 The shape changed materially at brief-review. Q1 replaced whole-file backup-and-replace with
 key-level delta, so migration descriptors moved from adjunct to mechanism. Q3 widened the governed
-surface from five configs to eight artifacts. Q5 required real polyrepo handling rather than a
+surface from five configs to the governed artifact set - six in a default repo, seven when
+`core.hooksPath` puts the hook outside `.git/`, eight only on a non-darwin platform that also places
+the Copilot adapter (RI18, as restated after round 2; "eight" as a fixed count was wrong). Q5 required real polyrepo handling rather than a
 documented limitation. Phases 6, 7 and 1 exist because of those three answers.
 
 ## Inputs
@@ -102,6 +106,20 @@ documented limitation. Phases 6, 7 and 1 exist because of those three answers.
 | RI19 | P7 | covered - marker-block replacement for rendered files |
 | RI20 | P4 | covered - retention, agent deletes (Q4) |
 | RI21 | P1 | covered - resolveGitCwd for backup paths (Q5) |
+
+**Phase 11 and Phase 12 own IDs a second time, deliberately.** The table above records the phase
+that first implemented each ID. Two later phases revisit some of them, and a coverage table that
+hides that is worse than one that admits it:
+
+| Manifest ID | Also owned by | Why |
+|---|---|---|
+| R4, R5 | P11, P12 | descriptor resolution predicate (P11), then op validation and content-verified tests (P12) |
+| RI4 | P11, P12 | atomic write gained symlink resolution in P11; P12 added the containment it needed |
+| RI15 | P11, P12 | shipped surfaces corrected in P11, completed in P12 - the P11 pass claimed "every" and covered three files |
+| RI16 | P11, P12 | marker stamp reader (P11), then made able to fail for its own reason (P12) |
+| RI18 | P11, P12 | acceptance restated after round 2 (P11), propagated into this plan (P12) |
+| RI19 | P11, P12 | marker-block strategy (P11); P12 made the refresh reach the reconcile filter |
+| R1, R2, R3, R6, RI1, RI5, RI7, RI9, RI11, RI13, RI14, RI17, RI20, RI21 | P12 | Review remediation - see Phase 12 |
 
 No ID is `deferred`, `waived`, or `dropped`.
 
@@ -228,7 +246,7 @@ and reviewable in all three repository modes rather than only two.
 
 - **Manifest IDs:** RI14, RI18
 - Touches: `bin/agentsmyth.mjs` (`headlessBootstrap`), `src/setup/SKILL.md`
-- Work: enumerate the eight governed artifacts (five configs, pre-commit hook, two deterministic
+- Work: enumerate the governed artifacts - six, seven or eight by platform (five configs, pre-commit hook, two deterministic
   adapters; `AGENTS.md` excluded). Record the baseline at `init` **after** `writeDefinitionsRoot()`,
   and again after the setup skill finishes filling configs - the second is what RK2 requires.
 - **Exit gate:** *(amended 2026-09-23, receiving the `init` wiring from Phase 1)* in a scratch repo
@@ -354,6 +372,56 @@ so it re-enters their files rather than adding new surface.
   matches nothing warns; `npm run upgrade-path:test` covers the default-hooks, newly-governed and
   descriptor branches; `npm run mutation:audit` reports `undefended: 0`.
 
+### Phase 12 - Review council remediation
+
+Added 2026-09-24. Not part of the original ten, and not part of Phase 11 either. The Review council
+(12 members, 3 rounds, 77 findings) returned `hold` with six P0 findings, every one of them a path
+to irrecoverable data loss or a write outside the repository, and four of them reachable with no
+attacker and no unusual sequence. The user directed that all severities be fixed rather than only
+the blockers.
+
+- **Manifest IDs:** R1, R2, R3, R4, R5, R6, RI1, RI3, RI4, RI5, RI7, RI9, RI11, RI13, RI14, RI15,
+  RI16, RI17, RI18, RI19, RI20, RI21
+- Touches: `bin/agentsmyth.mjs`, `src/workflow/validators/check-lifecycle.mjs`,
+  `src/workflow/validators/check-setup-complete.mjs`, `src/workflow/schemas/migration.schema.yaml`,
+  `test/run-upgrade-path-tests.mjs`, `test/run-setup-complete-tests.mjs`,
+  `test/run-root-resolution-drift-tests.mjs`, `test/run-violation-tests.mjs`,
+  `test/run-mutation-audit.mjs`, `test/fixtures/definitions/`, `README.md`,
+  `CLAUDE.md`, `docs/knowledge-map/repo-mental-map.md`, `docs/overview.md`,
+  `docs/release-checklist.md`, `site/updating.md`, `site/troubleshooting.md`, `site/install.md`,
+  `site/under-hood.md`, `site/uninstall.md`, `src/adapters/claude/global-gate.md`,
+  `src/adapters/codex/global-gate.md`, `src/adapters/copilot/global-gate.md`,
+  `workflow/artifacts/` (this chain's own brief, plan and task), `dist/`, `validators/`
+- Work, grouped by what actually broke rather than by finding number:
+  - **Containment.** Validate `written_by_version` as a version string at manifest-read time, since
+    it becomes a path segment; fence `atomicWriteFileSync` so a symlink is followed only inside a
+    boundary the caller declares; fence `writeBackup`'s read the same way so a symlinked governed
+    path cannot copy a secret into a committed backup.
+  - **Authorship versus existence, second instance.** Stop `init` re-baselining a manifest that
+    already exists - the same defect Phase 11 fixed for the upgrade path and left in `init`.
+  - **Retention.** Bound the backup-supersede sweep to directory names that parse as versions, and
+    never delete a backup an open reconcile item still names.
+  - **Couplings.** One declared action vocabulary consumed by both the refresh producers and the
+    reconcile filter, so a drifted hook can raise an item; order-independent manifest entry parsing
+    with a self-consistency guard that no longer shares the reader's own assumption; normalise
+    before comparing an adapter to its render.
+  - **Enforcement that was prose.** Validate a descriptor against its schema at load; reject an
+    unrecognised op instead of dropping it; compare recorded digests against disk in
+    `check-lifecycle`; read the real installed version in the `AGENTS.md` marker check, as a
+    warning rather than a hard fail because that rule ships to every repo on the machine.
+  - **Tests that could not fail.** Content assertions after a delta merge; fixtures for the two
+    untested merge operations; a regression case whose repo version sits strictly inside a
+    descriptor span; one regression test per P0.
+  - **Records.** Reconcile the brief's three contradictory accounts of its own integrity bracket;
+    propagate the RI18 restatement; correct the false bijection claim; re-take the task's command
+    evidence; finish the doc pass a Phase 10 commit claimed was complete.
+- **Exit gate:** every P0 and P1 fix is pinned by a test that FAILS when that fix alone is reverted,
+  verified by revert-and-rerun rather than asserted; `npm run upgrade-path:test`,
+  `npm run violations:test`, `npm run conformance:test`, `npm run setup-checks:test` and
+  `npm run root-resolution:test` all pass; `npm run build` then `npm run validate` exits 0;
+  `npm run mutation:audit` reports no baseline regression; no shipped surface contradicts another on
+  what clears version skew; `package.json` `dependencies` unchanged.
+
 ## Dependency Order
 
 P1 → P2 → P3 → P4 → P5, then P6 and P7 in parallel (both depend on P3, neither on the other), then
@@ -432,7 +500,7 @@ No risk is unmitigated.
 | RI15 | inspection - grep shipped surfaces for `init` as upgrade action | Review | expected: zero hits |
 | RI16 | command - `npm run setup-checks:test` plus the new rejection fixture | Test | expected: stale stamp fails |
 | RI17 | command - `npm run build && npm run validate` | Ship | expected: exit 0, adapters in sync |
-| RI18 | manual QA - confirm eight governed artifacts have manifest entries, `AGENTS.md` does not | Test | expected: 8 entries |
+| RI18 | manual QA - confirm every governed artifact PRESENT ON THIS PLATFORM has a manifest entry, `AGENTS.md` does not | Test | expected: 6 in a default repo, 7 when `core.hooksPath` is set (this repo's fixtures), 8 only on non-darwin with the Copilot adapter placed. Assert against the platform under test, never against a fixed 8 - the eight-branch is unexercised on darwin and is recorded as a skipped check in the Review |
 | RI19 | manual QA - stale hook plus user content outside markers, upgrade | Test | expected: refreshed inside, preserved outside |
 | RI20 | manual QA - two upgrades of one drifted file, then resolve the item | Test | expected: one backup, then none |
 | RI21 | manual QA - `mode: polyrepo-member` scratch workspace, upgrade | Test | expected: backup inside the member repo's working tree, visible to `git status` |
@@ -470,7 +538,8 @@ existing `package.json` script except `upgrade-path:test`, which P8 creates.
   enforcement gate is the wrong shape, and the gate is the product's central claim.
 - **assumptions Build must preserve:** A2 backups committed - do not add anything under `workflow/`
   to `.gitignore`. A3 sha256/hex - `repo-digest.mjs` is the precedent to match, not a new convention.
-- **downstream:** *Build* owns ten phases and must not fold Ship work (PR, CHANGELOG date, release)
+- **downstream:** *Build* owns twelve phases (ten approved, two appended as disclosed remediation)
+  and must not fold Ship work (PR, CHANGELOG date, release)
   into P10. *Review* inherits RK10 - survey the validator tree with `grep -a`. *Test* inherits the
   five-state matrix and cannot use installed-old-version fixtures; the only place a real published
   tarball is exercised is the release checklist rehearsal. *Ship* inherits RK9's Notion handoff and
@@ -505,10 +574,25 @@ existing `package.json` script except `upgrade-path:test`, which P8 creates.
   and gave the one recorded above. In the same message the user resolved Q6 and set the commit
   policy.
 
+**Scope of that approval, annotated 2026-09-24.** The plan the user approved had ten phases. It now
+has twelve. Phase 11 was appended after Build closed, at the user's direction, to fix defects a
+verification round found; Phase 12 was appended after the Review council returned `hold`, and the
+user's instruction for it — "Fix them all" — is a separate, later authorisation covering that scope
+and no more. Neither was re-put to the plan-review checkpoint, and this note exists so a reader is
+not told that one verbatim quote from 2026-09-23 approved work that did not exist until the 24th.
+Both appended phases are dated in their own headings and state their provenance; neither changes an
+acceptance criterion the user approved.
+
 ## Exit Gate
 
-- [x] Every active R and RI mapped to exactly one owning phase - 27 IDs, verified by
-      `requirement-phase-mapper`'s bijection rule.
+- [x] Every active R and RI is mapped to at least one owning phase - 27 IDs, none orphaned, which
+      is what `check-phase-map.mjs` actually verifies. Its own comment states that multi-phase
+      appearance is deliberately NOT flagged and that only a true orphan is an error.
+      *Corrected at Review (2026-09-24).* This box previously read "mapped to exactly one owning
+      phase ... verified by `requirement-phase-mapper`'s bijection rule". That was false twice:
+      seven IDs map to two phases each since Phase 11 was appended, and the validator has no
+      bijection rule to verify it with. A checked box citing a verification that does not exist is
+      worse than an unchecked one. The second owners are now enumerated under Requirement Coverage.
 - [x] Every phase has a binary exit gate.
 - [x] Verification plan covers every R and RI.
 - [x] Dependency order explicit.

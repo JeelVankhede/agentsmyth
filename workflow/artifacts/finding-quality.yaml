@@ -8,6 +8,46 @@ kind: finding-quality
 # Any figure computed from this ledger must read BOTH files. A count from this one alone reports
 # the current cycle rather than the accumulated baseline.
 #
-# Empty because every row from the WP-R22 Review council closed in the same phase that raised it —
-# the findings were fixed immediately rather than carried. Rotation moved them to the archive.
-items: []
+# What remains here is the WP-R18 Review council's five UNSETTLED findings. The other 72 closed
+# proved-real and rotated to the archive in the same operation, which is why this file is short
+# and the archive is not — do not read the length of this file as the size of that council.
+#
+# Each row below names the phase that owns it. None is an oversight: three are a Ship-owned
+# external handoff, one is a Reflect-owned ledger rotation that must FOLLOW a fix made in this
+# remediation rather than precede it, and one needs a platform no council member had.
+items:
+  - id: FQ-57
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to ship: Notion source-of-truth handoff — Ship owns it, and the plan must be re-statused from not required to blocked with the eight required fields
+  - id: FQ-58
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to ship: Same handoff: RK9 carries three of eight required fields and no copy-ready text
+  - id: FQ-59
+    finding_id: F3
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to ship: Same handoff: names one page where the brief cites three
+  - id: FQ-63
+    finding_id: F7
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to reflect: OI-105 ledger closure — Reflect owns rotation, and it must follow the marker-check fix rather than precede it
+  - id: FQ-80
+    finding_id: F24
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to test: RI18 eight-entry branch needs a non-darwin platform no council member could run on; carried as the council surviving item

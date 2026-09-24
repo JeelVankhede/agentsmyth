@@ -259,6 +259,15 @@ Five, of which three block Plan. Full text with recommendations in **Questions F
   existing schema, and no `additionalProperties: false` added to `pending-setup.schema.yaml`.
   *Acceptance:* every pre-1.1.0 artifact and config in this repo still validates; `npm run validate`
   exits 0.
+  *Amended at Review (2026-09-24).* "Additive only" is true of fields and false of one enum.
+  `resolved_by` gained `merged-from-backup` (RI11), so a `pending-setup.yaml` written by 1.1.0 is
+  REJECTED by the pre-1.1.0 schema - forward-compatible, not backward-compatible. The original
+  evidence for the additive claim cited `check-pending-setup.mjs`, which does not read that enum at
+  all, so the claim was supported by a check that could not have tested it. The widening is accepted
+  as safe on a narrower and actually-true basis: `check-config.mjs` is the only validator enforcing
+  this schema and it is never invoked from a consumer's `agentsmyth check`, so no shipped consumer
+  surface can observe the break. That is a real limit on the blast radius, not a proof of
+  additivity, and it is recorded as the reason rather than dressed up as one.
 - **RI2** - No runtime dependency. `node:crypto` and `node:fs` only.
   *Acceptance:* `package.json` `dependencies` is unchanged.
 - **RI3** - Every new validator error carries its own rejection fixture in the same change.
@@ -268,11 +277,19 @@ Five, of which three block Plan. Full text with recommendations in **Questions F
   manifest. This is the first atomic write in the codebase.
   *Acceptance:* no `writeFileSync` remains on the upgrade path for a governed file; a killed process
   mid-upgrade leaves every file on disk parseable.
-- **RI5** - The manifest state machine has five states, never two: **absent** (adopt current disk
+- **RI5** - The manifest state machine has six states, never two: **absent** (adopt current disk
   state, no backup, no item); **present and valid** (compare); **present and unparseable** (hard
   stop, named recovery path, never adopt); **format version newer than the CLI** (hard stop, never
-  compare); **entry for a file that no longer exists** (degrade to adopt for that entry only).
+  compare); **entry for a file that no longer exists** (degrade to adopt for that entry only); and
+  **governed but absent from the manifest** (`newly-governed` - adopt, no backup, no item).
   *Acceptance:* one fixture per state, each asserting its own outcome.
+  *Amended at Review (2026-09-24).* The original text said "five states, never two" and was itself
+  wrong by one: `newly-governed` was implemented, had distinct handling and its own output label,
+  and was named by no requirement and covered by no fixture. It is the state a release that widens
+  the governed set produces - so the next release reaches it by design, not by accident - and it is
+  also where a manifest entry the reader failed to parse used to land silently. Both of those are
+  now fixtured. An acceptance clause that enumerates states cannot be met against an enumeration
+  that is missing one.
 - **RI6** - The upgrade path runs the global definitions install unconditionally before reading any
   schema, rather than only when the global tree is absent.
   *Acceptance:* an upgrade against an exists-but-stale `~/.agentsmyth/workflow` refreshes it and then
@@ -495,9 +512,16 @@ I8 command surface · I9 core mechanism viability (**opened** by F70) · I10 man
 (**opened** by F73) · I11 backup retention (**opened** by F75) · I12 polyrepo-member
 (**opened** by F77) · I13 baseline timing (**opened** by F71, closed in-round as RI14).
 
-No second round was run. The five survivors are authority questions, not evidence questions - each
-asks what the user wants, not what the repo does - so another round could not close them. Per the
-round loop, survivors escalate rather than expiring.
+No second round was run **to close these five**. They are authority questions, not evidence
+questions - each asks what the user wants, not what the repo does - so another round could not close
+them, and per the round loop survivors escalate rather than expiring. The user resolved all five
+directly, as Q1-Q5 record.
+
+Round 2 exists and is a different thing: a post-Build verification pass, run later against the
+shipped implementation, taking up two new items rather than these five. It is recorded in the Rounds
+table above. The two rounds are consecutive dispatches of one council record, not consecutive
+attempts at the same open set, and reading them as the latter is what made this paragraph look like
+a flat contradiction of the table beside it.
 
 ### Findings
 
@@ -656,6 +680,25 @@ researchers were fenced into.
 
 ### Repo Integrity
 
+**This council ran in two rounds, and only one of them is bracketed by the pair in frontmatter.**
+Read that sentence before either table. `council.repo_integrity` is a single pair and the validator
+compares only it, so a two-round run cannot record both mechanically — and nothing said so until
+Review found the same artifact asserting three different things about one check.
+
+| Round | Before | After | Files | Match |
+|---|---|---|---|---|
+| 1 (research, 5 members) | `220c1981...` | `0fc29d2c...` | 2124 -> 2125 | no |
+| 2 (verification, 3 members) | `58fef1db...` | `58fef1db...` | 2149 | yes |
+
+**The pair in frontmatter is round 2's.** Round 1's bracket was taken wrongly and is recorded below
+rather than repaired, because the digests are real measurements and a run whose bracket was taken
+wrongly should say so. What this means for the reader: `check-council-record.mjs` reports `ok` on
+this artifact, and that pass covers round 2. It does not cover round 1, and it does not cover the
+Build that separates them. Treat the research round as bracket-less and read its findings on the
+corroboration below instead.
+
+#### Round 1
+
 | | |
 |---|---|
 | Algorithm | `sha256/sorted-relpath+size+content` (`validators/repo-digest.mjs`) |
@@ -676,14 +719,33 @@ No member write is evidenced, but the mechanical assertion `check-council-record
 equals after - is unavailable for this run, and the corroboration above is weaker than the digest it
 replaces. The correct procedure is: digest, dispatch, consolidate, digest, *then* write the artifact.
 
-**Recorded outcome:** `check-council-record.mjs` fails on this artifact with exactly one issue, the
-before/after mismatch above, and `npm run validate` fails with it. Every other rule in that validator
-passes - 78 findings, all citations resolved or shape-checked to contract. The failure is left
-standing rather than engineered around: the digests are the real measurements, and a run whose
-integrity bracket was taken wrongly should say so. Whoever picks this up should re-take the bracket
-correctly rather than adjust the recorded values.
+**Recorded outcome, as of round 1:** `check-council-record.mjs` failed on this artifact with exactly
+one issue - the before/after mismatch above - and `npm run validate` failed with it. Every other rule
+in that validator passed. The failure was left standing rather than engineered around: the digests
+are the real measurements, and a run whose integrity bracket was taken wrongly should say so.
+
+**What happened next.** Round 2 was run with a correct bracket (`58fef1db...`, matching, 2149 files)
+and that pair was written into frontmatter, which made the validator pass. That was the right
+response to the instruction above - re-take the bracket rather than adjust the values - and it was
+only half carried out, because nothing recorded that the new pair covers one round of two. Review
+found the artifact asserting three incompatible things about the same check: frontmatter said match,
+this section said mismatch, and the Exit Gate box said the validator does not pass. The table at the
+top of this section is the reconciliation. Round 1's bracket is still broken and still recorded as
+broken; what changed is that the record now says which round the passing pair belongs to.
+
+**The residual, stated plainly:** a validator that reports `ok` over a record carrying that
+contradiction cannot see the difference between a one-round run and a two-round run with one
+bracket. That is a gap in `check-council-record.mjs`, not a reason to write a better-looking pair.
+Filed for Reflect.
 
 ### Termination
+
+**Read as a round-1 snapshot.** The five items below survived the RESEARCH round, which is what this
+block records and what `termination_reason` refers to. All five were then resolved by the user
+directly - see Q1-Q5 - and round 2 took up two new verification items rather than these. The block
+is left as it stood rather than rewritten, because a termination record that is quietly updated
+after the fact stops being a record of how the council ended; what was missing was this sentence
+saying which moment it describes.
 
 - **Reason:** `user-decision-required`
 - **Surviving items and their round history:** I8, I9, I10, I11, I12
@@ -756,7 +818,9 @@ correctly rather than adjust the recorded values.
 - [x] User approved or waiver recorded - approved 2026-09-23, verbatim words in `## Checkpoint Approval`.
 - [x] `skill_trigger_log` records all three mandated skills with decision and reason.
 - [x] Every active R and RI has a Requirement Classification entry naming at least one evidence class.
-- [ ] `check-council-record.mjs` passes - it does NOT. One rule fails: `council.repo_integrity`
-  before and after differ, because the parent wrote this artifact inside the integrity bracket and
-  took the before-digest after dispatch. Documented under `### Repo Integrity`, left standing rather
-  than adjusted. No member write is evidenced. Carried into Plan as a known, recorded defect.
+- [x] `check-council-record.mjs` passes, and what it passes over is stated rather than implied. The
+  recorded `council.repo_integrity` pair is **round 2's** (`58fef1db...`, matching, 2149 files).
+  Round 1's bracket was taken wrongly - the before-digest came after dispatch and the parent wrote
+  this artifact inside the bracket - and is recorded, unrepaired, under `### Repo Integrity` with
+  both pairs side by side. No member write is evidenced in either round. The validator's pass
+  therefore covers round 2 only; that it cannot express a two-round run is filed for Reflect.

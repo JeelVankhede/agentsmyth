@@ -453,3 +453,591 @@ items:
     outcome: proved-real
     closed_in_phase: review
     resolution: fixed in the post-review remediation of 2026-08-30 and locked by a fixture, conformance check or recorded probe
+
+  # ── WP-R18 Review council (2026-09-24) ──────────────────────────────────────────────────
+  # 72 of 77 findings, closed proved-real. The review recommended hold; the user directed that
+  # every severity be fixed, and Build Phase 12 did so — so "acting on it confirmed the finding"
+  # is true of each one, which is what proved-real asserts.
+  #
+  # closed_in_phase is `review` for all 72, and that is the closest TRUE value rather than an
+  # exact one: the fixes landed in Build Phase 12, AFTER Review, and the enum offers review,
+  # test, ship and reflect with no member for a return to Build. The schema contemplates "a
+  # finding fixed during the same review that raised it", which is what happened — the chain did
+  # not move on between the raising and the fixing. The missing enum member is a follow-up for
+  # Reflect, recorded rather than worked around silently.
+  - id: FQ-60
+    finding_id: F4
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-61
+    finding_id: F5
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-62
+    finding_id: F6
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-64
+    finding_id: F8
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-65
+    finding_id: F9
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-66
+    finding_id: F10
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-67
+    finding_id: F11
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-68
+    finding_id: F12
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-69
+    finding_id: F13
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-70
+    finding_id: F14
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-71
+    finding_id: F15
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-72
+    finding_id: F16
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-73
+    finding_id: F17
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-74
+    finding_id: F18
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-75
+    finding_id: F19
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-76
+    finding_id: F20
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-77
+    finding_id: F21
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-78
+    finding_id: F22
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-79
+    finding_id: F23
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-81
+    finding_id: F25
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-82
+    finding_id: F26
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-83
+    finding_id: F27
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-84
+    finding_id: F28
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-85
+    finding_id: F29
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-86
+    finding_id: F30
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-87
+    finding_id: F31
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-88
+    finding_id: F32
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-89
+    finding_id: F33
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-90
+    finding_id: F34
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-91
+    finding_id: F35
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-92
+    finding_id: F36
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-93
+    finding_id: F37
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-94
+    finding_id: F38
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-95
+    finding_id: F39
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-96
+    finding_id: F40
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-97
+    finding_id: F41
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-98
+    finding_id: F42
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-99
+    finding_id: F43
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-100
+    finding_id: F44
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-101
+    finding_id: F45
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-102
+    finding_id: F46
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-103
+    finding_id: F47
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-104
+    finding_id: F48
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-105
+    finding_id: F49
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-106
+    finding_id: F50
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-107
+    finding_id: F51
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-108
+    finding_id: F52
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-109
+    finding_id: F53
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-110
+    finding_id: F54
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-111
+    finding_id: F55
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-112
+    finding_id: F56
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-113
+    finding_id: F57
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-114
+    finding_id: F58
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-115
+    finding_id: F59
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-116
+    finding_id: F60
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-117
+    finding_id: F61
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: merged
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-118
+    finding_id: F62
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-119
+    finding_id: F63
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-120
+    finding_id: F64
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-121
+    finding_id: F65
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-122
+    finding_id: F66
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-123
+    finding_id: F67
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-124
+    finding_id: F68
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-125
+    finding_id: F69
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-126
+    finding_id: F70
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-127
+    finding_id: F71
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-128
+    finding_id: F72
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-129
+    finding_id: F73
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-130
+    finding_id: F74
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-131
+    finding_id: F75
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-132
+    finding_id: F76
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."
+  - id: FQ-133
+    finding_id: F77
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Remediated in Build Phase 12 (2026-09-24) after the review returned hold; pinned by a test or a corrected record."

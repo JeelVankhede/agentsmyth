@@ -48,14 +48,21 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 11 - Round 2 defect remediation (BUILD COMPLETE - 11 phases)
-- Manifest IDs: RI1, RI15, RI17
-- Exit gate: met, with one carried exception. No shipped surface names `init` as the upgrade
-  action; `npm run build` exits 0 and the bundle carries both new schemas; `validate-example` and
-  `render-adapters` pass; every pre-1.1.0 artifact and config still validates; `package.json`
-  gained exactly one line (the new test script) and no dependency. The exception is
-  `npm run mutation:audit`, blocked by the brief's recorded `council.repo_integrity` defect - see
-  Blockers.
+- Phase: Phase 12 - Review council remediation (BUILD COMPLETE - 12 phases)
+- Manifest IDs: R1, R2, R3, R4, R5, R6, RI1, RI3, RI4, RI5, RI7, RI9, RI11, RI13, RI14, RI15,
+  RI16, RI17, RI18, RI19, RI20, RI21
+- Exit gate: met. Every P0 and P1 fix is pinned by a test that fails when that fix alone is
+  reverted - verified by revert-and-rerun in a package copy, not asserted (see Command Results).
+  `npm run upgrade-path:test` covers content verification after a delta merge, both previously
+  untested merge operations, a repo version sitting strictly inside a descriptor span, and one
+  regression case per P0. `npm run build` then `npm run validate` exits 0; violations, conformance,
+  setup-checks and root-resolution all pass; `package.json` `dependencies` is unchanged.
+  No shipped surface now contradicts another on what clears version skew.
+- Prior phases: Phase 10's gate (no shipped surface names `init` as the upgrade action, bundles
+  rebuilt, pre-1.1.0 artifacts still validate) and Phase 11's (default-repo hook refresh,
+  pre-existing adapter preserved, skew warning cleared, descriptor predicate corrected) both remain
+  met. Phase 10's carried exception - `mutation:audit` blocked by the brief's integrity defect - is
+  closed: the defect is reconciled in the brief and the audit runs.
 
 ## Plan Phases Overview
 
@@ -70,8 +77,9 @@ orchestration:
 | Phase 7 - Marker-block strategy for rendered files | complete | RI19 |
 | Phase 8 - Validator host, fixtures, ratchet | complete (1 gate item blocked) | R6, RI3, RI12 |
 | Phase 9 - OI-105 marker stamp reader | complete | RI16 |
-| Phase 10 - Docs, additive compliance, rebuild | complete |
-| Phase 11 - Round 2 defect remediation | complete | R4, R5, RI4, RI15, RI16, RI18, RI19 | RI1, RI15, RI17 |
+| Phase 10 - Docs, additive compliance, rebuild | complete | RI1, RI15, RI17 |
+| Phase 11 - Round 2 defect remediation | complete | R4, R5, RI4, RI15, RI16, RI18, RI19 |
+| Phase 12 - Review council remediation | complete | R1, R2, R3, R4, R5, R6, RI1, RI3, RI4, RI5, RI7, RI9, RI11, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21 |
 
 ## Branch / Repo Status
 
@@ -79,13 +87,22 @@ orchestration:
 |---|---|---|---|
 | Before edits | `feat/wp-r18-delta-upgrades` | `?? workflow/artifacts/briefs/wp-r18-delta-upgrades-v1.md`, `?? workflow/artifacts/plans/wp-r18-delta-upgrades-v1.md` | Clean apart from this chain's own artifacts. No unrelated user changes present. Base is `release/1.1.0` at `9c1bbee`. Commits deferred until Build completes, then individual per-phase commits, per the user's instruction recorded in the plan's Branch Strategy. |
 | At handoff (end of Phase 1) | `feat/wp-r18-delta-upgrades` | `M bin/agentsmyth.mjs`, `?? src/workflow/schemas/provenance.schema.yaml` | Scope confirmed: both changes are Phase 1 touches. |
-| At handoff (Build complete) | `feat/wp-r18-delta-upgrades` | 14 modified, 10 added (incl. this chain's three artifacts) | Every path maps to a declared phase touch; `check-scope-fence` passes. No unrelated file was modified, staged, or overwritten — the tree held only this chain's own artifacts when Build began. Nothing is committed: the user's instruction is to commit after Build finishes, as individual per-phase commits. |
+| At handoff (Phase 11 complete) | `feat/wp-r18-delta-upgrades` | 15 modified, 23 added (incl. this chain's three artifacts) | Re-taken 2026-09-24 from `git diff --name-status release/1.1.0..HEAD`. The row previously read "14 modified, 10 added", a Phase-10 snapshot never re-taken, and cited `check-scope-fence` as corroboration — which it cannot be: that validator reads this artifact's own `## Changed Files` section and never consults git, so it was confirming the claim against itself. File-level coverage does hold; the `pv-provenance-*` glob absorbs the 16 fixture files. |
+| At handoff (Phase 12 complete) | `feat/wp-r18-delta-upgrades` | 29 modified, 1 added, uncommitted | Review-remediation working tree, counted with `git status --porcelain`. The added file is this chain's review artifact. Still nothing committed: the user's instruction is per-phase commits after Build finishes. |
 
 ## Scope
 
-- In scope (Phase 10): `site/updating.md`, `docs/release-checklist.md`, `CHANGELOG.md`,
+- In scope (Phase 12): `bin/agentsmyth.mjs`, `src/workflow/validators/check-lifecycle.mjs`,
+  `src/workflow/validators/check-setup-complete.mjs`, `src/workflow/schemas/migration.schema.yaml`,
+  the five test suites listed in the plan's Phase 12 Touches, the four `pv-provenance-*` fixture
+  snapshots, `README.md`, `CLAUDE.md`, `docs/` (three files), `site/` (five files), three adapter
+  global gates, this chain's own brief/plan/task, and regenerated build output.
+- Out of scope, and left undone deliberately: the Notion source-of-truth handoff (Ship owns it, and
+  the Review recorded it as such), the OI-105 ledger closure (Reflect owns rotation, and it must
+  follow the marker-check fix rather than precede it), and running `agentsmyth prepare` to refresh
+  this machine's global gate files — that writes outside the repo and is the user's call.
+- Phase 10 scope, now closed: `site/updating.md`, `docs/release-checklist.md`, `CHANGELOG.md`,
   `bin/agentsmyth.mjs` (skew warning wording), regenerated build output.
-- Out of scope: nothing remaining — this is the last Build phase.
 - Phase 2 scope, now closed: governed-artifact enumeration, baseline builder, `init` wiring,
   `src/setup/SKILL.md` step 5f.
 - Phase 1 scope, now closed: `src/workflow/schemas/provenance.schema.yaml` (created);
@@ -183,15 +200,35 @@ before, and no `init`/`check`/`prepare` path calls any new function yet.
 | `npm run build` | RI17 | pass | exit 0; `dist/workflow-bundle.md` carries both new schemas; `validators/check-setup-complete.mjs` carries the marker reader |
 | `npm run violations:test` | RI3 | pass | 221 fixtures, incl. pv1-pv4 each asserting its own rule wording |
 | `npm run conformance:test` | R6, RI12 | pass | 49/49, incl. `every-validator-wired` and `cli-invoked-exemptions-are-real` |
-| `npm run upgrade-path:test` | R2, R3, R4, RI5, RI9, RI18 | pass | **36 passed, 0 failed** — all five manifest states, all four per-artifact states, all three reconcile-idempotency failure modes, governed-surface inclusion and exclusion |
-| `npm run setup-checks:test` | RI16 | pass | 18/18, incl. five new marker-stamp cases |
+| `npm run upgrade-path:test` | R2, R3, R4, RI5, RI9, RI18 | pass (Phase 8) | **36 passed, 0 failed** at the time this row was first written. Superseded twice — see the Phase 11 and Phase 12 rows below. Left in place rather than edited, because a Command Results table that silently updates its own numbers stops being a record of what was run when |
+| `npm run setup-checks:test` | RI16 | pass (Phase 9) | 18/18, incl. five new marker-stamp cases. Superseded by the Phase 12 row below |
 | `npm run setup-refs:test` / `tuning-merge` / `commit-coverage` / `domain-placeholders` / `agents-md` / `checkpoint-approval` / `root-resolution` / `setup-validator-definitions-root` / `init-prepare-interop` | regression | pass | all nine pass — no existing behavior broken |
 | `node scripts/validate-example.mjs` | RI1 | pass | ok |
 | `node scripts/render-adapters.mjs` | RI17 | pass | adapter shims are current |
 | `node src/workflow/validators/check-scope-fence.mjs` | scope | pass | ok |
 | `git diff --stat package.json` | RI2 | pass | 1 insertion, the new test script; no dependency added |
-| `npm run mutation:audit` | RI3 | **not run — blocked** | refuses while `validate-template` fails on the brief's `council.repo_integrity` defect. See Blockers B1. Risk: the mechanical proof that each new rule is defended is unverified, though each fixture was observed rejecting on its own wording. Owner: user |
-| `node scripts/validate-template.mjs` | full suite | **fail (1 issue)** | the single `check-council-record` repo_integrity issue, unchanged from Think and unrelated to Build. Every other validator in the suite passes |
+| `npm run mutation:audit` | RI3 | **not run — blocked** (Phase 8) | refused while `validate-template` failed on the brief's `council.repo_integrity` defect. See Blockers B1, now resolved; superseded by the Phase 12 row below |
+| `node scripts/validate-template.mjs` | full suite | **fail (1 issue)** (Phase 8) | the single `check-council-record` repo_integrity issue, unrelated to Build. Superseded by the Phase 12 row below |
+
+### Phase 12 — Review council remediation (re-taken live, 2026-09-24)
+
+The rows above are dated snapshots and several were stale: the suite had grown 36 → 51 with no
+re-run recorded, and the two blocked rows were contradicted by prose elsewhere in this artifact
+claiming both resolved. Every row below was executed against the working tree on the date shown,
+and none of them is a carried-forward number.
+
+| Command | Area | Outcome | Notes |
+|---|---|---|---|
+| `npm run upgrade-path:test` | R1-R6, RI4, RI5, RI7, RI9, RI13, RI18, RI20 | pass | **107 passed, 0 failed** — grew from 51. New: W1 (content of a merged delta actually read back), W2/W3 (`rename-key` and `set-machine-owned`, previously untested by anything), W4/W5 (a repo version strictly inside a descriptor span, plus both exclusion boundaries), W6/W7 (unrecognised and single-quoted ops, descriptor schema validation), X1-X6 (one per P0), Y1-Y6 (reordered manifest entry, `--baseline` guard, hook reconcile, CRLF adapter, `--dry-run`, the `.mdc` authorship branch) |
+| revert-and-rerun probe (9 fixes, isolated package copies) | R2-R6, RI4, RI5, RI7, RI20 | pass | Each fix reverted ALONE in a copy, suite re-run. All nine turn a named assertion red: written_by_version validation → X1; write-side containment → X2; read-side containment → X3; init re-baseline guard → X4; backup sweep grammar → X5; open-item protection → X6; `--baseline` guard → Y2; adapter normalization → Y4; descriptor op rejection → W6. This is the acceptance test for the finding that the old suite stayed green when the version predicate was reverted — that revert now fails W4 |
+| `npm run setup-checks:test` | RI16 | pass | **20/20** — two new cases pin the installed-version read: one asserts the "behind installed" line can be produced at all, one asserts it is a warning rather than an error line |
+| `npm run root-resolution:test` | RI21 | pass | **24/24** — three new cases cover `resolveGitRoot`, the fourth copy of git-root logic, which shipped outside the harness built to catch exactly that duplication |
+| `npm run violations:test` | RI3 | pass | 221/221; attribution sweep widened from 93 to **105/105** fixtures, now including `check-lifecycle.mjs` and therefore the four `pv-provenance-*` fixtures that had sat outside it |
+| `npm run conformance:test` | R6, RI12 | pass | 49/49 |
+| `node scripts/validate-template.mjs` | full suite | **pass** | closes the Phase 8 row above. The brief's integrity record is reconciled, so `check-council-record` passes on its merits rather than being worked around |
+| `npm run validate` | RI1, RI17 | pass | exit 0, all 29 checks. Every pre-1.1.0 artifact and config still validates |
+| `npm run build` | RI17 | pass | exit 0; bundles and root `validators/` regenerated after every `src/` change |
+| `git diff --stat package.json` | RI2 | pass | unchanged in this phase; `dependencies` still byte-identical to its pre-chain value |
 
 Not run in this phase, with reason and risk: `npm run validate` (full suite) — it fails on the
 brief's known `check-council-record` repo-integrity defect, which is unrelated to Phase 1 and
@@ -225,6 +262,52 @@ none
   `lib.mjs` for exactly that reason. Duplication is the cheaper failure here.
 - downstream: Review should check the new helper against `lib.mjs`'s `_resolveRepoRoot` for drift.
   Test owns the CRLF/LF digest equality check and the polyrepo-member path resolution check.
+
+### Phase 11 and 12 decisions (added 2026-09-24)
+
+These notes covered Phase 1 only, which the Review flagged: the chain's largest structural decisions
+lived inside the Blockers narrative — a section a reader stops reading once the blockers say
+RESOLVED — rather than here, where the decisions a future maintainer must not re-break belong.
+
+- decision: **governance and refreshability are separate questions.** Whether an artifact gets a
+  manifest entry (can it be hashed and backed up safely) and whether it can be brought current (does
+  it carry markers saying which span is ours) are independent. Conflating them once already disabled
+  the gate refresh for every consumer who had not set `core.hooksPath`, because the hook is excluded
+  from the manifest for a correct reason — `.git/**` is a protected path and backing it up would
+  copy protected content into version control — and that reason has nothing to do with refreshing
+  it. `refreshEnforcementSurfaces()` exists to keep them apart. **Do not route it back through
+  `governedArtifacts()`.**
+- decision: **existence is not authorship.** A file being at a governed path does not mean agentsmyth
+  wrote it. Marker-bounded files answer this in-band; the two markerless adapters can only be proven
+  by rendering the template and comparing. Anything else is the user's and stays ungoverned. This was
+  fixed for adapters in Phase 11 and for `init`'s own re-baseline in Phase 12 — the second instance
+  of one idea, which is why it is written down as an idea rather than as two fixes.
+- decision: **one declared vocabulary wherever two functions must agree.** Three separate decisions
+  about what action string a refresh reports and which strings the reconcile filter recognises
+  produced a defect where a drifted hook was refreshed, its backup deleted as a false no-op, and the
+  user told nothing. `REWRITE_ACTIONS` is now the single set both sides read. The same shape appears
+  in the manifest reader, whose self-consistency guard used to share the reader's own order-dependent
+  regex so both undercounted together and agreed. When correctness depends on two places agreeing,
+  derive one from the other.
+- decision: **a symlink is followed only inside a declared boundary.** Resolving symlinks before an
+  atomic rename is correct — renaming over a link severs it and orphans the shared target, which is
+  the polyrepo shape. Resolving WITHOUT a containment check turned every write path into an
+  arbitrary-file-overwrite primitive. Each caller now names the directory the resolved target must
+  stay inside, and a caller that names none gets no dereference at all.
+- constraint: any value read from a manifest that becomes part of a filesystem path must be format-
+  validated at read time, and REJECTED rather than sanitised. Sanitising a bad version string into
+  something path-safe would be pretending the file was one agentsmyth wrote.
+- tradeoff: the `AGENTS.md` marker check compares against the installed package as a WARNING, not an
+  error, even though an error would be a stronger guarantee. That file ships through the shared
+  `~/.agentsmyth/validators/` tree, which `upgrade` refreshes unconditionally from any repo, and
+  `agentsmyth check` runs from the mandatory pre-commit hook — so a new hard fail lands on every
+  already-set-up repo on the machine without that repo running anything. Being behind is also a true
+  and ordinary state. Warning is the honest severity.
+- downstream: Test owns the eight-entry governed-surface branch (non-darwin plus Copilot adapter),
+  which no member could execute on darwin and which the Review carried as its one surviving item.
+  Ship owns the Notion source-of-truth handoff and must re-status it from `not required` to
+  `blocked` with the eight required fields. Reflect owns the OI-105 ledger closure — after the
+  marker-check change, not before, since the fix as originally shipped did not do what OI-105 asked.
 
 ## Blockers
 
@@ -328,6 +411,8 @@ time, not a live index.
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
+| Phase 12 - Review council remediation | complete | 2026-09-24 | The Review council returned `hold` on 77 findings across 12 members: six P0, seventeen P1, twenty-five P2, eight P3. The user directed all severities be fixed. **P0s:** `written_by_version` is validated as a version string at manifest-read time, because it becomes a path segment in `writeBackup` and `join` collapses `../`; `atomicWriteFileSync` follows a symlink only inside a boundary its caller declares, and `writeBackup`'s read is fenced the same way so a symlinked governed path cannot copy a secret into a committed backup; `init` no longer re-baselines a manifest that exists, which was the same authorship-versus-existence defect Phase 11 fixed on the upgrade path and left in `init`; the backup-supersede sweep is bounded to directory names that parse as versions and never deletes a backup an open reconcile item still names. **P1s:** `--baseline` now runs the manifest state machine it used to skip; manifest entries parse order-independently with a self-consistency guard that no longer shares the reader's own assumption; the action vocabulary is one declared set consumed by both the refresh producers and the reconcile filter, so a drifted hook can finally raise an item; descriptors validate against their schema at load and an unrecognised op is a hard error instead of a silent drop; the `AGENTS.md` marker check reads the real installed version (as a WARNING, because that rule ships to every repo on the machine via the shared validator tree); adapters are compared through `normalizeForHash`, so a CRLF checkout no longer excludes the Cursor rule permanently; `check-lifecycle` compares recorded digests against disk, which is what RI14 needed and never had; `backupRoot` resolves through a declared member repo in polyrepo mode instead of landing outside every git tree while a comment claimed otherwise. **Evidence discipline:** every P0 and P1 fix was verified by reverting it ALONE in a package copy and confirming a named assertion goes red — nine for nine. The suite grew 51 → 107. **Records:** the brief's three contradictory accounts of its own integrity bracket are reconciled without touching the digests, the RI18 restatement is propagated, and a false "verified by bijection rule" exit-gate claim is corrected against what the validator actually checks. |
+| Phase 11 - Round 2 defect remediation | complete | 2026-09-23 | Recorded retrospectively 2026-09-24: this phase closed without a row here while Phases 1-10 each had one, which the Review flagged — the highest-stakes phase in the document was the one whose evidence trail departed from the artifact's own format. Phase 11 fixed the two release-blockers a post-Build verification round found: the gate refresh was routed through the governed set, so a hook in `.git/hooks` (every consumer who had not set `core.hooksPath`) silently stopped being upgradeable; and adapter governance keyed on existence rather than authorship, so a pre-existing `.github/copilot-instructions.md` was adopted as agentsmyth's and replaced. It also corrected the descriptor version predicate, moved the `upgrade` block below the consts it referenced to clear a temporal dead zone, and grew the suite 36 → 51. |
 | Phase 10 - Docs, additive compliance, rebuild | complete | 2026-09-23 | RI15: three shipped surfaces corrected. `site/updating.md` had two falsified sections — "Nothing in your repo needs editing across an upgrade" and re-`init` as the stamp remedy — and now documents `agentsmyth upgrade` including the no-manifest case. `docs/release-checklist.md`'s rehearsal step gained four upgrade assertions, since it is the only place the delta path meets a genuinely older published tarball rather than a synthesised manifest state. The skew warning now names `upgrade`, which matters because it is the only discovery channel a user who skips release notes ever sees. `CHANGELOG.md` gained a 1.1.0 Added entry plus two Fixed entries. RI17: `npm run build` exits 0, `dist/workflow-bundle.md` carries both new schemas, `validators/check-setup-complete.mjs` carries the marker-stamp reader, `render-adapters` reports shims current. RI1: `validate-example` passes and `package.json` shows exactly one added line with no dependency change. |
 | Phase 9 - OI-105 marker stamp reader | complete | 2026-09-23 | The ledger item is closed: `check-setup-complete` now parses `AGENTS.md`'s `agentsmyth:<version>` marker pair and compares it against `repo-profile.yaml`'s stamp, which `writeDefinitionsRoot()` keeps current on every `init` and `upgrade`. This is the first reader of that stamp in the codebase — it was written by `placeAgentsMd()` for exactly this purpose and nothing had ever consumed it, so its correctness in the direction that matters was untested. It also restores a failure mode to the adapter-presence check, which had become unfalsifiable once `init` started always writing a root `AGENTS.md`. Scoping correction found by running it: a file with NO marker is skipped rather than failed, because this repository's own hand-authored `AGENTS.md` legitimately has none — failing it would have broken the source repo. Five cases added to `run-setup-complete-tests.mjs`, 18/18 passing. |
 | Phase 8 - Validator host, fixtures, ratchet | complete, one gate item BLOCKED | 2026-09-23 | R6/RI12: the manifest check is hosted in `check-lifecycle.mjs`, which `agentsmyth check` invokes by name and which imports `lib.mjs` so it can actually schema-validate — `check-config.mjs` would never have run in a consumer repo. `npm run conformance:test` 49/49, including `every-validator-wired` and `cli-invoked-exemptions-are-real`. RI3: four rejection fixtures (pv1-pv4), one per new `errors.push` site, each asserting its own rule's wording; `npm run violations:test` passes at 221. New `npm run upgrade-path:test` created and wired into both CI workflows — 36 assertions, all passing, covering every manifest state and every reconcile-idempotency failure mode. **BLOCKED:** `npm run mutation:audit` cannot run. It refuses when any suite fails on the unmutated tree, `scripts/validate-template.mjs` is in that list, and it fails on the brief's recorded `council.repo_integrity` defect. That defect is Think-phase and unrelated to any Build change — everything else in `validate-template` passes. Needs a user decision; carried to Review. |
