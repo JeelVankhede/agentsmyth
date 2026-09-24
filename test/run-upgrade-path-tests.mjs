@@ -1071,6 +1071,60 @@ const home = mkScratch('wpr18-home-');
     !/^- .*is installed — this repo is behind/m.test(shipped));
 }
 
+
+// ── D: AGENTS.md duplication when the block is already present UNMARKED ───────────────────────
+// Reported from real use. placeAgentsMd looks for a version-MARKED block; a file already carrying
+// the same body without markers is invisible to it, so it appended and the file said the same
+// thing twice — once as the user's copy, once inside the marker. One-time rather than compounding,
+// which made it worse in one way: every later upgrade finds the marked block and never surfaces
+// the stray copy again.
+//
+// Not reachable by anything odd: paste the block out of the docs before running init, copy an
+// AGENTS.md from a repo where agentsmyth wrote one and lose the HTML comments on the way, or run
+// it through a formatter that strips them.
+{
+  const assetBody = readFileSync(join(repoRoot, 'src', 'assets', 'AGENTS.md'), 'utf8')
+    .replace(/<!--[^>]*-->/g, '').trim();
+  const PROBE = 'This block is a pointer to the contract, not the contract itself.';
+  const copies = (text) => text.split('\n').filter((l) => l.trim() === PROBE).length;
+  const marked = (text) => (text.match(/<!--\s*agentsmyth:[^>]*BEGIN\s*-->/g) || []).length;
+
+  const seeded = (label, seed) => {
+    const repo = mkScratch(`wpr18-${label}-`);
+    git(repo, 'init', '-q');
+    git(repo, 'config', 'user.email', 'test@example.com');
+    git(repo, 'config', 'user.name', 'test');
+    git(repo, 'config', 'core.hooksPath', '.githooks');
+    if (seed !== null) writeFileSync(join(repo, 'AGENTS.md'), seed);
+    const init = run(['init'], { cwd: repo, home });
+    return { repo, init, read: () => readFileSync(join(repo, 'AGENTS.md'), 'utf8') };
+  };
+
+  const dup = seeded('dupunmarked', `${assetBody}\n`);
+  check('D1-adopted-not-appended', 'a file already carrying the block unmarked is adopted, not duplicated',
+    copies(dup.read()) === 1 && marked(dup.read()) === 1);
+
+  // Stable across upgrades too — the bug was stable at two, so "unchanged" alone proves nothing.
+  run(['upgrade'], { cwd: dup.repo, home });
+  run(['upgrade'], { cwd: dup.repo, home });
+  check('D1-stable-across-upgrades', 'and stays at one copy through repeated upgrades',
+    copies(dup.read()) === 1 && marked(dup.read()) === 1);
+
+  const unrelated = seeded('dupunrelated', '# My own notes\n\nNothing to do with agentsmyth.\n');
+  check('D2-append-path-intact', "a file with unrelated content still gets the block appended, and keeps the user's text",
+    marked(unrelated.read()) === 1 && unrelated.read().includes('Nothing to do with agentsmyth.'));
+
+  // The anchor is whole-line equality, not a prefix: `# agentsmyth` is a heading somebody else
+  // could plausibly write, and claiming their content would be worse than duplicating.
+  const lookalike = seeded('duplookalike', '# agentsmyth is great\n\nMy own file.\n');
+  check('D3-no-false-claim', 'a heading that merely starts like ours is never claimed',
+    lookalike.read().includes('# agentsmyth is great') && lookalike.read().includes('My own file.'));
+
+  const twice = seeded('duptwice', `${assetBody}\n\n${assetBody}\n`);
+  check('D4-extra-copies-surfaced', 'extra unmarked copies are left alone but reported, never silently absorbed',
+    /unmarked copies of the agentsmyth block/.test(twice.init.stdout + twice.init.stderr));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
 }

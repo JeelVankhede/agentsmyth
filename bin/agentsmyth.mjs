@@ -2074,6 +2074,34 @@ function agentsMdBlock(version, body) {
 // and skipped. Taking it as a parameter — rather than re-deriving it — is what makes the block
 // unable to advertise a hook that was never installed, and is why the call order in `init` is
 // hook-first (F5).
+// Finds agentsmyth's own block sitting in a file WITHOUT markers, and returns the file with that
+// span replaced by the marked block. Returns null when there is nothing to adopt, which is the
+// ordinary case and leaves the caller's append path untouched.
+//
+// Anchored on the first and last non-empty lines of the body actually being written, matched by
+// whole-line equality. Prefix matching would be wrong here: `# agentsmyth` is a heading somebody
+// else could plausibly have written, and claiming their content would be worse than duplicating.
+function adoptUnmarkedAgentsBlock(existing, body, block) {
+  const bodyLines = body.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (bodyLines.length < 2) return null;
+  const firstLine = bodyLines[0];
+  const lastLine = bodyLines[bodyLines.length - 1];
+
+  const lines = existing.split('\n');
+  const spans = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].trim() !== firstLine) continue;
+    for (let j = i + 1; j < lines.length; j += 1) {
+      if (lines[j].trim() === lastLine) { spans.push([i, j]); i = j; break; }
+    }
+  }
+  if (spans.length === 0) return null;
+
+  const [start, end] = spans[0];
+  const rebuilt = [...lines.slice(0, start), ...block.split('\n'), ...lines.slice(end + 1)];
+  return { text: `${rebuilt.join('\n').replace(/\n*$/, '')}\n`, remaining: spans.length - 1 };
+}
+
 function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
   const dest = join(repoDir, 'AGENTS.md');
 
@@ -2117,6 +2145,28 @@ function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
       }));
       return;
     }
+    // No MARKED block — but the body may already be in the file UNMARKED, and appending then makes
+    // the file say the same thing twice: once as the user's copy, once inside the version marker.
+    // Reachable without doing anything odd: paste the block out of the docs before running init,
+    // copy an AGENTS.md from a repo where agentsmyth wrote one and lose the HTML comments on the
+    // way, or run it through a formatter that strips them. The duplication is one-time rather than
+    // compounding — every later upgrade finds the marked block and leaves the stray copy alone —
+    // which is worse in one way, because nothing ever surfaces it again.
+    //
+    // Adopt rather than append. The span is matched on agentsmyth's OWN first and last body lines,
+    // compared whole rather than by prefix: this file's opening heading is generic enough that a
+    // prefix test would claim a heading somebody else wrote. Both anchors are derived from the
+    // rendered body, so they cannot drift from what is actually being written.
+    const adopted = adoptUnmarkedAgentsBlock(existing, body, block);
+    if (adopted) {
+      writeFileSync(dest, adopted.text);
+      if (adopted.remaining > 0) {
+        console.warn(`  (note: AGENTS.md carried ${adopted.remaining + 1} unmarked copies of the agentsmyth block; the first is now`);
+        console.warn('   marked and managed, and the rest were left alone because they are not agentsmyth\'s to remove)');
+      }
+      return;
+    }
+
     writeFileSync(dest, existing.endsWith('\n') ? `${existing}\n${block}\n` : `${existing}\n\n${block}\n`);
   } catch (err) {
     // A missing or unreadable asset, an unparseable package.json, or an unwritable repo root all

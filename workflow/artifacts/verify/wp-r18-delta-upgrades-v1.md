@@ -48,6 +48,7 @@ Every command below was executed in this phase. Nothing is carried forward from 
 | `npm run validate` | RI1, RI7, RI11 | pass | exit 0, 26 checks |
 | `npm run mutation:audit` | RI3 | pass | **0/234 undefended, `mutation-audit: ok`** — re-run in this phase after Build Phase 13 changed two validators, so it is executed evidence rather than carried. `check-lifecycle.mjs` 22 rules, `check-setup-complete.mjs` 13, both fully defended; `test/mutation-baseline.json` already records 234 and needed no regeneration |
 | `npm pack @jeelvankhede/agentsmyth@1.0.1` | release rehearsal | pass | real tarball fetched and installed into an isolated prefix |
+| `agentsmyth prepare`, 1.0.1 then candidate | RI6, RI17, RI16 | pass | observed under a scratch HOME. 1.0.1's prepare writes the stale three-directory `Per-repo data` line; the candidate's overwrites it with five entries including `workflow/provenance.yaml` and `workflow/backups/`, and writes `installed-version.txt`. Real `~/.claude/CLAUDE.md` untouched, mtime unchanged |
 | independent digest recomputation | R1 | pass | see Manual QA R1 |
 
 ## Manifest Coverage
@@ -221,6 +222,47 @@ the global tree is expanded from `dist/` — so the revert never reached the cop
 That is the identical wrong-path error, now in the probe rather than the product. The probe rebuilds
 the bundle after reverting a `src/` file, and both halves of the fix are pinned:
 `V2-fires-in-shipped-layout` fails when either the stamp write or the stamp read is reverted alone.
+
+### V3 — AGENTS.md duplicated its own block when the content was already present unmarked
+
+**Manifest ID:** none — this is outside WP-R18's manifest. Reported from real use, reproduced here,
+and recorded as a finding of this phase rather than folded into a requirement it does not belong to.
+**Surface:** `bin/agentsmyth.mjs`, `placeAgentsMd`.
+
+`placeAgentsMd` looks for a version-MARKED block. A file already carrying the same body **without**
+markers is invisible to that test, so it appended — and the file then said the same thing twice:
+once as the user's copy, once inside the version marker.
+
+Reproduced across four seeds:
+
+| Seeded AGENTS.md | Before | After |
+|---|---|---|
+| block body present, unmarked | 2 copies | 1 |
+| two marked blocks | 1 (already correct) | 1 |
+| block body present twice, unmarked | 3 copies | 2, with a warning |
+| unrelated user content | 1, appended | unchanged |
+
+The duplication was **one-time rather than compounding** — every later upgrade finds the marked
+block and leaves the stray copy alone — which is worse in one respect, because nothing surfaces it
+again. Three upgrades in a row held it at two copies.
+
+Reachable without doing anything unusual: paste the block out of the docs before running `init`,
+copy an `AGENTS.md` from a repo where agentsmyth wrote one and lose the HTML comments in transit, or
+run the file through a formatter that strips them.
+
+**Fixed.** `placeAgentsMd` now adopts an unmarked run instead of appending, anchored on the first
+and last non-empty lines of the body actually being written. Whole-line equality, not prefix: this
+block opens with `# agentsmyth`, which somebody else could plausibly have written, and claiming
+their content would be worse than duplicating it. Extra copies beyond the first are left alone and
+reported — they are not agentsmyth's to remove. Pinned by `D1-adopted-not-appended`,
+`D1-stable-across-upgrades` and `D4-extra-copies-surfaced`, all of which fail when the adoption call
+alone is reverted.
+
+**Scope note.** `placeAgentsMd` is WP-R23's code, not WP-R18's, so this is a defect this chain
+found rather than one it caused. It is fixed here because it was reported directly and the file was
+already in Phase 13's touch set. It belongs in Reflect's follow-up list as a WP-R23 item, and the
+`agents-md:test` suite — 33/33 throughout, including after this change — should gain the seeded
+cases so its own feature owns them.
 
 ## Skipped Checks
 
