@@ -1065,3 +1065,11 @@ items:
     outcome: proved-real
     closed_in_phase: ship
     resolution: "Both pages the prose claimed were stale are corrected. The research spike page is left as written and the reason is stated: it is a dated record of what was known on 2026-09-21, not a live contract."
+  - id: FQ-80
+    finding_id: F24
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: ship
+    resolution: "Closed before merge rather than carried. The finding was real - the eight-entry branch was genuinely unexercised through Review, Test and Ship - but the waiver assumed a missing platform when what was missing was an assertion on a platform CI already ran. Block H1 in test/run-upgrade-path-tests.mjs now exercises it on ubuntu and skips loudly on darwin with the platform named. Verified before push by forcing the non-darwin branch in a package copy: 5/5."

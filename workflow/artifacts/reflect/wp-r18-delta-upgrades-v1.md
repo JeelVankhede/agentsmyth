@@ -32,8 +32,14 @@ verify (`ship`, after returning `hold` once), ship (PR #72). Plus `open-items.ya
 
 ## Outcome
 
-Shipped as PR #72 against `release/1.1.0` — 21 commits, open and unmerged. 26 of 27 manifest IDs
-shipped, 1 partial (RI18), 0 deferred, 0 blocked, 2 findings waived by ID with owners.
+Shipped as PR #72 against `release/1.1.0`, open and unmerged. **27 of 27 manifest IDs shipped**,
+0 deferred, 0 blocked, 1 finding waived by ID with an owner.
+
+RI18 was the chain's one surviving council item and was waived at Ship as FQ-80. **It closed before
+merge** — and how is worth recording, because the waiver was wrong about its own blocker. It assumed
+the eight-entry branch needed a platform nobody had. CI already ran ubuntu, which *is* that platform;
+what was missing was an assertion on a runner that had been there the whole time. A waiver that names
+the wrong obstacle outlives the obstacle.
 
 The feature does what the brief asked: a consumer repo can now be brought current without either
 losing the user's edits or re-flagging every file on every upgrade. Verified against the actually
@@ -137,7 +143,7 @@ main thing this chain has to hand forward.
 | RI15 | shipped | `site/`, `README.md`, `CLAUDE.md` | a commit claiming "every surface" had covered three files |
 | RI16 | shipped | `src/workflow/validators/check-setup-complete.mjs` | OI-105 closed and rotated this phase |
 | RI17 | shipped | `dist/workflow-bundle.md` | 252/252 blocks verified by comparison |
-| RI18 | **waived** | `workflow/artifacts/ship/wp-r18-delta-upgrades-v1.md` | FQ-80: eight-artifact branch needs a non-darwin runner |
+| RI18 | shipped | `test/run-upgrade-path-tests.mjs` block `H1` | FQ-80 closed before merge — the branch is exercised on CI's ubuntu runner, skipped loudly on darwin |
 | RI19 | shipped | `test/run-upgrade-path-tests.mjs` | outside markers survives, inside is replaced |
 | RI20 | shipped | `test/run-upgrade-path-tests.mjs` | requirement's two deletion triggers now ordered |
 | RI21 | shipped | `test/run-upgrade-path-tests.mjs` | polyrepo backup inside the member tree, visible to git |
@@ -146,7 +152,6 @@ main thing this chain has to hand forward.
 
 | Item | Why | Owner |
 |---|---|---|
-| RI18's eight-governed-artifact branch | Needs a non-darwin platform nobody in this chain had. Waived as FQ-80 with a follow-up | workflow owner, before the 1.1.0 tag |
 | RI13's native Windows checkout | CRLF was constructed on darwin, not through git's own filter under `core.autocrlf` | workflow owner, same CI job |
 | The version step | `package.json` deliberately stays at 1.0.1, so every stamp behaviour ran at 1.0.1 → 1.0.1 | dispatch |
 
@@ -177,6 +182,11 @@ record of what was known on 2026-09-21 is not a live contract.
   archive is append-only so the claim cannot be corrected. Where a record asserts that a fix *worked*
   rather than that a finding *was real*, the assertion belongs to a later phase and a different
   author — source: `workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md` — propose-only.
+- **Candidate learning**: A waiver should name the obstacle precisely enough that someone can notice
+  when it stops existing. FQ-80 waived RI18's eight-entry branch as needing "a non-darwin platform",
+  which read as infrastructure nobody had — while CI had been running ubuntu for the entire chain.
+  The real gap was one missing assertion on an existing runner. State what is absent, not what class
+  of thing is absent — source: `workflow/artifacts/ship/wp-r18-delta-upgrades-v1.md` — propose-only.
 - **Candidate learning**: A writer that owns only part of a file must normalise what it preserves, not
   just what it writes. Both late bugs were marker-bounded writers: one duplicated content because it
   could not see an unmarked copy of its own body, the other duplicated whitespace because it counted
@@ -188,7 +198,7 @@ record of what was known on 2026-09-21 is not a live contract.
 
 | Action | Owner | Suggested Artifact Or Ticket | Status |
 |---|---|---|---|
-| Add a non-darwin CI job asserting the eight-entry governed count and a native `core.autocrlf` checkout, closing FQ-80 and RI13's modelled half | workflow owner | `ci: non-darwin matrix job for governed-surface and CRLF branches` | open |
+| Assert RI13's CRLF path on a native `core.autocrlf` checkout — the eight-entry half of this is now done (block `H1`), the line-ending half is not. CI's ubuntu runner checks out LF, so this needs `core.autocrlf` set on the runner rather than a new platform | workflow owner | `ci: exercise RI13 under a real core.autocrlf checkout` | open |
 | Give `finding-quality` a `verified_in_phase` field, written later and by a different author than `resolution`, so a premature closure can be corrected without editing the append-only archive | workflow owner | `feat(schemas): separate "finding was real" from "fix worked" in the finding-quality ledger` | open |
 | Extract one shared, tested marker-block primitive for `installGateSection`, `placeAgentsMd` and `installPreCommitHook` — three hand-rolled implementations of one idea, two of which produced a bug in this chain | workflow owner | `refactor(cli): one marker-bounded writer, byte-idempotent by construction` | open |
 | Add a `cap_source` value for a cap the user raised in session — the enum offers `configured` and `council-default`, and this run was neither | workflow owner | `feat(schemas): cap_source needs a user-raised member` | open |

@@ -151,10 +151,11 @@ not a live contract, and the three questions it left open are answered on the wo
 
 ## Risk And Rollback
 
-- Residual risk: **RI18's eight-governed-artifact branch is unexercised.** Needs a non-darwin
-  platform with a tracked hook and the Copilot adapter placed. Six and seven are verified by
-  execution; eight by code reading. Owner: a CI matrix job or an explicit waiver, before the 1.1.0
-  tag.
+- ~~Residual risk: **RI18's eight-governed-artifact branch is unexercised.**~~ **Closed before
+  merge.** The waiver lasted one turn. CI runs ubuntu — the non-darwin platform the branch needed
+  was already there; what was missing was an assertion on it. Block `H1` now exercises the
+  eight-entry count on every CI run and skips loudly on darwin. Six, seven and eight are all
+  verified by execution.
 - Residual risk: **RI13's Windows half was modelled, not run** — CRLF constructed on darwin rather
   than through git's own checkout filter under `core.autocrlf`.
 - Residual risk: **the version step is untested**, per Release Readiness above.
@@ -179,7 +180,7 @@ deferral with paperwork.
 
 | waived_gate_or_requirement_id | reason | residual_risk | owner | follow_up_action | approval_evidence |
 |---|---|---|---|---|---|
-| FQ-80 (council finding F24) / RI18 | RI18's eight-governed-artifact branch needs a non-darwin platform with a tracked hook and the Copilot adapter placed. Every environment available to Review, Test and Ship was darwin. Six and seven are verified by execution; eight by code reading only | One of three counts in an acceptance restated mid-chain rests on nobody having run it. Bounded: the conditional logic is shared with the two branches that were executed, so a defect specific to the eight branch would have to live in the platform predicate itself | workflow owner — a CI matrix job on a non-darwin runner, or explicit acceptance before the 1.1.0 tag | Add a non-darwin job to `ci.yml` asserting the manifest entry count, or accept the branch as code-read-only and record that on the release page | User instruction this turn scoping ship to Notion, CHANGELOG and PR, which excludes the platform work; the gap is carried forward rather than silently closed |
+| FQ-80 (council finding F24) / RI18 | **CLOSED 2026-09-24, before merge.** The waiver stood for one turn. CI already runs ubuntu, which IS the non-darwin platform the branch needed — the gap was never a missing runner, only a missing assertion on the runner already there | none remaining. The eight-entry branch is now executed on every CI run, not read | closed — was workflow owner | Done: block `H1` in `test/run-upgrade-path-tests.mjs` asserts the Copilot adapter is placed, the governed count is 8, both adapters are in the manifest, `AGENTS.md` is still excluded, and an upgrade over eight artifacts reports all unchanged. It runs on CI and SKIPS LOUDLY on darwin with the platform named, so a partial local run cannot read as a complete one | Verified before push by forcing the non-darwin branch in a package copy and running the suite against it: 5/5, 143 passed. CI ubuntu then exercises it unforced |
 | FQ-63 (council finding F7) / RI16 | OI-105's ledger closure is a Reflect duty by convention — the live ledger holds no closed item — and it had to follow the RI16 fix rather than precede it. Closing it at Review would have recorded a repair that had not happened, and Ship is still the wrong phase | `open-items.yaml` continues to carry OI-105 as `open` with an imperative next action while its fix has shipped, so a reader of the ledger alone is told work remains that does not | Reflect | Rotate OI-105 to `open-items-archive.yaml` during Reflect, citing the RI16 fix and the Test-phase V2 finding that made it real | Recorded in the Review artifact's routing and in Verify's Finding Quality Closure section; carried here rather than closed early |
 
 ## Blocked Handoff

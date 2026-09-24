@@ -20,7 +20,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { platform, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +30,10 @@ const binPath = join(repoRoot, 'bin', 'agentsmyth.mjs');
 
 let passed = 0;
 let failed = 0;
+// Counted and reported. A platform-conditional block that skips silently makes a partial run look
+// identical to a complete one, which is how RI18's eight-entry branch went unexercised for a whole
+// lifecycle chain while every suite reported green.
+let skipped = 0;
 const cleanup = [];
 
 function check(id, description, condition) {
@@ -1174,10 +1178,48 @@ const home = mkScratch('wpr18-home-');
     withTail.includes('## My own trailing section') && withTail.includes('keep me'));
 }
 
+
+// ── H: RI18's eight-entry branch, on the platform that can actually reach it ───────────────────
+// The council carried this as its one surviving item and Ship waived it as FQ-80: the eight-entry
+// count needs a NON-DARWIN platform (where `placeDeterministicAdapters` writes the Copilot file)
+// plus a tracked hook (where `core.hooksPath` puts it outside `.git/`). Every environment available
+// to Review, Test and Ship was darwin, so the branch was asserted by code reading alone.
+//
+// CI runs Linux, which reaches it. This block therefore RUNS in CI and is explicitly SKIPPED on
+// darwin — skipped loudly, with the reason and the platform printed, because a platform-conditional
+// test that silently passes where it cannot run reports the same green as one that verified
+// something. That silent-pass shape is the exact defect class this chain spent four passes finding.
+{
+  const nonDarwin = platform() !== 'darwin';
+  if (!nonDarwin) {
+    console.log(`[SKIP] H1-eight-governed: RI18's eight-entry branch needs a non-darwin platform; this run is ${platform()}. Exercised in CI (ubuntu), not here — see waiver FQ-80.`);
+    skipped += 1;
+  } else {
+    const repo = freshRepo(home, 'h1eight');
+    const manifest = readManifest(repo);
+    const entries = [...manifest.matchAll(/^ {2}- path: (.+)$/gm)].map((m) => m[1].trim());
+
+    check('H1-copilot-placed', 'a non-darwin init places the Copilot adapter, which darwin never does',
+      existsSync(join(repo, '.github', 'copilot-instructions.md')));
+    check('H1-eight-governed', 'the governed set is EIGHT here: five configs, the tracked hook, and both deterministic adapters',
+      entries.length === 8);
+    check('H1-both-adapters-governed', 'and both adapters are in the manifest, not just the Cursor one',
+      entries.includes('.cursor/rules/agentsmyth.mdc') && entries.includes('.github/copilot-instructions.md'));
+    check('H1-agents-md-still-excluded', 'AGENTS.md is still excluded at eight, as it is at six and seven',
+      !entries.includes('AGENTS.md'));
+
+    // The count is the acceptance criterion, but a count alone would pass if the upgrade then broke
+    // on the extra artifact. Exercise it.
+    const result = run(['upgrade'], { cwd: repo, home });
+    check('H1-upgrade-clean-at-eight', 'and an upgrade over eight governed artifacts reports all of them unchanged',
+      result.status === 0 && /8 unchanged/.test(result.stdout));
+  }
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
 }
 
 console.log('');
-console.log(`upgrade-path: ${passed} passed, ${failed} failed`);
+console.log(`upgrade-path: ${passed} passed, ${failed} failed${skipped > 0 ? `, ${skipped} skipped (platform-conditional — see the [SKIP] lines above)` : ''}`);
 process.exit(failed > 0 ? 1 : 0);

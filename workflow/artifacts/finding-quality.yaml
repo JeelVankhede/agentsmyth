@@ -23,10 +23,3 @@ items:
     disposition: accepted
     outcome: pending
     # deferred to reflect: OI-105 ledger closure — Reflect owns rotation, and it must follow the marker-check fix rather than precede it
-  - id: FQ-80
-    finding_id: F24
-    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
-    first_seen_run: wp-r18-delta-upgrades-v1
-    disposition: accepted
-    outcome: pending
-    # deferred to test: RI18 eight-entry branch needs a non-darwin platform no council member could run on; carried as the council surviving item
