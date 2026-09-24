@@ -58,6 +58,12 @@ if (!command || command === 'help') {
   console.log('  prepare  Install/refresh the global lifecycle definitions (~/.agentsmyth/)');
   console.log('  check    Run the lifecycle phase gate validator');
   console.log('  doctor   Diagnose agentsmyth installation (not yet implemented)');
+  console.log('');
+  console.log('Flags:');
+  console.log('  upgrade --dry-run   Show what an upgrade would change; write nothing');
+  console.log('  upgrade --baseline  Re-record the files currently on disk as the baseline,');
+  console.log('                      without upgrading. Run by the setup skill as its final');
+  console.log('                      step, and by hand after resolving a reconcile item.');
   process.exit(0);
 }
 
@@ -120,6 +126,11 @@ if (command === 'check') {
   // files into a scratch test directory. Never fires in normal operation.
   if (process.env.AGENTSMYTH_DEBUG_ROOT) {
     console.log(checkRoot);
+    // The FOURTH copy of git-root resolution, exposed to the same drift harness as the other three.
+    // resolveGitRoot() shipped as a documented fourth copy while the test built specifically to
+    // catch the first three diverging spawned only those three — so the one mechanism that would
+    // have caught "someone changed one half" did not cover the newest half.
+    if (process.env.AGENTSMYTH_DEBUG_ROOT === 'git') console.log(resolveGitRoot(checkRoot) ?? '(null)');
     process.exit(0);
   }
 
@@ -324,15 +335,23 @@ function pendingItemsFrom(specs, startId) {
     // (intent and council tuning both target it) and silently wrong for the first one that does
     // not. A reconcile item for verification.yaml MUST say `config: verification.yaml` — the
     // router reads that field to know what it is being asked about.
+    // Every interpolated value is quoted and escaped, not just question and hint.
+    //
+    // backup_path, migration_id, upgrade_from and upgrade_to were written as raw unquoted scalars,
+    // so a value carrying a colon, a quote or a newline produced a malformed document — and under a
+    // poisoned `written_by_version` the traversal-laden path was echoed straight into instruction
+    // text an agent later reads and acts on. The manifest reader now rejects that input at source,
+    // but the class does not depend on it: this renderer must be safe for any value reaching it.
+    const yamlScalar = (value) => `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, "'").replace(/[\r\n]+/g, ' ')}"`;
     const lines = [
       `  - id: PS-${startId + index}`,
       `    config: ${item.config ?? 'repo-profile.yaml'}`,
-      `    field: "${item.field}"`,
-      `    question: "${item.question.replace(/"/g, "'")}"`,
-      `    hint: "${item.hint.replace(/"/g, "'")}"`,
+      `    field: ${yamlScalar(item.field)}`,
+      `    question: ${yamlScalar(item.question)}`,
+      `    hint: ${yamlScalar(item.hint)}`,
     ];
     for (const key of ['backup_path', 'migration_id', 'upgrade_from', 'upgrade_to']) {
-      if (item[key]) lines.push(`    ${key}: ${item[key]}`);
+      if (item[key]) lines.push(`    ${key}: ${yamlScalar(item[key])}`);
     }
     lines.push('    status: open');
     return lines.join('\n');
@@ -350,9 +369,21 @@ function pendingItemsFrom(specs, startId) {
 // branch below explicitly calls the steady state.
 //
 // `next_id` is optional, so a file that has never been pruned behaves exactly as before.
+//
+// THE ONE CASE THIS CANNOT FIX, stated rather than papered over. `next_id` stops recurrence; it
+// cannot see backwards. For any pre-1.1.0 file that had an item resolved and PRUNED before the
+// field existed, that item left no trace in the document at all — resolved-but-still-present items
+// are matched by the `present` sweep below, pruned ones are not — so the first allocation computes
+// max(present) + 1 and may hand out a number that already belonged to a different, resolved item.
+// One collision per repo, self-healing afterwards, in a file whose schema says ids are never reused.
+//
+// Nothing in the file can recover the lost high-water mark, so there is no fix here, only a choice
+// between silent and visible. The caller announces it once, at the moment the field is introduced,
+// which is the only moment the ambiguity exists.
 function allocatePendingId(content, count) {
   const present = [...content.matchAll(/^\s*-\s*id:\s*PS-(\d+)/gm)].map((m) => Number(m[1]));
   const declared = Number(content.match(/^next_id:\s*(\d+)/m)?.[1] ?? 0);
+  const introducing = !/^next_id:/m.test(content);
   const start = Math.max(declared, present.length > 0 ? Math.max(...present) + 1 : 1);
   const advanced = start + count;
 
@@ -360,7 +391,17 @@ function allocatePendingId(content, count) {
     ? content.replace(/^next_id:.*$/m, `next_id: ${advanced}`)
     : content.replace(/^(kind:\s*pending-setup\s*)$/m, `$1\nnext_id: ${advanced}`);
 
-  return { start, content: updated };
+  return { start, content: updated, introducing };
+}
+
+// Says out loud, once, that an id MIGHT be a reuse — see allocatePendingId()'s closing note. Only
+// on the run that introduces `next_id`, because that is the only run where the answer is unknowable;
+// every run after it reads a recorded high-water mark and is exact.
+function warnOnFirstNextId(alloc, pendingPath) {
+  if (!alloc.introducing) return;
+  console.warn(`  (note: ${pendingPath} predates the next_id high-water mark, so PS-${alloc.start} is`);
+  console.warn('   derived from the ids still present. If an item was resolved and pruned from this file');
+  console.warn('   before now, that number may repeat one. From this write on, ids are exact.)');
 }
 
 // Appends one item family to an EXISTING pending-setup.yaml that lacks it — the upgrade path for a
@@ -410,13 +451,15 @@ function appendPendingItems(configDir, specs, marker) {
     const rebuilt = [...lines];
     rebuilt[itemsIdx] = 'items:';
     const alloc = allocatePendingId(rebuilt.join('\n'), specs.length);
-    atomicWriteFileSync(pendingPath, `${alloc.content}\n${pendingItemsFrom(specs, alloc.start).join('\n')}\n`);
+    warnOnFirstNextId(alloc, pendingPath);
+    atomicWriteFileSync(pendingPath, `${alloc.content}\n${pendingItemsFrom(specs, alloc.start).join('\n')}\n`, undefined, configDir);
     return specs.length;
   }
 
   const nextId = allocatePendingId(content, specs.length);
+  warnOnFirstNextId(nextId, pendingPath);
   const block = pendingItemsFrom(specs, nextId.start).join('\n');
-  atomicWriteFileSync(pendingPath, `${nextId.content.replace(/\s*$/, '')}\n${block}\n`);
+  atomicWriteFileSync(pendingPath, `${nextId.content.replace(/\s*$/, '')}\n${block}\n`, undefined, configDir);
   return specs.length;
 }
 
@@ -806,6 +849,35 @@ function writeDefinitionsRoot(repoDir, defsRootValue, pkgVersion) {
 
 function provenanceFormatVersion() { return 1; }
 
+// A version string agentsmyth itself could have written.
+//
+// Load-bearing for security, not tidiness. The manifest's `written_by_version` reaches writeBackup()
+// as a PATH SEGMENT, and join() collapses `../` — so an unvalidated
+// `written_by_version: ../../../../tmp/x` redirected the real content of every drifted governed file
+// anywhere the process could write. The same pull request that plants the field also controls the
+// governed file's content and its recorded (mismatched) digest, so path AND payload were both
+// attacker-chosen through one change to a file whose only defence was a comment saying not to edit
+// it by hand.
+//
+// Rejecting rather than sanitising is the whole point: a manifest that does not carry a version
+// string is not a manifest agentsmyth wrote, and normalising one into something path-safe would be
+// pretending otherwise. The same predicate bounds the backup-supersede sweep, so "a directory
+// agentsmyth created" is a closed, checkable set rather than "whatever is under the backup root".
+const VERSION_STRING_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/;
+function isVersionString(value) {
+  return typeof value === 'string' && VERSION_STRING_RE.test(value);
+}
+
+// A repo-relative path a manifest entry may name. Rejects absolute paths, any `..` segment, and
+// Windows drive letters — the traversal check that lived only in check-lifecycle.mjs, which
+// `agentsmyth upgrade` never invokes, so the guarantee sat on the reporting path rather than on the
+// path that performs the writes.
+function isSafeRelPath(value) {
+  if (typeof value !== 'string' || value.length === 0) return false;
+  if (value.startsWith('/') || /^[A-Za-z]:/.test(value)) return false;
+  return !value.split('/').includes('..');
+}
+
 // Reads the running package's version. A helper rather than an inline JSON.parse because three
 // call sites need it and one of them (the init flow) runs at top level where a `const` computed
 // earlier in the file would already have been consumed by a different scope.
@@ -856,14 +928,49 @@ function digestFile(filePath) {
 // whole old file or the whole new one, never a torn one. It does NOT buy power-loss durability,
 // which needs fsync of the file before the rename and of the directory after, and the directory
 // half is not portable to Windows. That is a declared non-goal, not an oversight.
-function atomicWriteFileSync(filePath, content, options) {
+// True when `candidate` resolves inside `rootDir`, `rootDir` itself counting as inside. Segment
+// comparison via relative(), not a string prefix test: "/repo-backup" starts with "/repo" and is
+// not inside it.
+function isInside(rootDir, candidate) {
+  const rel = relative(resolve(rootDir), resolve(candidate));
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+function atomicWriteFileSync(filePath, content, options, boundary) {
   // Resolve a symlink to its target before writing. Renaming over a link severs it and orphans the
   // shared file it pointed at — and symlinked shared config is exactly the shape a polyrepo-member
   // workspace uses, so this is not a hypothetical.
-  let target = filePath;
+  //
+  // Resolving is not enough on its own, and shipping it without the fence below turned every write
+  // path in this file into an arbitrary-file-overwrite primitive: a checked-in symlink at a
+  // governed path (git preserves those across clone — verified) redirected the write anywhere the
+  // process could reach. Every caller therefore declares the directory the resolved target must
+  // stay inside, and a symlink is followed only that far. A caller passing no boundary gets no
+  // dereference at all: refusing is the safe default, because the case that needs one is the
+  // exception and the case that does not is every other write in this file.
+  let isLink = false;
   try {
-    if (lstatSync(filePath).isSymbolicLink()) target = realpathSync(filePath);
-  } catch { /* absent — writing a new file, nothing to resolve */ }
+    isLink = lstatSync(filePath).isSymbolicLink();
+  } catch { /* absent — a new write, nothing to resolve */ }
+
+  let target = filePath;
+  if (isLink) {
+    if (!boundary) {
+      throw new Error(`${filePath} is a symbolic link and this write declares no containment boundary; refusing to follow it`);
+    }
+    // A dangling link has no target to contain, so it cannot be shown safe and is refused rather
+    // than written through. realpathSync is the only thing that can throw here.
+    let real;
+    try {
+      real = realpathSync(filePath);
+    } catch (err) {
+      throw new Error(`${filePath} is a symbolic link that does not resolve (${err.message}); refusing to write through it`);
+    }
+    if (!isInside(boundary, real)) {
+      throw new Error(`${filePath} is a symbolic link resolving to ${real}, which is outside ${boundary}; refusing to write through it`);
+    }
+    target = real;
+  }
 
   const dir = dirname(target);
   mkdirSync(dir, { recursive: true });
@@ -882,6 +989,20 @@ function atomicWriteFileSync(filePath, content, options) {
   } catch (err) {
     try { rmSync(tmp, { force: true }); } catch { /* best effort — the throw below is what matters */ }
     throw err;
+  }
+}
+
+// True when the working tree has uncommitted changes, false when clean, null when the question does
+// not apply (not a git repo, or git is unavailable). Three-valued deliberately: "not a git repo" and
+// "clean" are different answers and warning on the first would be noise.
+function gitWorkingTreeDirty(repoDir) {
+  try {
+    const out = execFileSync('git', ['status', '--porcelain'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return null;
   }
 }
 
@@ -915,12 +1036,49 @@ function provenancePath(repoDir) {
   return join(repoDir, 'workflow', 'provenance.yaml');
 }
 
-// Backups follow the git working tree, not repoDir. In single-repository and monorepo modes these
-// are the same directory. In polyrepo-member they are not: the shared workflow/ lives outside every
-// git repo, so a backup written next to it would be untracked, unreviewable, and unrecoverable.
-// Resolving through git means a backup lands somewhere `git status` can see it in all three modes.
+// Backups follow a git working tree, not repoDir. In single-repository and monorepo modes those
+// are the same directory and `git rev-parse` from repoDir answers correctly.
+//
+// In polyrepo-member they are NOT the same, and the previous version of this comment claimed a
+// guarantee the code could not produce. There, repoDir IS `workspace_root`, which by that mode's
+// own definition lies outside every git repo — so `git rev-parse` run from it fails, the `?? repoDir`
+// fallback fires, and the backup lands at exactly the untracked location the comment said this
+// logic avoids. RI21's acceptance (visible to `git status` in the member repo) went unmet while the
+// comment asserted the opposite.
+//
+// So the polyrepo case resolves through a declared member repo instead. `sibling_repos[].path` in
+// repo-profile.yaml names the working trees; the first one that is a real git repo takes the
+// backups, because a backup that is reviewable in SOME member tree beats one that is reviewable in
+// none. When no member resolves, the fallback stands and says so out loud rather than silently
+// producing an untracked file.
 function backupRoot(repoDir) {
-  return join(resolveGitRoot(repoDir) ?? repoDir, 'workflow', 'backups');
+  const direct = resolveGitRoot(repoDir);
+  if (direct) return join(direct, 'workflow', 'backups');
+
+  for (const memberDir of siblingRepoDirs(repoDir)) {
+    const root = resolveGitRoot(memberDir);
+    if (root) return join(root, 'workflow', 'backups');
+  }
+
+  console.warn('  (note: no git working tree resolved for backups — they will be written to');
+  console.warn(`   ${join(repoDir, 'workflow', 'backups')}, which "git status" cannot see)`);
+  return join(repoDir, 'workflow', 'backups');
+}
+
+// Absolute paths of the member repos a polyrepo-member workspace declares. Empty for every other
+// mode, and empty when the profile cannot be read — a caller that gets nothing back falls through
+// to its own default rather than being told a lie.
+function siblingRepoDirs(repoDir) {
+  const profile = join(repoDir, 'workflow', 'config', 'repo-profile.yaml');
+  if (!existsSync(profile)) return [];
+  let content;
+  try { content = readFileSync(profile, 'utf8'); } catch { return []; }
+  const entries = extractYamlList(content, 'repository.sibling_repos');
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .map((e) => (typeof e === 'object' && e !== null ? e.path : null))
+    .filter((v) => typeof v === 'string' && v.length > 0)
+    .map((v) => (isAbsolute(v) ? v : join(repoDir, v)));
 }
 
 // The governed set (RI18, widened from five configs to eight artifacts by the user's Q3 answer).
@@ -994,12 +1152,20 @@ function adapterSourceFor(pkgRootDir, rel) {
     : join(pkgRootDir, 'src', 'assets', 'adapters', 'copilot', 'copilot-instructions.md');
 }
 
-// True when the file on disk is byte-identical to what agentsmyth would render there. The only
-// authorship evidence available for a file that carries no markers.
+// True when the file on disk IS what agentsmyth would render there. The only authorship evidence
+// available for a file that carries no markers.
+//
+// Compared through normalizeForHash, not with a bare `===`. The governed CONFIG path has always
+// normalised — that is what `normalization: lf-single-trailing-newline` in the manifest declares,
+// and the repo ships no .gitattributes, so nothing else states a line-ending contract. This path
+// did not, and the asymmetry was silent and permanent: on a CRLF working tree the Cursor adapter
+// never matched its LF render, so it was excluded from the manifest on every baseline and every
+// upgrade, reclassified `newly-governed` each time, and left untouched with no reconcile item and no
+// error. A future content change to that template could never reach a Windows consumer at all.
 function matchesAdapterRender(repoDir, pkgRootDir, rel) {
   try {
     const rendered = renderAdapterTemplate(readFileSync(adapterSourceFor(pkgRootDir, rel), 'utf8'), buildAdapterTokens(repoDir));
-    return readFileSync(join(repoDir, rel), 'utf8') === rendered;
+    return normalizeForHash(readFileSync(join(repoDir, rel), 'utf8')) === normalizeForHash(rendered);
   } catch {
     return false;
   }
@@ -1065,24 +1231,54 @@ function recordProvenanceBaseline(repoDir, pkgVersion, hookPath, pkgRootDir) {
 // Without that, a consumer upgrading across five releases accumulates five full copies of every
 // file they ever edited, in committed version control, with nothing owning cleanup.
 //
-// The delete is deliberately narrow: it only ever removes a path that is (a) under this repo's
-// backup root, and (b) an exact relpath match for the governed file being backed up. It never
-// sweeps a directory.
-function writeBackup(repoDir, rel, fromVersion) {
+// The delete used to be described as "deliberately narrow" — under this repo's backup root and an
+// exact relpath match. That narrowness was the defect, not the safeguard. It swept EVERY top-level
+// entry under `workflow/backups/`, agentsmyth's own or not, so a consumer with their own
+// `workflow/backups/nightly/` tree lost any file whose relative path happened to coincide with a
+// governed artifact's. Two conditions now bound it, and both are necessary:
+//
+//   (a) the directory name must parse as a version agentsmyth itself could have written, so the set
+//       of directories this loop may touch is closed and checkable rather than "whatever is there";
+//   (b) the backup must not be the one an OPEN reconcile item points at. RI20 names two deletion
+//       triggers — superseded on upgrade, deleted when the item resolves — and never orders them.
+//       They collide: edit, upgrade, edit again, upgrade, and the first backup is destroyed while
+//       `pending-setup.yaml` still carries an open item naming it, leaving the router's step 9
+//       diffing against nothing. Resolution wins. Supersession skips.
+function writeBackup(repoDir, rel, fromVersion, openBackupPaths) {
   const root = backupRoot(repoDir);
   const dest = join(root, fromVersion, rel);
-  const content = readFileSync(join(repoDir, rel), 'utf8');
 
-  // Supersede: drop this file's backup under any other version segment first.
+  // Read-side containment (the same hole as the write side). readFileSync dereferences, so a
+  // governed path that is a symlink to `.env` or anything matching `**/*secret*` would otherwise
+  // copy that content into `workflow/backups/` — a tree this design deliberately COMMITS. Refuse
+  // anything that is not a regular file inside the repo.
+  const src = join(repoDir, rel);
+  const st = lstatSync(src);
+  if (st.isSymbolicLink()) {
+    const real = realpathSync(src);
+    if (!isInside(repoDir, real)) {
+      throw new Error(`${rel} is a symbolic link resolving to ${real}, outside the repository; refusing to copy it into a committed backup`);
+    }
+  } else if (!st.isFile()) {
+    throw new Error(`${rel} is not a regular file; refusing to back it up`);
+  }
+  const content = readFileSync(src, 'utf8');
+
+  // Supersede: drop this file's backup under any OTHER agentsmyth-written version segment, unless
+  // an open reconcile item still points at it.
+  const protectedPaths = new Set(openBackupPaths ?? []);
   if (existsSync(root)) {
     for (const versionDir of readdirSync(root)) {
       if (versionDir === fromVersion) continue;
+      if (!isVersionString(versionDir)) continue; // not a directory agentsmyth wrote
       const stale = join(root, versionDir, rel);
-      if (existsSync(stale)) rmSync(stale, { force: true });
+      if (!existsSync(stale)) continue;
+      if (protectedPaths.has(relative(repoDir, stale).split(sep).join('/'))) continue;
+      rmSync(stale, { force: true });
     }
   }
 
-  atomicWriteFileSync(dest, content);
+  atomicWriteFileSync(dest, content, undefined, root);
   return relative(repoDir, dest).split(sep).join('/');
 }
 
@@ -1193,6 +1389,22 @@ function applyChanges(text, changes) {
 //             templates carry unfilled <PLACEHOLDER> tokens and three are written with
 //             environment-dependent inference substitutions, so there is no version-stable
 //             canonical form to replace them with.
+// Every action an apply or a refresh can report, and — the half that was missing — which of them
+// mean the file's content was REWRITTEN.
+//
+// This existed as three independent decisions in three functions with nothing holding them in
+// agreement: applyUpgradeTo() returned 'no-change' for any hook path, refreshEnforcementSurfaces()
+// reported 'gate-refreshed', and the reconcile filter matched a hardcoded 'delta-applied' ||
+// 're-rendered'. A drifted pre-commit hook therefore landed in the no-op bucket, its backup was
+// deleted as a false no-op, and the user was never told their edit had been overwritten — reachable
+// in any repo that points core.hooksPath outside .git/, which is exactly the configuration that
+// puts the hook in the governed set in the first place.
+//
+// Deriving the filter from this set rather than from a literal is what stops a fourth action string
+// being added later that nothing recognises. This is the third instance of that coupling in this
+// feature; the other two were fixed pointwise.
+const REWRITE_ACTIONS = new Set(['delta-applied', 're-rendered', 'gate-refreshed', 'marker-refreshed']);
+
 function applyUpgradeTo(repoDir, pkgRootDir, rel, state, fromVersion, toVersion) {
   const abs = join(repoDir, rel);
   const descriptors = loadMigrations(pkgRootDir, fromVersion, toVersion, rel);
@@ -1203,14 +1415,14 @@ function applyUpgradeTo(repoDir, pkgRootDir, rel, state, fromVersion, toVersion)
     return { rel, action: 'no-change', descriptors: [] };
   }
 
-  if (rel.endsWith('.mdc') || rel.endsWith('copilot-instructions.md')) {
+  if (isDeterministicAdapter(rel)) {
     // Only a file agentsmyth demonstrably wrote may be replaced wholesale. Anything else is the
     // user's, and the caller has already backed it up and raised a reconcile item for it.
     if (state !== 'pristine') return { rel, action: 'left-for-reconcile', descriptors: [] };
     const tokens = buildAdapterTokens(repoDir);
     const rendered = renderAdapterTemplate(readFileSync(adapterSourceFor(pkgRootDir, rel), 'utf8'), tokens);
     if (rendered === readFileSync(abs, 'utf8')) return { rel, action: 'no-change', descriptors: [] };
-    atomicWriteFileSync(abs, rendered);
+    atomicWriteFileSync(abs, rendered, undefined, repoDir);
     return { rel, action: 're-rendered', descriptors: [] };
   }
 
@@ -1219,10 +1431,12 @@ function applyUpgradeTo(repoDir, pkgRootDir, rel, state, fromVersion, toVersion)
   const before = readFileSync(abs, 'utf8');
   let text = before;
   for (const d of descriptors) {
-    text = applyChanges(text, parseDescriptorChanges(readFileSync(d.file, 'utf8')));
+    const doc = readFileSync(d.file, 'utf8');
+    validateDescriptor(doc, d.id, rel);
+    text = applyChanges(text, parseDescriptorChanges(doc, d.id));
   }
   if (text === before) return { rel, action: 'no-change', descriptors: descriptors.map((d) => d.id) };
-  atomicWriteFileSync(abs, text);
+  atomicWriteFileSync(abs, text, undefined, repoDir);
   return { rel, action: 'delta-applied', descriptors: descriptors.map((d) => d.id) };
 }
 
@@ -1238,8 +1452,22 @@ function applyUpgradeTo(repoDir, pkgRootDir, rel, state, fromVersion, toVersion)
 // every consumer — while a comment and a CHANGELOG entry both claimed it was unconditional.
 function refreshEnforcementSurfaces(repoDir, pkgRootDir) {
   const done = [];
+
+  // Read the hook before and after, because installPreCommitHook() returns its target path whether
+  // or not it wrote anything — including from its own explicit no-op branch. Reporting
+  // 'gate-refreshed' off a non-null return made the action true on every run, which would turn the
+  // REWRITE_ACTIONS fix into the opposite error: a reconcile item raised for a hook nobody touched.
+  // The action now means what its name says.
+  const hookProbe = (p) => {
+    try { return p && existsSync(p) ? readFileSync(p, 'utf8') : null; } catch { return null; }
+  };
+  const provisionalHook = join(resolveHooksDir(repoDir), 'pre-commit');
+  const hookBefore = hookProbe(provisionalHook);
   const hookPath = installPreCommitHook(repoDir, pkgRootDir);
-  if (hookPath) done.push({ rel: relative(repoDir, hookPath).split(sep).join('/'), action: 'gate-refreshed' });
+  const hookAfter = hookProbe(hookPath);
+  if (hookPath && hookAfter !== null && hookAfter !== hookBefore) {
+    done.push({ rel: relative(repoDir, hookPath).split(sep).join('/'), action: 'gate-refreshed' });
+  }
 
   // AGENTS.md is excluded from the manifest because it carries its own in-band provenance, and that
   // exclusion had the same side effect: placeAgentsMd() ran only in `init`, so the stamp the Phase 9
@@ -1252,19 +1480,98 @@ function refreshEnforcementSurfaces(repoDir, pkgRootDir) {
   return done;
 }
 
+// The three operations applyChanges() implements, as one declared set.
+//
+// Declared rather than restated at each site because the dispatch used to be three `===` tests with
+// no default branch, so an op string matching none of them was silently dropped: no error, no
+// warning, the file compared equal to itself, and the upgrade reported `no-change` for a file that
+// needed a migration.
+const DESCRIPTOR_OPS = ['ensure-key', 'set-machine-owned', 'rename-key'];
+
 // Minimal reader for a descriptor's `changes:` list. Same matched-pair reasoning as the manifest
-// reader: descriptors are authored in this repo against a schema the validator enforces, so the
-// shape reaching a consumer is known, and a general parser is not needed to read a known shape.
-function parseDescriptorChanges(doc) {
+// reader: descriptors are authored against a schema, so the shape reaching a consumer is known.
+//
+// Two things the first version got wrong, both silent. It stripped the double quote and not the
+// single, so `op: 'rename-key'` — legal YAML, and unconstrained by migration.schema.yaml, which
+// placed no pattern on the string — parsed as the literal `"'rename-key'"` and matched no branch.
+// And an unrecognised op fell through to nothing rather than failing. Both are now loud: quotes of
+// either style are stripped, and an op outside DESCRIPTOR_OPS throws. A descriptor naming an
+// operation this CLI does not implement is a hard error — the alternative is applying part of a
+// migration and reporting success.
+function parseDescriptorChanges(doc, sourceId) {
   const changes = [];
-  const block = doc.slice(doc.indexOf('changes:'));
+  const marker = doc.indexOf('changes:');
+  if (marker === -1) return changes;
+  const block = doc.slice(marker);
   for (const chunk of block.split(/^\s*- /m).slice(1)) {
-    const field = (name) => chunk.match(new RegExp(`^\\s*${name}:\\s*"?([^"\\n]+)"?\\s*$`, 'm'))?.[1]?.trim();
+    const field = (name) => {
+      const raw = chunk.match(new RegExp(`^\\s*${name}:\\s*(.+?)\\s*$`, 'm'))?.[1];
+      if (raw === undefined) return undefined;
+      const unquoted = raw.replace(/^(["'])([\s\S]*)\1$/, '$2');
+      return unquoted.trim();
+    };
     const op = field('op');
     if (!op) continue;
+    if (!DESCRIPTOR_OPS.includes(op)) {
+      throw new Error(`migration descriptor ${sourceId ?? '(unknown)'} declares op "${op}", which is not one of ${DESCRIPTOR_OPS.join(', ')}`);
+    }
     changes.push({ op, key: field('key'), to: field('to'), value: field('value'), after: field('after') });
   }
   return changes;
+}
+
+// Checks a descriptor document against the shape migration.schema.yaml declares, before any of it
+// is applied.
+//
+// R5's acceptance says "a descriptor validates against its own schema". Nothing enforced it:
+// migration.schema.yaml self-registered by $id and no validator, code path or test ever ran a
+// descriptor through it — the only artefact asserting the validation existed was README prose. The
+// check lives HERE rather than in a validator because loading is where a descriptor is actually
+// used, so a consumer whose upgrade pulls a malformed descriptor fails at the point of use rather
+// than at a `check` they may never run.
+function validateDescriptor(doc, sourceId, targetRel) {
+  const scalar = (key) => doc.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))?.[1]?.trim().replace(/^(["'])([\s\S]*)\1$/, '$2');
+  const problems = [];
+  for (const key of ['kind', 'from', 'to', 'target']) {
+    if (scalar(key) === undefined) problems.push(`${key} is missing`);
+  }
+  if (scalar('kind') !== undefined && scalar('kind') !== 'migration') problems.push(`kind is "${scalar('kind')}", expected "migration"`);
+  for (const key of ['from', 'to']) {
+    const v = scalar(key);
+    if (v !== undefined && !isVersionString(v)) problems.push(`${key} "${v}" is not a version string`);
+  }
+  const target = scalar('target');
+  if (target !== undefined && basename(target) !== basename(targetRel)) {
+    problems.push(`target "${target}" does not name ${basename(targetRel)}`);
+  }
+  if (!/^changes:/m.test(doc)) problems.push('changes is missing');
+  if (problems.length > 0) {
+    throw new Error(`migration descriptor ${sourceId} is invalid: ${problems.join('; ')}`);
+  }
+}
+
+// Backup paths named by reconcile items that are still `open`.
+//
+// Read from pending-setup.yaml rather than tracked in the manifest, because the item is the thing
+// that makes a backup load-bearing: while it is open, the backup is the user's only copy of their
+// edit. Once resolved, the backup is free to be superseded or removed. A file that cannot be read
+// yields the empty set, and the caller then supersedes as before — an unreadable pending file is
+// already reported loudly elsewhere, and failing the whole upgrade here would be a worse trade.
+function openReconcileBackupPaths(repoDir) {
+  const pendingPath = join(repoDir, 'workflow', 'config', 'pending-setup.yaml');
+  if (!existsSync(pendingPath)) return [];
+  let content;
+  try { content = readFileSync(pendingPath, 'utf8'); } catch { return []; }
+
+  const open = [];
+  for (const item of content.split(/^  - id:/m).slice(1)) {
+    const status = item.match(/^\s*status:\s*(.+?)\s*$/m)?.[1]?.trim();
+    if (status !== 'open') continue;
+    const raw = item.match(/^\s*backup_path:\s*(.+?)\s*$/m)?.[1];
+    if (!raw) continue;
+    open.push(raw.trim().replace(/^(["'])([\s\S]*)\1$/, '$2'));
+  }
+  return open;
 }
 
 // The marker that makes a reconcile item idempotent (RI9).
@@ -1395,7 +1702,7 @@ function renderProvenance(manifest) {
 }
 
 function writeProvenance(repoDir, manifest) {
-  atomicWriteFileSync(provenancePath(repoDir), renderProvenance(manifest));
+  atomicWriteFileSync(provenancePath(repoDir), renderProvenance(manifest), undefined, repoDir);
 }
 
 // Strict reader for the shape renderProvenance() emits. A general YAML parser is not available
@@ -1435,7 +1742,12 @@ function readProvenance(repoDir) {
   if (!/^\d+$/.test(formatVersion ?? '')) {
     return { ok: false, reason: formatVersion === null ? 'format_version is missing' : `format_version "${formatVersion}" is not an integer` };
   }
+  // Format-validated, not merely present. This scalar becomes a filesystem path segment in
+  // writeBackup(); see isVersionString() for what that cost when only truthiness was checked.
   if (!writtenBy) return { ok: false, reason: 'written_by_version is missing' };
+  if (!isVersionString(writtenBy)) {
+    return { ok: false, reason: `written_by_version "${writtenBy}" is not a version string` };
+  }
   if (!normalization) return { ok: false, reason: 'normalization is missing' };
 
   const raised = [];
@@ -1447,18 +1759,56 @@ function readProvenance(repoDir) {
     }
   }
 
+  // Entries are split on the list-item marker and their keys read in ANY order.
+  //
+  // The previous reader required path, sha256, written_by_version in exactly that sequence, while
+  // provenance.schema.yaml places no ordering constraint — so a reordered entry was schema-valid and
+  // the reader silently dropped it. The file was then classified `newly-governed`, its digest
+  // comparison skipped entirely, and the entry re-authored with no error, no backup, and "Upgrade
+  // complete" printed. Any YAML re-serialiser (an IDE key-sort, `yq`, a formatter) triggered it.
+  //
+  // The self-consistency guard could not catch it either, because it counted declared entries with
+  // the SAME order-dependent assumption: both numbers undercounted in lockstep and agreed. Splitting
+  // on the marker makes declared and parsed independent again — declared counts items, parsing reads
+  // each item's keys — so the guard can actually fire. And a malformed item is now a hard stop
+  // rather than an omission, which is what this manifest's own schema description has always
+  // claimed: treating an unreadable entry as absent adopts the user's edited file as pristine and
+  // loses it on the following upgrade.
+  // Take everything after the `entries:` line and stop at the next TOP-LEVEL key (a line starting
+  // in column zero). A lookahead-terminated match is the wrong tool here: `\s*$` under the `m` flag
+  // matches at the end of the very first line, so a lazy body captured nothing and every entry
+  // vanished. Walking lines says what it means and cannot be read two ways.
+  const allLines = text.split('\n');
+  const entriesIdx = allLines.findIndex((l) => /^entries:\s*$/.test(l));
+  const entryLines = [];
+  if (entriesIdx !== -1) {
+    for (const line of allLines.slice(entriesIdx + 1)) {
+      if (/^\S/.test(line)) break;
+      entryLines.push(line);
+    }
+  }
+  const items = entryLines.join('\n').split(/^ {2}- /m).slice(1);
   const entries = [];
-  const entryRe = /^ {2}- path:\s*(.+)$\n^ {4}sha256:\s*([0-9a-f]{64})$\n^ {4}written_by_version:\s*(.+)$/gm;
-  let match;
-  while ((match = entryRe.exec(text)) !== null) {
-    entries.push({ path: match[1].trim(), sha256: match[2], written_by_version: match[3].trim() });
+  for (let i = 0; i < items.length; i += 1) {
+    const item = items[i];
+    const field = (name) => item.match(new RegExp(`(?:^|\\n)\\s*${name}:\\s*(.+?)\\s*$`, 'm'))?.[1] ?? null;
+    const entryPath = field('path');
+    const sha256 = field('sha256');
+    const entryVersion = field('written_by_version');
+    const bad = (why) => ({ ok: false, reason: `entry ${i + 1} ${why}` });
+    if (entryPath === null) return bad('has no path');
+    if (!isSafeRelPath(entryPath)) return bad(`names path "${entryPath}", which escapes the repository`);
+    if (sha256 === null) return bad(`(${entryPath}) has no sha256`);
+    if (!/^[0-9a-f]{64}$/.test(sha256)) return bad(`(${entryPath}) has sha256 "${sha256}", which is not a hex digest`);
+    if (entryVersion === null) return bad(`(${entryPath}) has no written_by_version`);
+    if (!isVersionString(entryVersion)) return bad(`(${entryPath}) has written_by_version "${entryVersion}", which is not a version string`);
+    entries.push({ path: entryPath, sha256, written_by_version: entryVersion });
   }
 
-  // A bare count comparison is what makes a truncated or reordered file fail loudly instead of
-  // silently yielding fewer entries than it declares — the half-written case atomicWriteFileSync
-  // exists to prevent, caught here too because the file may predate that helper or come from
-  // another tool.
-  const declared = (text.match(/^ {2}- path:/gm) ?? []).length;
+  // Kept even though every malformed item now hard-stops above: this catches an item the split
+  // produced that parsing dropped for a reason nothing above anticipated, which is the failure mode
+  // a matched emitter/reader pair is least able to predict about itself.
+  const declared = items.length;
   if (declared !== entries.length) {
     return { ok: false, reason: `declares ${declared} entr(ies) but only ${entries.length} parsed cleanly` };
   }
@@ -1481,7 +1831,7 @@ function readProvenance(repoDir) {
 // TODO-fallback rule setup/references/token-map.md and SKILL.md Step 5a.1 already document as
 // agent-executed prose. Used only by placeDeterministicAdapters() below, for the two tools no
 // global gate can ever cover (Cursor, non-macOS Copilot) — everything else stays agent-driven.
-const ADAPTER_TODO_FALLBACK = '<!-- TODO: see pending-setup.yaml -->';
+function adapterTodoFallback() { return '<!-- TODO: see pending-setup.yaml -->'; }
 
 // Minimal indentation-based YAML list reader — not a general parser, sufficient for this
 // repo's own hand-authored config shape (2-space nesting, list items starting with "- ", or
@@ -1555,7 +1905,7 @@ function buildAdapterTokens(repoDir) {
     if (policyMatch) {
       tokens.BRANCH_POLICY = policyMatch[1] === 'true'
         ? 'All changes via non-default branch required.'
-        : `Direct commits to \`${tokens.DEFAULT_BRANCH ?? ADAPTER_TODO_FALLBACK}\` permitted.`;
+        : `Direct commits to \`${tokens.DEFAULT_BRANCH ?? adapterTodoFallback()}\` permitted.`;
     }
     const protectedPaths = extractYamlList(profile, 'paths.protected');
     tokens.PROTECTED_PATHS = protectedPaths.length === 0
@@ -1579,7 +1929,7 @@ function buildAdapterTokens(repoDir) {
       : constraints.map((c) => `- ${c}`).join('\n');
     // REPO_NAME, REPO_PURPOSE, DOMAIN_NAME source from domain.name/domain.summary, which stay
     // literal <PLACEHOLDER> until the agent's resolution pass — intentionally left unset here
-    // so they fall back to ADAPTER_TODO_FALLBACK, per the user's "final call is from interview
+    // so they fall back to adapterTodoFallback(), per the user's "final call is from interview
     // setup only" instruction for anything requiring judgment.
   } catch { /* domain.yaml unreadable — leave these tokens for the fallback */ }
 
@@ -1587,9 +1937,9 @@ function buildAdapterTokens(repoDir) {
 }
 
 // Renders a {{TOKEN}}-templated adapter source against a token map, substituting
-// ADAPTER_TODO_FALLBACK for any token with no resolvable value.
+// adapterTodoFallback() for any token with no resolvable value.
 function renderAdapterTemplate(templateContent, tokens) {
-  return templateContent.replace(/\{\{([A-Z_]+)\}\}/g, (_match, name) => tokens[name] ?? ADAPTER_TODO_FALLBACK);
+  return templateContent.replace(/\{\{([A-Z_]+)\}\}/g, (_match, name) => tokens[name] ?? adapterTodoFallback());
 }
 
 // Places the adapter file for exactly the two cases no global gate mechanism can ever cover,
@@ -1632,7 +1982,22 @@ function resolveHooksDir(repoDir) {
       cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
     if (configured) return isAbsolute(configured) ? configured : join(repoDir, configured);
-  } catch { /* not a git repo, or core.hooksPath unset — fall through to the default */ }
+  } catch { /* not a git repo, or core.hooksPath unset — fall through below */ }
+
+  // Ask git where the hooks directory IS rather than assuming `.git` is a directory. In a linked
+  // worktree `.git` is a FILE pointing at the common dir, so joining `.git/hooks` produced a path
+  // whose creation threw ENOTDIR — caught, non-fatal, hook install skipped. The consequence was not
+  // merely a missed refresh: placeAgentsMd() then wrote "the gate is not installed" into the
+  // worktree's AGENTS.md, which is false. The hook is live, shared through the common dir, and does
+  // enforce commits there. Telling a user the core safety mechanism is off when it is on is worse
+  // than not refreshing it.
+  try {
+    const gitPath = execFileSync('git', ['rev-parse', '--git-path', 'hooks'], {
+      cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    if (gitPath) return isAbsolute(gitPath) ? gitPath : join(repoDir, gitPath);
+  } catch { /* not a git repo at all — the literal default below is the only answer left */ }
+
   return join(repoDir, '.git', 'hooks');
 }
 
@@ -1659,12 +2024,13 @@ function resolveHooksDir(repoDir) {
 // everything between them — the user's own text included. Reproduced before this guard existed.
 // Tempering makes the match start at the LAST BEGIN before an END, so an orphan is left untouched
 // as the stray text it is. Nothing outside a well-formed pair is ever ours to remove (R3).
-const AGENTS_BLOCK_PATTERN =
-  '<!-- agentsmyth:[^\\s>]+ BEGIN -->' +
+function agentsBlockPattern() {
+  return '<!-- agentsmyth:[^\\s>]+ BEGIN -->' +
   '(?:(?!<!-- agentsmyth:[^\\s>]+ BEGIN -->)[\\s\\S])*?' +
   '<!-- agentsmyth:[^\\s>]+ END -->';
-const AGENTS_BLOCK_RE = new RegExp(AGENTS_BLOCK_PATTERN);
-const AGENTS_BLOCK_RE_ALL = new RegExp(AGENTS_BLOCK_PATTERN, 'g');
+}
+function agentsBlockRe() { return new RegExp(agentsBlockPattern()); }
+function agentsBlockReAll() { return new RegExp(agentsBlockPattern(), 'g'); }
 
 // The gate paragraph has two forms because only one of them is ever true, and which one is decided
 // by whether installPreCommitHook() actually wrote a hook. It used to name `.git/hooks/pre-commit`
@@ -1688,15 +2054,17 @@ const AGENTS_BLOCK_RE_ALL = new RegExp(AGENTS_BLOCK_PATTERN, 'g');
 // Wrapped to the asset's own column width so the rendered block keeps its shape, and the installed
 // form keeps the literal phrase "pre-commit hook at `...`" because agents-md:test A4/A5 locate the
 // advertised path through it.
-const gateParagraphInstalled = (hookPath) =>
-  '**The gate is enforced, not advised.** A pre-commit hook at `' + hookPath + '` rejects any commit whose\n' +
+function gateParagraphInstalled(hookPath) {
+  return   '**The gate is enforced, not advised.** A pre-commit hook at `' + hookPath + '` rejects any commit whose\n' +
   'changed files are not covered by a lifecycle artifact in the required phase state. Skipping a phase\n' +
   'does not produce a warning; it produces a failed commit.';
+}
 
-const GATE_PARAGRAPH_ABSENT =
-  '**The gate is not installed.** No pre-commit hook was written, so nothing refuses a commit that\n' +
+function gateParagraphAbsent() {
+  return   '**The gate is not installed.** No pre-commit hook was written, so nothing refuses a commit that\n' +
   'skips a phase. `agentsmyth init` printed the reason on the run that produced this block — fix that\n' +
   'and run it again. Until then the phase order holds, but only because you hold it.';
+}
 
 function agentsMdBlock(version, body) {
   return `<!-- agentsmyth:${version} BEGIN -->\n${body.trim()}\n<!-- agentsmyth:${version} END -->`;
@@ -1724,7 +2092,7 @@ function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
     const tokens = {
       ...buildAdapterTokens(repoDir),
       GATE_PARAGRAPH: displayed === null
-        ? GATE_PARAGRAPH_ABSENT
+        ? gateParagraphAbsent()
         : gateParagraphInstalled(displayed.startsWith('..') ? hookPath : displayed),
     };
     const body = renderAdapterTemplate(
@@ -1738,11 +2106,11 @@ function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
       return;
     }
     const existing = readFileSync(dest, 'utf8');
-    if (AGENTS_BLOCK_RE.test(existing)) {
+    if (agentsBlockRe().test(existing)) {
       // Function replacement, not a string: a '$' in the block body would otherwise be read as a
       // replacement pattern ($&, $1) and silently corrupt the written block.
       let first = true;
-      writeFileSync(dest, existing.replace(AGENTS_BLOCK_RE_ALL, () => {
+      writeFileSync(dest, existing.replace(agentsBlockReAll(), () => {
         if (!first) return '';
         first = false;
         return block;
@@ -1758,8 +2126,8 @@ function placeAgentsMd(repoDir, pkgRootDir, hookPath) {
   }
 }
 
-const HOOK_BEGIN_MARKER = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
-const HOOK_END_MARKER = '# <<< agentsmyth:mandatory-lifecycle-gate <<<';
+function hookBeginMarker() { return '# >>> agentsmyth:mandatory-lifecycle-gate >>>'; }
+function hookEndMarker() { return '# <<< agentsmyth:mandatory-lifecycle-gate <<<'; }
 
 // Installs the mandatory local pre-commit lifecycle gate — called only from `init` (never
 // `runPrepare()`, which writes zero repo-level files by design). Tool-agnostic by construction:
@@ -1796,11 +2164,11 @@ function installPreCommitHook(repoDir, pkgRootDir) {
 
   try {
     if (!existsSync(target)) {
-      atomicWriteFileSync(target, template, { mode: 0o755 });
+      atomicWriteFileSync(target, template, { mode: 0o755 }, dirname(target));
       return target;
     }
     const existing = readFileSync(target, 'utf8');
-    if (existing.includes(HOOK_BEGIN_MARKER)) {
+    if (existing.includes(hookBeginMarker())) {
       // REFRESH the marked block rather than returning early (RI19).
       //
       // The early return made this function idempotent in the narrow sense — running it twice did
@@ -1814,8 +2182,8 @@ function installPreCommitHook(repoDir, pkgRootDir) {
       // themselves that `init` appended to, or their own additions afterwards — and survives
       // byte-for-byte. That boundary is what makes refreshing safe where whole-file replacement
       // would not be.
-      const begin = existing.indexOf(HOOK_BEGIN_MARKER);
-      const end = existing.indexOf(HOOK_END_MARKER);
+      const begin = existing.indexOf(hookBeginMarker());
+      const end = existing.indexOf(hookEndMarker());
       if (end === -1 || end < begin) {
         // A begin marker with no matching end means the block was hand-edited into a shape this
         // cannot safely bound. Refusing to touch it is right; refusing silently is not — the gate
@@ -1824,14 +2192,14 @@ function installPreCommitHook(repoDir, pkgRootDir) {
         console.warn('  The lifecycle gate in this repo will not be updated until the block is repaired.');
         return target;
       }
-      const current = template.slice(template.indexOf(HOOK_BEGIN_MARKER));
-      const refreshed = existing.slice(0, begin) + current.trimEnd() + '\n' + existing.slice(end + HOOK_END_MARKER.length).replace(/^\n/, '');
-      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, { mode: 0o755 });
+      const current = template.slice(template.indexOf(hookBeginMarker()));
+      const refreshed = existing.slice(0, begin) + current.trimEnd() + '\n' + existing.slice(end + hookEndMarker().length).replace(/^\n/, '');
+      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, { mode: 0o755 }, dirname(target));
       return target;
     }
-    const block = template.slice(template.indexOf(HOOK_BEGIN_MARKER));
+    const block = template.slice(template.indexOf(hookBeginMarker()));
     const appended = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
-    atomicWriteFileSync(target, appended, { mode: 0o755 });
+    atomicWriteFileSync(target, appended, { mode: 0o755 }, dirname(target));
     return target;
   } catch (err) {
     console.warn(`agentsmyth: could not write pre-commit hook at ${target} — skipping.`);
@@ -2032,14 +2400,22 @@ async function auditStaleDefinitions(repoDir) {
   }
 }
 
-// NOTE ON PLACEMENT. This block sits here, below the shared helpers, rather than up with the
-// other command dispatches — and that is not stylistic. installPreCommitHook() and
-// renderAdapterTemplate() close over `const` values (HOOK_BEGIN_MARKER, HOOK_END_MARKER,
-// ADAPTER_TODO_FALLBACK) declared in that region. A `const` does not hoist, so calling them
-// from a dispatch above their declaration throws "Cannot access 'X' before initialization" at
-// runtime. This file already carries that warning twice, on intentStartId() and
-// intentItemSpecs(); the upgrade path reproduced the bug anyway and failed on BOTH consts
-// before the block was moved here.
+// NOTE ON PLACEMENT — historical, and no longer load-bearing. This block used to be REQUIRED to
+// sit below the shared helpers, because installPreCommitHook() and renderAdapterTemplate() closed
+// over `const` values (HOOK_BEGIN_MARKER, HOOK_END_MARKER, ADAPTER_TODO_FALLBACK) declared in that
+// region. A `const` does not hoist, so calling them from a dispatch above their declaration threw
+// "Cannot access 'X' before initialization" at runtime — which the upgrade path did, on both
+// consts in turn, despite the file already carrying that warning twice for intentStartId() and
+// intentItemSpecs().
+//
+// Moving the block was the weaker of the two available fixes and is no longer what protects this.
+// Nothing stopped a future reorganisation — plausible in a file this size — from moving a command
+// dispatch back above those declarations, and the file's own history says it had already happened
+// twice. Every one of those values is now a hoisted `function` instead, the same remedy already
+// applied to intentStartId() and intentItemSpecs(), so position cannot reintroduce the hazard.
+//
+// The block stays here for readability, not for correctness. If you move it, run the suites; they
+// will still pass, and that is now a fact about the code rather than about where the block sits.
 
 // ─── upgrade ───────────────────────────────────────────────────────────────
 // Brings an already-set-up repo current with the installed agentsmyth version.
@@ -2060,6 +2436,7 @@ if (command === 'upgrade') {
   const upgradeRoot = resolveExistingRepoRoot();
   const upgradeArgs = process.argv.slice(3);
   const baselineOnly = upgradeArgs.includes('--baseline');
+  const dryRun = upgradeArgs.includes('--dry-run');
   const pkgVersion = pkgVersionForProvenance(pkgRoot);
 
   if (!existsSync(join(upgradeRoot, 'workflow', 'config', 'repo-profile.yaml'))) {
@@ -2073,6 +2450,32 @@ if (command === 'upgrade') {
   // It deliberately does NOT run prepare or classify anything: it is an assertion about the
   // current repo, not an upgrade.
   if (baselineOnly) {
+    // Classify FIRST, even here. `--baseline` legitimately skips classifying the FILES — it is an
+    // assertion about the current repo, not an upgrade — but it must not skip classifying the
+    // MANIFEST. It did, and the two hard stops bare `upgrade` performs were therefore reachable on
+    // one entry point of two: run against a manifest a newer CLI wrote, an older CLI silently
+    // stamped format_version and written_by_version back down to what it supports, discarding the
+    // newer manifest's claims with no warning and no backup. `--baseline` is not an obscure recovery
+    // flag — src/setup/SKILL.md makes it the mandatory final action of every setup session, so
+    // ordinary onboarding on a trailing CLI hit this.
+    const pre = classifyManifest(upgradeRoot);
+    if (pre.state === 'unparseable') {
+      console.error('');
+      console.error('agentsmyth: workflow/provenance.yaml exists but could not be read.');
+      console.error(`  ${pre.reason}`);
+      console.error('  Refusing to overwrite it. Restore it from version control, or delete it and');
+      console.error('  re-run this command to record the current files as a fresh baseline.');
+      process.exit(1);
+    }
+    if (pre.state === 'newer-than-cli') {
+      console.error('');
+      console.error(`agentsmyth: workflow/provenance.yaml is format_version ${pre.found}, but this CLI supports ${pre.supported}.`);
+      console.error('  It was written by a newer agentsmyth than the one installed here.');
+      console.error('  Refusing to overwrite it with an older format. Upgrade the agentsmyth package,');
+      console.error('  then re-run.');
+      process.exit(1);
+    }
+
     const hookPath = join(resolveHooksDir(upgradeRoot), 'pre-commit');
     const count = recordProvenanceBaseline(upgradeRoot, pkgVersion, existsSync(hookPath) ? hookPath : null, pkgRoot);
     console.log(`agentsmyth: recorded provenance baseline for ${count} governed file(s) → workflow/provenance.yaml`);
@@ -2126,17 +2529,47 @@ if (command === 'upgrade') {
   if (classified.state === 'absent') {
     // Every version published to date predates the manifest, so this is not an edge case — it is
     // the entire installed base on the day this ships. It must not read as "every file drifted".
+    //
+    // The adopt path also refreshes the two marker-bounded gate surfaces and the version stamp.
+    // Skipping them meant `agentsmyth check` kept printing the version-skew warning immediately
+    // after the user ran the command that warning names as the cure, and a SECOND `upgrade` was
+    // needed to converge. Both surfaces are marker-bounded, so refreshing them needs no manifest —
+    // which is exactly why they can be brought current on the one path that has no manifest to read.
     const count = recordProvenanceBaseline(upgradeRoot, pkgVersion, resolvedHook, pkgRoot);
+    const refreshed = refreshEnforcementSurfaces(upgradeRoot, pkgRoot);
+    writeDefinitionsRoot(upgradeRoot, PORTABLE_DEFINITIONS_ROOT, pkgVersion);
     console.log('');
     console.log(`agentsmyth: no provenance manifest found — adopted the current state of ${count} governed file(s) as the baseline.`);
-    console.log('  Nothing was backed up and nothing was changed: with no record of what agentsmyth');
-    console.log('  last wrote, your files are the only truth available, so they become the baseline.');
-    console.log('  The next upgrade will be able to tell your edits from staleness.');
+    console.log('  Nothing was backed up and no governed file was changed: with no record of what');
+    console.log('  agentsmyth last wrote, your files are the only truth available, so they become the');
+    console.log('  baseline. The next upgrade will be able to tell your edits from staleness.');
+    if (refreshed.length > 0) {
+      console.log('');
+      console.log('  Brought current:');
+      for (const a of refreshed) console.log(`    ${a.action.padEnd(17)} ${a.rel}`);
+    }
+    console.log(`  Version stamp set to v${pkgVersion} — "agentsmyth check" will stop reporting skew.`);
     process.exit(0);
   }
 
   const results = classifyGoverned(upgradeRoot, resolvedHook, classified.manifest);
   const by = (state) => results.filter((r) => r.state === state);
+
+  // Rollback is the consumer's git history, and nothing here checked whether they have one.
+  // Backups cover `drifted` files by design — a `pristine` file, the majority case in a real repo,
+  // has no safety net if a descriptor mis-applies — so an uncommitted tree is the difference between
+  // a recoverable mistake and an unrecoverable one. Warned, not blocked: refusing would break CI
+  // upgrades and this is the user's call to make, but making it silently is not.
+  if (!dryRun) {
+    const dirty = gitWorkingTreeDirty(upgradeRoot);
+    if (dirty === true) {
+      console.warn('');
+      console.warn('  WARNING: this working tree has uncommitted changes.');
+      console.warn('  Only files recorded as edited are backed up; files agentsmyth wrote are rewritten');
+      console.warn('  in place, and git history is the only way back. Commit first, or run with');
+      console.warn('  --dry-run to see what this would do.');
+    }
+  }
 
   console.log('');
   console.log(`agentsmyth upgrade (v${pkgVersion}) — ${upgradeRoot}`);
@@ -2156,14 +2589,64 @@ if (command === 'upgrade') {
 
   const fromVersion = classified.manifest.written_by_version;
 
+  // --dry-run stops here, after classification and before the first write. Classification is the
+  // expensive, interesting half and it is entirely read-only, so a preview costs a run of exactly
+  // the code the real thing would run — not a separate model of it that can drift from the real one.
+  if (dryRun) {
+    const descriptorPreview = results
+      .filter((r) => r.state !== 'missing')
+      .map((r) => ({ rel: r.path, ids: loadMigrations(pkgRoot, fromVersion, pkgVersion, r.path).map((d) => d.id) }))
+      .filter((d) => d.ids.length > 0);
+
+    // Split the drifted set by whether anything would ACTUALLY rewrite the file. A drifted file
+    // with no descriptor and no re-render is backed up, found unchanged, and its backup removed —
+    // no item, no loss. Saying "would raise a reconcile item" for all of them would make the
+    // preview promise more than the run delivers, which is the one thing a preview must not do.
+    const withDescriptors = new Set(descriptorPreview.map((d) => d.rel));
+    const wouldRewrite = by('drifted').filter((r) => withDescriptors.has(r.path) || isDeterministicAdapter(r.path));
+    const wouldNotRewrite = by('drifted').filter((r) => !withDescriptors.has(r.path) && !isDeterministicAdapter(r.path));
+
+    console.log('');
+    console.log(`  DRY RUN — nothing was written. Upgrading would take this repo from v${fromVersion} to v${pkgVersion}.`);
+    if (wouldRewrite.length > 0) {
+      console.log('');
+      console.log('  These would be backed up, then brought current, and would each raise a reconcile item:');
+      for (const r of wouldRewrite) console.log(`    ${r.path}`);
+    }
+    if (wouldNotRewrite.length > 0) {
+      console.log('');
+      console.log('  These are edited but this version has no change for them, so they would be left');
+      console.log('  exactly as they are — no rewrite, no reconcile item:');
+      for (const r of wouldNotRewrite) console.log(`    ${r.path}`);
+    }
+    if (descriptorPreview.length > 0) {
+      console.log('');
+      console.log('  These migration descriptors would apply:');
+      for (const d of descriptorPreview) console.log(`    ${d.rel}  ←  ${d.ids.join(', ')}`);
+    } else {
+      console.log('');
+      console.log('  No migration descriptors apply to this version span.');
+    }
+    console.log('');
+    console.log('  The pre-commit hook and the AGENTS.md marker block would be refreshed, and the');
+    console.log(`  version stamp set to v${pkgVersion}.`);
+    process.exit(0);
+  }
+
   // Back up BEFORE anything is written — that ordering is the safety property, and it does not
   // depend on knowing yet whether a delta exists. Only `drifted` artifacts: a `missing` file has
   // nothing to preserve, and backing one up would write an empty backup implying edits that never
   // happened.
+  // Backups an OPEN reconcile item still names. writeBackup() must not supersede these: the item
+  // tells the agent to diff `backup_path` against the current file, and a deleted backup makes that
+  // instruction point at nothing, silently and unrecoverably. RI20 names supersession and resolution
+  // as deletion triggers without ordering them; resolution wins.
+  const openBackupPaths = openReconcileBackupPaths(upgradeRoot);
+
   const backups = [];
   for (const r of by('drifted')) {
     try {
-      backups.push({ path: r.path, backup: writeBackup(upgradeRoot, r.path, fromVersion) });
+      backups.push({ path: r.path, backup: writeBackup(upgradeRoot, r.path, fromVersion, openBackupPaths) });
     } catch (err) {
       console.error('');
       console.error(`agentsmyth: could not back up ${r.path} — stopping before anything is overwritten.`);
@@ -2202,8 +2685,8 @@ if (command === 'upgrade') {
   // upgrade produced no change needs nothing from the user: raising an item there sends the agent
   // to merge a file against a byte-identical copy of itself, and leaves a redundant backup behind.
   let outcomeRaised = [];
-  const rewritten = new Set(applied.filter((a) => a.action === 'delta-applied' || a.action === 're-rendered').map((a) => a.rel));
-  const needReconcile = backups.filter((b) => rewritten.has(b.path) || by('drifted').some((r) => r.path === b.path && r.path.match(/\.(mdc|md)$/)));
+  const rewritten = new Set(applied.filter((a) => REWRITE_ACTIONS.has(a.action)).map((a) => a.rel));
+  const needReconcile = backups.filter((b) => rewritten.has(b.path) || by('drifted').some((r) => r.path === b.path && isDeterministicAdapter(r.path)));
   const noop = backups.filter((b) => !needReconcile.some((n) => n.path === b.path));
 
   for (const b of noop) {
@@ -2394,8 +2877,28 @@ placeAgentsMd(cwd, pkgRoot, installedHookPath);
 // manifest still works exactly as it does today, it simply cannot be delta-upgraded until one
 // exists. Failing init outright would be a worse trade for a file nothing yet reads.
 try {
-  const provEntries = recordProvenanceBaseline(cwd, pkgVersionForProvenance(pkgRoot), installedHookPath, pkgRoot);
-  console.log(`  recorded provenance for ${provEntries} governed file(s) → workflow/provenance.yaml`);
+  // Re-running `init` on a repo that already has a manifest must NOT re-baseline it.
+  //
+  // `init`'s only re-entry gate is the `.agentsmyth/` scaffold directory, which setup deletes as its
+  // final step — so once a repo is set up, re-running `init` (the pre-1.1 update instinct, since
+  // `upgrade` did not exist) left config content alone but re-hashed whatever was on disk NOW.
+  // Any hand-edit made since setup was adopted as content agentsmyth wrote; the next upgrade read
+  // the file as `pristine`, and the edit the whole drift-detection feature exists to protect was
+  // gone, with no backup and no reconcile item. Zero attacker, one keystroke.
+  //
+  // The same targeted-re-baseline reasoning was already applied to the upgrade path; this is where
+  // the blanket version survived. `upgrade` is the verb that brings an existing repo current, and it
+  // is what this now points at.
+  if (existsSync(provenancePath(cwd))) {
+    console.log('  workflow/provenance.yaml already exists — left untouched.');
+    console.log('    Re-baselining it here would adopt any edit made since setup as agentsmyth\'s own');
+    console.log('    content, erasing the drift a later upgrade needs to see. Run "agentsmyth upgrade"');
+    console.log('    to bring this repo current, or "agentsmyth upgrade --baseline" to deliberately');
+    console.log('    re-record the current files as the baseline.');
+  } else {
+    const provEntries = recordProvenanceBaseline(cwd, pkgVersionForProvenance(pkgRoot), installedHookPath, pkgRoot);
+    console.log(`  recorded provenance for ${provEntries} governed file(s) → workflow/provenance.yaml`);
+  }
 } catch (err) {
   console.warn(`agentsmyth: could not record the provenance baseline — skipping.`);
   console.warn(`  ${err.message}`);
