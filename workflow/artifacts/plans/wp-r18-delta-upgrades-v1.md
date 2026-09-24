@@ -47,8 +47,9 @@ orchestration:
 
 ## Summary
 
-Twelve phases - ten planned, plus Phase 11 (round-2 defect remediation) and Phase 12 (Review
-council remediation), both added after the original approval and both dated in their own headings.
+Thirteen phases - ten planned, plus Phase 11 (round-2 defect remediation), Phase 12 (Review
+council remediation) and Phase 13 (Test finding remediation), each added after the original
+approval and each dated in its own heading.
 Build the provenance primitives first (manifest schema, path resolution, hashing,
 atomic write), record a baseline at the two points where agentsmyth actually finishes writing
 config, then add the `agentsmyth upgrade` command that classifies drift per key, backs up, and
@@ -421,6 +422,30 @@ the blockers.
   `npm run root-resolution:test` all pass; `npm run build` then `npm run validate` exits 0;
   `npm run mutation:audit` reports no baseline regression; no shipped surface contradicts another on
   what clears version skew; `package.json` `dependencies` unchanged.
+
+### Phase 13 - Test finding remediation
+
+Added 2026-09-24. Test returned `hold` on two findings (V1, V2), both defects in Phase 12's own
+remediation rather than in the feature, and both the same shape the Review council was convened to
+find: a check that cannot fail for the reason it was written. The user directed both be fixed.
+
+- **Manifest IDs:** RI3, RI14, RI16
+- Touches: `bin/agentsmyth.mjs`, `src/workflow/validators/check-lifecycle.mjs`,
+  `src/workflow/validators/check-setup-complete.mjs`, `test/run-upgrade-path-tests.mjs`,
+  `test/run-violation-tests.mjs`, `test/fixtures/definitions/`, `test/mutation-baseline.json`,
+  `dist/`, `validators/`
+- Work: scope RI14's post-setup baseline rule to the config files setup actually rewrites, matched
+  on the manifest's own path shape rather than on the validator's overridable `wf`; stamp the
+  installed version into the global tree during `prepare` and read it from there, so RI16's
+  comparison works where the validator ships rather than only where its test runs it; realign the
+  `pv-provenance-all-drifted` fixture with the narrowed rule; add tests that exercise the validator
+  from the GLOBAL tree.
+- **Exit gate:** both findings re-verified by the probes that found them, not by assertions written
+  after the fix; each fix pinned by a test that fails when that fix alone is reverted, with the
+  revert probe rebuilding the bundle so a `src/` revert reaches the shipped copy; the full
+  published-tarball rehearsal passes end to end; `npm run validate`, `violations:test`,
+  `conformance:test`, `upgrade-path:test`, `setup-checks:test` and `root-resolution:test` all pass;
+  `mutation:audit` reports no baseline regression.
 
 ## Dependency Order
 

@@ -2,7 +2,7 @@
 slug: wp-r18-delta-upgrades
 version: 1
 artifact: verify
-status: blocked
+status: ready-for-next-phase
 created: 2026-09-24
 updated: 2026-09-24
 manifest_ids: [R1, R2, R3, R4, R5, R6, RI1, RI2, RI3, RI4, RI5, RI6, RI7, RI8, RI9, RI10, RI11, RI12, RI13, RI14, RI15, RI16, RI17, RI18, RI19, RI20, RI21]
@@ -13,11 +13,9 @@ upstream:
   - workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
 orchestration:
   phase: test
-  status: blocked
-  next_phase: build
-  blockers:
-    - "V1 RI14's new enforcement cannot fire in the scenario it was written for"
-    - "V2 RI16's installed-version comparison is inert in the shipped validator layout"
+  status: ready-for-next-phase
+  next_phase: ship
+  blockers: []
   user_checkpoint: none
 ---
 
@@ -75,9 +73,9 @@ Every command below was executed in this phase. Nothing is carried forward from 
 | RI11 | command | pass | `check-pending-setup` accepts `merged-from-backup` |
 | RI12 | command | pass | host imports lib.mjs, is CLI-invoked, listed in conformance |
 | RI13 | manual QA | pass | CRLF, LF, absent and extra trailing newlines produce one digest |
-| RI14 | manual QA | **fail** | the acceptance clause holds; the enforcement added for it cannot fire — **V1** |
+| RI14 | manual QA | pass | acceptance holds; the enforcement fires on a skipped step 5f and stays silent after it ran. V1 found it dead, Phase 13 scoped it to the config set, re-verified by the probe that found it |
 | RI15 | inspection | pass | no shipped surface names `init` as the upgrade action; site pages no longer contradict |
-| RI16 | manual QA | **fail** | the check works where the unit test runs it and is inert where it ships — **V2** |
+| RI16 | manual QA | pass | the comparison fires with the validator run from the global tree, as a consumer runs it. V2 found it inert; `prepare` now stamps the version into the tree it installs |
 | RI17 | generated-output comparison | pass | 252/252 bundle blocks identical to source |
 | RI18 | manual QA | partial | 6 and 7 verified on darwin; the 8 branch is unexercised — see Skipped Checks |
 | RI19 | manual QA | pass | content above and below the markers survived; content inside was replaced |
@@ -165,6 +163,19 @@ review artifact claims that gap is closed.
 **Fix direction:** scope the condition to entries under `workflow/config/`, which is what setup
 rewrites, rather than to the whole governed set.
 
+**RESOLVED — Build Phase 13, 2026-09-24.** Scoped to config entries. Re-verified by the same probe
+that found it: skipped 5f → 5 of 7 governed drift, 3 of 3 configs drift, rule fires; 5f run → 0 of 6
+drift, rule silent. Pinned by `V1-catches-skipped-5f`, which fails when the condition alone is
+reverted to the whole-governed-set form.
+
+One further defect surfaced while fixing it, and it is the same mistake again one level down. The
+first fix matched config entries with `entry.path.startsWith(\`${wf}/config/\`)`. `wf` is the
+*validator's* notion of the workflow directory and is overridable per invocation; entry paths are
+written by the *CLI*, which always emits `workflow/config/<name>`. Under `AGENTSMYTH_WF` — which is
+how every fixture runs — those two disagree, so the rule silently stopped firing and its own brand
+new rejection fixture went from rejecting to passing. Caught because `violations:test` dropped to
+222/223, not by reading the code. Now matched on the manifest's own path shape, independent of `wf`.
+
 ### V2 — RI16's installed-version comparison is inert where it ships
 
 **Manifest ID:** RI16. **Surface:** `src/workflow/validators/check-setup-complete.mjs`.
@@ -197,6 +208,19 @@ ever does. That is why this is a Test finding and not a Review one — it needs 
 truth that travels with the global install rather than with the source checkout. Whatever the
 mechanism, the accompanying test must run the validator **from the global tree**, or it will pass
 for the same wrong reason again.
+
+**RESOLVED — Build Phase 13, 2026-09-24.** `agentsmyth prepare` now writes
+`~/.agentsmyth/workflow/installed-version.txt` as part of expanding the tree, and the validator reads
+it from a path relative to itself before falling back to the source-tree package.json probe. A plain
+file rather than an env var or a CLI argument, because the README documents running the validator
+directly and it must answer the same way then.
+
+The test runs the validator **from the global tree**, per the fix direction above. That mattered
+twice over: the revert probe initially reported this fix *unpinned*, because it reverts `src/` while
+the global tree is expanded from `dist/` — so the revert never reached the copy the test exercises.
+That is the identical wrong-path error, now in the probe rather than the product. The probe rebuilds
+the bundle after reverting a `src/` file, and both halves of the fix are pinned:
+`V2-fires-in-shipped-layout` fails when either the stamp write or the stamp read is reverted alone.
 
 ## Skipped Checks
 
@@ -232,7 +256,7 @@ for the same wrong reason again.
 
 ## Finding Quality Closure
 
-No pending row was settled by this phase, and that is the honest result rather than an omission.
+No *pending* row was settled by this phase, and that is the honest result rather than an omission.
 
 Five rows remain `pending` in `workflow/artifacts/finding-quality.yaml`. Three (FQ-57, FQ-58, FQ-59)
 are the Ship-owned Notion handoff; one (FQ-63) is the Reflect-owned ledger rotation; one (FQ-80) is
@@ -260,17 +284,39 @@ suite that passed, and both of the tests in question ran the subject from a loca
 never runs it from. Reflect should decide whether `resolution` needs a shape that can be corrected
 by a later phase, since the current one can only be written once, by the phase least able to judge it.
 
+**Updated after Build Phase 13.** V1 and V2 are now fixed and re-verified, so the three rows'
+`proved-real` verdicts are correct and their resolutions are — finally — true. That does not make
+the record clean: those rows asserted a working fix for roughly a day before one existed, and
+nothing in the ledger shows that gap. Two facts are worth carrying to Reflect rather than treating
+as closed:
+
+- A `resolution` written by the phase that performed the work cannot be corrected by the phase that
+  discovers it was wrong. The archive is append-only, which is right for tamper-resistance and wrong
+  for this. A `verified_in_phase` field, written later and by someone else, would have caught it.
+- The same wrong-path error occurred three times in this chain at three levels: in the product
+  (V2's package.json probe), in the test (`setup-checks:test` running the validator from `src/`),
+  and in the verification tooling (the revert probe reverting `src/` without rebuilding `dist/`).
+  Each was invisible from inside its own layer. That is a pattern worth a rule, not three fixes.
+
 ## Sign-Off
 
 - Verifier: Claude (Senior QA), acting for this chain
 - Date: 2026-09-24
 - Commands run: 10 automated, 10 manual QA scenarios, 1 release rehearsal against a published
   tarball, 1 generated-output comparison over 252 files
-- Coverage: 23 of 27 manifest IDs pass, 1 partial (RI18), 2 fail (RI14, RI16), 0 waived
-- Recommendation: hold
+- Coverage: 26 of 27 manifest IDs pass, 1 partial (RI18, platform-bound), 0 fail, 0 waived
+- Recommendation: ship
 
-Two findings block Ship, and neither is a regression in the feature — both are defects in the
-remediation that was supposed to close them. The upgrade mechanism itself verified cleanly against a
-real published predecessor, including the cases the council found: backups survive a second upgrade,
-polyrepo lands inside a git tree, content outside markers is preserved, and a repo with no manifest
-adopts cleanly and clears its skew warning in one run.
+**Amended 2026-09-24 after Build Phase 13.** This artifact first recommended `hold` on V1 and V2.
+Both were fixed and re-verified by the same probes that found them, rather than by new assertions
+written to agree with the fix, and both are now pinned by a test that fails when that fix alone is
+reverted. The findings below are left as written — a verify artifact that erases what it caught once
+the fix lands stops being evidence that anything was caught.
+
+The upgrade mechanism verified cleanly against a real published predecessor across all nine
+rehearsal rows: backups survive a second upgrade, polyrepo lands inside a git tree, content outside
+markers is preserved, a repo with no manifest adopts cleanly and clears its skew warning in one run,
+and a fully set-up 1.0.1 repo brought current passes `agentsmyth check`.
+
+RI18's eight-entry branch remains unexercised and is the one item carried to Ship. It is recorded as
+a skipped check with an owner, not counted as a pass.
