@@ -17,8 +17,9 @@
 // Every spawn requires an explicit scratch HOME, same rule as run-init-prepare-interop-tests.mjs:
 // there is no fallback to the real environment, so a bug here cannot write into a developer's
 // actual ~/.agentsmyth.
-import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -171,12 +172,17 @@ const home = mkScratch('wpr18-home-');
   const pending = readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8');
   check('S3-one-item', 'exactly one reconcile item is raised, not zero and not two',
     [...pending.matchAll(/field: "reconcile\./g)].length === 1);
+  // Quoted, deliberately. These four fields were written as raw unquoted scalars, so any value
+  // carrying a colon or a quote produced a malformed document — and under a poisoned
+  // written_by_version the traversal-laden path reached agent-facing instruction text unescaped.
+  // The assertion pins the quoting rather than tolerating either form, because "either form" is how
+  // the unquoted one comes back.
   check('S3-item-names-backup', 'the item names the backup path, so it survives lost scrollback',
-    /backup_path: workflow\/backups\//.test(pending));
+    /backup_path: "workflow\/backups\//.test(pending));
   check('S3-item-names-its-own-config', 'the item names the config it targets, not a hardcoded one',
     /config: domain\.yaml/.test(pending));
   check('S3-item-names-descriptor', 'the item names the migration descriptor that explains the change',
-    /migration_id: 1\.0\.1-to-1\.1\.0\/domain\.yaml/.test(pending));
+    /migration_id: "1\.0\.1-to-1\.1\.0\/domain\.yaml"/.test(pending));
 }
 
 {
@@ -397,6 +403,593 @@ const home = mkScratch('wpr18-home-');
   run(['init'], { cwd: defaultRepo, home });
   check('G4-git-hook-not-governed', 'a hook inside .git/ is not governed — .git/** is a protected path',
     !readManifest(defaultRepo).includes('.git/hooks/pre-commit'));
+}
+
+
+// ── W: what the delta actually WROTE ──────────────────────────────────────────────────────────
+// The suite's central gap, and the reason this block exists. Every descriptor assertion above
+// checks a LABEL: `S3-delta-applied` greps stdout for the word "delta-applied", which the CLI
+// prints whenever `text !== before` — true for any change, including a wrong one. The only
+// content-reading assertion checked the USER'S own line, never the descriptor's. So an ensure-key
+// that wrote the wrong value, the wrong indent, the wrong place, or appended garbage left all 51
+// checks green. These read the merged file back.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.0.1"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: ensure-key',
+    '    key: probe_key',
+    '    value: probe_value',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wcontent');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  const merged = readFileSync(target, 'utf8');
+
+  check('W1-exit', 'a content-verified delta upgrade succeeds', result.status === 0);
+  check('W1-key-present', 'the descriptor key is actually in the merged file, not merely announced',
+    /^probe_key: probe_value$/m.test(merged));
+  check('W1-value-exact', 'the value written is the value the descriptor named, character for character',
+    merged.match(/^probe_key: (.*)$/m)?.[1] === 'probe_value');
+  check('W1-no-duplicate', 'the key is written once, not appended on every pass',
+    [...merged.matchAll(/^probe_key:/gm)].length === 1);
+  check('W1-still-parses', 'the merged file is still a YAML mapping, not text with a line stapled on',
+    /^domain:/m.test(merged) && !/^\s*probe_key:.*\S\s+\S+:/m.test(merged));
+
+  // Idempotency at the CONTENT level, not the label level: ensure-key must not re-add on a re-run.
+  const second = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W1-idempotent-content', 'a second upgrade leaves the merged content byte-identical',
+    second.status === 0 && readFileSync(target, 'utf8') === merged);
+}
+
+// ── W2/W3: the two operations that had no test of any kind ────────────────────────────────────
+// `rename-key` and `set-machine-owned` are two of applyChanges()'s three branches. A repo-wide grep
+// for either string in test/ returned nothing — not even the weak label check. `rename-key` is the
+// one whose entire purpose is preserving the user's value across a key move, and it would first
+// have executed for real on a consumer's repo.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.0.1"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: rename-key',
+    '    key: old_probe',
+    '    to: new_probe',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wrename');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\nold_probe: the-user-chose-this\n`);
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  const merged = readFileSync(target, 'utf8');
+  check('W2-exit', 'a rename-key upgrade succeeds', result.status === 0);
+  check('W2-new-key', 'the key is renamed', /^new_probe:/m.test(merged));
+  check('W2-old-key-gone', 'the old key name is removed, not duplicated', !/^old_probe:/m.test(merged));
+  check('W2-value-preserved', "the user's value survives the move — the whole reason descriptors exist",
+    merged.match(/^new_probe: (.*)$/m)?.[1] === 'the-user-chose-this');
+}
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.0.1"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: set-machine-owned',
+    '    key: machine_probe',
+    '    value: agentsmyth-owns-this',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wmachine');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\nmachine_probe: stale-value\n`);
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  const merged = readFileSync(target, 'utf8');
+  check('W3-exit', 'a set-machine-owned upgrade succeeds', result.status === 0);
+  check('W3-overwritten', 'a machine-owned value is overwritten, unlike ensure-key',
+    merged.match(/^machine_probe: (.*)$/m)?.[1] === 'agentsmyth-owns-this');
+  check('W3-once', 'it is replaced in place rather than appended', [...merged.matchAll(/^machine_probe:/gm)].length === 1);
+}
+
+// ── W4: the regression the council caught, with a test that can fail ──────────────────────────
+// Every other descriptor fixture names its directory so `from` equals the repo's recorded version
+// EXACTLY, so the old buggy predicate (`compareVersions(from, fromVersion) < 0 → continue`) never
+// fired in any of them. A challenger proved it: reverting the fix in a package copy left all 51
+// assertions green. This is the case that exposed the bug — a repo whose version sits STRICTLY
+// INSIDE a descriptor's span — and it is the one the suite never constructed.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.0-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.0.0"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: ensure-key',
+    '    key: span_probe',
+    '    value: applied',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wspan');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  // 1.0.1 is strictly between the descriptor's from (1.0.0) and to (1.1.0) — and is the published
+  // version, so this is the entire installed base, not an edge case.
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W4-exit', 'an upgrade whose recorded version sits inside a descriptor span succeeds', result.status === 0);
+  check('W4-descriptor-applied', 'a descriptor whose span CONTAINS the recorded version is applied, not skipped',
+    /^span_probe: applied$/m.test(readFileSync(target, 'utf8')));
+}
+
+// ── W5: both exclusion boundaries, so the predicate is pinned from both sides ──────────────────
+// W4 alone would pass under a predicate that applies every descriptor unconditionally. These two
+// assert what must NOT be applied: a descriptor already behind the repo, and one ahead of the CLI.
+{
+  const bin = pkgWithDescriptor('1.1.0', '0.9.0-to-1.0.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "0.9.0"',
+    'to: "1.0.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: ensure-key',
+    '    key: behind_probe',
+    '    value: should-not-apply',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wbehind');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W5-behind-exit', 'an upgrade with only an already-applied descriptor succeeds', result.status === 0);
+  check('W5-behind-not-applied', 'a descriptor whose `to` is at or below the recorded version is NOT applied',
+    !/^behind_probe:/m.test(readFileSync(target, 'utf8')));
+}
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.1.0-to-2.0.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.1.0"',
+    'to: "2.0.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: ensure-key',
+    '    key: ahead_probe',
+    '    value: should-not-apply',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wahead');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W5-ahead-exit', 'an upgrade with only a future descriptor succeeds', result.status === 0);
+  check('W5-ahead-not-applied', 'a descriptor whose `to` is beyond the CLI version is NOT applied',
+    !/^ahead_probe:/m.test(readFileSync(target, 'utf8')));
+}
+
+// ── W6: a descriptor the CLI cannot honour is a hard error, never a silent no-op ───────────────
+// The op dispatch was three `===` tests with no default branch, and the field reader stripped the
+// double quote but not the single — so `op: 'rename-key'`, legal YAML and unconstrained by the
+// schema, parsed as the literal "'rename-key'", matched nothing, and was dropped with no error, no
+// warning, and a "no-change" report for a file that needed a migration.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    'from: "1.0.1"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: invent-a-key',
+    '    key: bogus_probe',
+    '    value: nope',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wbadop');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W6-refuses', 'an unrecognised descriptor op stops the upgrade instead of being dropped',
+    result.status !== 0);
+  check('W6-names-the-op', 'the refusal names the op it could not honour',
+    /invent-a-key/.test(result.stdout + result.stderr));
+}
+{
+  // Single-quoted YAML is legal and must work, not silently no-op.
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration',
+    "from: '1.0.1'",
+    "to: '1.1.0'",
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    "  - op: 'ensure-key'",
+    "    key: 'quoted_probe'",
+    "    value: 'quoted_value'",
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wquote');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W6-singlequote-exit', 'a single-quoted descriptor upgrades successfully', result.status === 0);
+  check('W6-singlequote-applied', 'single-quoted YAML scalars are honoured, not parsed as literal quotes',
+    /^quoted_probe: quoted_value$/m.test(readFileSync(target, 'utf8')));
+}
+
+// ── W7: a descriptor that does not satisfy its own schema is rejected at load ──────────────────
+// R5's acceptance says "a descriptor validates against its own schema". Nothing ran it: a grep for
+// `migration.schema` across every .mjs in the repo returned only the schema file and a README
+// sentence claiming the validation existed.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: not-a-migration',
+    'from: "1.0.1"',
+    'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:',
+    '  - op: ensure-key',
+    '    key: k',
+    '    value: v',
+    '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'wschema');
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('W7-refuses', 'a descriptor whose kind is wrong is rejected before it is applied',
+    result.status !== 0);
+  check('W7-explains', 'the refusal says which descriptor and what was wrong with it',
+    /1\.0\.1-to-1\.1\.0/.test(result.stdout + result.stderr) && /kind/.test(result.stdout + result.stderr));
+}
+
+
+// ── X: the six findings that could destroy a user's data ──────────────────────────────────────
+// One block per P0 from the Review council. Each reconstructs the reproduction that found it, so a
+// regression fails here rather than in someone's repository.
+
+// X1 — a traversal in `written_by_version` must be refused, not used as a path segment.
+{
+  const repo = freshRepo(home, 'xtraversal');
+  writeManifest(repo, readManifest(repo).replace(
+    /^written_by_version: .+$/m, 'written_by_version: ../../../../../../tmp/agentsmyth-escape-probe'));
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('X1-refuses', 'a manifest whose written_by_version is a path fragment is a hard stop',
+    result.status !== 0);
+  check('X1-explains', 'the refusal names the field rather than failing obscurely',
+    /written_by_version/.test(result.stdout + result.stderr));
+  check('X1-no-escape', 'nothing was written outside the repository',
+    !existsSync('/tmp/agentsmyth-escape-probe'));
+}
+
+// X2 — the WRITE fence, exercised alone.
+//
+// Two fences guard a symlinked governed path: writeBackup() refuses to READ through one, and
+// atomicWriteFileSync() refuses to WRITE through one. Either alone keeps the victim intact, so a
+// test that lets both fire pins neither — reverting one left the suite green. This case makes the
+// symlinked file PRISTINE (its recorded digest matches the victim's content), so no backup is taken
+// and the read fence never runs. A descriptor then rewrites the file, and the write fence is the
+// only thing between that write and a file outside the repository.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration', 'from: "1.0.1"', 'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:', '  - op: ensure-key', '    key: x2_probe', '    value: v', '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'xsymlink');
+  const outside = mkScratch('wpr18-victim-');
+  const victim = join(outside, 'victim.txt');
+  const victimContent = 'REAL_VICTIM_CONTENT\n';
+  writeFileSync(victim, victimContent);
+  const governed = join(repo, 'workflow', 'config', 'domain.yaml');
+  rmSync(governed);
+  symlinkSync(victim, governed);
+
+  // Record the victim's own digest so the symlinked path reads `pristine`, not `drifted`.
+  const victimDigest = createHash('sha256')
+    .update(`${victimContent.replace(/\r\n/g, '\n').replace(/\n*$/, '')}\n`, 'utf8').digest('hex');
+  writeManifest(repo, readManifest(repo)
+    .replace(/written_by_version: .+/g, 'written_by_version: 1.0.1')
+    .replace(/(- path: workflow\/config\/domain\.yaml\n\s+sha256: )[0-9a-f]{64}/, `$1${victimDigest}`));
+
+  const dryRun = runWith(bin, ['upgrade', '--dry-run'], { cwd: repo, home });
+  check('X2-is-pristine', 'the fixture really does read as pristine, so no backup is taken and only the write fence is in play',
+    !/drifted\s+workflow\/config\/domain\.yaml/.test(dryRun.stdout));
+
+  const result = runWith(bin, ['upgrade'], { cwd: repo, home });
+  check('X2-victim-intact', 'a file outside the repo is never overwritten through a governed symlink',
+    readFileSync(victim, 'utf8') === victimContent);
+  check('X2-surfaced', 'the attempt is reported rather than silently skipped',
+    result.status !== 0 || /symbolic link|refusing/.test(result.stdout + result.stderr));
+}
+
+// X3 — the READ fence, exercised alone.
+//
+// Here the symlinked file IS drifted, so writeBackup() runs and the read fence is what must stop it.
+// The write fence cannot stand in: the backup destination is a fresh path inside workflow/backups/,
+// not a symlink, so that write would succeed either way. The assertions are positive on purpose —
+// an earlier version checked "no backup directory contains the secret", which passed vacuously when
+// no backup directory existed at all.
+{
+  const repo = freshRepo(home, 'xexfil');
+  const outside = mkScratch('wpr18-secret-');
+  const secret = join(outside, '.env');
+  writeFileSync(secret, 'API_TOKEN=super-secret\n');
+  const governed = join(repo, 'workflow', 'config', 'verification.yaml');
+  rmSync(governed);
+  symlinkSync(secret, governed);
+  // Force it to read as drifted so the backup path is actually exercised.
+  writeManifest(repo, readManifest(repo).replace(
+    /(- path: workflow\/config\/verification\.yaml\n\s+sha256: )[0-9a-f]{64}/, `$1${'0'.repeat(64)}`));
+
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('X3-refused', 'backing up through a symlink out of the repo is refused, loudly',
+    result.status !== 0 && /symbolic link|refusing/.test(result.stdout + result.stderr));
+
+  const backupDir = join(repo, 'workflow', 'backups');
+  const grep = spawnSync('grep', ['-rl', 'super-secret', backupDir], { encoding: 'utf8' });
+  check('X3-no-exfiltration', 'and the secret never lands in a committed backup',
+    !existsSync(backupDir) || grep.stdout.trim().length === 0);
+}
+
+// X4 — re-running `init` must not adopt a hand-edit as agentsmyth's own content.
+{
+  const repo = freshRepo(home, 'xreinit');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  const edited = `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# a deliberate user edit\n`;
+  writeFileSync(target, edited);
+  const manifestBefore = readManifest(repo);
+
+  // Delete `.agentsmyth/` first, because that is what the agent-driven setup does as its final
+  // step — and it is the reason this is reachable at all. While the scaffold directory is present
+  // `init` refuses outright; once it is gone (the documented steady state) the only remaining gate
+  // was the one this finding is about.
+  rmSync(join(repo, '.agentsmyth'), { recursive: true, force: true });
+
+  const reinit = run(['init'], { cwd: repo, home });
+  check('X4-init-succeeds', 're-running init on a set-up repo still succeeds', reinit.status === 0);
+  check('X4-manifest-untouched', 'the manifest is left exactly as it was, not re-baselined against disk',
+    readManifest(repo) === manifestBefore);
+  check('X4-says-so', 'and the user is told why, rather than it happening silently',
+    /already exists/.test(reinit.stdout));
+
+  // The edit must still read as drift afterwards — that is the property re-baselining destroyed.
+  const after = run(['upgrade'], { cwd: repo, home });
+  check('X4-drift-survives', 'the edit is still detected as drift after a re-init',
+    /drifted\s+workflow\/config\/domain\.yaml/.test(after.stdout));
+}
+
+// X5 — the backup supersede sweep must not touch a directory agentsmyth never created.
+{
+  const repo = freshRepo(home, 'xsweep');
+  const consumerFile = join(repo, 'workflow', 'backups', 'nightly', 'workflow', 'config', 'domain.yaml');
+  mkdirSync(dirname(consumerFile), { recursive: true });
+  writeFileSync(consumerFile, 'the consumer owns this\n');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# edit\n`);
+
+  run(['upgrade'], { cwd: repo, home });
+  check('X5-consumer-file-survives', "a consumer's own workflow/backups/ subtree is never swept",
+    existsSync(consumerFile) && readFileSync(consumerFile, 'utf8') === 'the consumer owns this\n');
+}
+
+// X6 — a backup an OPEN reconcile item names must survive the next upgrade's supersede.
+{
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration', 'from: "1.0.1"', 'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:', '  - op: ensure-key', '    key: x6_probe', '    value: v', '',
+  ].join('\n'));
+  const repo = freshRepo(home, 'xopenitem');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# first edit\n`);
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+  runWith(bin, ['upgrade'], { cwd: repo, home });
+
+  const pending = readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8');
+  const backupRel = pending.match(/backup_path: "([^"]+)"/)?.[1];
+  check('X6-item-raised', 'the first upgrade raises an item naming a backup', Boolean(backupRel));
+
+  // Edit again and upgrade again WITHOUT resolving the item — the sequence that destroyed it.
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# second edit\n`);
+  writeManifest(repo, readManifest(repo).replace(/written_by_version: .+/g, 'written_by_version: 1.0.2'));
+  runWith(bin, ['upgrade'], { cwd: repo, home });
+
+  check('X6-backup-survives', "an open item's backup_path still resolves after a second upgrade",
+    Boolean(backupRel) && existsSync(join(repo, backupRel)));
+}
+
+// ── Y: silent-misclassification and compatibility regressions ─────────────────────────────────
+
+// Y1 — a manifest entry whose keys are reordered is schema-valid and must not be silently dropped.
+{
+  const repo = freshRepo(home, 'yreorder');
+  const reordered = readManifest(repo).replace(
+    /^ {2}- path: (workflow\/config\/domain\.yaml)\n {4}sha256: ([0-9a-f]{64})\n {4}written_by_version: (.+)$/m,
+    '  - sha256: $2\n    path: $1\n    written_by_version: $3');
+  check('Y1-fixture-built', 'the reorder fixture actually reordered something',
+    reordered !== readManifest(repo));
+  writeManifest(repo, reordered);
+
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('Y1-not-newly-governed', 'a reordered entry is still read, not silently reclassified',
+    !/newly-governed\s+workflow\/config\/domain\.yaml/.test(result.stdout));
+  check('Y1-pristine', 'and it compares correctly against disk',
+    /pristine\s+workflow\/config\/domain\.yaml/.test(result.stdout));
+}
+
+// Y2 — `upgrade --baseline` must perform the same manifest hard stops bare `upgrade` does.
+{
+  const repo = freshRepo(home, 'ybaseline');
+  writeManifest(repo, readManifest(repo).replace(/^format_version: .+$/m, 'format_version: 99'));
+  const result = run(['upgrade', '--baseline'], { cwd: repo, home });
+  check('Y2-refuses', '--baseline refuses a manifest written by a newer CLI', result.status !== 0);
+  check('Y2-not-downgraded', 'and leaves its format_version alone rather than stamping it down',
+    /^format_version: 99$/m.test(readManifest(repo)));
+}
+
+// Y3 — a drifted pre-commit hook raises a reconcile item like any other governed file.
+//
+// The edit goes INSIDE the marker block on purpose. That is the case with something at stake: the
+// span between the markers is agentsmyth's to replace, so an upgrade overwrites whatever the user
+// put there. Editing outside the markers is the safe case — that content survives untouched and
+// correctly needs no item — and asserting on it would have let this pass under the bug.
+//
+// The bug: three functions had to agree on one vocabulary and nothing made them. applyUpgradeTo()
+// returned 'no-change' for any hook path, refreshEnforcementSurfaces() reported 'gate-refreshed',
+// and the reconcile filter matched a hardcoded 'delta-applied' || 're-rendered'. So the hook was
+// rewritten, its backup deleted as a false no-op, and the user told nothing.
+{
+  const repo = freshRepo(home, 'yhook');
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const original = readFileSync(hook, 'utf8');
+  const BEGIN = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+  check('Y3-fixture-valid', 'the fixture hook really does carry an agentsmyth marker block',
+    original.includes(BEGIN));
+
+  // Plant the edit inside the block, and a second one outside it as a control.
+  const edited = `${original.replace(BEGIN, `${BEGIN}\n# a user edit INSIDE the managed block`)}\n# a user edit outside the block\n`;
+  writeFileSync(hook, edited);
+
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('Y3-detected', 'an edited tracked hook is detected as drift',
+    /drifted\s+\.githooks\/pre-commit/.test(result.stdout));
+
+  const pending = readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8');
+  const raisedForHook = /field: "reconcile\.[^"]*pre-commit"/.test(pending);
+  const backupPath = pending.match(/backup_path: "([^"]*pre-commit)"/)?.[1];
+
+  check('Y3-item-raised', 'a hook whose managed block was rewritten raises a reconcile item like any other governed file',
+    raisedForHook);
+  check('Y3-backup-kept', "and the backup the item names still exists — it is the only copy of the user's overwritten lines",
+    Boolean(backupPath) && existsSync(join(repo, backupPath)));
+  check('Y3-backup-has-user-line', 'the backup holds what the user wrote inside the block, which the live file no longer does',
+    Boolean(backupPath) && readFileSync(join(repo, backupPath), 'utf8').includes('# a user edit INSIDE the managed block'));
+  check('Y3-outside-survives', 'content outside the markers survives in the live file, untouched',
+    readFileSync(hook, 'utf8').includes('# a user edit outside the block'));
+}
+
+// Y4 — a CRLF working tree must not permanently exclude the Cursor adapter.
+{
+  const repo = freshRepo(home, 'ycrlf');
+  const mdc = join(repo, '.cursor', 'rules', 'agentsmyth.mdc');
+  writeFileSync(mdc, readFileSync(mdc, 'utf8').replace(/\n/g, '\r\n'));
+  run(['upgrade', '--baseline'], { cwd: repo, home });
+  check('Y4-governed-under-crlf', 'a CRLF-checked-out adapter still enters the manifest',
+    readManifest(repo).includes('.cursor/rules/agentsmyth.mdc'));
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('Y4-not-newly-governed', 'and is never reclassified newly-governed run after run',
+    !/newly-governed\s+\.cursor/.test(result.stdout));
+}
+
+// Y5 — --dry-run previews without writing anything.
+{
+  const repo = freshRepo(home, 'ydryrun');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# edit\n`);
+  const before = readFileSync(target, 'utf8');
+  const manifestBefore = readManifest(repo);
+
+  const result = run(['upgrade', '--dry-run'], { cwd: repo, home });
+  check('Y5-exit', '--dry-run succeeds', result.status === 0);
+  check('Y5-announces', 'it says plainly that nothing was written', /DRY RUN/.test(result.stdout));
+  check('Y5-no-writes', 'and nothing was: the target and the manifest are untouched',
+    readFileSync(target, 'utf8') === before && readManifest(repo) === manifestBefore);
+  check('Y5-no-backups', 'no backup is taken during a preview',
+    !existsSync(join(repo, 'workflow', 'backups')));
+
+  // The preview must not promise more than the run delivers. With no descriptor in play this
+  // drifted file would be backed up, found unchanged, and its backup removed — no item, no loss —
+  // so a preview announcing a reconcile item for it would be describing a different command.
+  check('Y5-honest-about-no-op', 'a drifted file this version has no change for is previewed as left alone, not as raising an item',
+    /no rewrite, no reconcile item/.test(result.stdout)
+    && !/would each raise a reconcile item/.test(result.stdout));
+}
+
+// Y6 — the `.mdc` half of the existence-versus-authorship fix, which E2 covered only for copilot.
+{
+  const repo = mkScratch('wpr18-ymdc-');
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  git(repo, 'config', 'core.hooksPath', '.githooks');
+  const mdc = join(repo, '.cursor', 'rules', 'agentsmyth.mdc');
+  mkdirSync(dirname(mdc), { recursive: true });
+  writeFileSync(mdc, '# the user wrote this cursor rule themselves\n');
+  const init = run(['init'], { cwd: repo, home });
+  check('Y6-init-ok', 'init succeeds over a pre-existing .mdc', init.status === 0);
+  check('Y6-not-adopted', 'a .mdc agentsmyth did not write is not adopted into the manifest',
+    !readManifest(repo).includes('.cursor/rules/agentsmyth.mdc'));
+  run(['upgrade'], { cwd: repo, home });
+  check('Y6-preserved', "and the user's file is byte-identical after an upgrade",
+    readFileSync(mdc, 'utf8') === '# the user wrote this cursor rule themselves\n');
+}
+
+
+// ── Z: polyrepo-member, the mode RI21 names and nothing tested ────────────────────────────────
+// RI21's acceptance is that a backup lands inside a real git working tree and is visible to
+// `git status` there, in all three repository modes. For `polyrepo-member` the code could not
+// deliver it and a comment claimed it did: `repoDir` there IS `workspace_root`, which by that
+// mode's own definition lies outside every git repo, so `git rev-parse` from it fails and the
+// fallback wrote the backup to exactly the untracked location the comment said it avoided.
+// A grep for "polyrepo" across this file used to return nothing, which is why the comment and the
+// code were free to disagree.
+{
+  const ws = mkScratch('wpr18-poly-ws-');
+  const member = join(ws, 'service-a');
+  mkdirSync(member, { recursive: true });
+  git(member, 'init', '-q');
+  git(member, 'config', 'user.email', 'test@example.com');
+  git(member, 'config', 'user.name', 'test');
+
+  // `workspace_root` itself must NOT be a git repo — that is the property that broke this.
+  const wsIsGit = spawnSync('git', ['rev-parse', '--show-toplevel'],
+    { cwd: ws, encoding: 'utf8' }).status === 0;
+  check('Z1-fixture-valid', 'the polyrepo `workspace_root` is genuinely outside any git repo', !wsIsGit);
+
+  const init = run(['init'], { cwd: ws, home });
+  check('Z1-init-ok', 'init succeeds at a polyrepo `workspace_root`', init.status === 0);
+
+  // Declare the mode and the member checkout.
+  const profilePath = join(ws, 'workflow', 'config', 'repo-profile.yaml');
+  writeFileSync(profilePath, readFileSync(profilePath, 'utf8')
+    .replace(/^(\s*)mode:.*$/m, `$1mode: polyrepo-member\n$1workspace_root: ${ws}\n$1sibling_repos:\n$1  - name: service-a\n$1    path: service-a`));
+
+  run(['upgrade', '--baseline'], { cwd: ws, home });
+  const target = join(ws, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# a polyrepo user edit\n`);
+
+  // A descriptor is required, not incidental. Without one nothing rewrites the file, so the backup
+  // is taken and then correctly removed as a no-op — which would leave this block asserting against
+  // an empty directory and passing for a reason that has nothing to do with WHERE backups land.
+  const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
+    'kind: migration', 'from: "1.0.1"', 'to: "1.1.0"',
+    'target: workflow/config/domain.yaml',
+    'changes:', '  - op: ensure-key', '    key: poly_probe', '    value: v', '',
+  ].join('\n'));
+  writeManifest(ws, readManifest(ws).replace(/written_by_version: .+/g, 'written_by_version: 1.0.1'));
+
+  const result = runWith(bin, ['upgrade'], { cwd: ws, home });
+  check('Z1-upgrade-ok', 'an upgrade in polyrepo-member mode succeeds', result.status === 0);
+
+  const inMember = existsSync(join(member, 'workflow', 'backups'));
+  const inWorkspace = existsSync(join(ws, 'workflow', 'backups'));
+  check('Z1-backup-in-member-tree', 'the backup lands inside the member repo, not beside the untracked shared workflow',
+    inMember && !inWorkspace);
+
+  // The acceptance criterion as RI21 actually words it: git can see it.
+  // `-uall` because plain porcelain collapses an untracked directory to `?? workflow/`, which is
+  // git's display choice and not a statement about what it can see. The claim under test is that
+  // the file is inside the working tree git tracks, so ask git to enumerate.
+  const status = spawnSync('git', ['status', '--porcelain', '-uall'], { cwd: member, encoding: 'utf8' }).stdout;
+  check('Z1-visible-to-git-status', "and `git status` in that member repo reports it, which is RI21's acceptance verbatim",
+    /workflow\/backups\/.*domain\.yaml/.test(status));
 }
 
 for (const dir of cleanup) {

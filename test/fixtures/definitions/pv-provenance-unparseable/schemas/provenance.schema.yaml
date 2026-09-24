@@ -55,7 +55,15 @@ properties:
       minLength: 1
   entries:
     type: array
-    description: "One entry per governed artifact. A file present in the repo but absent here is not governed and is never touched by an upgrade."
+    description: >-
+      One entry per governed artifact. A file absent from this list is never HASHED, backed up, or
+      compared — the manifest does not claim to know anything about it. Two files are deliberately
+      absent and are still refreshed: the pre-commit hook and AGENTS.md. Both are marker-bounded, so
+      the markers already say which span belongs to agentsmyth and no digest is needed to refresh
+      them safely; the hook is additionally excluded because a default git repo puts it under
+      `.git/**`, a protected path, and backing it up would copy protected content into version
+      control. Governance and refreshability are separate questions, and conflating them once
+      already disabled the gate refresh for every consumer who had not set `core.hooksPath`.
     items:
       type: object
       required: [path, sha256, written_by_version]

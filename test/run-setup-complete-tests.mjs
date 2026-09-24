@@ -156,9 +156,37 @@ check('gate-agentsmd-version-disagree', 'BEGIN and END markers naming different 
   setupRepo({ stamp: '1.0.1', agentsMd: '<!-- agentsmyth:1.0.1 BEGIN -->\nbody\n<!-- agentsmyth:1.1.0 END -->\n' })
     .includes('marker versions disagree'));
 
-check('gate-agentsmd-stale-stamp', 'a block written by an older version than the installed one is reported',
+// Two comparisons, two severities, and the distinction is the whole point of the rule.
+//
+// Against repo-profile.yaml: an ERROR. Both stamps are written by the same init/upgrade run, so a
+// disagreement means an interrupted write or a hand-edit.
+check('gate-agentsmd-stale-stamp', 'a block disagreeing with repo-profile.yaml is an error',
   setupRepo({ stamp: '1.1.0', agentsMd: '<!-- agentsmyth:1.0.1 BEGIN -->\nbody\n<!-- agentsmyth:1.0.1 END -->\n' })
-    .includes('was written by agentsmyth v1.0.1 but v1.1.0 is installed'));
+    .includes('was written by agentsmyth v1.0.1 but workflow/config/repo-profile.yaml records v1.1.0'));
+
+// Against the INSTALLED package: a warning, and the branch that makes this check able to fail for
+// its own reason at all. Comparing the two repo-local stamps alone was near-tautological — they are
+// written together, so they cannot diverge in normal operation — and a repo whose stamps agreed but
+// were stale relative to the installed CLI printed "matches installed" having never read it.
+//
+// The fixture's stamps agree with each other and are pinned to a version the package will never
+// carry, so the only thing that can produce this line is a real read of the installed version.
+check('gate-agentsmd-behind-installed', 'stamps that agree with each other but trail the installed package are reported',
+  /marker stamp is v0\.0\.1 but agentsmyth v[0-9]+\.[0-9]+\.[0-9]+ is installed/.test(
+    setupRepo({ stamp: '0.0.1', agentsMd: '<!-- agentsmyth:0.0.1 BEGIN -->\nbody\n<!-- agentsmyth:0.0.1 END -->\n' })));
+
+// A WARNING specifically, not an error. This file ships through the shared global validator tree,
+// which `upgrade` refreshes from any repo, and `agentsmyth check` runs from the mandatory
+// pre-commit hook — so a hard fail here lands on every already-set-up repo on the machine without
+// that repo running anything. Being behind is also a true and ordinary state, which is what
+// `upgrade` exists to fix.
+//
+// Asserted against the ERROR LIST rather than the overall exit status: this fixture fails for other
+// reasons (it scaffolds no artifacts tree), so "did the run fail" cannot distinguish this rule's
+// severity from anything else's.
+check('gate-agentsmd-behind-is-warning', 'and being behind is a warning, not an error line',
+  !/^- .*marker stamp is v0\.0\.1/m.test(
+    setupRepo({ stamp: '0.0.1', agentsMd: '<!-- agentsmyth:0.0.1 BEGIN -->\nbody\n<!-- agentsmyth:0.0.1 END -->\n' })));
 
 check('gate-agentsmd-current-stamp', 'a current block passes without an error',
   !setupRepo({ stamp: '1.1.0', agentsMd: '<!-- agentsmyth:1.1.0 BEGIN -->\nbody\n<!-- agentsmyth:1.1.0 END -->\n' })
