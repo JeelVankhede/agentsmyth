@@ -15,7 +15,7 @@ orchestration:
   status: ready-for-next-phase
   next_phase: test
   blockers: []
-  user_checkpoint: "Recommendation was hold; the user directed that every severity be fixed. All six P0 and seventeen P1 findings were remediated in Build Phase 12 and each fix is pinned by a test that fails when that fix alone is reverted. Five findings stay open by design, each owned by Test, Ship or Reflect."
+  user_checkpoint: review-remediation-scope
 council:
   mode: council
   authorization: explicit
@@ -1165,6 +1165,22 @@ as missing coverage, and collapsing them would have lost a fix.
   of them — P0-4, P1-6 and P1-2 — are second instances of couplings this chain already fixed once.
   The risk is not that the fixes are hard; it is that a pointwise fix leaves the coupling and a
   fourth instance arrives in the next release.
+
+## Checkpoint Approval
+
+- Checkpoint: review-remediation-scope
+- Status: approved
+- User's own words (verbatim, this turn): "Fix them all"
+- Approved: 2026-09-24, answering a binary question this review put to the user after the council
+  closed: all six P0 findings plus the seventeen P1s, or the P0s only with the P1s carried. The
+  answer selected the wider scope, which is what Build Phase 12 executed and what the Remediation
+  section above records. Nothing beyond that scope was inferred from it: the three findings routed
+  to Ship, Test and Reflect stayed where the council put them, and `agentsmyth prepare` - which
+  writes outside the repository - was not run on the strength of this answer.
+- What this approval is NOT. It is scope authorisation, not a sign-off that the remediation
+  succeeded. The user has not been shown the finished Phase 12 work at a checkpoint, and this
+  artifact does not claim they have. Whether the fixes hold is Test's question, and Test answers it
+  with evidence rather than with this quote.
 
 ## Recommendation
 
