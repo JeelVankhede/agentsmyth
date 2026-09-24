@@ -46,7 +46,7 @@ Every command below was executed in this phase. Nothing is carried forward from 
 | `npm run root-resolution:test` | RI21 | pass | 24/24, including the fourth git-root copy |
 | `npm run agents-md:test` | RI19 | pass | 33/33 |
 | `npm run validate` | RI1, RI7, RI11 | pass | exit 0, 26 checks |
-| `npm run mutation:audit` | RI3 | pass (Build Phase 12) | 0/234 undefended. Not re-run here: it takes tens of minutes and no validator changed after that run. Recorded as carried evidence rather than re-claimed |
+| `npm run mutation:audit` | RI3 | pass | **0/234 undefended, `mutation-audit: ok`** — re-run in this phase after Build Phase 13 changed two validators, so it is executed evidence rather than carried. `check-lifecycle.mjs` 22 rules, `check-setup-complete.mjs` 13, both fully defended; `test/mutation-baseline.json` already records 234 and needed no regeneration |
 | `npm pack @jeelvankhede/agentsmyth@1.0.1` | release rehearsal | pass | real tarball fetched and installed into an isolated prefix |
 | independent digest recomputation | R1 | pass | see Manual QA R1 |
 
