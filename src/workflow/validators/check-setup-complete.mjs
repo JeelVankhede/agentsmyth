@@ -282,19 +282,41 @@ const agentsMdPath = 'AGENTS.md';
 const installedVersion = (read('workflow/config/repo-profile.yaml') ?? '').match(/^agentsmyth_version:\s*(\S+)/m)?.[1] ?? null;
 
 function readPackagedVersion() {
+  const here = dirname(fileURLToPath(import.meta.url));
+
+  // FIRST, and this is the one that works where the code ships. `agentsmyth prepare` writes the
+  // installed version into the global tree it expands, so a validator running from
+  // ~/.agentsmyth/workflow/validators/ can read it from a path relative to itself.
+  //
+  // The previous version had only the package.json probe below, which resolves in the SOURCE tree
+  // and in no location a consumer ever runs from — verified: neither the global tree nor
+  // .agentsmyth/validators/ has a package.json at any probed depth. So the read returned null
+  // everywhere it shipped, the comparison never fired, and this check degraded to exactly the
+  // stamp-vs-stamp tautology it was written to replace. Its unit test passed throughout, because
+  // the test runs the validator out of src/. A test that runs the subject from a location the
+  // product never uses can be green and mean nothing; that is what this ordering fixes.
   try {
-    const here = dirname(fileURLToPath(import.meta.url));
+    const stamp = join(here, '..', 'installed-version.txt');
+    if (existsSync(stamp)) {
+      const value = readFileSync(stamp, 'utf8').trim();
+      if (/^\d+\.\d+\.\d+/.test(value)) return value;
+    }
+  } catch { /* unreadable — fall through to the source-tree probe */ }
+
+  // SECOND, for a run out of the package itself: the source repo developing these validators, and
+  // the suites that exercise them. Never reachable for a consumer, and no longer relied upon to be.
+  try {
     for (const candidate of [join(here, '..', '..', '..', 'package.json'), join(here, '..', '..', 'package.json')]) {
       if (!existsSync(candidate)) continue;
       const parsed = JSON.parse(readFileSync(candidate, 'utf8'));
       // The published name is SCOPED (`@scope/agentsmyth`). Testing for the bare name matched
-      // nothing, so this read silently returned null on the real package and the branch below fell
-      // through to "installed version not resolvable" every time — a check that cannot fail is the
-      // defect this whole reader exists to remove, reintroduced one level down.
+      // nothing, so this read silently returned null on the real package too — a check that cannot
+      // fail, one level below the check that could not fail.
       const name = typeof parsed?.name === 'string' ? parsed.name : '';
       if ((name === 'agentsmyth' || name.endsWith('/agentsmyth')) && typeof parsed.version === 'string') return parsed.version;
     }
   } catch { /* unreadable or not the package — the repo-local comparison still stands */ }
+
   return null;
 }
 const packagedVersion = readPackagedVersion();

@@ -357,6 +357,10 @@ if (existsSync(join(repoRoot, provenancePath))) {
       let compared = 0;
       let drifted = 0;
       let absent = 0;
+      // Counted separately from the governed set as a whole, because the two answer different
+      // questions and conflating them is what made the first version of this rule unfireable.
+      let configsCompared = 0;
+      let configsDrifted = 0;
       for (const entry of manifest.entries ?? []) {
         // A manifest entry names a file an upgrade will read, back up, and overwrite. A path that
         // escapes the repository, or is absolute, would point that machinery outside the tree it
@@ -384,21 +388,48 @@ if (existsSync(join(repoRoot, provenancePath))) {
           if (manifest.normalization !== 'lf-single-trailing-newline') continue;
           const normalized = `${readFileSync(abs, 'utf8').replace(/\r\n/g, '\n').replace(/\n*$/, '')}\n`;
           compared += 1;
-          if (createHash('sha256').update(normalized, 'utf8').digest('hex') !== entry.sha256) drifted += 1;
+          // Matched on the manifest's OWN path shape, not on `wf`. Entry paths are written by the
+          // CLI, which always emits `workflow/config/<name>` relative to the repo root; `wf` is the
+          // validator's notion of the workflow directory and is overridable per invocation. Keying
+          // on `wf` coupled two things that are not the same and made this rule silently unfireable
+          // under any fixture that redirects it — which is how its own rejection fixture stopped
+          // rejecting.
+          const isConfig = /^[^/]+\/config\//.test(entry.path);
+          if (isConfig) configsCompared += 1;
+          if (createHash('sha256').update(normalized, 'utf8').digest('hex') !== entry.sha256) {
+            drifted += 1;
+            if (isConfig) configsDrifted += 1;
+          }
         } catch { /* unreadable — not this check's business, and check-config reports it */ }
       }
 
       if (compared > 0) {
         details.push(`${provenancePath}: ${compared} digest(s) compared against disk — ${drifted} drifted, ${compared - drifted} unchanged${absent > 0 ? `, ${absent} recorded file(s) no longer present` : ''}`);
-        // Every single governed file reading as edited is not drift, it is a baseline that was
-        // never taken: `init` hashes the config TEMPLATES, and setup then rewrites all five. RI14's
-        // step 5f is what re-stamps them, and this is the signature of it having been skipped.
-        if (drifted === compared && compared >= 3) {
+        // Every CONFIG file reading as edited is not drift, it is a baseline that was never
+        // re-taken: `init` hashes the config TEMPLATES and setup then rewrites all five, so RI14's
+        // step 5f is what re-stamps them.
+        //
+        // Scoped to `config/`, and that scoping is the whole rule. The first version required
+        // EVERY governed file to differ, which cannot happen in the case it targets: setup rewrites
+        // the five configs and never touches the pre-commit hook or the Cursor adapter, so the real
+        // signature is five drifted of seven governed — never all of them. The condition was
+        // therefore dead, and the artifact that added it claimed the gap was closed. Found by Test
+        // running a faithful setup simulation rather than by any assertion, because no fixture
+        // modelled the post-setup state.
+        //
+        // An error rather than a warning, per the requirement's own terms. The blast radius is
+        // genuinely small: every repo predating this release has no manifest at all, so this whole
+        // block is skipped for them, and a repo that did run 1.1.0 setup ran step 5f as its
+        // mandatory final action. The message names the other honest reading too — a user who
+        // really did hand-edit every config gets told exactly how to re-baseline.
+        if (configsCompared >= 3 && configsDrifted === configsCompared) {
           errors.push(
-            `${provenancePath} records ${compared} governed file(s) and ALL of them differ from what is on disk. ` +
-            'That is the signature of a baseline never re-taken after setup filled the config files, not of ' +
-            'ordinary editing. Run "agentsmyth upgrade --baseline" to record the current files as the ' +
-            'baseline; otherwise the first real upgrade will raise a reconcile item for every one of them.'
+            `${provenancePath} records ${configsCompared} config file(s) and EVERY one differs from what is on disk. ` +
+            'That is the signature of a baseline never re-taken after setup filled them, not of ordinary ' +
+            'editing — init can only hash the templates, and setup rewrites all of them. Run ' +
+            '"agentsmyth upgrade --baseline" to record the current files as the baseline. (If you really ' +
+            'did edit every config by hand since the last baseline, the same command is still the fix.) ' +
+            'Left alone, the first real upgrade raises a reconcile item for every one of them.'
           );
         }
       }

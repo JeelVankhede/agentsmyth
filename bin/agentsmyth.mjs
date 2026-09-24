@@ -2228,6 +2228,24 @@ function runPrepare(pkgRootDir) {
   expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
   // Copy validators
   copyRecursive(join(pkgRootDir, 'validators'), join(globalDir, 'validators'));
+
+  // Stamp the installed version INTO the global tree.
+  //
+  // Without this a validator running from ~/.agentsmyth/workflow/validators/ has no way to learn
+  // which agentsmyth is installed. check-setup-complete first tried probing for a package.json
+  // relative to its own location, which resolves in the SOURCE tree and nowhere a consumer runs:
+  // neither ~/.agentsmyth/workflow/validators/ nor .agentsmyth/validators/ has one at any probed
+  // depth. The version check therefore passed its unit test - which runs the validator from src/ -
+  // and was inert everywhere it actually ships, degrading to the same near-tautological
+  // stamp-vs-stamp comparison it had been written to replace. Test caught it; the unit test could
+  // not, because it exercised a path that does not exist in deployment.
+  //
+  // A plain file rather than an env var or a CLI argument, because the validator is also run
+  // directly by a user (README documents `node workflow/validators/check-setup-complete.mjs`) and
+  // must answer the same way then. Rewritten on every prepare, so it cannot lag the tree it
+  // describes - prepare is the only thing that writes either.
+  writeFileSync(join(globalDir, 'workflow', 'installed-version.txt'), `${version}\n`);
+
   console.log('  ✓ definitions installed');
 
   // Install global gates
