@@ -790,17 +790,44 @@ function expandBundle(bundlePath, destDir) {
 // Installs or updates a delimited gate section in a target file.
 // If the markers are found, replaces the content between them.
 // If not found, appends the full gateContent (which includes markers).
+// Writes the marker-bounded gate block into a file the USER also owns, replacing only the span
+// between the markers and leaving every other byte alone.
+//
+// `gateContent` is trimmed before it is written, and that is the whole of a real bug rather than
+// tidiness. The caller passes the gate text with a trailing newline; the text preserved after the
+// END marker ALSO begins with the newline that followed it. The replace branch kept both, so every
+// `prepare` appended one more blank line to the user's global config — and `upgrade` runs `prepare`
+// unconditionally, so it grew without bound. Measured: five runs, five extra blank lines, still
+// climbing. Cosmetic in effect and unbounded in shape, which is the part that makes it worth
+// fixing rather than tolerating.
+//
+// Same failure as the AGENTS.md duplication found in the same session: a writer that does not
+// normalise what it preserves, in a file it only partly owns.
 function installGateSection(filePath, gateContent, beginMarker, endMarker) {
   mkdirSync(dirname(filePath), { recursive: true });
-  let existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const gate = gateContent.trim();
   const begin = existing.indexOf(beginMarker);
   const end = existing.indexOf(endMarker);
+
   if (begin !== -1 && end !== -1 && end > begin) {
-    writeFileSync(filePath, existing.slice(0, begin) + gateContent + existing.slice(end + endMarker.length));
-  } else {
-    const sep = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-    writeFileSync(filePath, existing + sep + '\n' + gateContent + '\n');
+    const tail = existing.slice(end + endMarker.length);
+    // Real content after the block is the user's and is carried through byte-exact. A tail that is
+    // ONLY whitespace is agentsmyth's own litter — nothing but this function ever writes after the
+    // END marker — so it is normalised to a single newline. That repairs files this bug has already
+    // grown: a live machine was found carrying 34 trailing blank lines, accumulated one per
+    // `prepare` over the life of the install. Stopping the growth without collapsing what was
+    // already grown would leave every existing user with the damage permanently.
+    const repaired = tail.trim().length === 0 ? '\n' : tail;
+    writeFileSync(filePath, existing.slice(0, begin) + gate + repaired);
+    return;
   }
+
+  if (existing.trim().length === 0) {
+    writeFileSync(filePath, `${gate}\n`);
+    return;
+  }
+  writeFileSync(filePath, `${existing.replace(/\n*$/, '')}\n\n${gate}\n`);
 }
 
 // Adds or updates definitions_root (and agentsmyth_version) in workflow/config/repo-profile.yaml.

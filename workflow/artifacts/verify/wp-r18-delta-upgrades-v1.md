@@ -264,6 +264,42 @@ already in Phase 13's touch set. It belongs in Reflect's follow-up list as a WP-
 `agents-md:test` suite — 33/33 throughout, including after this change — should gain the seeded
 cases so its own feature owns them.
 
+### V4 — every `prepare` appended a blank line to the user's global config, without bound
+
+**Manifest ID:** none — outside WP-R18's manifest, like V3. **Surface:** `bin/agentsmyth.mjs`,
+`installGateSection`. Found by diffing a real global gate file before and after running `prepare` on
+a live machine, which is a thing this phase had not done until the user insisted on it.
+
+`gateContent` arrives with a trailing newline, and the text preserved after the END marker begins
+with the newline that followed it. The replace branch kept both. So every `prepare` added one more
+blank line, permanently — and `upgrade` runs `prepare` unconditionally, so it grew every time
+anybody upgraded anything.
+
+Measured in a sandbox: five runs, five extra blank lines, still climbing. Then measured on the real
+machine, which is the number that matters: **34 trailing newlines** in both `~/.claude/CLAUDE.md`
+and `~/.codex/AGENTS.md`, accumulated over the life of that install. Nothing had ever surfaced it.
+
+Cosmetic in effect. Unbounded in shape, in a file the user owns and did not ask agentsmyth to grow.
+
+**Fixed, in two parts, and the second part is the one that matters to existing users.** The gate
+text is trimmed before writing, so the block is byte-identical run over run. And a tail after the
+END marker that is *only whitespace* is normalised to a single newline — nothing but this function
+ever writes there, so that whitespace is agentsmyth's own litter, and collapsing it repairs files
+the bug has already grown. Stopping the bleeding without that leaves every existing user carrying
+the damage permanently. A tail with real content in it is carried through byte-exact.
+
+Verified both directions: 34 → 1 when the tail is blank, and a seeded `## My own trailing section`
+survives untouched. Pinned by `G1-prepare-byte-idempotent`, `G1-no-trailing-growth`,
+`G2-repairs-existing-growth` and `G2-preserves-real-tail`; the first two fail when the trim alone is
+reverted.
+
+**Same root cause as V3**, which is why both are recorded rather than quietly fixed: a writer that
+does not normalise what it preserves, in a file it only partly owns. V3 duplicated content because
+it could not see an unmarked copy; V4 duplicated whitespace because it counted a newline twice.
+Reflect should look at whether the three marker-bounded writers — `installGateSection`,
+`placeAgentsMd`, `installPreCommitHook` — want one shared, tested primitive rather than three
+hand-rolled implementations of the same idea.
+
 ## Skipped Checks
 
 | Check | Why skipped | Risk | Owner | Blocks ship | Manifest IDs |

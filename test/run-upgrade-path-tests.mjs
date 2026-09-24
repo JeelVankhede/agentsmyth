@@ -1125,6 +1125,55 @@ const home = mkScratch('wpr18-home-');
     /unmarked copies of the agentsmyth block/.test(twice.init.stdout + twice.init.stderr));
 }
 
+
+// ── G: `prepare` must be byte-idempotent on a file the user also owns ─────────────────────────
+// Found by diffing a real global gate file before and after running prepare on a live machine.
+// Every run appended one more blank line, forever: the gate text carries a trailing newline and
+// the text preserved after the END marker begins with the newline that followed it, so the replace
+// branch kept both. `upgrade` runs `prepare` unconditionally, so this grew without bound in the
+// user's home config — cosmetic in effect, unbounded in shape.
+//
+// Asserted by running prepare repeatedly and comparing BYTES, not by eyeballing the result. The
+// first run legitimately changes the file; every run after it must not.
+{
+  const gateHome = mkScratch('wpr18-gateidem-');
+  const gate = join(gateHome, '.claude', 'CLAUDE.md');
+  mkdirSync(dirname(gate), { recursive: true });
+  // Seeded with the user's own content, because that is the case with something to lose.
+  writeFileSync(gate, '# My own rules\n- something I wrote\n');
+
+  run(['prepare'], { cwd: repoRoot, home: gateHome });
+  const first = readFileSync(gate, 'utf8');
+  run(['prepare'], { cwd: repoRoot, home: gateHome });
+  run(['prepare'], { cwd: repoRoot, home: gateHome });
+  const third = readFileSync(gate, 'utf8');
+
+  check('G1-prepare-byte-idempotent', 'repeated prepare runs leave the global gate file byte-identical',
+    first === third);
+  check('G1-no-trailing-growth', 'and do not accumulate trailing blank lines',
+    (first.match(/\n*$/)?.[0] ?? '').length === (third.match(/\n*$/)?.[0] ?? '').length);
+  check('G1-user-content-kept', "the user's own content above the block survives every run",
+    third.includes('# My own rules') && third.includes('- something I wrote'));
+  check('G1-single-block', 'and exactly one gate block exists, never a second appended copy',
+    (third.match(/<!-- agentsmyth global gate BEGIN -->/g) || []).length === 1);
+
+  // Stopping the growth is not enough on its own: a live machine was found carrying 34 trailing
+  // blank lines accumulated over the life of the install, and a fix that only stops the bleeding
+  // leaves every existing user with the damage permanently.
+  writeFileSync(gate, `${readFileSync(gate, 'utf8').replace(/\n*$/, '')}${'\n'.repeat(34)}`);
+  run(['prepare'], { cwd: repoRoot, home: gateHome });
+  const repaired = readFileSync(gate, 'utf8');
+  check('G2-repairs-existing-growth', 'a run collapses blank lines a previous version already accumulated',
+    (repaired.match(/\n*$/)?.[0] ?? '').length === 1);
+
+  // The collapse must only ever claim whitespace. Real content after the block is the user's.
+  writeFileSync(gate, `${readFileSync(gate, 'utf8').replace(/\n*$/, '')}\n\n## My own trailing section\n\nkeep me\n`);
+  run(['prepare'], { cwd: repoRoot, home: gateHome });
+  const withTail = readFileSync(gate, 'utf8');
+  check('G2-preserves-real-tail', 'but content the user wrote after the block is carried through untouched',
+    withTail.includes('## My own trailing section') && withTail.includes('keep me'));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
 }
