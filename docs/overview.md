@@ -14,15 +14,15 @@ The skill tells the agent what phase it is in. Reference files define the detail
 
 | Path | Purpose |
 |---|---|
-| `.workflow/router.md` | Entry point for choosing or restoring lifecycle state. |
-| `.workflow/lifecycle.md` | Phase order, gate expectations, and transitions. |
-| `.workflow/rules.md` | Cross-phase rules that always apply. |
-| `.workflow/skills/` | Phase and power-skill playbooks. |
-| `.workflow/skills/*/references/output-schema.md` | Starter Blocks for creating new lifecycle artifacts. |
-| `.workflow/config/` | Machine-readable defaults and adoption settings. |
-| `.workflow/schemas/` | YAML schema contracts for configs and artifacts. |
-| `.workflow/artifacts/` | Runtime artifact output. |
-| `.workflow/learnings/` | Raw and curated learning records. |
+| `workflow/router.md` | Entry point for choosing or restoring lifecycle state. |
+| `workflow/lifecycle.md` | Phase order, gate expectations, and transitions. |
+| `workflow/rules.md` | Cross-phase rules that always apply. |
+| `workflow/skills/` | Phase and power-skill playbooks. |
+| `workflow/skills/*/references/output-schema.md` | Starter Blocks for creating new lifecycle artifacts. |
+| `workflow/config/` | Machine-readable defaults and adoption settings. |
+| `workflow/schemas/` | YAML schema contracts for configs and artifacts. |
+| `workflow/artifacts/` | Runtime artifact output. |
+| `workflow/learnings/` | Raw and curated learning records. |
 | `docs/` | Human-facing setup and adoption documentation. |
 | `adapters/` | Optional instruction shims for specific agent tools. |
 
@@ -31,13 +31,13 @@ The skill tells the agent what phase it is in. Reference files define the detail
 The workflow creates an artifact chain:
 
 ```text
-.workflow/artifacts/briefs/<slug>-v<N>.md
-.workflow/artifacts/plans/<slug>-v<N>.md
-.workflow/artifacts/tasks/<slug>-v<N>.md
-.workflow/artifacts/reviews/<slug>-v<N>.md
-.workflow/artifacts/verify/<slug>-v<N>.md
-.workflow/artifacts/ship/<slug>-v<N>.md
-.workflow/artifacts/reflect/<slug>-v<N>.md
+workflow/artifacts/briefs/<slug>-v<N>.md
+workflow/artifacts/plans/<slug>-v<N>.md
+workflow/artifacts/tasks/<slug>-v<N>.md
+workflow/artifacts/reviews/<slug>-v<N>.md
+workflow/artifacts/verify/<slug>-v<N>.md
+workflow/artifacts/ship/<slug>-v<N>.md
+workflow/artifacts/reflect/<slug>-v<N>.md
 ```
 
 Artifacts are state, not decoration. Later agents should restore context from artifacts, config, git state, and cited evidence before continuing.

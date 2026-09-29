@@ -14,6 +14,8 @@ Everything under `workflow/`, one marked block inside your root `AGENTS.md`, and
 - `workflow/config/*.yaml` — five files (`domain.yaml`, `repo-profile.yaml`, `source-of-truth.yaml`, `release.yaml`, `verification.yaml`)
 - `workflow/artifacts/` — seven empty phase directories, plus whatever lifecycle artifacts you've since written into them
 - `workflow/learnings/`
+- `workflow/provenance.yaml` — a digest of what agentsmyth last wrote to each governed file, so an upgrade can tell your edits from staleness
+- `workflow/backups/` — only present if an upgrade has preserved a file you had edited. Check it before deleting: it may hold the only copy of an edit you have not merged back yet
 - `AGENTS.md` at the repo root — **not the whole file.** `init` writes one marked block into it and leaves every other byte alone, including an `AGENTS.md` you wrote yourself. It and the pre-commit hook are the only two things agentsmyth ever edits rather than creates — everything else in this list it creates outright — which is why each of those two gets its own removal section below.
 - Cursor: `.cursor/rules/agentsmyth.mdc`. Non-macOS Copilot: `.github/copilot-instructions.md`. No other tool gets a per-repo adapter file — see [Under the hood](/under-hood) for why.
 

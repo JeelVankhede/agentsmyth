@@ -455,6 +455,15 @@ const fixtures = [
   { id: 'ia', dir: 'test/fixtures/lifecycle-violations/ia-config-schema-missing-properties', description: '(OI-82) an object schema declares no properties — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-schema-no-properties' }, expect: 'object schema missing properties' },
   { id: 'ib', dir: 'test/fixtures/lifecycle-violations/ib-config-missing-kind', description: '(OI-82) a config file declares no kind — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-valid-schemas' }, expect: 'missing kind' },
   { id: 'ic', dir: 'test/fixtures/lifecycle-violations/ic-config-no-matching-schema', description: '(OI-82) a config declares a kind with no schema — check-config', validator: validatorPath('check-config.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/cfg-valid-schemas' }, expect: 'has no matching schema' },
+  // WP-R18 — check-lifecycle's provenance manifest rules (4 of 4). Each asserts THAT rule's own
+  // wording rather than a shared substring, so a fixture cannot pass while leaving its rule
+  // undefended — the failure mode test/run-mutation-audit.mjs's header records three times.
+  { id: 'pv1', dir: 'test/fixtures/definitions/pv-provenance-wrong-kind', description: '(WP-R18) a provenance manifest declares the wrong kind — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-wrong-kind' }, expect: 'has kind "manifest", expected "provenance"' },
+  { id: 'pv2', dir: 'test/fixtures/definitions/pv-provenance-path-escape', description: '(WP-R18) a manifest entry path traverses outside the repo — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-path-escape' }, expect: 'escapes the repository' },
+  { id: 'pv3', dir: 'test/fixtures/definitions/pv-provenance-bad-shape', description: '(WP-R18) a manifest entry digest is not a sha256 — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-bad-shape' }, expect: 'does not match pattern ^[0-9a-f]{64}$' },
+  { id: 'pv4', dir: 'test/fixtures/definitions/pv-provenance-unparseable', description: '(WP-R18) a provenance manifest is not parseable — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-unparseable' }, expect: 'is not parseable' },
+  { id: 'pv5', dir: 'test/fixtures/definitions/pv-provenance-bad-version', description: "(WP-R18) a manifest entry's written_by_version is a path fragment — it becomes a backup directory name, so it is checked here too, not only by the CLI that would act on it", validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-bad-version' }, expect: 'which is not a version string' },
+  { id: 'pv6', dir: 'test/fixtures/definitions/pv-provenance-all-drifted', description: '(WP-R18) every recorded CONFIG digest differs from disk — the signature of a post-setup baseline never re-taken. Scoped to config/ because setup rewrites those five and never touches the hook or the adapters, so a rule keyed on the whole governed set could not fire in the case it targets', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/pv-provenance-all-drifted' }, expect: 'EVERY one differs from what is on disk' },
   // OI-82 — check-skill-triggers (2 of 2) and check-schema-keywords (2 of 2).
   { id: 'id', dir: 'test/fixtures/lifecycle-violations/id-skilltrigger-no-log', description: '(OI-82) a mandating phase records no skill_trigger_log — check-skill-triggers', validator: validatorPath('check-skill-triggers.mjs'), expect: 'has no skill_trigger_log' },
   { id: 'ie', dir: 'test/fixtures/lifecycle-violations/ie-skilltrigger-incomplete-log', description: '(OI-82) a skill_trigger_log omits a mandated skill — check-skill-triggers', validator: validatorPath('check-skill-triggers.mjs'), expect: 'omits mandated skill(s)' },
@@ -556,7 +565,14 @@ console.log(`\n${passed}/${fixtures.length} violations detected`);
 // council fixture emits exactly one error; until now that was verified by hand, which means it was
 // true on the day someone checked and unverified every day after. A fixture rejected for TWO reasons
 // keeps passing when the rule it targets regresses — the failure this suite exists to prevent.
-const councilFixtures = fixtures.filter((f) => /check-(council-record|finding-quality)\.mjs$/.test(f.validator));
+//
+// Scope: the two council validators PLUS check-lifecycle.mjs. The filter originally named only the
+// first two, so the provenance fixtures added by the delta-upgrade work sat outside it — a
+// narrowing nothing announced, in the sweep whose entire job is to notice narrowings. The property
+// is not council-specific: any fixture that starts rejecting for a second, unrelated reason stops
+// testing the rule it names, whichever validator it targets.
+const SWEPT_VALIDATORS = /check-(council-record|finding-quality|lifecycle)\.mjs$/;
+const councilFixtures = fixtures.filter((f) => SWEPT_VALIDATORS.test(f.validator));
 let multi = 0;
 for (const fixture of councilFixtures) {
   const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir],
@@ -568,7 +584,7 @@ for (const fixture of councilFixtures) {
     multi++;
   }
 }
-console.log(`attribution sweep: ${councilFixtures.length - multi}/${councilFixtures.length} council fixtures emit exactly one error`);
+console.log(`attribution sweep: ${councilFixtures.length - multi}/${councilFixtures.length} council and lifecycle fixtures emit exactly one error`);
 if (multi > 0) {
   console.error(`${multi} fixture(s) reject for more than one reason — each would keep passing if its own rule regressed`);
   process.exit(1);

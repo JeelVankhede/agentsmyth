@@ -138,6 +138,9 @@ Then install in a target repo as in Option C.
 - Places an adapter file mechanically for the two tools no global gate can ever reach — Cursor
   (`.cursor/rules/agentsmyth.mdc`, always) and Copilot on a non-macOS platform
   (`.github/copilot-instructions.md`) — never overwriting an existing file at either path.
+- Writes `workflow/provenance.yaml` — a digest of what agentsmyth just wrote to each governed
+  file. **Commit it.** It is what lets a later `agentsmyth upgrade` tell your edits from
+  staleness; without it, the first upgrade has to adopt whatever is on disk as the baseline.
 - Creates `.agentsmyth/` in the target repo root containing:
   - `setup-bundle.md` — the setup skill the agent reads to finish onboarding
   - `workflow-bundle.md` — the full workflow (router, lifecycle, all skills) the agent expands
@@ -194,6 +197,8 @@ workflow/
   config/          ← init writes stubs; the agent resolves what's left
   artifacts/       ← lifecycle artifact chain lives here
   learnings/
+  provenance.yaml  ← what agentsmyth last wrote to each governed file — commit it
+  backups/         ← appears only when an upgrade preserves a file you edited
 .claude/CLAUDE.md  ← or AGENTS.md / .cursor/rules/ etc. depending on your tool
 docs/knowledge-map/repo-mental-map.md
 
@@ -206,6 +211,38 @@ Router, lifecycle, rules, glossary, skills, validators, and schemas resolve from
 [Under the hood](https://jeelvankhede.github.io/agentsmyth/under-hood) for why. A repo-local copy
 of all of those only appears in the defensive fallback case (no global install could be linked),
 which should not normally happen.
+
+### Keeping a repo current
+
+`agentsmyth upgrade` brings an already-set-up repo up to the installed version. It is the command
+that clears the version-skew warning — `prepare` does not, because `prepare` only refreshes the
+shared definitions tree and writes nothing into your repo.
+
+```bash
+npx agentsmyth upgrade --dry-run   # preview: what would change, and which migrations apply
+npx agentsmyth upgrade             # do it
+```
+
+What it guarantees:
+
+- A file you have **not** edited is brought current in place, key by key. Never a whole-file
+  replace — your configs carry values only you can supply.
+- A file you **have** edited is copied to `workflow/backups/<version>/` byte-identically before
+  anything touches it, and raises an item in `pending-setup.yaml` so your agent offers to merge it
+  at the start of the next session. Nothing is silently overwritten.
+- Content outside an agentsmyth marker block — in your pre-commit hook, in `AGENTS.md` — survives
+  byte-for-byte.
+
+It does not check whether your working tree is clean, and it warns rather than stopping if it is
+not. Commit before upgrading, or use `--dry-run` first.
+
+`agentsmyth upgrade --baseline` re-records the files currently on disk as the baseline, without
+upgrading anything. The setup skill runs it as its final step, once the configs are filled; you
+would run it by hand only after resolving a reconcile item manually.
+
+Re-running `init` on a repo that already has `workflow/provenance.yaml` deliberately leaves it
+alone. Re-baselining there would adopt whatever edits you had made as agentsmyth's own content and
+erase the drift the next upgrade needs to see.
 
 ### Post-setup validation
 

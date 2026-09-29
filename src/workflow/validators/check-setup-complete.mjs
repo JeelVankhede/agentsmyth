@@ -2,7 +2,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Deliberately duplicated from lib.mjs's _resolveRepoRoot, not imported, even
 // though lib.mjs ships alongside this file at setup time: lib.mjs's module-level code includes
@@ -232,6 +233,136 @@ if (presentAdapters.length === 0) {
   );
 } else {
   console.log(`  adapters present: ${presentAdapters.join(', ')}`);
+}
+
+// ── Check: AGENTS.md's marker stamp matches the installed version ─────────
+//
+// This repairs a check that could no longer fail, and gives a version stamp its first reader, in
+// one change — the two defects close each other.
+//
+// The presence check above became dead once `init` started always writing a root AGENTS.md: that
+// file is one of the five adapterPaths, so "at least one adapter present" cannot fail in any repo
+// `init` has touched. It was accepted as residual risk at the time because every repair considered
+// then was worse.
+//
+// Separately, `placeAgentsMd()` writes its block inside `<!-- agentsmyth:X.Y.Z BEGIN -->` markers
+// and its own source comment says the stamp exists so "a later release can read which version
+// wrote a block and migrate it". Nothing read it. A stamp with no reader is untested in the one
+// direction that matters, and stays untested until something consumes it.
+//
+// This is that reader. It restores a failure mode to the presence check by asking a question that
+// can actually be false, and it exercises the stamp against the installed version on every `check`.
+//
+// TWO reference versions, because comparing against one of them alone was very nearly tautological.
+//
+// The first is repo-profile.yaml's `agentsmyth_version` stamp. `writeDefinitionsRoot()` and
+// `placeAgentsMd()` are called by the SAME `init`/`upgrade` invocation, so in normal operation these
+// two stamps cannot diverge — which means a check comparing only them fires on hand-editing and
+// nothing else. A repo whose two stamps agree with each other but are stale relative to whatever
+// agentsmyth is actually installed passed cleanly, printing the literal words "matches installed"
+// when nothing about the installed CLI had been consulted. That is the exact scenario this check
+// was restored for, so the first version of it could not catch the defect it existed to catch.
+//
+// The second is the installed package's own version, read from the package.json that sits two levels
+// above this file when it is running out of a real install. That read is BEST EFFORT: this validator
+// also runs from the global tree (`~/.agentsmyth/validators/`) where no package.json sits alongside
+// it, and it deliberately imports nothing from lib.mjs. When it resolves, it is the authority the
+// requirement actually names; when it does not, the repo-local comparison still runs and the output
+// says which question was answered rather than implying both were.
+//
+// Severity is deliberately split. A disagreement with repo-profile is an ERROR: the two are written
+// together, so divergence means an interrupted write or a hand-edit. A disagreement with the
+// installed package is a WARNING, and this is not timidity — this file ships through the shared
+// `~/.agentsmyth/validators/` tree, which `upgrade` refreshes unconditionally from ANY repo, and
+// `agentsmyth check` runs from the mandatory pre-commit hook. A new hard fail here would land on
+// every already-set-up repo on the machine, on its next commit, without that repo running anything.
+// A repo being behind the installed CLI is also a true and ordinary state — it is what `upgrade`
+// exists to fix — so the right report is "you are behind", not "you are broken".
+const agentsMdPath = 'AGENTS.md';
+const installedVersion = (read('workflow/config/repo-profile.yaml') ?? '').match(/^agentsmyth_version:\s*(\S+)/m)?.[1] ?? null;
+
+function readPackagedVersion() {
+  const here = dirname(fileURLToPath(import.meta.url));
+
+  // FIRST, and this is the one that works where the code ships. `agentsmyth prepare` writes the
+  // installed version into the global tree it expands, so a validator running from
+  // ~/.agentsmyth/workflow/validators/ can read it from a path relative to itself.
+  //
+  // The previous version had only the package.json probe below, which resolves in the SOURCE tree
+  // and in no location a consumer ever runs from — verified: neither the global tree nor
+  // .agentsmyth/validators/ has a package.json at any probed depth. So the read returned null
+  // everywhere it shipped, the comparison never fired, and this check degraded to exactly the
+  // stamp-vs-stamp tautology it was written to replace. Its unit test passed throughout, because
+  // the test runs the validator out of src/. A test that runs the subject from a location the
+  // product never uses can be green and mean nothing; that is what this ordering fixes.
+  try {
+    const stamp = join(here, '..', 'installed-version.txt');
+    if (existsSync(stamp)) {
+      const value = readFileSync(stamp, 'utf8').trim();
+      if (/^\d+\.\d+\.\d+/.test(value)) return value;
+    }
+  } catch { /* unreadable — fall through to the source-tree probe */ }
+
+  // SECOND, for a run out of the package itself: the source repo developing these validators, and
+  // the suites that exercise them. Never reachable for a consumer, and no longer relied upon to be.
+  try {
+    for (const candidate of [join(here, '..', '..', '..', 'package.json'), join(here, '..', '..', 'package.json')]) {
+      if (!existsSync(candidate)) continue;
+      const parsed = JSON.parse(readFileSync(candidate, 'utf8'));
+      // The published name is SCOPED (`@scope/agentsmyth`). Testing for the bare name matched
+      // nothing, so this read silently returned null on the real package too — a check that cannot
+      // fail, one level below the check that could not fail.
+      const name = typeof parsed?.name === 'string' ? parsed.name : '';
+      if ((name === 'agentsmyth' || name.endsWith('/agentsmyth')) && typeof parsed.version === 'string') return parsed.version;
+    }
+  } catch { /* unreadable or not the package — the repo-local comparison still stands */ }
+
+  return null;
+}
+const packagedVersion = readPackagedVersion();
+
+if (exists(agentsMdPath) && installedVersion) {
+  const text = read(agentsMdPath);
+  const begin = text.match(/<!--\s*agentsmyth:([0-9][^\s]*)\s+BEGIN\s*-->/);
+  const end = text.match(/<!--\s*agentsmyth:([0-9][^\s]*)\s+END\s*-->/);
+
+  // A file with NO agentsmyth marker at all is not a managed AGENTS.md and is not this check's
+  // business — the source repository's own AGENTS.md is hand-authored and legitimately has none.
+  // A file with a marker but no matching pair is a different thing entirely: something wrote a
+  // partial block, which is an interrupted write, and that must fail.
+  const hasAnyMarker = /<!--\s*agentsmyth:/.test(text);
+  if (!hasAnyMarker) {
+    console.log(`  ${agentsMdPath}: no agentsmyth marker block (not agent-managed — skipped)`);
+  } else if (!begin || !end) {
+    errors.push(
+      `${agentsMdPath} carries an agentsmyth marker but not a well-formed pair — expected ` +
+      '<!-- agentsmyth:<version> BEGIN --> ... <!-- agentsmyth:<version> END -->. ' +
+      'A partial block means an interrupted write; re-run "agentsmyth upgrade" to rewrite it.'
+    );
+  } else if (begin[1] !== end[1]) {
+    errors.push(
+      `${agentsMdPath} marker versions disagree: BEGIN says ${begin[1]}, END says ${end[1]}. ` +
+      'A half-rewritten block means an interrupted write — the block cannot be trusted to describe ' +
+      'which version produced it.'
+    );
+  } else if (begin[1] !== installedVersion) {
+    errors.push(
+      `${agentsMdPath} was written by agentsmyth v${begin[1]} but workflow/config/repo-profile.yaml ` +
+      `records v${installedVersion}. These two stamps are written by the same init/upgrade run, so a ` +
+      'disagreement means an interrupted write or a hand-edit. Run "agentsmyth upgrade" to rewrite both.'
+    );
+  } else if (packagedVersion && begin[1] !== packagedVersion) {
+    warnings.push(
+      `  ${agentsMdPath}: marker stamp is v${begin[1]} but agentsmyth v${packagedVersion} is installed — ` +
+      'this repo is behind. Run "agentsmyth upgrade" to bring it current.'
+    );
+  } else if (packagedVersion) {
+    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches installed agentsmyth v${packagedVersion})`);
+  } else {
+    // Say which question was answered. The earlier message read "(matches installed)" on this exact
+    // branch, where the installed version had not been read at all.
+    console.log(`  AGENTS.md marker stamp: v${begin[1]} (matches repo-profile.yaml; installed version not resolvable from here)`);
+  }
 }
 
 for (const warning of warnings) {

@@ -21,4 +21,8 @@ The mandatory pre-commit hook checks that staged files are covered by a real lif
 
 ## Version skew between `~/.agentsmyth/` and the installed package
 
-`agentsmyth check` compares the `agentsmyth_version` stamped in this repo's `repo-profile.yaml` against the currently installed CLI's own version, and warns if they differ. This is purely informational — it does not block `check`, and it does not mean anything is currently broken. It means the global definitions tree at `~/.agentsmyth/workflow/` may be older than what the CLI itself ships. Run `agentsmyth prepare` to refresh it. See [Updating](/updating) for the full picture of what does and doesn't happen automatically across a version bump.
+`agentsmyth check` compares the `agentsmyth_version` stamped in this repo's `repo-profile.yaml` against the currently installed CLI's own version, and warns if they differ. It does not block `check`, and it does not mean anything is currently broken — it means this repo is behind the installed package.
+
+Run **`agentsmyth upgrade`**. That is the command that clears it: it refreshes the global definitions tree, brings this repo's own governed files current, and rewrites the version stamp the warning is reading.
+
+`agentsmyth prepare` will not clear it. `prepare` refreshes the shared tree under `~/.agentsmyth/workflow/` and writes nothing into your repo, so the repo-local stamp never moves and the warning returns on the next `check`. See [Updating](/updating) for what an upgrade does to each file.

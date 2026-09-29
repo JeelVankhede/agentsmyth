@@ -35,6 +35,22 @@
 // a baseline fails. The number can shrink and never grow, which is the same mechanism
 // workflow/config/artifact-baseline.yaml uses for the 96 grandfathered artifact violations.
 //
+// WHAT THE HEADLINE NUMBER DOES AND DOES NOT SAY. Write it down here, because it is quotable and
+// was quoted: "N/M rules undefended" establishes that every `errors.push(` statement inside
+// `src/workflow/validators/*.mjs` is depended on by at least one suite in the SUITES list below.
+// That is all. It says nothing about:
+//   - `bin/agentsmyth.mjs`, which is not under that directory and is therefore never a mutation
+//     TARGET. The entire `upgrade` command lives there. A number from this audit is not evidence
+//     about the CLI's own logic, and citing it as such is a category error.
+//   - conditional or boundary mutants. The only mutation performed is statement-deletion on an
+//     error push, so an off-by-one in a comparison is invisible to it.
+//   - the schema `.yaml` files' own constraints, which are data rather than code and unreachable by
+//     a mutator that rewrites `.mjs`.
+// Anyone quoting the figure in an artifact should quote this paragraph with it.
+//
+// Where it runs: `.github/workflows/release.yml` runs it on every release, deliberately, and
+// `ci.yml` deliberately does not — see the per-commit note above.
+//
 // It mutates a COPY of the tree, never the working tree. The earlier version wrote the mutant to the
 // tracked validator and restored it in a `finally`, which does not run on a signal: an interrupted
 // run left a live mutant in a TRACKED file, with `errors.push(` replaced by `void (` on some rule.
@@ -114,6 +130,12 @@ cpSync(repoRoot, workRoot, {
 // real global npm installs, which at one run per mutation site would push the audit past two hours,
 // and it exercises the CLI installer rather than validator rules. That is a stated boundary — rules
 // reachable only through it will read as undefended.
+//
+// run-upgrade-path-tests.mjs is excluded for the same reason and the boundary is the same shape: it
+// performs a real `init` per scenario across a hundred-plus assertions, so one run per mutation site
+// is hours, not minutes. It also targets `bin/agentsmyth.mjs`, which this audit cannot mutate
+// anyway, so including it would add cost without extending reach. Its own fixes are pinned by a
+// revert-and-rerun discipline instead: each one was verified to turn a specific assertion red.
 const SUITES = [
   ['scripts/validate-template.mjs'],
   ['scripts/validate-example.mjs'],

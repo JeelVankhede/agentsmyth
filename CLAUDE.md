@@ -51,6 +51,16 @@ Everything hinges on a three-world split. Get this wrong and you will edit the w
   once `definitions_root` is set, expanding only `workflow/artifacts/` and
   `workflow/learnings/`. `--system` was removed outright; it never shipped in a published
   release.
+- `upgrade` (WP-R18) is the third install-family command and the only one that writes over a repo's
+  own content. It runs `prepare` first, unconditionally, then classifies every governed artifact
+  against `workflow/provenance.yaml` and applies **key-level deltas** from versioned migration
+  descriptors — never a whole-file replace. A file the user edited is backed up to
+  `workflow/backups/<version>/` and raises a reconcile item in `pending-setup.yaml`; a file
+  agentsmyth wrote is brought current in place. `--dry-run` previews without writing;
+  `--baseline` re-records the current files as the baseline and is the mandatory final step of the
+  agent-driven setup skill. Re-running `init` on a repo that already has a manifest deliberately
+  does NOT re-baseline it — doing so adopted the user's edits as agentsmyth's own content and
+  erased the drift a later upgrade needs to see.
 - `src/workflow/validators/lib.mjs` uses a two-root resolver: `definitions_root` in
   `repo-profile.yaml` → `AGENTSMYTH_HOME` env → repo-local fallback. The dotted string is
   *constructed* (`['.','workflow'].join('')`) so the consumer copy never contains a literal

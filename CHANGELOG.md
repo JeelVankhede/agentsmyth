@@ -8,6 +8,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-09-08
 
 ### Added
+- **Version-aware delta upgrades** (WP-R18) — a new `agentsmyth upgrade` command brings an
+  already-set-up repository current with the installed version. Until now there was no upgrade path
+  at all: `prepare` refreshes the shared global tree and writes nothing into a repo, and a second
+  `init` over a set-up repo changes no tracked file, so the files agentsmyth scaffolded stayed as
+  first written however many releases had passed.
+  `init` now records a digest of every file it writes into `workflow/provenance.yaml`, which is what
+  lets an upgrade tell a file you edited from one that is merely stale. Unchanged files are brought
+  current silently; an edited file is copied to `workflow/backups/` first, then brought current, and
+  flagged with a single item in `pending-setup.yaml` naming the backup — but only when the upgrade
+  actually has a change for it, so an edit to a file this release does not touch is simply left alone — your agent offers the
+  merge at the start of the next session, so nothing prompts in a terminal and CI behaves the same
+  as a laptop. A file you deleted stays deleted.
+  Repos created before this exists have no manifest; `upgrade` adopts their current files as the
+  baseline rather than reporting everything as drifted. A manifest that cannot be parsed, or one
+  written by a newer CLI than the one running, is a hard stop rather than a guess — both are cases
+  where continuing would overwrite files with no backup.
+  The mandatory pre-commit gate and `AGENTS.md` are also no longer frozen at whatever version first
+  installed them: their marked blocks are refreshed on upgrade while anything you wrote around them
+  survives byte-for-byte. Both are refreshed whether or not they are in the manifest — a hook in a
+  default repo lives under `.git/`, which is a protected path and so is never hashed or backed up,
+  and that is no reason to leave the gate stale.
+  A file agentsmyth did not write is never adopted: a pre-existing `.github/copilot-instructions.md`
+  stays yours, ungoverned and untouched.
+  Migration descriptors under `src/assets/workflow/migrations/` describe what changed shape between
+  two versions, so a value that merely moved is not mistaken for one you set. A descriptor is
+  validated against its own schema before any of it is applied, and one naming an operation the CLI
+  does not implement is a hard error rather than a silently skipped line.
+  `agentsmyth upgrade --dry-run` classifies every governed file and prints what would change without
+  writing anything. `upgrade` warns — it does not block — when the working tree is dirty: only files
+  it reads as edited are backed up, so for everything else your own git history is the way back.
+  Re-running `init` on a repo that already has a manifest deliberately leaves the manifest alone and
+  says so. Re-baselining there would adopt whatever you had edited as agentsmyth's own content and
+  erase the drift the next upgrade needs to see; `upgrade` is the verb for an existing repo.
+  Paths are contained by construction rather than by convention: a value read from the manifest that
+  becomes part of a filesystem path is format-validated at read time and rejected if it is not a
+  version string, and a symlink at a governed path is followed only when its target resolves inside
+  a boundary the calling code declares — so neither a crafted manifest nor a checked-in symlink can
+  make an upgrade write, or read, outside the repository.
+  `agentsmyth check` now compares each recorded digest against the file on disk and reports drift
+  before an upgrade acts on it, which also makes a skipped post-setup baseline visible immediately
+  instead of at the first real upgrade.
+
 - **Enforcement proof on the README and the docs site home** (WP-R24) — the claim that the lifecycle
   is enforced mechanically rather than prompted is now shown rather than asserted: a real captured
   refusal, a `git commit` rejected because the plan it depended on was never approved, sits above the
@@ -104,6 +146,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file shows; reading the lean file alone is how a number gets taken twice.
 
 ### Fixed
+- **`check-setup-complete` can fail again, and the `AGENTS.md` version stamp finally has a reader**
+  (OI-105) — the adapter-presence check had become unfalsifiable once `init` started always writing
+  a root `AGENTS.md`, since that file is one of the five paths it accepts. It now parses the
+  `agentsmyth:<version>` marker pair and compares it against the repo's stamp, which both restores a
+  real failure mode and makes the stamp — written for this purpose and never read — actually load-bearing.
+- **`AGENTS.md` no longer gains a second copy of its own block.** `init` looked for a
+  *version-marked* block; a file already carrying the same body **without** markers was invisible to
+  that test, so it appended and the file ended up saying the same thing twice — once as your copy,
+  once inside the marker. Reachable by pasting the block out of the docs before running `init`, by
+  copying an `AGENTS.md` between repos and losing the HTML comments in transit, or by any formatter
+  that strips them. The duplication was one-time rather than compounding, which made it worse in one
+  respect: every later upgrade found the marked block and never surfaced the stray copy again.
+  `init` and `upgrade` now adopt an unmarked copy in place. Extra copies beyond the first are left
+  alone and reported — they are yours, not agentsmyth's to remove — and a heading that merely
+  *starts* like agentsmyth's is never claimed.
+- **`prepare` no longer appends a blank line to your global config on every run, and cleans up the
+  ones it already added.** The gate text carried a trailing newline and the text preserved after the
+  END marker began with the newline that followed it, so each run kept both. `upgrade` runs
+  `prepare` unconditionally, so the file grew every time you upgraded anything — one real install
+  was found carrying 34 accumulated blank lines, with nothing ever surfacing it. The block is now
+  written byte-identically run over run, and a run also collapses whitespace a previous version left
+  behind, so existing files repair themselves rather than keeping the damage forever. Content you
+  wrote after the block is carried through untouched.
+- **Pending-setup ids are no longer re-issued after pruning** — allocation was `max(present) + 1`,
+  so removing `PS-9` from a file left `PS-1` and the next allocation handed out `PS-2` again,
+  colliding with an id that had existed and been pruned, in a file whose schema says ids are never
+  renumbered. A `next_id` high-water mark now advances monotonically. Latent since the mechanism
+  shipped; unreachable until reconcile items made pruning the expected lifecycle.
+
 - The mandatory pre-commit hook ran its coverage check as a bare command under `set -e`, so a
   failing check terminated the script before the per-artifact phase-gate loop could run: the gate
   reported one class of problem while silently skipping another. It now runs as an `if` condition,
