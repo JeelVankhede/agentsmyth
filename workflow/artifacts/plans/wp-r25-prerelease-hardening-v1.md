@@ -53,7 +53,7 @@ by both the council group and nothing else, so the council group is self-contain
 only destructive requirement in the package, so it is isolated into its own phase with its own
 blast-radius gate rather than bundled with work that would obscure a bad deletion.
 
-Phase 6 exists to own the cross-cutting release invariants that have no code of their own. Every
+Phase 7 exists to own the cross-cutting release invariants that have no code of their own. Every
 phase carries a binary exit gate expressed as a command outcome or an observable file condition.
 
 ## Inputs
@@ -84,18 +84,18 @@ phase carries a binary exit gate expressed as a command outcome or an observable
 | R3 | Phase 3 (owner) | `depth` defined, `model_tier` added. Citation: `src/workflow/agent-behavior.yaml:141`. Covered. |
 | R4 | Phase 3 (owner) | Pre-dispatch stop via validator. Citation: `src/workflow/validators/check-lifecycle.mjs`. Covered. |
 | R5 | Phase 3 (owner) | Tier enforced via per-tool member definitions. Citation: `src/adapters/`, `bin/agentsmyth.mjs:2407`. Covered. |
-| R6 | Phase 6 (owner) | All ten in 1.1.0. Citation: `CHANGELOG.md` `[1.1.0]` entry. Covered. |
+| R6 | Phase 7 (owner) | All ten in 1.1.0. Citation: `CHANGELOG.md` `[1.1.0]` entry. Covered. |
 | R7 | Phase 2 (owner) | No false reconcile item or backed-up husky shim. Citation: `bin/agentsmyth.mjs:1136`. Covered. |
 | R8 | Phase 1 (owner) | Worktree manifest entry accepted by its own reader. Citation: `bin/agentsmyth.mjs:1827`. Covered. |
 | R9 | Phase 4 (owner) | Bundle pruning, blast radius bounded by the manifest. Citation: `bin/agentsmyth.mjs:778`. Covered. |
 | R10 | Phase 3 (owner) | Council contract runs in a consumer repo. Citation: `bin/agentsmyth.mjs:206`. Covered. |
 | R11 | Phase 5 (owner) | Rehearsal evidence re-derived, tarball removed. Citation: `workflow/artifacts/open-items.yaml` OI-87. Covered. |
-| RI1 | Phase 6 (owner) | Additive, with the one declared carve-out. Citation: `src/workflow/validators/check-council-record.mjs:318`. Covered. |
+| RI1 | Phase 7 (owner) | Additive, with the one declared carve-out. Citation: `src/workflow/validators/check-council-record.mjs:318`. Covered. |
 | RI2 | Phase 1 | Absent-or-differing stamp rule. Citation: `bin/agentsmyth.mjs:2324`. Covered. |
-| RI3 | Phase 6 (owner) | Five-adapter content sync. Citation: `scripts/render-adapters.mjs`. Covered. |
-| RI4 | Phase 6 (owner) | Rebuild after source change. Citation: `scripts/build-bundle.mjs`. Covered. |
-| RI5 | Phase 6 (owner) | Ratchet on validator rules only. Citation: `test/run-mutation-audit.mjs:38`. Covered. |
-| RI6 | Phase 6 (owner) | Zero runtime dependencies. Citation: `package.json`. Covered. |
+| RI3 | Phase 7 (owner) | Five-adapter content sync. Citation: `scripts/render-adapters.mjs`. Covered. |
+| RI4 | Phase 7 (owner) | Rebuild after source change. Citation: `scripts/build-bundle.mjs`. Covered. |
+| RI5 | Phase 7 (owner) | Ratchet on validator rules only. Citation: `test/run-mutation-audit.mjs:38`. Covered. |
+| RI6 | Phase 7 (owner) | Zero runtime dependencies. Citation: `package.json`. Covered. |
 | RI7 | Phase 2 | Tracked-hooks-dir repos unregressed; superseded entries labelled. Citation: `bin/agentsmyth.mjs:1165`. Covered. |
 | RI8 | Phase 3 | No prompt added under `bin/`; R4 is a validator. Citation: `src/workflow/router.md`. Covered. |
 | RI9 | Phase 1 | Missing definitions produce a diagnosable error. Citation: `src/workflow/validators/lib.mjs`. Covered. |
@@ -329,7 +329,7 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   no file under `README.md` or `site/` asserts that all five tool gates install automatically unless
   `bin/agentsmyth.mjs` has been changed to make that true on every platform.
 
-### Phase 6 - Release integration and invariants
+### Phase 7 - Release integration and invariants
 
 - **Manifest IDs:** R6, RI1, RI3, RI4, RI5, RI6
 - Touches: `CHANGELOG.md`, `dist/`, `validators/`, `workflow/schemas/` (regenerated), `package.json`
@@ -344,7 +344,7 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `dependencies` empty; `CHANGELOG.md` `[1.1.0]` names all ten defects; and no artifact other than
   the four council ones named in RI1 was edited to make validation pass.
 
-### Phase 7 - Council configuration depth, override, and cost history
+### Phase 6 - Council configuration depth, override, and cost history
 
 - **Manifest IDs:** R3, R4, R5
 - **Added by explicit plan update, 2026-10-04, and the route matters.** The Build contract permits
@@ -394,18 +394,23 @@ asserts survival of a consumer-authored file as well as removal of a retired one
 2. **Phase 4** is independent of 1, 2 and 3. It touches `expandBundle`, which no other phase
    touches.
 3. **Phase 5** is independent of all code phases. Its only coupling is that RI10's decision —
-   fix delivery or correct the wording — must be made before Phase 6 writes the CHANGELOG, because
+   fix delivery or correct the wording — must be made before Phase 7 writes the CHANGELOG, because
    the entry should not claim what RI10 declined to deliver.
 4. **Phase 3** must come after **Phase 1** only in the weak sense that both edit
    `bin/agentsmyth.mjs`; there is no logical dependency, but sequencing them avoids a merge conflict
    in one file. If they are worked in parallel, Phase 1's regions (`:139`, `:562`, `:2324`, `:2915`)
    and Phase 3's regions (`:206`, `:2407`) do not overlap.
-5. **Phase 7 comes after Phase 3 and before Phase 6.** After Phase 3 because it extends the contract
-   Phase 3 established; before Phase 6 because Phase 6 rebuilds and asserts the whole suite, and a
+5. **Phase 6 comes after Phase 3 and before Phase 7.** After Phase 3 because it extends the contract
+   Phase 3 established; before Phase 7 because Phase 7 rebuilds and asserts the whole suite, and a
    phase landing after it leaves a stale `dist/` and a CHANGELOG that under-describes the release.
-   Within Phase 7 the merge-depth fix strictly precedes the per-phase keys: building them first would
+   Within Phase 6 the merge-depth fix strictly precedes the per-phase keys: building them first would
    mean shipping a documented defect and then removing it.
-6. **Phase 6 must be last.** It rebuilds and asserts the whole suite, so every other phase's source
+6. **Phase 7 must be last, and its number says so.** The council-configuration phase was first
+   written as Phase 7 and sequenced before Phase 6, which reads fine in prose and breaks the scope
+   fence: that check bounds a task artifact's changed files by the UNION of phases up to the ACTIVE
+   number, so a lower-numbered active phase excludes a higher-numbered one that already ran. The two
+   were renumbered so execution order and numbering agree. A plan that needs a sentence to explain
+   why its phases run out of order is a plan whose numbers are wrong. It rebuilds and asserts the whole suite, so every other phase's source
    edits must already be in place. Running it earlier produces a stale `dist/` and a CHANGELOG that
    under-describes the package.
 
@@ -469,12 +474,12 @@ Configured commands first (`prefer_configured_commands: true`), then discovered 
 | R9 | command — `npm run upgrade-path:test` | Phase 4 | Four assertions including survival of an unrecorded file. |
 | R11 | review — working tree has no `*.tgz`; OI-87 wording names what was tested | Phase 5 | Inspection plus a ledger edit. |
 | RI10 | review — release and docs copy audited against actual delivery | Phase 5 | Either fixed or corrected; a new open item if deferred. |
-| R6 | review — `CHANGELOG.md` `[1.1.0]` names all ten defects | Phase 6 | Date stays placeholder until dispatch. |
-| RI1 | command — `npm run validate` with only the four named artifacts edited | Phase 6 | The declared carve-out, asserted as bounded. |
-| RI3 | command — `npm run render-adapters` | Phase 6 | Shims current. |
-| RI4 | generated-output — `npm run build` then `git status` on `dist/` | Phase 6 | `require_source_mapping: true`; source-only inspection is explicitly not enough. |
-| RI5 | command — `npm run mutation:audit` | Phase 6 | 0 undefended for validator rules; CLI fixes pinned by revert-and-rerun, recorded per fix. |
-| RI6 | command — `node -e` reading `package.json` dependencies | Phase 6 | Empty. |
+| R6 | review — `CHANGELOG.md` `[1.1.0]` names all ten defects | Phase 7 | Date stays placeholder until dispatch. |
+| RI1 | command — `npm run validate` with only the four named artifacts edited | Phase 7 | The declared carve-out, asserted as bounded. |
+| RI3 | command — `npm run render-adapters` | Phase 7 | Shims current. |
+| RI4 | generated-output — `npm run build` then `git status` on `dist/` | Phase 7 | `require_source_mapping: true`; source-only inspection is explicitly not enough. |
+| RI5 | command — `npm run mutation:audit` | Phase 7 | 0 undefended for validator rules; CLI fixes pinned by revert-and-rerun, recorded per fix. |
+| RI6 | command — `node -e` reading `package.json` dependencies | Phase 7 | Empty. |
 
 Configured required commands `npm run validate` and `npm run violations:test` run at Review and
 Ship per `verification.yaml`, in addition to their per-phase appearances above.
@@ -504,7 +509,7 @@ No requirement relies on a skipped check. If any check is skipped at Test, it mu
   schema, validator and skill changes are mutually dependent — a schema accepting `model_tier` with
   no validator reading it, or a skill resolving it with no schema permitting it, are both worse
   intermediate states than one bigger phase.
-- **tradeoff:** Phase 6 owns six requirements with no code of their own. The alternative was leaving
+- **tradeoff:** Phase 7 owns six requirements with no code of their own. The alternative was leaving
   them unowned, which the requirement-phase-mapper rule forbids and which would let the rebuild
   obligation go unasserted.
 - **assumptions Build must preserve:** A3 holds narrowly — documentation establishes the mechanism,

@@ -146,6 +146,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file shows; reading the lean file alone is how a number gets taken twice.
 
 ### Fixed
+- **`init` refuses a global definitions install that is not the one it ships** (WP-R25) — `init`,
+  `check`'s bootstrap and `headlessBootstrap` each decided whether the shared definitions tree was
+  usable by asking whether the directory existed. That answers the wrong question, and three
+  consequences were reachable and silent: an empty tree counted as installed, so `init` exited 0 and
+  the next `check` died on a stack trace; a tree expanded by an older package counted as installed,
+  so a newer CLI seeded setup items whose values that tree's schema rejects; and a half-expanded tree
+  counted as installed. One predicate now answers it for all three entry points, keyed on the version
+  stamp — published 1.0.1 wrote none at all, so absence is both the common case and sufficient to
+  catch it. Verified against the genuinely published 1.0.1 fetched from the registry, not a
+  synthesised one.
+- **The lifecycle gate is installed where it both survives and runs** (WP-R25) — husky points
+  `core.hooksPath` at a directory it regenerates, so the gate was deleted by the next dependency
+  install while `AGENTS.md` went on advertising it. The gate now resolves to husky's own durable
+  entry point, detected structurally rather than by the name `.husky`, and is written FIRST in that
+  file: husky executes it under `sh -e` and always pre-populates it, so an appended gate sat behind a
+  host command that could exit 0 and never ran. A hook that survives an install and does not execute
+  is worse than one that is missing, because the file is present and the claim reads as true.
+- **A husky repo no longer reports its own tool's regeneration as your edits** (WP-R25) — every
+  upgrade after a dependency install backed husky's generated shim into `workflow/backups/` and
+  raised a reconcile item for a file nobody had touched. A recorded entry that is still on disk but
+  has left the governed set is now reported as superseded rather than missing.
+- **`init` inside a linked git worktree no longer breaks `upgrade` permanently** (WP-R25) — the hook
+  resolves to the common dir there, which is correct for enforcement but outside the working tree, so
+  the manifest recorded a path its own reader then rejected as escaping the repository. Every later
+  `upgrade` exited 1 with no user error involved.
+- **A missing definitions file explains itself** (WP-R25) — an absent definitions file meant the
+  install a repo is linked to is gone or incomplete, which no edit inside the repo can fix, and it
+  surfaced as a stack trace naming an internal frame. It now names the file and the remedy.
+
+### Changed
+- **`prepare` removes files a previous version shipped and this one does not** (WP-R25) — expansion
+  was purely additive, so a skill or validator retired in one release lived on in every tree that had
+  installed the older one, still resolvable by name. A version stamp cannot see that: it says which
+  release ran last, not which files that release stopped shipping. Pruning is bounded by a ledger of
+  what the previous expansion wrote, never by the directory — so the separately copied validators
+  tree, OS cruft, and anything you put there yourself are not candidates.
+- **Council capability is configurable, per phase, and recorded** (WP-R25) — `council.depth` shipped
+  as a tunable key recorded in artifact frontmatter with no operational definition and no reader. It
+  now says what its three values do: `shallow` runs research only, `standard` adds the challenge
+  stage, `deep` adds a per-round web spot-check quota. Two genuinely new axes join it —
+  `council.model_tier` (`cheap`/`standard`/`deep`) for what members run on, and `council.effort`
+  (`low` through `max`) for how hard they think — both as portable vocabularies rather than any one
+  tool's model names or enum, since naming one tool's would leave the other four wrong by default.
+  All three may be set per phase, because a Review verdict blocks a commit and a Think verdict does
+  not. A single run may depart from the configuration and must record why.
+  `model_tier` is the one setup answer that BLOCKS: a council will not dispatch until it is set,
+  because any default would be this package choosing how much you spend.
+- **Council cost is reported before the fan-out, from your own history** (WP-R25) — council records
+  now carry per-member token counts, and the estimate is the mean of your repo's recorded councils.
+  A first council says `no-history` and projects nothing; a figure derived from fan-out and rounds
+  would read as a measurement and be a guess.
+- **The council-record contract now runs in a consumer repo** (WP-R25) — roughly thirty rules about
+  what a council run must leave behind existed and none of them executed outside this repository, so
+  a recorded tier meant nothing to anyone using the package.
+- **`agentsmyth prepare` documentation corrected** (WP-R25) — it does not refresh the global gate in
+  every supported tool's config: Copilot's path is macOS-specific and Cursor has no global config
+  file at all, so its gate is a one-time manual paste. At most four of five install automatically on
+  macOS and three of five elsewhere.
 - **`check-setup-complete` can fail again, and the `AGENTS.md` version stamp finally has a reader**
   (OI-105) — the adapter-presence check had become unfalsifiable once `init` started always writing
   a root `AGENTS.md`, since that file is one of the five paths it accepts. It now parses the
