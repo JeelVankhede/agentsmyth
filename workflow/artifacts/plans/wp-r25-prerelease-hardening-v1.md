@@ -266,6 +266,7 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `src/adapters/windsurf/council-member.md`,
   `test/run-violation-tests.mjs`, `test/fixtures/lifecycle-violations/`,
   `test/mutation-baseline.json`,
+  `src/setup/SKILL.md`,
   `workflow/artifacts/`
 - **Touches rewritten during Build, 2026-10-03, for clerical reasons rather than scope ones.** The
   approved text named "the three schemas", "both council skills" and two bare validator filenames.
@@ -273,6 +274,16 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   resolve — the plan validator warns about precisely this class. Nothing here is a new target; every
   entry is the full path of something the phase already declared, plus the test surfaces R4's new
   validator rule requires under RI5 (a rejection fixture and the ratchet baseline).
+- **`src/setup/SKILL.md` added during Build, and this one is a design correction rather than a
+  clerical one.** The plan put the member-definition placement in `bin/agentsmyth.mjs` at `init`.
+  That cannot work, and R4 is the reason: R4 makes `tuning.council.model_tier` a BLOCKING unanswered
+  pending item, so by construction the tier is unresolved at the moment `init` runs. Placing the
+  definition then would write `model: <COUNCIL-MODEL>` into a host-native agent file — invalid
+  frontmatter that could break the user's tool, to express a value nobody has chosen yet. Placement
+  therefore belongs at tier-resolution time, which is the setup agent's, and the templates already
+  reach it: `init` copies `src/assets/` into `.agentsmyth/`, and the build syncs
+  each adapter directory's council-member template into the matching assets directory. The two requirements interact;
+  the plan treated them as independent.
 - Work: give `depth` an operational definition in the shipped invariant and in all three starter
   blocks. Add `model_tier` as a new optional key, globally and as a repo tunable, and rewrite the
   stale "two exceptions" sentence as a rule rather than an enumeration. Add a `check-lifecycle`

@@ -93,6 +93,41 @@ round**, filed as its own finding. `web` is the only evidence class with no mech
 sampling is the sole mechanism by which a fabricated quote gets caught rather than merely being
 wrong.
 
+## Capability Tier
+
+Resolve `council.model_tier` BEFORE the fan-out stage, in the same pass that resolves the cap — and
+refuse to dispatch if it is unresolved while `tuning.council.model_tier` is still an open
+pending-setup item. That refusal is not this skill's to improvise: `check-lifecycle --phase think`
+holds it mechanically, and the Think gate runs ahead of stage 1, so it lands before any member is
+spawned rather than after the bill.
+
+This is the one setup answer in the package that blocks, and the asymmetry is deliberate. Fan-out has
+a defensible default; a capability tier does not, because any default chosen here is this package
+deciding how much the user spends.
+
+**Dispatch members BY NAMING the adapter's council-member definition**, never by describing a role in
+prose and hoping. A tier passed as prompt text is unenforceable — nothing reads it, nothing verifies
+the member honoured it, and the parent cannot observe which model answered. A named definition is
+resolved by the host before the member runs, which is the difference between a parameter and a wish.
+The definition is placed by the setup skill at the tool's native per-repo agent path; its template
+lives in that adapter's `council-member.md` and carries the tool's own tier mapping.
+
+**Record the request and the outcome separately.** `council.model_tier` is what was asked for;
+`council.model_actual` is what the host reports members ran on, or the literal `unknown` when it
+reports nothing. They are two fields because a tier is a request, not a guarantee: some hosts replace
+a declared model by plan or administrator policy, so writing the request into the outcome would be
+claiming external state without evidence. `unknown` is an honest value and must never be inferred
+from the tier.
+
+**Two of the five supported tools cannot express a per-member effort at all** — one has no effort
+field, and one keeps it in repository settings rather than the agent file. For those, the effort axis
+is `unavailable`, recorded the same way an unavailable evidence class is. Reporting it as honoured
+would assert a capability the tool does not have.
+
+Note that `model_tier` and `depth` are different axes and neither substitutes for the other. `depth`
+decides how many passes run and how hard each member looks; `model_tier` decides what each member
+runs on. A shallow pass on a deep tier and a deep pass on a cheap tier are both coherent requests.
+
 ## Evidence And Dispositions
 
 Follow `dispatch-subagents/references/council-contracts.md`. It is the shared contract — the Review

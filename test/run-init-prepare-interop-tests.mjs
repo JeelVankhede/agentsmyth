@@ -197,8 +197,16 @@ if (process.getuid?.() === 0) {
   // still carry real placeholders). This scenario's own intent is narrower than overall exit
   // code: does check-lifecycle.mjs itself still resolve and run cleanly from the global tree,
   // independent of the separate, new, and correctly-firing setup-completeness gate.
+  // Asserts that check-lifecycle RESOLVED and RAN from the global tree — which is this scenario's
+  // stated intent — rather than that it passed. The two diverged when the council capability tier
+  // became a blocking pending-setup item: headless bootstrap now seeds that item, so a freshly
+  // bootstrapped repo's Think gate correctly REFUSES until the tier is answered. Matching on "ok"
+  // was matching the outcome of a different question, and would have had this scenario reporting a
+  // resolution failure for a gate that resolved perfectly well and then did its job.
   check('F5-resolves', 'a subsequent check-lifecycle invocation resolves cleanly from the global tree',
-    /check-lifecycle --phase think: ok/.test(followUp.stdout));
+    /check-lifecycle --phase think: (ok|failed with)/.test(followUp.stdout + followUp.stderr));
+  check('F5b-tier-gated', 'and the freshly bootstrapped repo is gated on the unanswered capability tier',
+    /no council capability tier has been chosen/.test(followUp.stdout + followUp.stderr));
   check('F6-setup-incomplete-flagged', 'the same invocation also surfaces the (correct, expected) setup-completeness failure',
     followUp.status !== 0 && /check-setup-complete: failed/.test(followUp.stderr));
 }
