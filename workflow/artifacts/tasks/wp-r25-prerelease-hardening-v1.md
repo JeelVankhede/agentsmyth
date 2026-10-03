@@ -35,8 +35,8 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 3 - Council capability contract (complete; Phase 4 is next)
-- Manifest IDs: R3, R4, R5, R10, RI8
+- Phase: Phase 4 - Bundle pruning
+- Manifest IDs: R9
 - Exit gate: `check-lifecycle --phase think` exits non-zero for a Complex chain with no resolved
   `model_tier` and exits 0 once one is set; `check-council-record` rejects a council record that
   omits `model_tier` when the config declares one and accepts one that carries it; `agentsmyth
@@ -53,8 +53,9 @@ orchestration:
 |---|---|---|
 | Phase 1 - Resolution and staleness | complete | R1, R8, RI2, RI9 |
 | Phase 2 - Hook durability and execution | complete | R2, R7, RI7, RI11, RI12 |
-| Phase 3 - Council capability contract | active | R3, R4, R5, R10, RI8 |
-| Phase 4 - Bundle pruning | pending | R9 |
+| Phase 3 - Council capability contract | complete | R3, R4, R5, R10, RI8 |
+| Phase 4 - Bundle pruning | active | R9 |
+| Phase 7 - Council config depth, override, cost history | pending | R3, R4, R5 |
 | Phase 5 - Release evidence and delivery honesty | pending | R11, RI10 |
 | Phase 6 - Release integration and invariants | pending | R6, RI1, RI3, RI4, RI5, RI6 |
 
@@ -118,7 +119,7 @@ orchestration:
     `src/adapters/` — Phase 3 (R3, R4, R5, R10, RI8). `check-lifecycle.mjs` is touched in BOTH
     phases and for unrelated reasons: Phase 1 adds RI9's catch at its module-scope definitions load,
     Phase 3 adds R4's pre-dispatch rule. Phase 1 changes nothing Phase 3 depends on.
-  - `expandBundle` pruning — Phase 4 (R9).
+  - `expandBundle` pruning is now IN scope (Phase 4, R9).
   - The stray tarball, OI-87 wording, delivery-parity copy — Phase 5 (R11, RI10).
   - `npm run build`, `CHANGELOG.md`, `dist/` — Phase 6, which must run last.
 

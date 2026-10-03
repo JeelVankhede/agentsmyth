@@ -344,6 +344,49 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `dependencies` empty; `CHANGELOG.md` `[1.1.0]` names all ten defects; and no artifact other than
   the four council ones named in RI1 was edited to make validation pass.
 
+### Phase 7 - Council configuration depth, override, and cost history
+
+- **Manifest IDs:** R3, R4, R5
+- **Added by explicit plan update, 2026-10-04, and the route matters.** The Build contract permits
+  either returning to Think/Plan OR an explicit plan update for new requirements. A new brief version
+  was written first and then reverted: because the phase gate resolves the LATEST brief for a slug, an
+  unapproved v3 blocked Phases 4, 5 and 6 — work already approved under v2 and unrelated to anything
+  here. Halting approved work to request approval for work the user had just authorised is a cost with
+  no benefit, so this is the plan-update route instead.
+- **Scope extension declared rather than disguised.** R3 and R5 were written as "define depth, add
+  model_tier" and "the tier is enforced". The user extended both on 2026-10-04 after using what Phase
+  3 shipped: configuration must be per-phase, a single run must be able to depart from it, and the
+  cost of a fan-out must be visible before it happens. The first two are plainly within R3 and R5 —
+  a capability contract that cannot be set per phase or departed from is not finished. Cost history
+  is the honest stretch: it is the user-facing half of the same contract, since a tier cannot be
+  chosen responsibly without knowing what it costs, but the brief did not anticipate it and this note
+  says so rather than letting the manifest imply otherwise.
+- Touches: `src/workflow/agent-behavior.yaml`,
+  `src/workflow/schemas/agent-behavior.schema.yaml`,
+  `src/workflow/schemas/repo-profile.schema.yaml`,
+  `src/workflow/schemas/artifact-frontmatter.schema.yaml`,
+  `src/workflow/validators/check-council-record.mjs`,
+  `src/workflow/skills/think-council/SKILL.md`, `src/workflow/skills/review-council/SKILL.md`,
+  `test/run-violation-tests.mjs`, `test/fixtures/lifecycle-violations/`,
+  `test/run-tuning-merge-tests.mjs`, `test/mutation-baseline.json`, `workflow/artifacts/`
+- Work, and **the merge depth goes first**. The council found that council config resolves through a
+  flat top-level spread while `per_phase` is map-valued, so adding keys inside `per_phase` entries
+  without deepening that merge reproduces exactly the failure `src/workflow/validators/lib.mjs`
+  documents at lines 98-106: a repo naming one key silently loses its siblings, with nothing
+  erroring. Replace the spread with a per-entry merge reaching one level in, and prove it with a
+  fixture, BEFORE adding `model_tier` and `effort` to `per_phase`. Then the per-run override, with a
+  mandatory reason and a validator rule that rejects a reasonless one. Then per-member token counts
+  on the council record and a pre-dispatch estimate derived from the mean of this repo's recorded
+  councils, with an explicit no-history path that projects nothing — never a figure computed from
+  fan-out and rounds, which would be a fabrication `[safety-3]` forbids.
+- **Exit gate:** all of: a fixture proves a per-phase override of one key leaves that phase's sibling
+  keys and every other phase at their global values; a fixture proves an override with no reason is
+  rejected; a council record carrying per-member token counts validates, and one carrying
+  `unavailable` validates too; a repo with no council history yields an estimate that states it has
+  none and contains no projected number; `grep` finds no code path multiplying fan-out by rounds to
+  produce a cost; `npm run validate`, `violations:test`, `conformance:test`, `tuning-merge:test` and
+  `mutation:audit` all pass with 0 undefended.
+
 ## Dependency Order
 
 1. **Phase 1** and **Phase 2** are independent of each other and of everything else. Both are
@@ -357,7 +400,12 @@ asserts survival of a consumer-authored file as well as removal of a retired one
    `bin/agentsmyth.mjs`; there is no logical dependency, but sequencing them avoids a merge conflict
    in one file. If they are worked in parallel, Phase 1's regions (`:139`, `:562`, `:2324`, `:2915`)
    and Phase 3's regions (`:206`, `:2407`) do not overlap.
-5. **Phase 6 must be last.** It rebuilds and asserts the whole suite, so every other phase's source
+5. **Phase 7 comes after Phase 3 and before Phase 6.** After Phase 3 because it extends the contract
+   Phase 3 established; before Phase 6 because Phase 6 rebuilds and asserts the whole suite, and a
+   phase landing after it leaves a stale `dist/` and a CHANGELOG that under-describes the release.
+   Within Phase 7 the merge-depth fix strictly precedes the per-phase keys: building them first would
+   mean shipping a documented defect and then removing it.
+6. **Phase 6 must be last.** It rebuilds and asserts the whole suite, so every other phase's source
    edits must already be in place. Running it earlier produces a stale `dist/` and a CHANGELOG that
    under-describes the package.
 

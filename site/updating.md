@@ -17,7 +17,7 @@ agentsmyth's most distinctive design choice — a shared global install every re
 agentsmyth prepare
 ```
 
-This overwrites the entire global tree — the router, lifecycle, all skills, all validators — with whatever the currently installed CLI ships, and refreshes the global gate file in every supported tool's config. It's always safe to re-run: every file it writes is fully replaced, not merged, so there's no stale content left behind from an older version.
+This overwrites the entire global tree — the router, lifecycle, all skills, all validators — with whatever the currently installed CLI ships. It also refreshes the global gate file for each tool it can actually reach: Claude Code, Codex and Windsurf always; Copilot only on macOS, because its config path is macOS-specific; and Cursor not at all, since Cursor has no global config file to write to — its gate is a one-time manual paste, which `prepare` prints for you rather than installing. It's safe to re-run: every file it writes is fully replaced rather than merged, and files an older version shipped that the current one no longer does are removed, so nothing stale is left behind.
 
 ## `definitions_root` doesn't need to change
 

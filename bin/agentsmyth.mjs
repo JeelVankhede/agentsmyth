@@ -818,13 +818,67 @@ function copyRecursive(src, dest) {
 function expandBundle(bundlePath, destDir) {
   const content = readFileSync(bundlePath, 'utf8');
   const fileRe = /<!-- FILE: ([^>]+) -->\n([\s\S]*?)<!-- END FILE -->/g;
+  const written = [];
   let match;
   while ((match = fileRe.exec(content)) !== null) {
     const [, relPath, fileContent] = match;
     const destPath = join(destDir, relPath);
     mkdirSync(dirname(destPath), { recursive: true });
     writeFileSync(destPath, fileContent);
+    written.push(relPath);
   }
+
+  // PRUNE what a previous expansion wrote and this bundle no longer declares.
+  //
+  // Expansion used to be purely additive, so a skill or validator retired in one release lived on
+  // forever in every tree that had ever installed the older one. That is a second staleness channel,
+  // and a version stamp cannot see it: the stamp says which release ran last, not which files that
+  // release stopped shipping. A retired validator still resolvable by name is the concrete harm.
+  //
+  // THE BLAST RADIUS IS THE LEDGER, NOT THE DIRECTORY. This deletes only paths the previous
+  // expansion recorded having written, and only when the current bundle no longer declares them.
+  // That is deliberately narrower than "anything here the bundle does not declare", which would
+  // reach `validators/` (copied separately, never expanded), OS cruft, and anything a user put here
+  // themselves. A whole-tree sweep is the version of this feature that eats a consumer's own files,
+  // so it is not the version that ships.
+  //
+  // A first run after this change finds no ledger, prunes nothing, and simply records one. The
+  // ledger is written AFTER the deletions so a crash mid-prune leaves the old list intact and the
+  // next run retries, rather than forgetting what it still owns.
+  // The ledger filename is a literal INSIDE this function, not a module-level const. As a const it
+  // was a temporal-dead-zone hazard: this function is reached from a top-level command dispatch that
+  // runs before the binding initialises, so `prepare` threw "Cannot access 'EXPANDED_LEDGER' before
+  // initialization". That is the second time in this chain and at least the third in this file's
+  // history, and the standing remedy is the same each time — make position irrelevant rather than
+  // re-order declarations and trust the next edit to preserve the order.
+  //
+  // It is also not part of the bundle, so it never appears in its own file list and can never be a
+  // pruning candidate.
+  const ledgerPath = join(destDir, 'workflow', 'expanded-files.txt');
+  const declared = new Set(written);
+  let previous = [];
+  try {
+    previous = readFileSync(ledgerPath, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  } catch { /* no ledger yet — nothing is known to be ours, so nothing is pruned */ }
+
+  const removed = [];
+  for (const rel of previous) {
+    if (declared.has(rel)) continue;
+    // A ledger is machine-written, but it is still a file on disk that something could corrupt, and
+    // acting on a path that escapes the tree would turn a stale-file sweep into an arbitrary delete.
+    if (!isSafeRelPath(rel)) continue;
+    const abs = join(destDir, rel);
+    try {
+      if (existsSync(abs) && lstatSync(abs).isFile()) {
+        rmSync(abs);
+        removed.push(rel);
+      }
+    } catch { /* leave anything that resists deletion; a stale file is better than a broken install */ }
+  }
+
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+  writeFileSync(ledgerPath, written.length > 0 ? `${written.join('\n')}\n` : '');
+  return { written: written.length, removed };
 }
 
 // Installs or updates a delimited gate section in a target file.
@@ -2532,7 +2586,7 @@ function runPrepare(pkgRootDir) {
   console.log(`Installing global definitions to ${globalDir} ...`);
 
   // Expand workflow bundle to ~/.agentsmyth/workflow/
-  expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
+  const expansion = expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
   // Copy validators
   copyRecursive(join(pkgRootDir, 'validators'), join(globalDir, 'validators'));
 
@@ -2554,6 +2608,10 @@ function runPrepare(pkgRootDir) {
   writeFileSync(join(globalDir, 'workflow', 'installed-version.txt'), `${version}\n`);
 
   console.log('  ✓ definitions installed');
+  if (expansion.removed.length > 0) {
+    console.log(`  ✓ removed ${expansion.removed.length} file(s) this version no longer ships:`);
+    for (const rel of expansion.removed) console.log(`      ${rel}`);
+  }
 
   // Install global gates
   const gatesInstalled = [];

@@ -1392,6 +1392,67 @@ function commitWithStub(repo, stubDir, file, message) {
     && !/reconcile\./.test(readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8')));
 }
 
+// ── Bundle pruning: the ledger is the blast radius ──────────────────────────────────────────
+//
+// Expansion used to be purely additive, so a skill or validator retired in one release lived on in
+// every tree that had installed the older one. The dangerous version of the fix is a whole-tree
+// sweep; the assertions below are mostly about what must SURVIVE, because that is the half that
+// eats a consumer's own files when it is wrong.
+{
+  const home = mkScratch('wpr25-prune-home-');
+  cleanup.push(home);
+  const wf = join(home, '.agentsmyth', 'workflow');
+
+  run(['prepare'], { cwd: repoRoot, home });
+  const ledgerPath = join(wf, 'expanded-files.txt');
+  const ledgerPresent = existsSync(ledgerPath);
+
+  // A file a PREVIOUS version shipped: present on disk and recorded in the ledger, but absent from
+  // the current bundle. This is the only shape that may be deleted.
+  const retired = join(wf, 'skills', 'retired-skill', 'SKILL.md');
+  mkdirSync(dirname(retired), { recursive: true });
+  writeFileSync(retired, '# retired by a later release\n');
+
+  // A file nothing ever recorded as ours — a user's own note, OS cruft, and the separately-copied
+  // validators tree. None of these may be touched.
+  const userFile = join(wf, 'my-own-notes.md');
+  writeFileSync(userFile, '# mine, not agentsmyth\'s\n');
+  const cruft = join(wf, 'skills', '.DS_Store');
+  writeFileSync(cruft, 'x');
+  const validatorsDir = join(home, '.agentsmyth', 'validators');
+
+  if (ledgerPresent) {
+    writeFileSync(ledgerPath, `${readFileSync(ledgerPath, 'utf8').trimEnd()}\nworkflow/skills/retired-skill/SKILL.md\n`);
+  }
+
+  run(['prepare'], { cwd: repoRoot, home });
+
+  check('PR1-ledger-written', 'prepare records what it expanded', ledgerPresent);
+  check('PR2-retired-pruned', 'a file the ledger records and this bundle no longer declares is removed',
+    !existsSync(retired));
+  check('PR3-unowned-survives', 'a file the ledger never recorded is left alone', existsSync(userFile));
+  check('PR4-cruft-survives', 'OS cruft is not a pruning candidate', existsSync(cruft));
+  check('PR5-validators-survive', 'the separately-copied validators tree is untouched',
+    existsSync(validatorsDir) && readdirSync(validatorsDir).length > 0);
+
+  // Idempotence: a second expansion over an already-current tree must change nothing.
+  const digest = () => {
+    const files = [];
+    const walk = (dir) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (e.isFile()) files.push(`${full.slice(home.length)}:${readFileSync(full).length}`);
+      }
+    };
+    walk(join(home, '.agentsmyth'));
+    return createHash('sha256').update(files.sort().join('\n')).digest('hex');
+  };
+  const before = digest();
+  run(['prepare'], { cwd: repoRoot, home });
+  check('PR6-idempotent', 'a repeated prepare over a current tree changes nothing', digest() === before);
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
 }
