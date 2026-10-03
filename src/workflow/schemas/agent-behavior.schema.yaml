@@ -194,6 +194,20 @@ properties:
           per-round web spot-check quota. Separate from fan-out, so cost can be reduced without
           shrinking the council, and separate from model_tier, which decides what members run on
           rather than how many passes happen.
+      effort:
+        type: string
+        enum:
+          - low
+          - standard
+          - high
+          - very-high
+          - max
+        description: >-
+          How hard each member thinks within a stage, as a portable five-level scale rather than any
+          one host's enum. Independent of model_tier, which decides what members run on, and of
+          depth, which decides how many stages run. Five levels because the richest supported host
+          accepts five; a host with fewer maps down, and a host with no effort control records the
+          axis as unavailable. Optional, so a config written before this key existed stays valid.
       model_tier:
         type: string
         enum:

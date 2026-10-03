@@ -193,6 +193,18 @@ properties:
           - shallow
           - standard
           - deep
+      effort:
+        type: string
+        enum:
+          - low
+          - standard
+          - high
+          - very-high
+          - max
+        description: >-
+          The reasoning level this run REQUESTED for its members. Recorded separately from
+          model_tier because they are independent axes; a record carrying one and not the other
+          describes half the dispatch. Optional, so earlier council records stay valid.
       model_tier:
         type: string
         enum:

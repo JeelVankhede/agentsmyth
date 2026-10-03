@@ -362,7 +362,8 @@ explicitly rather than the scope being widened silently, and the amendment recor
 | `npm run setup-refs:test`, `npm run setup-checks:test` after step 5a.3 | R5 | pass | both exit 0 |
 | full suite set re-run at Phase 3 close | regression | pass | fourteen suites all exit 0: validate, violations, conformance, init-prepare-interop (56/56), upgrade-path (154), setup-checks, setup-refs, agents-md, commit-coverage, tuning-merge, checkpoint-approval, domain-placeholders, root-resolution, setup-validator-definitions-root. `check-scope-fence: ok`. |
 | suite set re-run after Phase 3 so far | regression | pass | validate, violations, conformance, init-prepare-interop, upgrade-path, setup-checks, agents-md, commit-coverage, tuning-merge, checkpoint-approval all exit 0. |
-| `npm run mutation:audit` | validator ratchet | not run | Exceeded a 10-minute budget; documented in-repo as taking tens of minutes. **Not claimed as passing.** Phase 6 owns it per the plan. Phase 1 added zero validator rules, verified directly: `test/mutation-baseline.json` records `check-lifecycle.mjs` at 22 rules / 0 undefended and `lib.mjs` at 13 / 0, and the live `errors.push(` counts are 22 and 13. So the baseline is unmoved and there is no new rule to defend. Recorded as a deferred check, not a skipped risk. |
+| `npm run mutation:audit` | validator ratchet | pass | Run to completion in the background rather than under a foreground timeout, which is what defeated the three earlier attempts. **`0/235 rules undefended`, `mutation-audit: ok`** — and specifically `check-lifecycle.mjs 23 rules, 0 undefended, defended`, which confirms both that the hand-updated baseline was correct and that fixture `je` genuinely defends R4's new rule rather than merely existing beside it. This retires the uncertainty carried through Phases 1 to 3; RI5 no longer rests on an assertion. |
+| `npm run validate` + eleven suites after the effort decoupling | regression | pass | all exit 0; `check-scope-fence: ok`. |
 
 ## Dispatch Log
 
@@ -397,6 +398,29 @@ dispatched five members — so it should declare one. The item is not hand-writt
 `pending-setup.yaml` because `init` and `upgrade` own seeding it, and the value is not chosen here
 because choosing a spend level on the user's behalf is the exact thing this requirement exists to
 prevent. Until it is declared, this repo's councils resolve to the shipped default. Raise it at Ship.
+
+**Phase 3 remediation, 2026-10-04: effort was folded into the tier and should not have been.** The
+five adapter mappings shipped `cheap`→model+low, `standard`→model+medium, `deep`→model+high, which
+made effort a passenger on capability. Two defects followed from one mistake. A perfectly ordinary
+request — the standard model thinking much harder — could not be expressed at all. And the richest
+supported host accepts five effort levels while a three-value tier can only ever address three, so
+its top two were unreachable by construction.
+
+Nothing in R3 or R5 authorised that coupling; it was an implementation choice made while writing the
+adapters, so this is remediation of a Build error rather than new scope, and it carries no new
+manifest ID. `council.effort` is now its own key on a portable five-level scale — `low`, `standard`,
+`high`, `very-high`, `max` — with neutral words rather than any one vendor's enum, for the same
+reason `model_tier` names a tier and never a model. Each adapter maps the five onto its own host, and
+the two adapters whose hosts cannot express a per-member effort record the axis as `unavailable`
+instead of letting the tier stand in for it.
+
+The three axes are now distinct and documented as such in both council skills: `depth` is how many
+stages run, `model_tier` is what members run on, `effort` is how hard they think within a stage.
+
+**This repo now declares its own tier and effort**, which closes the question the previous Blockers
+entry left open: `model_tier: standard` and `effort: very-high`, answered by the user on 2026-10-04.
+Chosen on the only evidence this repo has — its own WP-R25 council, five members at the session
+default for roughly 653k subagent tokens — rather than on preference.
 
 Carried forward: `mutation:audit` has still not been run end to end (Phase 6 owns it). The
 `check-lifecycle.mjs` baseline was hand-updated from 22 rules to 23 and the live count matches, with

@@ -36,11 +36,16 @@ actually written. An unreported effort is not a satisfied one.
 
 ## Tier mapping
 
-| Tier | Intent |
+| `council.model_tier` | `model` intent |
 |---|---|
 | `cheap` | fastest available model |
 | `standard` | default model |
 | `deep` | most capable available model |
+
+`council.effort` has **no destination in this file.** It maps only to the repository-settings surface
+described above, and only if that surface is deliberately written. Where it is not, record the effort
+axis as `unavailable` — not as satisfied by the tier, which would be reporting a capability this
+format does not have.
 
 Identifiers resolved by the setup agent against Copilot's current docs, not hard-coded here.
 

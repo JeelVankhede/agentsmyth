@@ -242,7 +242,7 @@ properties:
       trivial and skipping phases), the rest of pause_resume, all of evidence_policy, all of
       change_policy, all of waivers, dispatch.require_independent_file_ownership,
       dispatch.require_dispatch_log, dispatch.merge_owner, and skill_scoring.triggers. Councils add
-      council.enabled, council.max_rounds, council.depth, council.model_tier,
+      council.enabled, council.max_rounds, council.depth, council.model_tier, council.effort,
       council.per_phase.<phase>.default_fan_out, and council.sandbox_root as overridable; nothing else in the council block is, and no council key
       can re-enable delegation that dispatch.enabled has turned off.
       Resolution - the global value is overridden by the repo-local value here, EXCEPT
@@ -298,6 +298,14 @@ properties:
               - standard
               - deep
             description: How many passes run and how hard each member looks - shallow is research only, standard adds the challenge stage, deep adds a per-round web spot-check quota. Capacity rather than enforcement, so a repo may move it in either direction.
+          effort:
+            enum:
+              - low
+              - standard
+              - high
+              - very-high
+              - max
+            description: How hard each member thinks within a stage. Independent of model_tier and of depth. Capacity rather than enforcement, so a repo may move it in either direction. Omitting it inherits the global value.
           model_tier:
             enum:
               - cheap

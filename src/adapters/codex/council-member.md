@@ -16,11 +16,19 @@ deliberately **not** hard-coded here: Codex model names change independently of 
 stale identifier shipped to every consumer is worse than a placeholder the setup agent resolves once
 against the current docs.
 
-| Tier | Intent |
+Two independent substitutions. `council.model_tier` decides the model; `council.effort` decides the
+reasoning effort. They are not folded together — a tier does not imply an effort.
+
+| `council.model_tier` | `model` intent |
 |---|---|
-| `cheap` | the fastest model this build offers, lowest reasoning effort |
-| `standard` | the default session model, medium reasoning effort |
-| `deep` | the most capable model available, high reasoning effort |
+| `cheap` | the fastest model this build offers |
+| `standard` | the default session model |
+| `deep` | the most capable model available |
+
+| `council.effort` | `model_reasoning_effort` |
+|---|---|
+| `low` / `standard` / `high` | map to this build's corresponding reasoning-effort values |
+| `very-high` / `max` | map to the highest values this build offers; if it has fewer than five, map down and record the axis as partially honoured rather than claiming the level requested |
 
 ## Always emit BOTH keys
 

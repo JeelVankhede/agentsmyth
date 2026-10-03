@@ -115,9 +115,16 @@ field, and one keeps it in repository settings rather than the agent file. For t
 is `unavailable`, recorded the same way an unavailable evidence class is. Reporting it as honoured
 would assert a capability the tool does not have.
 
-Note that `model_tier` and `depth` are different axes and neither substitutes for the other. `depth`
-decides how many passes run and how hard each member looks; `model_tier` decides what each member
-runs on. A shallow pass on a deep tier and a deep pass on a cheap tier are both coherent requests.
+**Three axes, three questions, and none of them substitutes for another.** `depth` decides how many
+stages run. `model_tier` decides what each member runs on. `council.effort` decides how hard each
+member thinks within a stage, on a portable five-level scale (`low`, `standard`, `high`,
+`very-high`, `max`) that each adapter maps onto its own host. A research-only pass on the standard
+tier at `very-high` effort is a coherent request, and so is a full challenge pass on a cheap tier at
+`low`.
+
+Resolve all three before fan-out and record all three. An earlier version folded effort into the
+tier, which made the first of those requests inexpressible and left the richest host's top two
+effort levels unreachable — a three-value tier cannot address five levels.
 
 ## Risk Category Assignment
 

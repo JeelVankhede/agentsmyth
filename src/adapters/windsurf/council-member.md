@@ -24,11 +24,15 @@ report the effort axis as honoured; record it as `unavailable`.
 
 ## Tier mapping
 
-| Tier | Intent |
+This is the one adapter where the two config keys genuinely cannot stay independent, because the
+host offers no separate control: effort is a property of the model identifier itself.
+
+| `council.model_tier` + `council.effort` | identifier |
 |---|---|
-| `cheap` | the lower reasoning-effort variant of the default model family |
-| `standard` | the mid reasoning-effort variant |
-| `deep` | the highest reasoning-effort variant available |
+| combined | the model-family variant whose reasoning-effort level is closest to the requested `effort`, at the capability implied by `model_tier` |
+
+Record the effort axis as `unavailable` rather than honoured. The request was expressed in two
+dimensions and satisfied in one, and saying otherwise would overstate what this host accepts.
 
 Identifiers resolved by the setup agent against the current docs rather than hard-coded.
 

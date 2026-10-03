@@ -14,11 +14,25 @@ Cursor fuses reasoning effort INTO the model identifier rather than exposing a s
 options are appended in square brackets as `id=value` pairs, e.g. `<model>[effort=high]`. So this
 adapter emits one string carrying both axes, where Claude Code and Codex emit two keys.
 
-| Tier | Intent |
+Both config keys feed ONE string here, which is the whole peculiarity of this adapter:
+`council.model_tier` chooses the identifier and `council.effort` becomes the bracketed option.
+
+| `council.model_tier` | identifier |
 |---|---|
-| `cheap` | fastest available model, `[effort=low]` |
-| `standard` | default model, `[effort=medium]` |
-| `deep` | most capable available model, `[effort=high]` |
+| `cheap` | fastest available model |
+| `standard` | default model |
+| `deep` | most capable available model |
+
+| `council.effort` | bracket |
+|---|---|
+| `low` | `[effort=low]` |
+| `standard` | `[effort=medium]` |
+| `high` | `[effort=high]` |
+| `very-high` / `max` | the highest effort value this build accepts; record the axis as partially honoured if it offers fewer levels than were asked for |
+
+Composed as `<identifier>[effort=<value>]`. The two axes stay independent in config even though the
+host fuses them in its own syntax — fusing them in config too would make a tier imply an effort,
+which is exactly the coupling this scale exists to avoid.
 
 Identifiers are resolved by the setup agent against Cursor's current docs rather than hard-coded, for
 the same reason as the other adapters: a shipped identifier rots.

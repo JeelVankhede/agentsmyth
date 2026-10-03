@@ -53,6 +53,22 @@ generated_output_policy:
 
 tuning:
   council:
+    # Answered by the user 2026-10-04, which is how this key is meant to be settled: it is the one
+    # setup item in the package that blocks, precisely because no default the package could pick
+    # would be anything other than the package choosing how much the user spends.
+    #
+    # standard maps to sonnet on this repo's tool. Chosen over cheap and deep on the only evidence
+    # this repo actually has: the WP-R25 Think council ran at the session default across five
+    # members for roughly 653k subagent tokens, and that run refuted one of its own researchers'
+    # load-bearing conclusions and caught a defect created by the fix it was reviewing. Raising the
+    # tier would raise the cost of a measurement agent-behavior.yaml already records as unfavourable
+    # for Think; lowering it puts the adversarial reasoning pass at risk, which is the part that
+    # found the fix-created defect rather than the sourcing errors.
+    model_tier: standard
+    # The reasoning axis, independent of the tier. very-high maps to this host's `xhigh`. The point
+    # of asking for it separately is exactly this combination: the standard model, thinking much
+    # harder — which was inexpressible while effort was folded into the tier.
+    effort: very-high
     # This repo declares a sandbox_root explicitly rather than inheriting the default, so the
     # dogfood chain exercises the repo-local branch of the resolver rather than only the global
     # one. Kept under ~/.agentsmyth/ so it stays outside every repository by construction.

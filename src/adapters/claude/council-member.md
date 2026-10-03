@@ -24,15 +24,33 @@ parameter and a wish.
 Resolve `tuning.council.model_tier` (repo-profile.yaml, falling back to the global
 `council.model_tier`) and substitute:
 
-| Tier | `model` | `effort` |
-|---|---|---|
-| `cheap` | `haiku` | `low` |
-| `standard` | `sonnet` | `medium` |
-| `deep` | `opus` | `high` |
+Two independent substitutions, from two independent config keys.
+
+`model_tier` decides `model`:
+
+| `council.model_tier` | `model` |
+|---|---|
+| `cheap` | `haiku` |
+| `standard` | `sonnet` |
+| `deep` | `opus` |
+
+`council.effort` decides `effort`, and this host is the reason the scale has five levels:
+
+| `council.effort` | `effort` |
+|---|---|
+| `low` | `low` |
+| `standard` | `medium` |
+| `high` | `high` |
+| `very-high` | `xhigh` |
+| `max` | `max` |
 
 Aliases, not pinned identifiers, deliberately: a pinned id rots and this file would then ship a model
-that no longer exists. `effort` is a separate field on this host, so both axes are expressible here —
-which is not true of every supported tool.
+that no longer exists.
+
+**Do not fold effort into the tier.** An earlier version of this file did, mapping each tier to one
+fixed effort — which made a perfectly ordinary request ("the standard model, thinking much harder")
+inexpressible, and left this host's top two effort levels unreachable because a three-value tier
+cannot address five.
 
 ## Capability honoured
 

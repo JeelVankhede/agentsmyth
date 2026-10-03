@@ -143,6 +143,7 @@ council:
   max_rounds: 4
   depth: standard
   model_tier: standard
+  effort: standard
   # Fan-out is per phase, and every phase that gets one says so here. There is no phase-agnostic
   # default: a phase absent from this map gets NO council departure and falls back to the global
   # default-to-1 rule, so forgetting to decide fails safe instead of billing silently.
@@ -193,6 +194,24 @@ council:
 #   deep     — research and challenge, plus a per-round `web` spot-check quota: every round that
 #              produced `web` findings must carry at least one challenger spot-check per member that
 #              filed one, rather than the single sample `standard` requires.
+#
+# `effort` is the REASONING axis, and it is a third distinct question — not a passenger on the tier.
+# It shipped that way for one iteration and was wrong: the adapter mappings folded an effort value
+# into each tier, so `standard` meant one model at one fixed effort and nothing else was reachable.
+# Two consequences. A coherent request like "the standard model, thinking much harder" could not be
+# expressed at all. And the richest host accepts five effort levels while a three-value tier could
+# only ever reach three of them, so the top two were unreachable by construction.
+#
+#   depth      — how many STAGES the council runs
+#   model_tier — what each member RUNS ON
+#   effort     — how hard each member THINKS within a stage
+#
+# Values are `low`, `standard`, `high`, `very-high`, `max`. Deliberately neutral words rather than
+# any one vendor's, for the same reason `model_tier` names a tier and never a model: borrowing one
+# tool's enum into shared config makes the other four wrong by default, which is what
+# `[provider-neutrality-1]` forbids. Each adapter maps these five onto whatever its host actually
+# accepts, and an adapter whose host has no effort control at all records the axis as unavailable
+# rather than pretending.
 #
 # `model_tier` is the CAPABILITY axis, and is not a second name for `depth`. `depth` decides how many
 # passes run and how hard each member looks; `model_tier` decides what each member runs ON. The two
