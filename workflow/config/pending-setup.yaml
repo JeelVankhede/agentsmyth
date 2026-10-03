@@ -30,22 +30,32 @@ items:
     field: "intent.repo_character"
     question: "What kind of repo is this — frontend-app, backend-service, library, cli, monorepo, infrastructure, or mixed? This supplies the default answer for every concern below."
     hint: "Infer from package.json dependencies (react/vue/next → frontend-app; express/fastify/nest → backend-service), a bin field or cmd/ dir (cli), workspaces/packages/ (monorepo), or terraform/k8s manifests (infrastructure). Do not ask if the repo answers this plainly."
-    status: open
+    status: resolved
+    resolved_by: inspect
+    resolution: "cli — package.json declares bin.agentsmyth and zero runtime dependencies; no framework dependency and no server entry point."
   - id: PS-5
     config: repo-profile.yaml
     field: "intent.surface_map"
     question: "Where do UI, API, schema, and hot-path files actually live in this repo? Any category that does not apply can be left empty."
     hint: "Infer from real directories — components/, views/, screens/ (ui); routes/, api/, controllers/ (api); migrations/, models/, schema/ (schema). Only ask about categories inference cannot settle."
-    status: open
+    status: resolved
+    resolved_by: inspect
+    resolution: "ui: site (VitePress docs, the only rendered surface); api: bin, src/workflow/validators (the CLI verbs and by-name validator invocations are the public contract); schema: src/workflow/schemas; hotpath: src/workflow/validators/lib.mjs, bin/agentsmyth.mjs (every validator imports the former, every command path runs the latter). Derived into tuning.skill_scoring.path_glob_categories."
   - id: PS-6
     config: repo-profile.yaml
     field: "intent.concerns"
     question: "How much scrutiny does each concern area deserve here — architecture, code_quality, api_contracts, data_schema, ui_ux, performance, repo_alignment, constraints_safety? Each is not-applicable, light, standard, or strict. Propose a full map derived from repo_character and ask only for confirmation or corrections."
     hint: "standard reproduces current behavior for every area, so it is the safe default. repo_alignment and constraints_safety cannot be not-applicable. ui_ux is commonly not-applicable for a cli or library; data_schema for a repo with no persistence."
-    status: open
+    status: resolved
+    resolved_by: user
+    resolution: "architecture strict, code_quality standard, api_contracts strict, data_schema strict, ui_ux light, performance light, repo_alignment strict, constraints_safety strict. Proposed from repo_character cli and confirmed by the user 2026-10-03. concerns -> thresholds derivation deliberately deferred; see the note in repo-profile.yaml intent.derived_keys."
   - id: PS-7
     config: repo-profile.yaml
     field: "tuning.council.per_phase"
     question: "How many council members should Think and Review each dispatch on Complex work? Defaults are 3 for Think and 2 for Review; lower numbers cost less per chain. Leave unset to inherit both."
     hint: "Only ask if the repo runs Complex work often enough for the cost to matter. Merged per entry — naming review alone leaves think at the global value. Set 1 to make a phase effectively single-agent without disabling councils outright."
     status: open
+    # Left open on purpose, 2026-10-03: WP-R25 (OI-114) is changing the shape of the
+    # tuning.council block this item writes into, adding model_tier and effort alongside
+    # per_phase. Resolving it now would settle it against a schema about to change. Re-ask once
+    # WP-R25 lands. Councils stay at the global defaults (think 3, review 2) until then.

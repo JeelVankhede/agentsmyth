@@ -558,18 +558,7 @@ function headlessBootstrap(repoDir, pkgRootDir) {
   // Link to a global definitions install, same treatment as bare `init`: auto-run
   // `prepare` when missing, surface any failure clearly, and exit before touching any repo
   // file — no partial stub-config state on a prepare failure.
-  const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
-  if (!existsSync(globalWorkflowDir)) {
-    try {
-      runPrepare(pkgRootDir);
-    } catch (err) {
-      console.error('');
-      console.error('agentsmyth: could not install the global lifecycle definitions needed to bootstrap this repo.');
-      console.error(`  ${err.message}`);
-      console.error('  Fix the issue above and re-run "agentsmyth check" (or run "agentsmyth prepare" directly to see the full error).');
-      process.exit(1);
-    }
-  }
+  ensureGlobalInstall(pkgRootDir);
 
   const configDir = join(repoDir, 'workflow', 'config');
   mkdirSync(configDir, { recursive: true });
@@ -890,9 +879,17 @@ function provenanceFormatVersion() { return 1; }
 // string is not a manifest agentsmyth wrote, and normalising one into something path-safe would be
 // pretending otherwise. The same predicate bounds the backup-supersede sweep, so "a directory
 // agentsmyth created" is a closed, checkable set rather than "whatever is under the backup root".
-const VERSION_STRING_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/;
+// The pattern lives INSIDE the function rather than in a module-level `const`, and that is load
+// bearing. As a `const` it was a temporal-dead-zone hazard for any caller reached before this line
+// executes: the function declaration hoists and the binding does not, so an early top-level call
+// threw "Cannot access 'VERSION_STRING_RE' before initialization" — a stack trace naming an
+// internal regex, raised from a call site that looked entirely ordinary. WP-R25 hit exactly that by
+// consulting this predicate from `check`'s bootstrap path, which runs earlier than every previous
+// caller did. This file's history records the same hazard twice before, and the standing remedy is
+// to make position irrelevant rather than to re-order declarations and hope the next edit preserves
+// the order.
 function isVersionString(value) {
-  return typeof value === 'string' && VERSION_STRING_RE.test(value);
+  return typeof value === 'string' && /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(value);
 }
 
 // A repo-relative path a manifest entry may name. Rejects absolute paths, any `..` segment, and
@@ -1127,6 +1124,14 @@ function siblingRepoDirs(repoDir) {
 // `tools/.github-actions/` or a repo whose own name contains ".git" is not mistaken for git
 // metadata. Works for an absolute `core.hooksPath` outside the repo too, which simply is not inside
 // this repo's `.git` and is therefore governable.
+// Whether a path lies within the repository working tree. Distinct from isInsideGitDir(), which
+// asks whether it is within `.git/`: a path can be outside `.git/` and outside the repo too, which
+// is exactly the linked-worktree case R8 fixes.
+function isInsideRepo(repoDir, filePath) {
+  const rel = relative(repoDir, filePath);
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+}
+
 function isInsideGitDir(repoDir, filePath) {
   const rel = relative(resolve(repoDir), resolve(filePath));
   if (rel.startsWith('..')) return false;
@@ -1160,7 +1165,15 @@ function governedArtifacts(repoDir, hookPath) {
   // A repo that sets `core.hooksPath` to a tracked directory — this repository itself does, via
   // `npm run hooks:install` pointing at `.githooks/` — puts the hook outside `.git/`, where it is
   // both trackable and safe to govern. Those repos get a manifest entry for it.
-  if (hookPath && !isInsideGitDir(repoDir, hookPath)) candidates.push(hookPath);
+  //
+  // ...and it must also be INSIDE the repository. In a linked worktree `resolveHooksDir()` returns
+  // the common dir, which is correct for enforcement (the hook is live and shared) but lands outside
+  // this working tree — so `relative()` produced `../main/.git/hooks/pre-commit`, the manifest
+  // recorded it, and `classifyManifest()`'s own `isSafeRelPath` guard then rejected the file it had
+  // just written, leaving `agentsmyth upgrade` exiting 1 forever with no user error involved. Found
+  // by WP-R25's Think council (brief v2, R8). The `.githooks` case above is unaffected: a tracked
+  // hooks directory is inside the repo and stays governed.
+  if (hookPath && !isInsideGitDir(repoDir, hookPath) && isInsideRepo(repoDir, hookPath)) candidates.push(hookPath);
   candidates.push(join(repoDir, '.cursor', 'rules', 'agentsmyth.mdc'));
   candidates.push(join(repoDir, '.github', 'copilot-instructions.md'));
 
@@ -2293,6 +2306,100 @@ function installPreCommitHook(repoDir, pkgRootDir) {
 // (e.g. when the global install already existed), so there is no shared value worth returning.
 // Throws on failure (e.g. an unwritable home directory) so callers can surface the error
 // instead of silently continuing.
+// Whether the global definitions install is the one THIS CLI ships, and what to do about it.
+//
+// The decision used to be `existsSync(globalWorkflowDir)`, evaluated independently at three call
+// sites. That predicate answers "is there a directory", not "are these the definitions this CLI
+// expects", and three consequences were all reachable and all silent: an empty directory counted as
+// installed (`init` exited 0 and the next `check` died on an ENOENT stack trace); a tree expanded by
+// an older package counted as installed, so a newer CLI seeded pending-setup items whose values
+// that tree's schema rejects with `additionalProperties: false`; and a half-expanded tree counted as
+// installed. Reported from a real consumer setup and reproduced end-to-end by WP-R25's Think
+// council (brief v2, R1 / RI2).
+//
+// THE SIGNAL IS THE STAMP, NOT A DIGEST. Published v1.0.1 never wrote installed-version.txt at all,
+// so every stale tree a consumer can actually be holding carries no stamp — absence is both the
+// common case and sufficient to catch it. A digest was considered and rejected: it would have to
+// survive `npm pack` and CRLF checkouts, it cannot use the expanded tree (expandBundle never
+// prunes, so retired files and OS cruft make a tree digest permanently unequal), and it would be
+// deciding the very same question. The one case a stamp cannot see is rebuilt source at an unchanged
+// version string, which is reachable only in development where `prepare` is a single command. That
+// residual is accepted and recorded, not engineered away.
+//
+// Hoisted `function` declarations on purpose: the `init` call site runs at top level before these
+// definitions appear in the file, and this file's own history records a command dispatch being
+// moved above a `const` block twice. Position cannot reintroduce that hazard here.
+function globalInstallState(pkgRootDir) {
+  const workflowDir = join(homedir(), '.agentsmyth', 'workflow');
+  if (!existsSync(workflowDir)) return { state: 'absent', workflowDir };
+
+  const stampPath = join(workflowDir, 'installed-version.txt');
+  let stamp = null;
+  try {
+    stamp = readFileSync(stampPath, 'utf8').trim();
+  } catch {
+    return { state: 'unstamped', workflowDir, stampPath };
+  }
+  if (!isVersionString(stamp)) return { state: 'unstamped', workflowDir, stampPath, stamp };
+
+  let cliVersion = null;
+  try {
+    cliVersion = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
+  } catch {
+    // Unreadable own package.json is not the user's problem to solve and not this guard's business
+    // to adjudicate; let the run proceed rather than blocking on a question we cannot answer.
+    return { state: 'current', workflowDir, stamp };
+  }
+  if (stamp !== cliVersion) return { state: 'stale', workflowDir, stampPath, stamp, cliVersion };
+  return { state: 'current', workflowDir, stamp, cliVersion };
+}
+
+// Install when absent; REFUSE when present but not ours. The asymmetry is deliberate.
+//
+// Auto-installing a missing tree is additive — there was nothing to disagree with. Auto-REFRESHING
+// a tree that other repos on this machine are already linked to is not: it would change their
+// resolved skills and schemas as a side effect of running a command in an unrelated repo. That is
+// why `prepare` is an explicit global-only verb and `upgrade` is the verb that refreshes. So a
+// stale tree stops with the remedy named, rather than being silently rewritten.
+function ensureGlobalInstall(pkgRootDir) {
+  const info = globalInstallState(pkgRootDir);
+  if (info.state === 'current') return;
+
+  if (info.state === 'absent') {
+    try {
+      runPrepare(pkgRootDir);
+    } catch (err) {
+      console.error('');
+      console.error('agentsmyth: could not install the global lifecycle definitions this repo needs.');
+      console.error(`  ${err.message}`);
+      console.error('  Fix the issue above, then re-run. "agentsmyth prepare" shows the full error.');
+      process.exit(1);
+    }
+    return;
+  }
+
+  console.error('');
+  console.error(`agentsmyth: the global lifecycle definitions at ${info.workflowDir}`);
+  console.error('  are not the ones this CLI ships.');
+  console.error('');
+  if (info.state === 'unstamped') {
+    console.error(`  No readable version stamp at ${info.stampPath}.`);
+    console.error('  That is how every install from before v1.1.0 looks, and also how a partially');
+    console.error('  expanded or emptied install looks.');
+  } else {
+    console.error(`  They were installed by v${info.stamp}; this CLI is v${info.cliVersion}.`);
+  }
+  console.error('');
+  console.error('  Continuing would link this repo to definitions whose schemas can reject the very');
+  console.error('  values setup is about to write, leaving a config that cannot validate from its');
+  console.error('  first run. Refusing is the fix for that, not an inconvenience around it.');
+  console.error('');
+  console.error('  Run "agentsmyth prepare" to refresh the global definitions, then re-run this');
+  console.error('  command. In a repo that is already set up, "agentsmyth upgrade" does both.');
+  console.error('');
+  process.exit(1);
+}
+
 function runPrepare(pkgRootDir) {
   const globalDir = join(homedir(), '.agentsmyth');
   const pkg = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8'));
@@ -2911,18 +3018,7 @@ if (existsSync(targetDir)) {
 // setup skill's interview starts. No opt-out, no fallback to a local copy — any failure here
 // is surfaced clearly and stops `init`, rather than silently continuing into a half-linked
 // repo (see runPrepare()'s own comment for why it throws instead of exiting internally).
-const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
-if (!existsSync(globalWorkflowDir)) {
-  try {
-    runPrepare(pkgRoot);
-  } catch (err) {
-    console.error('');
-    console.error('agentsmyth: could not install the global lifecycle definitions needed by "init".');
-    console.error(`  ${err.message}`);
-    console.error('  Fix the issue above and re-run "agentsmyth init" (or run "agentsmyth prepare" directly to see the full error).');
-    process.exit(1);
-  }
-}
+ensureGlobalInstall(pkgRoot);
 // Migration: audit for a pre-existing local definitions tree before
 // committing the link — see auditStaleDefinitions()'s own comment for why this never blocks
 // linking either way.

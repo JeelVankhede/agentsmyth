@@ -63,6 +63,24 @@ function git(cwd, ...args) {
   return spawnSync('git', args, { cwd, encoding: 'utf8' });
 }
 
+// Bring the shared scratch home's global install current for the REAL CLI.
+//
+// `home` is shared by every scenario in this file, and the version-step scenarios deliberately run a
+// synthetic-version package against it — which stamps that synthetic version into the global tree.
+// `init` now refuses a global install that is not the one the running CLI ships (WP-R25 R1), so an
+// init in a later scenario would fail on a stamp an earlier scenario left behind. That is the guard
+// working, not a bug in it: the contamination was always there, and before the guard existed it
+// merely went unnoticed because nothing compared.
+//
+// Called before every `init` here rather than once at the top, because the contamination happens
+// mid-file and a single up-front call would be stale by the time the later scenarios run. It does
+// not weaken any scenario: each one means "a repo initialised by the current CLI", and the ones that
+// care about a version step take that step explicitly afterwards.
+function syncHome(home) {
+  const result = run(['prepare'], { cwd: repoRoot, home });
+  if (result.status !== 0) throw new Error(`syncHome: prepare failed: ${result.stderr}`);
+}
+
 // A repo that has been through a real `init`, with a tracked hooks path so the pre-commit hook is
 // governed (a hook inside .git/ is deliberately not, since .git/** is a declared protected path).
 function freshRepo(home, label) {
@@ -71,6 +89,7 @@ function freshRepo(home, label) {
   git(repo, 'config', 'user.email', 'test@example.com');
   git(repo, 'config', 'user.name', 'test');
   git(repo, 'config', 'core.hooksPath', '.githooks');
+  syncHome(home);
   const result = run(['init'], { cwd: repo, home });
   if (result.status !== 0) throw new Error(`init failed for ${label}: ${result.stderr}`);
   return repo;
@@ -325,6 +344,7 @@ const home = mkScratch('wpr18-home-');
   git(repo, 'init', '-q');
   git(repo, 'config', 'user.email', 'test@example.com');
   git(repo, 'config', 'user.name', 'test');
+  syncHome(home);
   run(['init'], { cwd: repo, home });
 
   const hook = join(repo, '.git', 'hooks', 'pre-commit');
@@ -360,6 +380,7 @@ const home = mkScratch('wpr18-home-');
   mkdirSync(join(repo, '.github'), { recursive: true });
   const mine = '# MY OWN COPILOT INSTRUCTIONS\nDo not delete me.\n';
   writeFileSync(join(repo, '.github', 'copilot-instructions.md'), mine);
+  syncHome(home);
   run(['init'], { cwd: repo, home });
 
   check('E2-not-governed', 'a file agentsmyth did not write is not adopted into the manifest',
@@ -404,6 +425,7 @@ const home = mkScratch('wpr18-home-');
   git(defaultRepo, 'init', '-q');
   git(defaultRepo, 'config', 'user.email', 'test@example.com');
   git(defaultRepo, 'config', 'user.name', 'test');
+  syncHome(home);
   run(['init'], { cwd: defaultRepo, home });
   check('G4-git-hook-not-governed', 'a hook inside .git/ is not governed — .git/** is a protected path',
     !readManifest(defaultRepo).includes('.git/hooks/pre-commit'));
@@ -756,6 +778,7 @@ const home = mkScratch('wpr18-home-');
   // was the one this finding is about.
   rmSync(join(repo, '.agentsmyth'), { recursive: true, force: true });
 
+  syncHome(home);
   const reinit = run(['init'], { cwd: repo, home });
   check('X4-init-succeeds', 're-running init on a set-up repo still succeeds', reinit.status === 0);
   check('X4-manifest-untouched', 'the manifest is left exactly as it was, not re-baselined against disk',
@@ -926,6 +949,7 @@ const home = mkScratch('wpr18-home-');
   const mdc = join(repo, '.cursor', 'rules', 'agentsmyth.mdc');
   mkdirSync(dirname(mdc), { recursive: true });
   writeFileSync(mdc, '# the user wrote this cursor rule themselves\n');
+  syncHome(home);
   const init = run(['init'], { cwd: repo, home });
   check('Y6-init-ok', 'init succeeds over a pre-existing .mdc', init.status === 0);
   check('Y6-not-adopted', 'a .mdc agentsmyth did not write is not adopted into the manifest',
@@ -957,6 +981,7 @@ const home = mkScratch('wpr18-home-');
     { cwd: ws, encoding: 'utf8' }).status === 0;
   check('Z1-fixture-valid', 'the polyrepo `workspace_root` is genuinely outside any git repo', !wsIsGit);
 
+  syncHome(home);
   const init = run(['init'], { cwd: ws, home });
   check('Z1-init-ok', 'init succeeds at a polyrepo `workspace_root`', init.status === 0);
 
@@ -1100,6 +1125,7 @@ const home = mkScratch('wpr18-home-');
     git(repo, 'config', 'user.name', 'test');
     git(repo, 'config', 'core.hooksPath', '.githooks');
     if (seed !== null) writeFileSync(join(repo, 'AGENTS.md'), seed);
+    syncHome(home);
     const init = run(['init'], { cwd: repo, home });
     return { repo, init, read: () => readFileSync(join(repo, 'AGENTS.md'), 'utf8') };
   };

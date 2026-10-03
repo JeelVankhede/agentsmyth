@@ -224,7 +224,19 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
 const errors = [];
 const details = [];
 
-const behavior = loadYaml(defsPath('agent-behavior.yaml'));
+// Loaded at module scope, so an unreadable definitions tree here is a crash rather than a finding.
+// Catching the flagged case keeps the output a readable sentence naming the file and the remedy; an
+// ENOENT stack trace naming an internal frame told the user nothing about the repo they were in.
+let behavior;
+try {
+  behavior = loadYaml(defsPath('agent-behavior.yaml'));
+} catch (err) {
+  if (!err?.isMissingDefinitions) throw err;
+  console.error('');
+  console.error(err.message);
+  console.error('');
+  process.exit(1);
+}
 const chain = behavior.lifecycle?.artifact_chain ?? [];
 
 if (chain.length !== artifactContracts.length) {

@@ -307,6 +307,132 @@ if (process.getuid?.() === 0) {
     emptySeq.after.includes('tuning.council.per_phase'));
 }
 
+// ── Scenario K: `init` refuses a global install carrying no version stamp (R1) ──────────────
+//
+// This is the shape a PUBLISHED v1.0.1 install actually has — that release never wrote
+// installed-version.txt at all — so absence is the common case, not an edge one. The old guard
+// tested only whether the directory existed, so this tree counted as installed and `init` went on
+// to seed pending-setup items whose values that tree's schema rejects.
+{
+  const home = mkScratchDir('wpr25-nostamp-home-');
+  const repo = mkScratchDir('wpr25-nostamp-repo-');
+  cleanup.push(home, repo);
+  spawnSync('git', ['init', '-q'], { cwd: repo });
+  mkdirSync(join(home, '.agentsmyth', 'workflow'), { recursive: true });
+
+  const result = spawnCli(['init'], { cwd: repo, home });
+  check('K1-refuses', 'init refuses a global install carrying no version stamp', result.status !== 0);
+  check('K2-names-stamp', 'the refusal names the stamp file it could not read',
+    result.stderr.includes(join(home, '.agentsmyth', 'workflow', 'installed-version.txt')));
+  check('K3-names-remedy', 'the refusal names both prepare and upgrade as remedies',
+    /agentsmyth prepare/.test(result.stderr) && /agentsmyth upgrade/.test(result.stderr));
+  check('K4-wrote-nothing', 'init stopped before writing any repo file',
+    !existsSync(join(repo, 'workflow')) && !existsSync(join(repo, '.agentsmyth')));
+}
+
+// ── Scenario L: `init` refuses a global install stamped by a different version (R1) ──────────
+//
+// Content here is current; only the stamp disagrees. That is the mixed-install case, and it is
+// invisible to any check that asks whether a directory exists.
+{
+  const home = mkScratchDir('wpr25-skew-home-');
+  const repo = mkScratchDir('wpr25-skew-repo-');
+  cleanup.push(home, repo);
+  spawnSync('git', ['init', '-q'], { cwd: repo });
+  spawnCli(['prepare'], { cwd: repo, home });
+  writeFileSync(join(home, '.agentsmyth', 'workflow', 'installed-version.txt'), '0.9.0\n');
+
+  const result = spawnCli(['init'], { cwd: repo, home });
+  check('L1-refuses', 'init refuses a global install stamped by a different version', result.status !== 0);
+  check('L2-names-both-versions', 'the refusal names the installed version and this CLI version',
+    /installed by v0\.9\.0/.test(result.stderr) && /this CLI is v/.test(result.stderr));
+  check('L3-wrote-nothing', 'init stopped before writing any repo file',
+    !existsSync(join(repo, 'workflow')));
+}
+
+// ── Scenario M: a matching stamp still proceeds (R1 — the no-regression half) ────────────────
+//
+// A guard that refuses everything would pass Scenarios K and L and be useless. This is the
+// assertion that keeps the refusal narrow.
+{
+  const home = mkScratchDir('wpr25-match-home-');
+  const repo = mkScratchDir('wpr25-match-repo-');
+  cleanup.push(home, repo);
+  spawnSync('git', ['init', '-q'], { cwd: repo });
+  spawnCli(['prepare'], { cwd: repo, home });
+
+  const result = spawnCli(['init'], { cwd: repo, home });
+  const profilePath = join(repo, 'workflow', 'config', 'repo-profile.yaml');
+  check('M1-proceeds', 'init proceeds when the global stamp matches this CLI', result.status === 0);
+  check('M2-linked', 'the repo is linked to the global definitions',
+    existsSync(profilePath)
+    && readFileSync(profilePath, 'utf8').includes('definitions_root: ~/.agentsmyth/workflow'));
+}
+
+// ── Scenario N: `init` in a linked worktree leaves an upgradeable repo (R8) ──────────────────
+//
+// In a linked worktree the hooks directory resolves to the COMMON dir, which is correct for
+// enforcement but outside this working tree. The governed set recorded it anyway, so the manifest
+// carried `../main/.git/hooks/pre-commit` — and the manifest reader's own traversal guard then
+// rejected the file the CLI had just written, leaving every later `upgrade` exiting 1 with no user
+// error involved.
+{
+  const home = mkScratchDir('wpr25-wt-home-');
+  const main = mkScratchDir('wpr25-wt-main-');
+  const wtParent = mkScratchDir('wpr25-wt-linked-');
+  cleanup.push(home, main, wtParent);
+  spawnSync('git', ['init', '-q'], { cwd: main });
+  spawnSync('git', ['config', 'user.email', 'test@example.com'], { cwd: main });
+  spawnSync('git', ['config', 'user.name', 'test'], { cwd: main });
+  writeFileSync(join(main, 'README.md'), '# worktree fixture\n');
+  spawnSync('git', ['add', '-A'], { cwd: main });
+  spawnSync('git', ['commit', '-qm', 'initial'], { cwd: main });
+  const wt = join(wtParent, 'wt');
+  const added = spawnSync('git', ['worktree', 'add', '-q', wt, '-b', 'wtbranch'], { cwd: main, encoding: 'utf8' });
+
+  if (added.status !== 0) {
+    console.log(`[SKIP] N1-init: git worktree add failed in this environment (${(added.stderr || '').trim()})`);
+    skipped++;
+  } else {
+    spawnCli(['prepare'], { cwd: main, home });
+    const init = spawnCli(['init'], { cwd: wt, home });
+    const manifestPath = join(wt, 'workflow', 'provenance.yaml');
+    const manifest = existsSync(manifestPath) ? readFileSync(manifestPath, 'utf8') : '';
+    const up = spawnCli(['upgrade'], { cwd: wt, home });
+    const upOut = up.stdout + up.stderr;
+
+    check('N1-init', 'init inside a linked worktree exits 0', init.status === 0);
+    check('N2-no-escape', 'no manifest entry names a path outside the worktree',
+      manifest !== '' && !/^\s*- path: \.\./m.test(manifest));
+    check('N3-upgrade', 'a subsequent upgrade exits 0 instead of refusing its own manifest', up.status === 0);
+    check('N4-not-unparseable', 'the manifest is not rejected as escaping the repository',
+      !/escapes the repository/.test(upOut));
+  }
+}
+
+// ── Scenario O: `check` against a hollowed global tree explains itself (RI9) ─────────────────
+//
+// An absent definitions file is not an absent artifact: it means the install this repo is LINKED to
+// is broken, which no edit inside the repo can fix. It used to surface as a node stack trace naming
+// an internal frame, which said nothing about either.
+{
+  const home = mkScratchDir('wpr25-hollow-home-');
+  const repo = mkScratchDir('wpr25-hollow-repo-');
+  cleanup.push(home, repo);
+  spawnSync('git', ['init', '-q'], { cwd: repo });
+  spawnCli(['prepare'], { cwd: repo, home });
+  spawnCli(['check'], { cwd: repo, home }); // first run bootstraps config, so the validator is reached
+  rmSync(join(home, '.agentsmyth', 'workflow', 'agent-behavior.yaml'), { force: true });
+
+  const result = spawnCli(['check'], { cwd: repo, home });
+  const out = result.stdout + result.stderr;
+  check('O1-nonzero', 'check against a hollowed global tree exits non-zero', result.status !== 0);
+  check('O2-names-file', 'the message names the missing definitions file',
+    /required lifecycle definitions file not found/.test(out) && out.includes('agent-behavior.yaml'));
+  check('O3-names-remedy', 'the message names the remedy', /agentsmyth prepare/.test(out));
+  check('O4-no-stack', 'no node stack trace is printed', !/^\s{4}at /m.test(out));
+}
+
 for (const dir of cleanup) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }
