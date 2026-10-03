@@ -23,3 +23,135 @@ items:
     disposition: accepted
     outcome: pending
     # deferred to reflect: OI-105 ledger closure — Reflect owns rotation, and it must follow the marker-check fix rather than precede it
+  - id: FQ-134
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-135
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-136
+    finding_id: F3
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-137
+    finding_id: F4
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-138
+    finding_id: F5
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-139
+    finding_id: F6
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-140
+    finding_id: F7
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-141
+    finding_id: F8
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-142
+    finding_id: F9
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-143
+    finding_id: F10
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-144
+    finding_id: F11
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-145
+    finding_id: F12
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-146
+    finding_id: F13
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-147
+    finding_id: F14
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-148
+    finding_id: F15
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-149
+    finding_id: F16
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-150
+    finding_id: F17
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-151
+    finding_id: F18
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-152
+    finding_id: F19
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-153
+    finding_id: F20
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-154
+    finding_id: F21
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-155
+    finding_id: F22
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: pending
