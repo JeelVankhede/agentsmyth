@@ -356,6 +356,10 @@ const fixtures = [
   { id: 'gc', dir: 'test/fixtures/definitions/gc-schema-missing-artifact', description: '(OI-82) frontmatter schema omits an artifact the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gc-schema-missing-artifact' }, expect: 'schema missing artifact reflect' },
   { id: 'gd', dir: 'test/fixtures/definitions/gd-schema-missing-phase', description: '(OI-82) frontmatter schema omits a phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gd-schema-missing-phase' }, expect: 'schema missing phase reflect' },
   { id: 'ge', dir: 'test/fixtures/definitions/ge-schema-missing-next-phase', description: '(OI-82) frontmatter schema omits a next_phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/ge-schema-missing-next-phase' }, expect: 'schema missing next_phase done' },
+  // WP-R25 R4 — the one pending-setup item that blocks. Reachable only because the Think gate
+  // honours --dir; the rule itself fires before stage 1, which is before any fan-out, so the refusal
+  // lands ahead of the spend rather than after it.
+  { id: 'je', dir: 'test/fixtures/lifecycle-violations/je-council-tier-unset', description: '(WP-R25) the council capability tier is unanswered and councils can fire — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier has been chosen and a council must not dispatch' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries
@@ -575,7 +579,13 @@ const SWEPT_VALIDATORS = /check-(council-record|finding-quality|lifecycle)\.mjs$
 const councilFixtures = fixtures.filter((f) => SWEPT_VALIDATORS.test(f.validator));
 let multi = 0;
 for (const fixture of councilFixtures) {
-  const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir],
+  // Pass `fixture.args` here too. The sweep previously re-ran each fixture with `--dir` ALONE, so a
+  // fixture whose rule is only reachable with an extra flag ran in a different mode than the main
+  // pass — it then emitted zero errors and was reported as failing attribution, which reads as "this
+  // fixture rejects for two reasons" when the truth is "the sweep did not invoke the rule at all".
+  // The sweep must exercise the fixture the same way the suite does, or it is measuring a different
+  // run than the one it is drawing a conclusion about.
+  const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir, ...(fixture.args ?? [])],
     { cwd: repoRoot, encoding: 'utf8', env: { ...env, ...(fixture.env ?? {}) } });
   const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   const count = combined.split('\n').filter((l) => l.startsWith('- ')).length;

@@ -142,6 +142,7 @@ council:
   enabled: on-for-complex
   max_rounds: 4
   depth: standard
+  model_tier: standard
   # Fan-out is per phase, and every phase that gets one says so here. There is no phase-agnostic
   # default: a phase absent from this map gets NO council departure and falls back to the global
   # default-to-1 rule, so forgetting to decide fails safe instead of billing silently.
@@ -179,11 +180,37 @@ council:
 # without shrinking the council — fan-out is the wrong knob for that, since fewer members means
 # less coverage rather than cheaper coverage.
 #
+# What the three values actually DO, stated here because for one release they did not. `depth`
+# shipped with this description and no operational meaning anywhere: no skill said what a member
+# does differently at `shallow` versus `deep`, and nothing read the value. A knob a repo can set, an
+# artifact records, and no behaviour consults is worse than an absent one, because the record implies
+# a choice took effect.
+#
+#   shallow  — one research stage. The challenge stage does not run. Use when the question is
+#              narrow enough that adversarial review costs more than the error it would catch.
+#   standard — research stage, then the challenge stage over the raw findings. The default, and what
+#              every council run before this definition existed actually did.
+#   deep     — research and challenge, plus a per-round `web` spot-check quota: every round that
+#              produced `web` findings must carry at least one challenger spot-check per member that
+#              filed one, rather than the single sample `standard` requires.
+#
+# `model_tier` is the CAPABILITY axis, and is not a second name for `depth`. `depth` decides how many
+# passes run and how hard each member looks; `model_tier` decides what each member runs ON. The two
+# are independent: a shallow pass on a deep tier and a deep pass on a cheap tier are both coherent
+# requests. Shared config names a TIER and never a model identifier, because a model id is specific
+# to one agent tool and this package supports five — naming one would make the other four
+# wrong-by-default, which `[provider-neutrality-1]` forbids. Each adapter maps the tier to its own
+# identifier; see the council-member definition each adapter ships.
+#
+# A tier is a REQUEST, not a guarantee. Some hosts replace a declared model by plan or admin policy,
+# so the artifact records the tier requested and, where the host reports it, the model that actually
+# ran. An unreported actual is recorded as unknown rather than assumed to match.
+#
 # `sandbox_root` is where trial members write. It resolves global-then-repo-local exactly like
 # `definitions_root`, and defaults outside every repository by construction so that "no council
 # member modifies the repo" holds structurally rather than by per-run assertion.
 
-# RESOLUTION: three of the six keys a repo may override in workflow/config/repo-profile.yaml
+# RESOLUTION: three of the seven keys a repo may override in workflow/config/repo-profile.yaml
 # under `tuning:` live in this block — complexity_score.weights, path_glob_categories, and
 # thresholds. (The other three are dispatch.max_parallel_workstreams, dispatch.enabled, and
 # pause_resume.user_checkpoint_required_for.) Before applying this rubric, resolve each PER ENTRY —

@@ -54,7 +54,7 @@
       "undefended": 0
     },
     "check-lifecycle.mjs": {
-      "rules": 22,
+      "rules": 23,
       "undefended": 0
     },
     "check-manifest-coverage.mjs": {

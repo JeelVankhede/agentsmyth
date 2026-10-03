@@ -188,7 +188,25 @@ properties:
           - shallow
           - standard
           - deep
-        description: Bounds per-member research effort, not member count. Separate from fan-out so cost can be reduced without shrinking the council.
+        description: >-
+          How many passes run and how hard each member looks, not member count. shallow runs the
+          research stage only; standard adds the challenge stage over the raw findings; deep adds a
+          per-round web spot-check quota. Separate from fan-out, so cost can be reduced without
+          shrinking the council, and separate from model_tier, which decides what members run on
+          rather than how many passes happen.
+      model_tier:
+        type: string
+        enum:
+          - cheap
+          - standard
+          - deep
+        description: >-
+          The capability a council member runs on, named as a portable tier and never as a model
+          identifier. A model id belongs to one agent tool and this package supports five, so naming
+          one in shared config would leave the other four wrong by default. Each adapter maps the
+          tier to its own identifier in the council-member definition it ships. Optional: a config
+          that omits it resolves to the shipped default, so every file written before this key
+          existed stays valid.
       per_phase:
         type: object
         additionalProperties: false

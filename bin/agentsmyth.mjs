@@ -240,7 +240,36 @@ if (command === 'check') {
   } catch (e) {
     lifecycleFailed = true;
   }
-  process.exit(setupCompleteFailed || lifecycleFailed ? 1 : 0);
+
+  // The council-record contract, run where consumers actually are.
+  //
+  // check-council-record.mjs holds roughly thirty rules about what a council run must leave behind,
+  // and until now not one of them executed in a consumer repo: `agentsmyth check` ran
+  // check-setup-complete plus check-lifecycle or check-commit-coverage, and this validator appeared
+  // only in the repo's own template-validation script. So a consumer could record a council run in
+  // any shape at all and nothing would say so — which makes a capability tier "recorded on the
+  // council record" worth nothing to them, since no consumer-reachable check reads it.
+  //
+  // Skipped on the --staged proxy path. That path is the fast pre-commit gate and is deliberately
+  // narrow; a full artifacts sweep there would pay for every commit. The full `check` runs it.
+  //
+  // A repo with no council artifacts must stay silent and exit 0 — councils are Complex-only and
+  // most repos will never record one. The validator already behaves that way; the test asserts it,
+  // because a new rule on the commit gate that fires where it has nothing to say is worse than the
+  // gap it closes.
+  let councilFailed = false;
+  if (stagedIdx === -1) {
+    const { resolved: resolvedCouncil } = resolveValidator(checkRoot, profilePath, 'check-council-record.mjs');
+    if (resolvedCouncil) {
+      try {
+        execFileSync(process.execPath, [resolvedCouncil], { stdio: 'inherit', cwd: checkRoot });
+      } catch {
+        councilFailed = true;
+      }
+    }
+  }
+
+  process.exit(setupCompleteFailed || lifecycleFailed || councilFailed ? 1 : 0);
 }
 
 // ─── prepare ───────────────────────────────────────────────────────────────
@@ -314,6 +343,23 @@ function councilTuningItemSpecs() {
       field: 'tuning.council.per_phase',
       question: 'How many council members should Think and Review each dispatch on Complex work? Defaults are 3 for Think and 2 for Review; lower numbers cost less per chain. Leave unset to inherit both.',
       hint: 'Only ask if the repo runs Complex work often enough for the cost to matter. Merged per entry — naming review alone leaves think at the global value. Set 1 to make a phase effectively single-agent without disabling councils outright.',
+    },
+    {
+      // The one item in this package that BLOCKS. Every other pending-setup item is non-blocking by
+      // contract, and deliberately so: until it resolves, the value falls back to the global install
+      // and behaviour is unchanged. This one is different because there is no safe fallback to fall
+      // back TO. A fan-out has a defensible default — 3 and 2 — but a capability tier does not: any
+      // default the package picks is the package choosing a spend level on the user's behalf, and the
+      // whole reason this item exists is that councils were billing without anyone having chosen.
+      //
+      // So `check-lifecycle --phase think` refuses while this item is open and councils can fire.
+      // That is checked at the Think gate, which the router runs BEFORE stage 1, so it lands ahead of
+      // any research and ahead of any fan-out rather than after the money is spent. Three ways out,
+      // all of them cheap: answer it, set tuning.council.enabled to disabled, or waive it in the
+      // artifact.
+      field: 'tuning.council.model_tier',
+      question: 'What capability tier should council members run on — cheap, standard, or deep? This is the one setup answer that blocks: a council will not dispatch until it is set, because there is no default the package can pick for you without choosing how much you spend. cheap favours throughput, standard matches a normal session, deep buys capability per member.',
+      hint: 'Ask the user directly; do not infer this from the repo. Each adapter maps the tier to a real model for its own tool, so the answer stays portable across tools. If this repo should never run councils, setting tuning.council.enabled to disabled is the other way to clear the block.',
     },
   ];
 }
@@ -467,6 +513,11 @@ function appendIntentPendingItems(configDir) {
   return appendPendingItems(configDir, intentItemSpecs(), 'field: "intent.');
 }
 
+// The idempotency marker is the FAMILY's first field, and the family now has two members. Keying it
+// on the first field alone is what the existing marker already did; the appender writes the whole
+// spec list or none of it, so one marker still describes the whole family and a second run adds
+// nothing. Keying on the newer field instead would re-append the older one into a repo that already
+// has it.
 function appendCouncilTuningPendingItems(configDir) {
   return appendPendingItems(configDir, councilTuningItemSpecs(), 'field: "tuning.council.per_phase');
 }

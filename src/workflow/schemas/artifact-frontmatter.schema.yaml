@@ -193,6 +193,24 @@ properties:
           - shallow
           - standard
           - deep
+      model_tier:
+        type: string
+        enum:
+          - cheap
+          - standard
+          - deep
+        description: >-
+          The capability tier this run REQUESTED for its members, resolved global-then-repo-local.
+          Optional, so every council record written before this key existed stays valid.
+      model_actual:
+        type: string
+        minLength: 1
+        description: >-
+          What the host reports members actually ran on, or the literal `unknown` when it reports
+          nothing. Separate from model_tier because a tier is a request, not a guarantee: some hosts
+          replace a declared model by plan or administrator policy, so recording the request as
+          though it were the outcome would state external state without evidence. `unknown` is an
+          honest value here and must not be inferred from the tier.
       dispatch_depth:
         type: integer
         minimum: 1
