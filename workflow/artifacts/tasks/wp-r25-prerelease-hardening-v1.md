@@ -35,17 +35,23 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 4 - Bundle pruning
-- Manifest IDs: R9
-- Exit gate: `check-lifecycle --phase think` exits non-zero for a Complex chain with no resolved
-  `model_tier` and exits 0 once one is set; `check-council-record` rejects a council record that
-  omits `model_tier` when the config declares one and accepts one that carries it; `agentsmyth
-  check` invokes `check-council-record` in a scratch consumer repo, and a repo with no council
-  artifacts still exits 0; `render-adapters` reports shims current with five member definitions
-  present; `validate`, `violations:test` and `conformance:test` all exit 0; and a dispatched council
-  member's actual model, read back from the host, matches the mapped tier.
-- Phases 1 and 2 are complete and recorded in the Phase Completion Log; commits `b9dc552` and
-  `1ddb8e6`.
+- Phase: Phase 7 - Council configuration depth, override, and cost history
+- Manifest IDs: R3, R4, R5 — extended by the user on 2026-10-04 and declared as an extension in the
+  plan's Phase 7 note rather than left to the manifest to imply.
+- Exit gate: a fixture proves a per-phase override of one key leaves that phase's sibling keys and
+  every other phase at their global values; a fixture proves an override with no reason is rejected;
+  a council record carrying per-member token counts validates, and one carrying `unavailable`
+  validates too; a repo with no council history yields an estimate that states it has none and
+  contains no projected number; `grep` finds no code path multiplying fan-out by rounds to produce a
+  cost; `validate`, `violations:test`, `conformance:test`, `tuning-merge:test` and `mutation:audit`
+  all pass with 0 undefended.
+- **Within this phase the merge-depth fix lands first.** Council config resolves through a flat
+  top-level spread while `per_phase` is map-valued, so adding keys inside `per_phase` entries without
+  deepening the merge reproduces the failure `src/workflow/validators/lib.mjs:98-106` documents: a
+  repo naming one key silently loses its siblings, with nothing erroring. Building the per-phase keys
+  first would mean shipping a documented defect and then removing it.
+- Phases 1-5 are complete and recorded in the Phase Completion Log; commits `b9dc552`, `1ddb8e6`,
+  `0fe9cea`, `a312235`, `f81f4bd`, `dff0723`. Phase 6 runs last.
 
 ## Plan Phases Overview
 
