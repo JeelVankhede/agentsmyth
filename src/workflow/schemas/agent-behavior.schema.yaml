@@ -253,6 +253,29 @@ properties:
                 minimum: 1
                 maximum: 10
                 description: The Think council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from default-to-1, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+              model_tier:
+                type: string
+                enum:
+                  - cheap
+                  - standard
+                  - deep
+                description: >-
+                  Overrides the council-wide model_tier for this phase only. Optional, and merged per
+                  entry, so naming it leaves this phase's other settings and every other phase at
+                  their resolved values. Exists because the phases are not equivalent: a Review
+                  verdict blocks a commit and a Think verdict does not, so capability is worth more
+                  in one than the other.
+              effort:
+                type: string
+                enum:
+                  - low
+                  - standard
+                  - high
+                  - very-high
+                  - max
+                description: >-
+                  Overrides the council-wide effort for this phase only. Optional and merged per
+                  entry, same as model_tier.
           review:
             type: object
             additionalProperties: false
@@ -264,6 +287,29 @@ properties:
                 minimum: 1
                 maximum: 10
                 description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
+              model_tier:
+                type: string
+                enum:
+                  - cheap
+                  - standard
+                  - deep
+                description: >-
+                  Overrides the council-wide model_tier for this phase only. Optional, and merged per
+                  entry, so naming it leaves this phase's other settings and every other phase at
+                  their resolved values. Exists because the phases are not equivalent: a Review
+                  verdict blocks a commit and a Think verdict does not, so capability is worth more
+                  in one than the other.
+              effort:
+                type: string
+                enum:
+                  - low
+                  - standard
+                  - high
+                  - very-high
+                  - max
+                description: >-
+                  Overrides the council-wide effort for this phase only. Optional and merged per
+                  entry, same as model_tier.
       sandbox_root:
         type: string
         minLength: 1

@@ -124,6 +124,32 @@ field, and one keeps it in repository settings rather than the agent file. For t
 is `unavailable`, recorded the same way an unavailable evidence class is. Reporting it as honoured
 would assert a capability the tool does not have.
 
+**Report the likely cost before dispatching, from this repo's own history.** Read the `member_tokens`
+recorded on prior council records under `workflow/artifacts/`, take the mean per member, and multiply
+by the fan-out this round will actually use. Record what you told the user as `council.cost_estimate`,
+and say how many prior councils it rests on — a mean of twelve runs and a mean of one are different
+claims and must not read alike.
+
+If there are no prior records, the estimate is the literal `no-history`. Do not produce a figure
+anyway. **Never compute a cost from fan-out times rounds times an assumed per-member price**: that
+produces a confident number with no evidence behind it, which is the shape `[safety-3]` forbids, and
+a validator rejects any estimate that neither names its sample nor declares `no-history`.
+
+A host that does not report per-member usage contributes `unavailable` for that member, never zero. A
+zero would be averaged in as though it were a measurement and would drag every later estimate down.
+
+**A run may depart from the resolved configuration, and must say why.** Raise `depth`, `model_tier`
+or `effort` for a single round when the work genuinely warrants it, record the departure under
+`council.overrides` and the reason under `council.override_reason`. The reason is mandatory and
+mechanically enforced: an override that is easy to set and easy to forget is a spend with nobody's
+name on it. Do not ask the user to confirm an override every time — a question whose most common
+answer restores the status quo trains people to wave it through. Record it instead.
+
+Per-phase configuration resolves before any of this: `council.per_phase.<phase>` may carry its own
+`model_tier` and `effort` alongside `default_fan_out`, merged per entry against the council-wide
+values. Review and Think are not equivalent — a Review verdict blocks a commit and a Think verdict
+does not — so they are allowed to be funded differently.
+
 **Three axes, three questions, and none of them substitutes for another.** `depth` decides how many
 stages run. `model_tier` decides what each member runs on. `council.effort` decides how hard each
 member thinks within a stage, on a portable five-level scale (`low`, `standard`, `high`,

@@ -332,6 +332,20 @@ properties:
                     minimum: 1
                     maximum: 10
                     description: Overrides the global Think council fan-out for this repo only.
+                  model_tier:
+                    enum:
+                      - cheap
+                      - standard
+                      - deep
+                    description: Per-phase override of the council-wide model_tier. Merged per entry, so naming it leaves this phase's other settings and every other phase alone.
+                  effort:
+                    enum:
+                      - low
+                      - standard
+                      - high
+                      - very-high
+                      - max
+                    description: Per-phase override of the council-wide effort. Merged per entry.
               review:
                 type: object
                 additionalProperties: false
@@ -341,6 +355,20 @@ properties:
                     minimum: 1
                     maximum: 10
                     description: Overrides the global Review council fan-out for this repo only.
+                  model_tier:
+                    enum:
+                      - cheap
+                      - standard
+                      - deep
+                    description: Per-phase override of the council-wide model_tier. Merged per entry, so naming it leaves this phase's other settings and every other phase alone.
+                  effort:
+                    enum:
+                      - low
+                      - standard
+                      - high
+                      - very-high
+                      - max
+                    description: Per-phase override of the council-wide effort. Merged per entry.
           sandbox_root:
             type: string
             minLength: 1

@@ -13,11 +13,14 @@ manifest_ids:
   - R5
   - R7
   - R8
+  - R9
   - R10
+  - R11
   - RI2
   - RI7
   - RI8
   - RI9
+  - RI10
   - RI11
   - RI12
 upstream:
@@ -35,7 +38,7 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 7 - Council configuration depth, override, and cost history
+- Phase: Phase 7 - Council configuration depth, override, and cost history (complete; Phase 6 runs last)
 - Manifest IDs: R3, R4, R5 — extended by the user on 2026-10-04 and declared as an extension in the
   plan's Phase 7 note rather than left to the manifest to imply.
 - Exit gate: a fixture proves a per-phase override of one key leaves that phase's sibling keys and
@@ -60,9 +63,9 @@ orchestration:
 | Phase 1 - Resolution and staleness | complete | R1, R8, RI2, RI9 |
 | Phase 2 - Hook durability and execution | complete | R2, R7, RI7, RI11, RI12 |
 | Phase 3 - Council capability contract | complete | R3, R4, R5, R10, RI8 |
-| Phase 4 - Bundle pruning | active | R9 |
-| Phase 7 - Council config depth, override, cost history | pending | R3, R4, R5 |
-| Phase 5 - Release evidence and delivery honesty | pending | R11, RI10 |
+| Phase 4 - Bundle pruning | complete | R9 |
+| Phase 5 - Release evidence and delivery honesty | complete | R11, RI10 |
+| Phase 7 - Council config depth, override, cost history | complete | R3, R4, R5 |
 | Phase 6 - Release integration and invariants | pending | R6, RI1, RI3, RI4, RI5, RI6 |
 
 ## Branch / Repo Status
@@ -185,6 +188,29 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   fan-out, dispatch by naming the definition, record request and outcome separately — IDs: R3, R5
 - `test/run-init-prepare-interop-tests.mjs` (Phase 3) — F5 realigned with its own stated intent and
   F5b added, after R4 correctly began gating a freshly bootstrapped repo — IDs: R4
+- `bin/agentsmyth.mjs` (Phase 4) — `expandBundle` prunes, bounded by a ledger of what the previous
+  expansion wrote; the ledger filename is a literal inside the function — IDs: R9
+- `test/run-upgrade-path-tests.mjs` (Phase 4) — six pruning assertions, five about what must SURVIVE
+  — IDs: R9
+- `site/updating.md` (Phase 5) — the false claim that `prepare` refreshes the gate in every supported
+  tool's config, corrected to what actually happens — IDs: RI10
+- `workflow/artifacts/open-items.yaml` (Phase 5) — OI-87's citation of OI-69 corrected with evidence;
+  OI-115 filed for the delivery gap documented rather than fixed — IDs: R11, RI10
+- `src/workflow/validators/check-council-record.mjs` (Phase 7) — council config resolves by per-entry
+  merge reaching `per_phase` depth, reusing `mergeTunedMap`; three new rules for the override and the
+  cost estimate — IDs: R3, R4, R5
+- `src/workflow/schemas/agent-behavior.schema.yaml`,
+  `src/workflow/schemas/repo-profile.schema.yaml` (Phase 7) — `model_tier` and `effort` inside each
+  `per_phase` entry — IDs: R3, R5
+- `src/workflow/schemas/artifact-frontmatter.schema.yaml` (Phase 7) — `overrides`, `override_reason`,
+  `member_tokens`, `cost_estimate` on the council record — IDs: R3, R4, R5
+- `src/workflow/skills/think-council/SKILL.md`,
+  `src/workflow/skills/review-council/SKILL.md` (Phase 7) — cost reported from history before
+  dispatching, depart-with-a-reason, per-phase resolution — IDs: R3, R4, R5
+- `test/run-tuning-merge-tests.mjs` (Phase 7) — m15, m16, m17 — IDs: R3, R5
+- `test/run-violation-tests.mjs`, `test/mutation-baseline.json`,
+  `test/fixtures/lifecycle-violations/` (Phase 7) — one rejection fixture per new rule, per RI5
+  — IDs: R3, R4, R5, RI5
 
 ## Implementation Log
 
@@ -316,6 +342,56 @@ The templates deliberately do not hard-code model identifiers for four of the fi
 independently of this package, and a shipped identifier would be the same staleness trap as the
 "two exceptions" sentence this phase just removed.
 
+**Phase 4: the ledger is the blast radius, not the directory.** Pruning deletes only paths the
+previous expansion recorded writing, and only when the current bundle no longer declares them. The
+tempting version — remove anything the bundle does not declare — reaches the separately copied
+`validators/` tree, OS cruft, and anything a user put there, which is the version of this feature
+that eats a consumer's own files. Five of the six assertions are therefore about what must SURVIVE.
+The ledger is written after the deletions, so a crash mid-prune leaves the old list intact.
+
+**Phase 5: OI-69's evidence could not be confirmed, so it was re-derived.** OI-87 recorded a
+rehearsal against the real published tarball. A file named `jeelvankhede-agentsmyth-1.0.1.tgz` sat
+untracked in the repo root and is not that artifact: 341.5K with 11 `think-council` matches, against
+the published 1.0.1's 238.3K, 39 files and zero. A rehearsal using the repo-root file tested 1.1.0 to
+1.1.0 and could not have reproduced OI-112. Re-derived against `npm pack` of the real 1.0.1: it
+writes no `installed-version.txt` and declares no `intent` key — both confirmed by running it — and
+the current CLI refuses it with exit 1 naming the remedy. That is R1 verified against a genuine old
+install, the strongest single piece of evidence in this chain.
+
+**Phase 5: the docs claimed gate parity delivery does not have.** Copilot's writes sit behind a
+darwin check and Cursor has no global config file at all, so at most four of five gates install
+automatically on macOS and three of five elsewhere. Corrected, and OI-115 filed for the fix — the
+disclosure is not the fix, and a paste nobody completed is indistinguishable from one that was.
+
+**Phase 7: the merge-depth fix went first and mattered more than the feature.** Council config
+resolved through a flat spread, harmless while every key is a scalar and silently destructive once
+one is not — and `per_phase` nests twice. A repo naming `per_phase.review.model_tier` would have lost
+`per_phase.review.default_fan_out`, with nothing erroring. `mergeTunedMap` is reused with one
+explicit second pass, because it reaches one level and `per_phase` needs two.
+
+**Phase 7: an existing assertion was passing for a reason about to stop being true.** `m12` compares
+an overridden phase against `{...global, review: <override>}`, equal only while `default_fan_out` is
+the single per-phase key. `m15`/`m16` assert the property against an entry with siblings; `m17`
+guards the resolver structurally, since it is module-private and a regression there is silent.
+
+**Phase 7: cost is reported, never computed.** `cost_estimate` must name its sample or declare
+`no-history`; a validator rejects anything else. `grep` confirms no fan-out-times-rounds path. A host
+reporting nothing contributes `unavailable`, never zero.
+
+**Phase 7: the override is recorded, not prompted**, enforced both ways — no reason is rejected, and
+a reason with no override is rejected too.
+
+**The TDZ hazard three times in one chain** — Phase 1's version pattern, Phase 4's ledger filename,
+Phase 7's `repoRoot` in a test. Same cause every time: a line that runs earlier than the module-level
+binding it reads.
+
+**Process note, recorded because it cost real work three times.** Several record updates were applied
+by scripts that mutate text and assert per edit, writing only at the end. When a later anchor missed,
+the script aborted and discarded edits that had already printed success — the Phase 4 and Phase 5
+record was lost entirely that way and this entry is the repair. Later scripts verify every anchor
+BEFORE writing anything. A partial artifact update is worse than a failed one, because it looks
+finished.
+
 **Two files beyond the plan's Phase 1 Touches.** `check-lifecycle.mjs` and
 `run-upgrade-path-tests.mjs`, both necessary consequences of the above. The plan was amended
 explicitly rather than the scope being widened silently, and the amendment records why.
@@ -369,6 +445,13 @@ explicitly rather than the scope being widened silently, and the amendment recor
 | `npm run setup-refs:test`, `npm run setup-checks:test` after step 5a.3 | R5 | pass | both exit 0 |
 | full suite set re-run at Phase 3 close | regression | pass | fourteen suites all exit 0: validate, violations, conformance, init-prepare-interop (56/56), upgrade-path (154), setup-checks, setup-refs, agents-md, commit-coverage, tuning-merge, checkpoint-approval, domain-placeholders, root-resolution, setup-validator-definitions-root. `check-scope-fence: ok`. |
 | suite set re-run after Phase 3 so far | regression | pass | validate, violations, conformance, init-prepare-interop, upgrade-path, setup-checks, agents-md, commit-coverage, tuning-merge, checkpoint-approval all exit 0. |
+| `npm run upgrade-path:test` (Phase 4) | Phase 4 exit gate | pass | 160 passed. Retired file removed; unowned file, OS cruft and the validators tree all survive; repeated prepare idempotent by tree digest. |
+| revert the pruning ledger read alone | RI5 evidence | pass | only `PR2-retired-pruned` went red; every survival assertion stayed green. |
+| `npm pack @jeelvankhede/agentsmyth@1.0.1`, then current-CLI `init` against that install | R11, R1 | pass | Published artifact 238.3K / 39 files / 0 council matches; no version stamp; no `intent` key. Current CLI refuses with exit 1 and names the remedy. |
+| `npm run tuning-merge:test` (Phase 7) | R3, R5 | pass | 18/18 including m15, m16, m17. |
+| `npm run violations:test` (Phase 7) | R4, RI5 | pass | 227/227 with `jf`, `jg`, `jh`; attribution 111/111. |
+| `grep` for a fan-out-times-rounds cost computation | R13 shape | pass | No match under `src/workflow/` or `bin/`. |
+| full suite set at Phase 7 close | regression | pass | fourteen suites exit 0; `check-scope-fence: ok`. |
 | `npm run mutation:audit` | validator ratchet | pass | Run to completion in the background rather than under a foreground timeout, which is what defeated the three earlier attempts. **`0/235 rules undefended`, `mutation-audit: ok`** — and specifically `check-lifecycle.mjs 23 rules, 0 undefended, defended`, which confirms both that the hand-updated baseline was correct and that fixture `je` genuinely defends R4's new rule rather than merely existing beside it. This retires the uncertainty carried through Phases 1 to 3; RI5 no longer rests on an assertion. |
 | `npm run validate` + eleven suites after the effort decoupling | regression | pass | all exit 0; `check-scope-fence: ok`. |
 
@@ -438,6 +521,9 @@ existence rather than measured, and Phase 6's run is what confirms it.
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
+| Phase 7 - Council config depth, override, cost history | complete | 2026-10-04 | R3, R4, R5 extended by the user. Merge depth fixed first; per-phase `model_tier` and `effort`; recorded override enforced both ways; cost reported from `member_tokens` history with `no-history` a first-class answer and no formula path. Three new rules, three rejection fixtures, baseline 73 to 76. |
+| Phase 5 - Release evidence and delivery honesty | complete | 2026-10-04 | R11, RI10. OI-69 re-derived against the genuinely published 1.0.1, which also produced the chain's strongest R1 evidence. `site/updating.md`'s false gate-parity claim corrected; OI-115 filed for the delivery fix itself. |
+| Phase 4 - Bundle pruning | complete | 2026-10-04 | R9. `upgrade-path:test` 160 passed with six pruning assertions, five of them survival guarantees. Blast radius bounded by a ledger rather than the directory. Reverting the ledger read turns only the deletion assertion red. |
 | Phase 3 - Council capability contract | complete | 2026-10-03 | R3, R4, R5, R10, RI8. Exit gate met: the Think gate refuses an unanswered tier and passes once set (fixture `je`); `check-council-record` runs from `agentsmyth check` and stays silent in a repo with no council artifacts; five member definitions present and synced by the build; fourteen suites exit 0. R5's acceptance measured by dispatching a member on the cheap tier's mapped model and reading `claude-haiku-4-5-20251001` back from the host. Two corrections recorded: R4's rule was initially invisible to the mutation ratchet, and R5's placement had to move from `init` to the setup agent because R4 guarantees the tier is unanswered at `init` time. |
 | Phase 2 - Hook durability and execution | complete | 2026-10-03 | R2, R7, RI7, RI11, RI12. Exit gate met: `upgrade-path:test` 154 passed with husky v9, husky v8 and superseded scenarios, six of the new assertions being real `git commit` runs. Each of the three guards verified to turn its own assertions red when reverted alone — including the ordering guard, whose revert leaves the gate in the correct file and still not running. RI11 required no code change (all write branches already set mode 0755) and is satisfied by assertion. `run-agents-md-tests.mjs` was planned and proved unnecessary; its coverage landed beside the husky fixtures instead. |
 | Phase 1 - Resolution and staleness | complete | 2026-10-03 | R1, R8, RI2, RI9. Exit gate met: `init-prepare-interop:test` 55/55 with scenarios K-O, and each of the three guards verified to turn its own named assertion red when reverted alone. Two unplanned finds fixed and logged: a TDZ hazard that blocked R1 outright, and a shared-home contamination in the upgrade-path suite that R1's guard exposed. RI9 was redesigned after a rejection fixture proved the first approach removed a validator's ability to gate. `mutation:audit` deferred to Phase 6 with direct evidence that no rule count moved. |

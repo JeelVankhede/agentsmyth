@@ -10,7 +10,7 @@
 // A green result here means the record is well-formed and internally consistent. It does not mean
 // the thinking was good.
 import { homedir } from 'node:os';
-import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
+import { dataPath, defsPath, finish, listFiles, loadYaml, mergeTunedMap, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -36,7 +36,33 @@ function resolveCouncilConfig() {
     ? `${artifactsDir}/config/repo-profile.yaml`
     : dataPath('config/repo-profile.yaml');
   try { repo = loadYaml(repoProfile)?.tuning?.council ?? {}; } catch { /* absent is fine */ }
-  return { ...defaults, ...global, ...repo };
+
+  // PER-ENTRY merge, reaching as deep as the data does — not a flat spread.
+  //
+  // This resolved council config with `{ ...defaults, ...global, ...repo }`. A flat spread replaces
+  // whole objects, which is harmless while every council key is a scalar and silently destructive
+  // the moment one is not. `per_phase` is map-valued and nests twice
+  // (`per_phase.<phase>.<setting>`), so a repo naming one setting of one phase lost every sibling
+  // setting of that phase — with nothing erroring, because a key that was dropped reads exactly like
+  // a key nobody set.
+  //
+  // `lib.mjs` documents this failure class at the `mergeTunedMap` definition: the same mistake in
+  // `skill_scoring.complexity_score.weights` dropped a `cap`, made the score NaN, turned every
+  // `complexity_score >= N` comparison false, and stopped every score-driven skill firing with no
+  // error anywhere. That helper is reused here rather than reimplemented, because a second merge
+  // with its own idea of depth is how the two drift apart.
+  //
+  // `mergeTunedMap` reaches ONE level, which is right for every other council key and one short for
+  // `per_phase`. Hence the explicit second pass: merge the phase map per entry, so naming
+  // `per_phase.review.model_tier` leaves `per_phase.review.default_fan_out` and the whole of
+  // `per_phase.think` exactly as resolved.
+  const merged = mergeTunedMap({ ...defaults, ...global }, repo);
+  const globalPhases = global?.per_phase;
+  const repoPhases = repo?.per_phase;
+  if (globalPhases || repoPhases) {
+    merged.per_phase = mergeTunedMap(globalPhases ?? {}, repoPhases ?? {});
+  }
+  return merged;
 }
 const councilConfig = resolveCouncilConfig();
 // Indirection so the fence helpers above can read the resolved config without a forward reference.
@@ -315,6 +341,43 @@ for (const file of artifactFiles) {
   }
 
   // --- council mode: summary fields must be complete --------------------------------------
+  // An override must say why. Checked here rather than left to review, because an override that is
+  // easy to set and easy to forget is a spend with nobody's name on it. Absence of `overrides` is
+  // not a violation and must not be treated as one: most runs do not depart from configuration, and
+  // requiring a reason from them would make the field noise.
+  const overrides = council.overrides;
+  if (overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0) {
+    const reason = typeof council.override_reason === 'string' ? council.override_reason.trim() : '';
+    if (reason === '') {
+      errors.push(
+        `${file} council.overrides departs from the resolved configuration (${Object.keys(overrides).join(', ')}) `
+        + 'but carries no council.override_reason; a departure with no stated reason is a spend with no owner',
+      );
+    }
+  } else if (typeof council.override_reason === 'string' && council.override_reason.trim() !== '') {
+    errors.push(
+      `${file} council.override_reason is set but council.overrides is empty; a reason for a departure `
+      + 'that did not happen describes a run other than this one',
+    );
+  }
+
+  // A cost estimate must either name the history it rests on, or say there is none.
+  //
+  // The failure this guards is a confident figure with nothing behind it. `no-history` is the correct
+  // and required answer for a repo's first council: there is nothing to average, and a number
+  // produced anyway would be invented. Any other value must state the sample it came from, so a
+  // reader can tell a mean of twelve runs from a mean of one.
+  if (typeof council.cost_estimate === 'string' && council.cost_estimate.trim() !== '') {
+    const estimate = council.cost_estimate.trim();
+    if (estimate !== 'no-history' && !/\b(?:over|across|from)\s+\d+\s+(?:prior\s+)?council/i.test(estimate)) {
+      errors.push(
+        `${file} council.cost_estimate "${estimate}" neither states the sample it rests on nor declares `
+        + '"no-history"; a cost figure that does not say how many prior runs produced it cannot be told '
+        + 'apart from one that was guessed',
+      );
+    }
+  }
+
   for (const key of ['authorization', 'cap_resolved', 'cap_source', 'dispatch_depth', 'rounds_run', 'termination_reason']) {
     if (council[key] === undefined || council[key] === null || council[key] === '') {
       errors.push(`${file} council mode requires frontmatter council.${key}`);

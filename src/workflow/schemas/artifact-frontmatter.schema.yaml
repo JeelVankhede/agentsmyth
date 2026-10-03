@@ -223,6 +223,54 @@ properties:
           replace a declared model by plan or administrator policy, so recording the request as
           though it were the outcome would state external state without evidence. `unknown` is an
           honest value here and must not be inferred from the tier.
+      overrides:
+        type: object
+        additionalProperties: false
+        description: >-
+          Values this RUN departed from the resolved configuration, for this run only. Absent means
+          no departure, and absence must never be read as one. Permitted rather than prompted: a gate
+          whose most common answer restores the status quo trains bypass, so the control is a
+          mandatory record rather than a mandatory question.
+        properties:
+          model_tier:
+            type: string
+            enum: [cheap, standard, deep]
+          effort:
+            type: string
+            enum: [low, standard, high, very-high, max]
+          depth:
+            type: string
+            enum: [shallow, standard, deep]
+      override_reason:
+        type: string
+        minLength: 1
+        description: >-
+          Why this run departed from configuration. Required whenever `overrides` carries anything,
+          and enforced by check-council-record rather than by review: an override that is easy to set
+          and easy to forget is a spend with no owner.
+      member_tokens:
+        type: object
+        description: >-
+          Tokens each member actually consumed, keyed by member id, as reported by the host. The
+          literal `unavailable` is a valid value and the honest one where a host reports nothing —
+          never zero, which would be averaged in as though it were a measurement and would drag every
+          later estimate down. This is what gives a repo a cost history at all; without it there is
+          nothing to estimate from.
+        additionalProperties:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: string
+              enum: [unavailable]
+      cost_estimate:
+        type: string
+        minLength: 1
+        description: >-
+          What this run was told it would likely cost, BEFORE dispatching, derived from the mean
+          per-member cost of this repo's own recorded councils. The literal `no-history` is valid and
+          required for the first council in a repo: there is nothing to average, and a figure
+          produced anyway would be invented. Deriving a cost from fan-out and rounds alone is
+          forbidden outright — it reads as a measurement and is a guess, which `[safety-3]` prohibits.
       dispatch_depth:
         type: integer
         minimum: 1

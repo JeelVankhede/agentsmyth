@@ -203,6 +203,10 @@ const fixtures = [
   // base (test/fixtures/conformance/council-wellformed) with exactly one mutation, so a rejection
   // is attributable to the rule under test rather than to incidental breakage. The positive control
   // lives in the conformance suite so this suite stays purely negative.
+  // WP-R25 Phase 7 — the three rules added with the per-run override and the cost history.
+  { id: 'jf', dir: 'test/fixtures/lifecycle-violations/jf-override-no-reason', description: '(WP-R25) a run departs from configuration with no stated reason — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'carries no council.override_reason' },
+  { id: 'jg', dir: 'test/fixtures/lifecycle-violations/jg-reason-no-override', description: '(WP-R25) a reason is given for a departure that did not happen — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'council.overrides is empty' },
+  { id: 'jh', dir: 'test/fixtures/lifecycle-violations/jh-estimate-no-sample', description: '(WP-R25) a cost figure that names no sample and is not no-history — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'neither states the sample it rests on' },
   { id: 'ca', dir: 'test/fixtures/lifecycle-violations/ca-unattributed-finding', description: '(WP-R21, R3) council finding has no source member — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'finding F1 has no source member — unattributed findings are invalid'},
   { id: 'cb', dir: 'test/fixtures/lifecycle-violations/cb-empty-rejection-reason', description: '(WP-R21, R4) rejected-with-reason carries an empty reason — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'finding F3 is rejected-with-reason but its reason is empty — "rejected'},
   { id: 'cc', dir: 'test/fixtures/lifecycle-violations/cc-fanout-growth', description: '(WP-R21, R13) round 2 fan-out exceeds round 1 — non-increasing invariant — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'round 2 fan-out (5) exceeds round 1 (4)'},
