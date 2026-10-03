@@ -19,7 +19,7 @@
 // actual ~/.agentsmyth.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { platform, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1240,6 +1240,156 @@ const home = mkScratch('wpr18-home-');
     check('H1-upgrade-clean-at-eight', 'and an upgrade over eight governed artifacts reports all of them unchanged',
       result.status === 0 && /8 unchanged/.test(result.stdout));
   }
+}
+
+// ── Generated-hooks-directory scenarios (husky v9 and v8) ───────────────────────────────────
+//
+// The defect these cover is not "the hook is missing". It is a hook that SURVIVES and does not RUN,
+// which is strictly worse: the file is on disk, the path advertised in AGENTS.md is literally
+// correct, and nothing is enforced. So every assertion below that matters is a real `git commit`,
+// never the presence of a file.
+
+// husky's own dispatcher, transcribed from its installer: it derives <parent>/<hookname>, exits 0
+// when that file is absent, and otherwise runs it under `sh -e` with node_modules/.bin on PATH.
+const HUSKY_DISPATCHER = 'n=$(basename "$0")\n'
+  + 's=$(dirname "$(dirname "$0")")/$n\n'
+  + '[ ! -f "$s" ] && exit 0\n'
+  + 'export PATH="node_modules/.bin:$PATH"\n'
+  + 'sh -e "$s" "$@"\n';
+const HUSKY_SHIM = '#!/usr/bin/env sh\n. "$(dirname "$0")/h"\n';
+
+// A stub `agentsmyth` on PATH, so a commit can prove the GATE BLOCK EXECUTED without running the
+// real validator or reaching the network through the template's npx fallback. What is under test is
+// placement and ORDER; what the validator then decides is a different suite's business.
+function stubGateBin(label) {
+  const dir = mkScratch(`wpr25-${label}-bin-`);
+  cleanup.push(dir);
+  writeFileSync(join(dir, 'agentsmyth'), '#!/bin/sh\necho GATE-RAN\nexit 0\n', { mode: 0o755 });
+  return dir;
+}
+
+function commitWithStub(repo, stubDir, file, message) {
+  writeFileSync(join(repo, file), 'x\n');
+  git(repo, 'add', file);
+  return spawnSync('git', ['commit', '-m', message], {
+    cwd: repo, encoding: 'utf8',
+    env: { ...process.env, PATH: `${stubDir}:${process.env.PATH}` },
+  });
+}
+
+// ── husky v9: core.hooksPath points at the GENERATED directory ───────────────────────────────
+{
+  const repo = mkScratch('wpr25-husky9-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  const gen = join(repo, '.husky', '_');
+  mkdirSync(gen, { recursive: true });
+  writeFileSync(join(gen, 'h'), HUSKY_DISPATCHER, { mode: 0o755 });
+  writeFileSync(join(gen, '.gitignore'), '*');
+  writeFileSync(join(gen, 'pre-commit'), HUSKY_SHIM, { mode: 0o755 });
+  // What `husky init` actually pre-populates is a command, and a host command that exits 0 is the
+  // case that silently skipped an appended gate.
+  writeFileSync(join(repo, '.husky', 'pre-commit'), '#!/usr/bin/env sh\necho HOST-RAN\nexit 0\n', { mode: 0o755 });
+  git(repo, 'config', 'core.hooksPath', '.husky/_');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const durable = join(repo, '.husky', 'pre-commit');
+  const generated = join(repo, '.husky', '_', 'pre-commit');
+  const durableText = existsSync(durable) ? readFileSync(durable, 'utf8') : '';
+  const generatedText = existsSync(generated) ? readFileSync(generated, 'utf8') : '';
+  const agentsMd = readFileSync(join(repo, 'AGENTS.md'), 'utf8');
+  const stub = stubGateBin('husky9');
+
+  check('HK1-durable-target', 'the gate is written to the durable parent, not the generated directory',
+    durableText.includes('agentsmyth:mandatory-lifecycle-gate') && !generatedText.includes('agentsmyth:mandatory-lifecycle-gate'));
+  check('HK2-gate-first', 'the gate block is the first content in the durable hook',
+    durableText.indexOf('# >>> agentsmyth:mandatory-lifecycle-gate >>>') === 0);
+  check('HK3-host-preserved', "the host's own content is preserved below the gate",
+    durableText.includes('echo HOST-RAN'));
+  check('HK4-executable', 'the written hook is executable', (statSync(durable).mode & 0o111) !== 0);
+  check('HK5-advertises-written', 'AGENTS.md advertises the path actually written',
+    /pre-commit hook at `\.husky\/pre-commit`/.test(agentsMd));
+
+  const first = commitWithStub(repo, stub, 'a.txt', 'first');
+  check('HK6-gate-executes', 'a real commit executes the gate ahead of the host command',
+    /GATE-RAN/.test(first.stdout + first.stderr));
+
+  // Now do what a dependency install does: husky rewrites every hook inside its generated dir.
+  writeFileSync(generated, HUSKY_SHIM, { mode: 0o755 });
+  const second = commitWithStub(repo, stub, 'b.txt', 'second');
+  check('HK7-survives-reinstall', 'the gate still executes after husky regenerates its dispatch directory',
+    /GATE-RAN/.test(second.stdout + second.stderr));
+
+  const up = run(['upgrade'], { cwd: repo, home });
+  const upOut = up.stdout + up.stderr;
+  check('HK8-no-false-drift', 'upgrade after a husky reinstall reports zero drifted files',
+    /0 edited/.test(upOut));
+  check('HK9-no-backup', 'no husky-generated content is copied into workflow/backups/',
+    !existsSync(join(repo, 'workflow', 'backups')) || readdirSync(join(repo, 'workflow', 'backups')).length === 0);
+  check('HK10-no-reconcile', 'no reconcile item is raised for a file the user never edited',
+    !/reconcile\./.test(readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8')));
+}
+
+// ── husky v8: core.hooksPath points at the PARENT, so no relocation must happen ──────────────
+{
+  const repo = mkScratch('wpr25-husky8-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  mkdirSync(join(repo, '.husky', '_'), { recursive: true });
+  writeFileSync(join(repo, '.husky', '_', '.gitignore'), '*');
+  // v8 writes `_/husky.sh`, never `_/h`, and points core.hooksPath at the parent — so git invokes
+  // `.husky/pre-commit` DIRECTLY as the hook, which makes the executable bit load-bearing here in a
+  // way it is not under v9, where the file is only sourced.
+  writeFileSync(join(repo, '.husky', '_', 'husky.sh'), '#!/usr/bin/env sh\n');
+  git(repo, 'config', 'core.hooksPath', '.husky');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const hook = join(repo, '.husky', 'pre-commit');
+  const stub = stubGateBin('husky8');
+  check('HV1-no-relocation', 'a v8 layout is left where it already resolves correctly',
+    existsSync(hook) && readFileSync(hook, 'utf8').includes('agentsmyth:mandatory-lifecycle-gate'));
+  check('HV2-executable', 'the hook git invokes directly is executable', (statSync(hook).mode & 0o111) !== 0);
+  const commit = commitWithStub(repo, stub, 'c.txt', 'v8');
+  check('HV3-gate-executes', 'a real commit executes the gate under a v8 layout',
+    /GATE-RAN/.test(commit.stdout + commit.stderr));
+}
+
+// ── A manifest written before the relocation reports superseded, not missing ─────────────────
+{
+  const repo = mkScratch('wpr25-superseded-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  const gen = join(repo, '.husky', '_');
+  mkdirSync(gen, { recursive: true });
+  writeFileSync(join(gen, 'h'), HUSKY_DISPATCHER, { mode: 0o755 });
+  writeFileSync(join(gen, '.gitignore'), '*');
+  writeFileSync(join(gen, 'pre-commit'), HUSKY_SHIM, { mode: 0o755 });
+  git(repo, 'config', 'core.hooksPath', '.husky/_');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  // Rewrite the manifest to the path a pre-relocation CLI would have recorded.
+  const manifestPath = join(repo, 'workflow', 'provenance.yaml');
+  writeFileSync(manifestPath,
+    readFileSync(manifestPath, 'utf8').replace('path: .husky/pre-commit', 'path: .husky/_/pre-commit'));
+
+  const up = run(['upgrade'], { cwd: repo, home });
+  const upOut = up.stdout + up.stderr;
+  check('HS1-superseded', 'an entry still on disk but no longer governed reports as superseded',
+    /superseded\s+\.husky\/_\/pre-commit/.test(upOut));
+  check('HS2-not-missing', 'it is not reported as recorded but no longer on disk',
+    !/\.husky\/_\/pre-commit\s+\(recorded but no longer on disk\)/.test(upOut));
+  check('HS3-no-backup', 'a superseded entry produces no backup and no reconcile item',
+    (!existsSync(join(repo, 'workflow', 'backups')) || readdirSync(join(repo, 'workflow', 'backups')).length === 0)
+    && !/reconcile\./.test(readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8')));
 }
 
 for (const dir of cleanup) {

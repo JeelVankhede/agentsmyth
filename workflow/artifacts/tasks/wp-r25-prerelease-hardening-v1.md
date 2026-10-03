@@ -7,9 +7,14 @@ created: 2026-10-03
 updated: 2026-10-03
 manifest_ids:
   - R1
+  - R2
+  - R7
   - R8
   - RI2
+  - RI7
   - RI9
+  - RI11
+  - RI12
 upstream:
   - workflow/artifacts/briefs/wp-r25-prerelease-hardening-v2.md
   - workflow/artifacts/plans/wp-r25-prerelease-hardening-v1.md
@@ -25,21 +30,23 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 1 - Resolution and staleness
-- Manifest IDs: R1, R8, RI2, RI9
-- Exit gate: `npm run init-prepare-interop:test` exits 0 with new scenarios asserting (a) `init`
-  against a global tree with no stamp exits non-zero and names the remedy; (b) `init` against a
-  differing stamp exits non-zero; (c) `init` against a matching stamp still exits 0; (d) `init` then
-  `upgrade` in a linked worktree both exit 0; (e) `check` against a hollowed global tree prints a
-  message naming the missing file and does not print a stack trace. Each of (a), (b), (d) and (e)
-  turns red when its own guard alone is reverted.
+- Phase: Phase 2 - Hook durability and execution (complete; Phase 3 is next)
+- Manifest IDs: R2, R7, RI7, RI11, RI12
+- Exit gate: `npm run upgrade-path:test` and `npm run agents-md:test` both exit 0 with new
+  assertions: (a) in a husky v9 fixture, after re-running husky's installer, `git commit` output
+  contains the gate's own output; (b) the gate block is the first content in `.husky/pre-commit`;
+  (c) the written file's mode is 0755 and a husky v8 fixture's commit runs the gate; (d) a
+  `core.hooksPath=.githooks` fixture behaves exactly as before the change; (e) `upgrade` after a
+  husky reinstall reports zero drifted files, creates nothing under `workflow/backups/`, and adds no
+  reconcile item; (f) the advertised path in `AGENTS.md` equals the written path in every fixture.
+- Phase 1 completed 2026-10-03 and is recorded in the Phase Completion Log; its commit is `b9dc552`.
 
 ## Plan Phases Overview
 
 | Phase | Status | Manifest IDs |
 |---|---|---|
-| Phase 1 - Resolution and staleness | active | R1, R8, RI2, RI9 |
-| Phase 2 - Hook durability and execution | pending | R2, R7, RI7, RI11, RI12 |
+| Phase 1 - Resolution and staleness | complete | R1, R8, RI2, RI9 |
+| Phase 2 - Hook durability and execution | active | R2, R7, RI7, RI11, RI12 |
 | Phase 3 - Council capability contract | pending | R3, R4, R5, R10, RI8 |
 | Phase 4 - Bundle pruning | pending | R9 |
 | Phase 5 - Release evidence and delivery honesty | pending | R11, RI10 |
@@ -54,7 +61,7 @@ orchestration:
 
 ## Scope
 
-- In scope for Phase 1:
+- In scope for Phase 1 (complete):
   - `bin/agentsmyth.mjs` — one shared staleness predicate; the three entry points that currently
     decide on directory existence alone (`:2915` in `init`, `:562` in `headlessBootstrap`, reached
     from `check` at `:139`); the stamp write in `runPrepare` at `:2324`; and the governed-set
@@ -71,8 +78,16 @@ orchestration:
     `workflow/config/repo-profile.yaml`, `workflow/artifacts/open-items.yaml`,
     `workflow/artifacts/open-items-archive.yaml`.
   - This chain's own lifecycle artifacts under `workflow/artifacts/`.
-- Out of scope for Phase 1:
-  - `resolveHooksDir()` and `installPreCommitHook()` husky behaviour — Phase 2 (R2, R7, RI7, RI11, RI12).
+- In scope for Phase 2 (active):
+  - `bin/agentsmyth.mjs` — `resolveHooksDir()` gains structural husky detection and returns the
+    durable parent when it fires; `installPreCommitHook()` writes the gate block FIRST in the target
+    file and sets mode 0755; the manifest classification reports a superseded hook path as superseded
+    rather than missing; the false "Single caller by design" comment is corrected.
+  - `test/run-upgrade-path-tests.mjs` — husky v9 and husky v8 fixtures, plus drift and backup
+    assertions after a husky reinstall.
+  - `test/run-agents-md-tests.mjs` — the advertised path must equal the written path in every
+    fixture shape.
+- Out of scope for Phase 2:
   - Anything under `src/workflow/schemas/`, the council skills, `check-council-record.mjs`, or
     `src/adapters/` — Phase 3 (R3, R4, R5, R10, RI8). `check-lifecycle.mjs` is touched in BOTH
     phases and for unrelated reasons: Phase 1 adds RI9's catch at its module-scope definitions load,
@@ -98,6 +113,14 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   — IDs: R1, R8, RI2, RI9
 - `test/run-upgrade-path-tests.mjs` — added `syncHome()` and routed all eight `init` sites through
   it; test isolation only, no assertion changed — IDs: R1
+- `bin/agentsmyth.mjs` (Phase 2) — `resolveHooksDir()` relocates a generated dispatch directory to
+  its durable parent, detected structurally via `generatedHooksParent()`; `installPreCommitHook()`
+  writes the gate block first where a generator dispatches into the file;
+  `classifyGoverned()` distinguishes `superseded` from `missing`; `UNGOVERNED_STATES` derives the
+  two sites that previously compared against the `missing` literal; the false "single caller by
+  design" comment is corrected to name all four callers — IDs: R2, R7, RI7, RI12
+- `test/run-upgrade-path-tests.mjs` (Phase 2) — husky v9, husky v8 and superseded-manifest
+  scenarios; 16 new assertions, six of them real `git commit` runs — IDs: R2, R7, RI7, RI11
 
 ## Implementation Log
 
@@ -143,6 +166,26 @@ contamination pre-dated the guard; nothing had compared before, so nothing had n
 restores the precondition each scenario already assumed, and no assertion was weakened — the
 scenarios that care about a version step still take it explicitly.
 
+**Phase 2: RI11 needed no code change, only proof.** The council warned that a gate written with a
+plain `writeFileSync` would lack the executable bit and so would run under husky v9 (which only
+sources the file) while silently failing under v8 (which invokes it directly). That hazard does not
+exist here: all three write branches already go through `atomicWriteFileSync(..., { mode: 0o755 })`.
+So RI11 is satisfied by assertion rather than by change — `HK4` and `HV2` pin the bit, and `HV3`
+proves a v8 commit actually runs it.
+
+**Phase 2: the ordering half is what makes R2 real, and the revert proves it.** Reverting ONLY the
+write order while keeping the relocation leaves `HK1` green and turns `HK6` and `HK7` red: the gate
+sits in exactly the right durable file and still never executes, because `husky init` pre-populates
+that file and a host command which exits 0 ends the script under `sh -e` before the gate is reached.
+Without this half, OI-113's fix would have satisfied its own stated acceptance criterion — the hook
+survives a dependency install — while leaving the repository unprotected. That is why every
+assertion that matters here is a real `git commit` rather than a file-presence check.
+
+**Phase 2: `run-agents-md-tests.mjs` was planned and not needed.** The advertised-path assertion it
+was to carry is better placed beside the husky fixtures, since that is where the path shapes exist;
+`HK5` asserts AGENTS.md advertises the path actually written. The existing `A5` assertion in
+`agents-md:test` still holds unchanged and that suite passes. Recorded rather than quietly dropped.
+
 **Two files beyond the plan's Phase 1 Touches.** `check-lifecycle.mjs` and
 `run-upgrade-path-tests.mjs`, both necessary consequences of the above. The plan was amended
 explicitly rather than the scope being widened silently, and the amendment records why.
@@ -183,6 +226,11 @@ explicitly rather than the scope being widened silently, and the amendment recor
 | revert R1's refusal alone | RI5 evidence | pass | `K1-refuses` and `L1-refuses` went red; `M1`, `N2`, `O2` stayed green. |
 | revert R8's `isInsideRepo` alone | RI5 evidence | pass | `N2-no-escape`, `N3-upgrade`, `N4-not-unparseable` went red; `N1` stayed green (init exited 0 even when broken — the defect was the manifest, not the exit code); `K1`, `L1`, `O2` stayed green. |
 | revert RI9's diagnostic alone | RI5 evidence | pass | `O2`, `O3`, `O4` went red; `O1` stayed green, because the raw crash also exits non-zero — the exit code was never the problem, the message was. |
+| `npm run upgrade-path:test` (Phase 2) | Phase 2 exit gate | pass | 154 passed, 0 failed, 1 skipped. 16 new assertions across husky v9, husky v8 and superseded-manifest scenarios. |
+| revert the husky relocation alone | RI5 evidence | pass | `HK1`, `HK2`, `HK7`, `HK8`, `HK10` went red; `HK6` stayed GREEN — the gate does run before a reinstall, which is why the defect was invisible; `HV1` stayed green, confirming v8 was never affected. |
+| revert the gate-first ordering alone | RI5 evidence | pass | `HK2`, `HK6`, `HK7` went red while `HK1` and `HK3` stayed green: right file, host content preserved, gate never executed. The fix-created defect, reproduced. |
+| revert the superseded classification alone | RI5 evidence | pass | `HS1`, `HS2` went red; `HK8`, `HK10`, `HS3` stayed green. |
+| full suite set re-run after Phase 2 | regression | pass | thirteen suites all exit 0: validate, violations, conformance, init-prepare-interop, setup-checks, agents-md, commit-coverage, root-resolution, tuning-merge, setup-refs, domain-placeholders, checkpoint-approval, setup-validator-definitions-root. |
 | `npm run mutation:audit` | validator ratchet | not run | Exceeded a 10-minute budget; documented in-repo as taking tens of minutes. **Not claimed as passing.** Phase 6 owns it per the plan. Phase 1 added zero validator rules, verified directly: `test/mutation-baseline.json` records `check-lifecycle.mjs` at 22 rules / 0 undefended and `lib.mjs` at 13 / 0, and the live `errors.push(` counts are 22 and 13. So the baseline is unmoved and there is no new rule to defend. Recorded as a deferred check, not a skipped risk. |
 
 ## Dispatch Log
@@ -215,4 +263,5 @@ none
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
+| Phase 2 - Hook durability and execution | complete | 2026-10-03 | R2, R7, RI7, RI11, RI12. Exit gate met: `upgrade-path:test` 154 passed with husky v9, husky v8 and superseded scenarios, six of the new assertions being real `git commit` runs. Each of the three guards verified to turn its own assertions red when reverted alone — including the ordering guard, whose revert leaves the gate in the correct file and still not running. RI11 required no code change (all write branches already set mode 0755) and is satisfied by assertion. `run-agents-md-tests.mjs` was planned and proved unnecessary; its coverage landed beside the husky fixtures instead. |
 | Phase 1 - Resolution and staleness | complete | 2026-10-03 | R1, R8, RI2, RI9. Exit gate met: `init-prepare-interop:test` 55/55 with scenarios K-O, and each of the three guards verified to turn its own named assertion red when reverted alone. Two unplanned finds fixed and logged: a TDZ hazard that blocked R1 outright, and a shared-home contamination in the upgrade-path suite that R1's guard exposed. RI9 was redesigned after a rejection fixture proved the first approach removed a validator's ability to gate. `mutation:audit` deferred to Phase 6 with direct evidence that no rule count moved. |
