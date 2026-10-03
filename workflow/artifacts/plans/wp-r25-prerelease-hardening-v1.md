@@ -102,10 +102,6 @@ phase carries a binary exit gate expressed as a command outcome or an observable
 | RI10 | Phase 5 | Delivery parity stated honestly or fixed. Citation: `bin/agentsmyth.mjs:2363`, `:2384`. Covered. |
 | RI11 | Phase 2 | husky v8 executable bit. Citation: `bin/agentsmyth.mjs:2243`. Covered. |
 | RI12 | Phase 2 | The false "single caller" comment corrected. Citation: `bin/agentsmyth.mjs:2000`. Covered. |
-| R12 | Phase 7 (owner) | Per-run override with a mandatory reason. Citation: `src/workflow/validators/check-council-record.mjs`. Covered. |
-| R13 | Phase 7 (owner) | Cost reported from recorded history, never computed from fan-out. Citation: `src/workflow/schemas/artifact-frontmatter.schema.yaml`. Covered. |
-| R14 | Phase 7 (owner) | Per-phase tier and effort. Citation: `src/workflow/schemas/repo-profile.schema.yaml`. Covered. |
-| RI13 | Phase 7 (owner) | Per-entry merge one level into `per_phase`, landing before R14. Citation: `src/workflow/validators/lib.mjs:98-106`, `src/workflow/validators/check-council-record.mjs:27`. Covered. |
 
 No requirement is deferred, waived, or dropped.
 
@@ -117,7 +113,6 @@ No requirement is deferred, waived, or dropped.
 |---|---|---|
 | A1 | evidence-backed | Superseded by measurement rather than assumed. Brief v2 Findings, surfaces "Windsurf capability" and "Copilot capability": Windsurf/Devin's frontmatter table declares no effort field at all, and Copilot's per-agent effort lives in `subagents.agents` config rather than agent frontmatter. So at least two of five cannot express per-member effort the way Claude Code does, which is what A1 claimed. Phase 3 therefore ships a per-adapter mapping rather than one uniform shape. |
 | A2 | evidence-backed | `council.repo_integrity.before` and `.after` in brief v2 are byte-identical (`9c229de559f736aa5a15a6d9db4375fa5c4597d738c2fb45b05ba44952598bb8`, 2162 files), taken either side of the council run with `node src/workflow/validators/repo-digest.mjs`. The sandbox root resolves to `~/.agentsmyth/sandbox/agentsmyth` per `workflow/config/repo-profile.yaml`, outside every repository. |
-| A4 | evidence-backed | Verified observationally rather than from documentation, which is the stronger form here. During this chain's own council the host reported per-member token usage to the parent on every member completion: 127,859 / 116,009 / 178,135 for the three researchers, 86,889 / 143,845 for the two challengers, and 26,413 for the Phase 3 tier probe. That is where this chain's ~653k figure comes from, and it means R13 has a real source on the reference implementation rather than an assumed one. Held narrowly: it establishes the figure is reported HERE, not that every supported host reports it. Plan therefore requires per-adapter declaration rather than uniform availability, and an adapter whose host reports nothing records `unavailable` rather than zero. |
 | A3 | evidence-backed | Documented for all five hosts in brief v2's Findings (surfaces "Claude capability", "Codex capability", "Cursor capability", "Windsurf capability", plus c1's Copilot correction), and corroborated in-session: `~/.claude/skills/agentsmyth/SKILL.md` is a live native registration, and the council's own members were dispatched as fresh-context agents rather than forks. Held narrowly: documentation establishes the mechanism exists, not that agentsmyth's integration uses it correctly — which is why R5's acceptance requires reading a dispatched member's actual model back from the host in Phase 3, not merely placing the file. |
 
 ## Repo Impact Map
@@ -349,36 +344,6 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `dependencies` empty; `CHANGELOG.md` `[1.1.0]` names all ten defects; and no artifact other than
   the four council ones named in RI1 was edited to make validation pass.
 
-### Phase 7 - Council configuration depth, override, and cost history
-
-- **Manifest IDs:** R12, R13, R14, RI13
-- Touches: `src/workflow/agent-behavior.yaml`,
-  `src/workflow/schemas/agent-behavior.schema.yaml`,
-  `src/workflow/schemas/repo-profile.schema.yaml`,
-  `src/workflow/schemas/artifact-frontmatter.schema.yaml`,
-  `src/workflow/validators/check-council-record.mjs`,
-  `src/workflow/skills/think-council/SKILL.md`, `src/workflow/skills/review-council/SKILL.md`,
-  `src/adapters/claude/council-member.md`, `src/adapters/codex/council-member.md`,
-  `src/adapters/copilot/council-member.md`, `src/adapters/cursor/council-member.md`,
-  `src/adapters/windsurf/council-member.md`,
-  `test/run-violation-tests.mjs`, `test/fixtures/lifecycle-violations/`,
-  `test/mutation-baseline.json`, `workflow/artifacts/`
-- Work, and **RI13 goes first within the phase**. Replace the flat top-level spread that resolves
-  council config with a per-entry merge reaching one level into `per_phase`, and prove with a fixture
-  that a partial per-phase override preserves sibling keys. Only then add `model_tier` and `effort`
-  inside `per_phase` entries (R14). Add the per-run override with a mandatory reason and a validator
-  rule that rejects a reasonless one (R12). Add per-member token counts to the council record, and a
-  pre-dispatch estimate derived from the mean of this repo's last recorded councils — with an
-  explicit no-history path that projects nothing (R13). Declare token availability per adapter
-  beside the effort-axis declaration each member definition already carries.
-- **Exit gate:** all of: a fixture proves a per-phase override of one key leaves that phase's
-  sibling keys and every other phase at their global values; a second fixture proves an override
-  with no reason is rejected; `check-council-record` accepts a record carrying per-member token
-  counts and one carrying `unavailable`, and rejects neither; a repo with no council history produces
-  an estimate that states it has none and contains no projected figure; `grep` finds no code path
-  multiplying fan-out by rounds to produce a cost; `npm run validate`, `violations:test`,
-  `conformance:test` and `mutation:audit` all pass with 0 undefended.
-
 ## Dependency Order
 
 1. **Phase 1** and **Phase 2** are independent of each other and of everything else. Both are
@@ -392,12 +357,7 @@ asserts survival of a consumer-authored file as well as removal of a retired one
    `bin/agentsmyth.mjs`; there is no logical dependency, but sequencing them avoids a merge conflict
    in one file. If they are worked in parallel, Phase 1's regions (`:139`, `:562`, `:2324`, `:2915`)
    and Phase 3's regions (`:206`, `:2407`) do not overlap.
-5. **Phase 7 must come before Phase 6 and after Phase 3.** After Phase 3, because it extends the
-   council contract Phase 3 established. Before Phase 6, because Phase 6 rebuilds and asserts the
-   whole suite, and a phase landing after it leaves a stale `dist/` and a CHANGELOG that
-   under-describes the release. Within Phase 7, RI13 strictly precedes R14 — see the phase's own
-   Work note for why building R14 first would mean shipping a documented defect and then removing it.
-6. **Phase 6 must be last.** It rebuilds and asserts the whole suite, so every other phase's source
+5. **Phase 6 must be last.** It rebuilds and asserts the whole suite, so every other phase's source
    edits must already be in place. Running it earlier produces a stale `dist/` and a CHANGELOG that
    under-describes the package.
 
@@ -467,10 +427,6 @@ Configured commands first (`prefer_configured_commands: true`), then discovered 
 | RI4 | generated-output — `npm run build` then `git status` on `dist/` | Phase 6 | `require_source_mapping: true`; source-only inspection is explicitly not enough. |
 | RI5 | command — `npm run mutation:audit` | Phase 6 | 0 undefended for validator rules; CLI fixes pinned by revert-and-rerun, recorded per fix. |
 | RI6 | command — `node -e` reading `package.json` dependencies | Phase 6 | Empty. |
-| R12 | command — `violations:test` with an override-without-reason fixture | Phase 7 | Rejection, with its own fixture per RI5. |
-| R13 | command — `check-council-record` on a record with token counts and one with `unavailable`; plus a no-history estimate case | Phase 7 | Both accepted; the no-history path projects nothing. |
-| R14 | command — `violations:test` with a partial per-phase fixture | Phase 7 | Sibling keys and other phases survive. |
-| RI13 | command — `tuning-merge:test` extended to per_phase depth | Phase 7 | A partial override preserves siblings; lands before R14. |
 
 Configured required commands `npm run validate` and `npm run violations:test` run at Review and
 Ship per `verification.yaml`, in addition to their per-phase appearances above.
