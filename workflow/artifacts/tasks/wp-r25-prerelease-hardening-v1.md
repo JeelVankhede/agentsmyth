@@ -38,7 +38,7 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 8 - Review remediation (complete; chain ready for Test)
+- Phase: Phase 8 - Review remediation (complete; Test complete, chain ready for Ship)
 - Manifest IDs: R3, R4, R5, R9, R10, RI7
 - Exit gate: all 22 Review council findings resolved with evidence; any finding not resolved must
   appear as a row in a `## Waivers` table carrying every required field, which this artifact does not
