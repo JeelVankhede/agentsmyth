@@ -404,6 +404,17 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `test/run-upgrade-path-tests.mjs`, `test/run-init-prepare-interop-tests.mjs`,
   `test/fixtures/lifecycle-violations/`, `test/fixtures/conformance/`,
   `test/mutation-baseline.json`, `workflow/artifacts/`
+- Touches, extended 2026-10-04 as remediation reached findings whose fixes land outside the paths
+  listed above. Recorded as a plan update rather than waived per-file, because each is genuinely in
+  scope for a finding the review raised — the original list was written before the fixes were
+  designed, not around them: `scripts/build-bundle.mjs` (F19 — the council-member templates have to
+  enter the bundle for `prepare` to install them), `test/run-path-containment-tests.mjs` (F6, F7,
+  F13, F14 — a new suite, since none of the four is a validator rule and the negative suite only
+  asserts validator exits), `test/run-checkpoint-approval-tests.mjs` (F17 — the two surviving gate
+  remedies need positive controls), `test/run-commit-coverage-tests.mjs` (F18 — the `--staged` leg
+  is what regressed), `.github/workflows/ci.yml` and `.github/workflows/release.yml` (F6/F7/F13/F14
+  — a suite that runs in no workflow is not coverage, which is itself a finding this repo has
+  already had once), and `package.json` (the script entry the two workflows invoke)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);

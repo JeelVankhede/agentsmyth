@@ -281,6 +281,38 @@ check('r22-ship-gate-chain-scoped', "another chain's pending finding does not bl
 // any member filed a web citation, demanding a challenger it had just been told not to dispatch.
 // This is a positive control because no negative fixture can prove a rule stopped over-firing: the
 // fixture is a shallow record with web findings and no challenger, and it must pass.
+// WP-R25 F19 — the blocking item's documented way out must exist for the repos that receive it.
+//
+// Step 5a.3 of the setup skill told the reader to open
+// `.agentsmyth/assets/adapters/<tool>/council-member.md`. Only `init` creates `.agentsmyth/`, setup
+// deletes it on completion, and `check-setup-complete` REQUIRES it gone — while the blocking
+// capability item is appended to already-existing repos by `upgrade`. So the one population holding
+// the gate had no copy of the file the remedy names.
+//
+// Both halves are asserted, because fixing either alone leaves the path broken: the templates must
+// ride in the bundle (so `prepare` installs them into the definitions tree), and the skill must
+// resolve them from there rather than from the staging directory.
+{
+  const bundle = readFileSync(join(repoRoot, 'dist', 'workflow-bundle.md'), 'utf8');
+  const bundled = [...bundle.matchAll(/<!-- FILE: (workflow\/adapters\/[^/]+\/council-member\.md) -->/g)].map((m) => m[1]);
+  check('r25-council-member-templates-bundled',
+    'every adapter ships its council-member template inside the workflow bundle',
+    bundled.length === 5,
+    `bundle declares ${bundled.length} of 5: ${bundled.join(', ')}`);
+
+  // Scoped to the first council-member reference in the file rather than to a section slice.
+  // Slicing between "Step 5a.3" and "Step 5a.2" produced an EMPTY string, because 5a.2 is
+  // cross-referenced earlier in the document than 5a.3 is defined — so the assertion failed while
+  // the instruction it was checking was already correct. An empty haystack is the worst shape for a
+  // conformance check: it can only ever report a failure that is about itself.
+  const setupSkill = readFileSync(join(repoRoot, 'src', 'setup', 'SKILL.md'), 'utf8');
+  const firstRef = setupSkill.slice(0, setupSkill.indexOf('council-member.md') + 'council-member.md'.length);
+  check('r25-council-member-resolved-from-definitions',
+    'the tier-resolution step reads the template from the definitions tree, not the deleted staging dir',
+    firstRef.endsWith('<definitions_root>/adapters/<tool>/council-member.md'),
+    `the first council-member reference is "...${firstRef.slice(-70)}"`);
+}
+
 const shallowWeb = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-shallow-web']);
 check('r25-shallow-council-with-web-findings-validates',
   'a shallow council record carrying web findings and no challenger is accepted',

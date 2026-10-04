@@ -166,6 +166,35 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   design" comment is corrected to name all four callers — IDs: R2, R7, RI7, RI12
 - `test/run-upgrade-path-tests.mjs` (Phase 2) — husky v9, husky v8 and superseded-manifest
   scenarios; 16 new assertions, six of them real `git commit` runs — IDs: R2, R7, RI7, RI11
+- `bin/agentsmyth.mjs` (Phase 8) — `isSafeRelPath()` splits on both separators and rejects a drive
+  letter in any segment; new `resolveInTree()` replaces string inspection at every filesystem site;
+  `expandBundle()` validates each declared path before writing and creates its root first;
+  `writeBackup()` chooses its destination before superseding and relocates on a protected
+  collision; the supersede sweep consults a new ownership index instead of a name-shape test; the
+  council-record validator now runs on the `--staged` leg too, scoped by new `stagedArtifactPaths()`
+  — IDs: R9, R10, RI7
+- `src/workflow/validators/check-council-record.mjs` (Phase 8) — the web spot-check rule branches on
+  resolved depth; `depth`/`model_tier`/`effort`/`member_tokens` required on post-boundary records;
+  `overrides` shape checked before the reason rule; the recorded `council_enabled` cross-checked
+  against the resolved config in the one unsafe direction; new `--files` scoping — IDs: R3, R4
+- `scripts/build-bundle.mjs` (Phase 8) — the five adapter `council-member.md` templates are synced
+  into the workflow bundle under `workflow/adapters/`, so `prepare` installs them into the
+  definitions tree rather than only `init` staging them in a directory setup deletes — IDs: R5
+- `src/setup/SKILL.md` (Phase 8) — Step 5a.3 resolves the council-member template from
+  `<definitions_root>` with the staging path as a fallback — IDs: R5
+- `test/run-path-containment-tests.mjs` (Phase 8, new) — 17 assertions over the prune, the write side
+  and the traversal predicate; wired into `ci.yml` and `release.yml` — IDs: R9
+- `test/run-upgrade-path-tests.mjs` (Phase 8) — X5b, X7 and X8; each fails against the pre-fix CLI
+  — IDs: RI7
+- `test/run-conformance-tests.mjs` (Phase 8) — the shallow-council positive control and the two
+  council-member delivery assertions — IDs: R3, R5
+- `test/run-checkpoint-approval-tests.mjs` (Phase 8) — three cases pinning that both advertised gate
+  remedies clear the block, plus the no-remedy control — IDs: R4
+- `test/run-commit-coverage-tests.mjs` (Phase 8) — the `--staged` leg validates a staged
+  `blocked-for-user` council record — IDs: R10
+- `test/mutation-baseline.json` (Phase 8) — `check-council-record.mjs` 76 → 81 rules — IDs: R3, R4
+- `.github/workflows/ci.yml`, `.github/workflows/release.yml` (Phase 8) — the path-containment suite
+  runs in both — IDs: R9
 - `src/workflow/agent-behavior.yaml` (Phase 3) — `council.depth` gains an operational definition for
   all three values; `council.model_tier` added; the hard-coded tunable-key count corrected — IDs: R3
 - `src/workflow/schemas/agent-behavior.schema.yaml` (Phase 3) — `model_tier` as a new optional

@@ -257,12 +257,31 @@ if (command === 'check') {
   // most repos will never record one. The validator already behaves that way; the test asserts it,
   // because a new rule on the commit gate that fires where it has nothing to say is worse than the
   // gap it closes.
+  // Both legs now, scoped differently — the `--staged` leg was the gap.
+  //
+  // This ran only when `--staged` was absent, which excluded the one check that runs on EVERY
+  // commit. The per-artifact leg of the hook does invoke it, but skips any artifact whose
+  // orchestration status is not `ready-for-next-phase`, and a council terminating
+  // `user-decision-required` is written `blocked-for-user` — the shape all three of this chain's own
+  // fixtures carry. So the commonest council record there is went to a commit with no council-record
+  // validation at all, while the wiring looked done.
+  //
+  // On the staged leg the run is scoped to staged artifact paths via `--files`, so the cost is
+  // proportional to the commit rather than to the repo's whole artifact history. A commit touching
+  // no artifacts gets an empty list and the validator exits 0 without reading anything.
   let councilFailed = false;
-  if (stagedIdx === -1) {
+  {
     const { resolved: resolvedCouncil } = resolveValidator(checkRoot, profilePath, 'check-council-record.mjs');
-    if (resolvedCouncil) {
+    let councilArgs = null;
+    if (stagedIdx === -1) {
+      councilArgs = [];
+    } else {
+      const stagedArtifacts = stagedArtifactPaths(checkRoot);
+      if (stagedArtifacts.length > 0) councilArgs = ['--files', ...stagedArtifacts];
+    }
+    if (resolvedCouncil && councilArgs) {
       try {
-        execFileSync(process.execPath, [resolvedCouncil], { stdio: 'inherit', cwd: checkRoot });
+        execFileSync(process.execPath, [resolvedCouncil, ...councilArgs], { stdio: 'inherit', cwd: checkRoot });
       } catch {
         councilFailed = true;
       }
@@ -1376,6 +1395,27 @@ function siblingRepoDirs(repoDir) {
 // Whether a path lies within the repository working tree. Distinct from isInsideGitDir(), which
 // asks whether it is within `.git/`: a path can be outside `.git/` and outside the repo too, which
 // is exactly the linked-worktree case R8 fixes.
+// Staged lifecycle-artifact paths, repo-relative.
+//
+// A `function` declaration rather than a const for the reason this file records at
+// provenanceFormatVersion(): `check` is dispatched near the top of the file, so a const here sits in
+// the temporal dead zone and throws. That has happened four times in this chain alone.
+function stagedArtifactPaths(repoDir) {
+  try {
+    return execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], {
+      cwd: repoDir, encoding: 'utf8',
+    })
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => /(?:^|\/)workflow\/artifacts\/.+\.md$/.test(line))
+      .filter((line) => !line.endsWith('/README.md'));
+  } catch {
+    // No git, no index, or a detached state. Returning nothing means the staged leg simply does not
+    // run this validator, which is where it already was — never a hard failure of the commit.
+    return [];
+  }
+}
+
 function isInsideRepo(repoDir, filePath) {
   const rel = relative(repoDir, filePath);
   return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);

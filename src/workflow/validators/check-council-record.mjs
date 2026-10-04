@@ -249,7 +249,23 @@ function checkCitation(file, id, cls, citation) {
   }
 }
 
-const artifactFiles = listFiles(artifactsDir).filter(
+// `--files <path>...` scopes the run to an explicit list instead of sweeping the artifacts tree.
+//
+// Added so the commit hook's `--staged` leg can run this validator at a cost proportional to the
+// commit. That leg is the only check that runs on EVERY commit, and it skipped this validator
+// outright; the per-artifact leg that does invoke it skips any artifact whose orchestration status
+// is not `ready-for-next-phase`, and a council terminating `user-decision-required` is written
+// `blocked-for-user`. So the commonest council record shape there is — the one that ends by asking
+// the user something — was committed with no council-record validation at all.
+//
+// Paths are taken as given and still filtered on extension, so a non-artifact staged alongside an
+// artifact is ignored rather than parsed as a record.
+const filesArgIdx = args.indexOf('--files');
+const explicitFiles = filesArgIdx !== -1
+  ? args.slice(filesArgIdx + 1).filter((a) => !a.startsWith('--'))
+  : null;
+
+const artifactFiles = (explicitFiles ?? listFiles(artifactsDir)).filter(
   (f) => f.endsWith('.md') && !f.endsWith('/README.md')
 );
 
@@ -1177,7 +1193,9 @@ for (const file of artifactFiles) {
 }
 
 if (artifactFiles.length === 0) {
-  details.push(`no lifecycle artifact files found under ${artifactsDir}`);
+  details.push(explicitFiles
+    ? 'no lifecycle artifact files among the paths given'
+    : `no lifecycle artifact files found under ${artifactsDir}`);
 }
 
 // Texture, not a bare pass. The resolved-vs-shape-checked ratio is how a reader sees how much of a

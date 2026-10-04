@@ -250,8 +250,20 @@ NAMING this definition, and the host resolves the model and effort it declares b
 runs. A tier passed as prose in a dispatch prompt is unenforceable: nothing reads it, nothing
 verifies it, and the parent cannot observe which model answered.
 
-1. Read `.agentsmyth/assets/adapters/<tool>/council-member.md` for the tool this repo uses. It
-   carries that tool's own tier mapping and — importantly — what that tool can and cannot honour.
+1. Read `<definitions_root>/adapters/<tool>/council-member.md` for the tool this repo uses — the
+   same `definitions_root` recorded in `workflow/config/repo-profile.yaml`, which for a global
+   install is `~/.agentsmyth/workflow`. It carries that tool's own tier mapping and — importantly —
+   what that tool can and cannot honour.
+
+   Resolve it from the definitions tree, **not** from `.agentsmyth/`. This step used to name
+   `.agentsmyth/assets/adapters/<tool>/council-member.md`, which only `init` ever creates and which
+   setup then deletes — while the blocking tier item is appended to repos that **already exist**,
+   on version skew, by `upgrade`. So the one population that receives the item had no copy of the
+   template this step tells it to read, and the documented way out of a blocking gate did not exist.
+   `prepare` now installs these templates into the definitions tree, which every install path
+   produces and nothing deletes. If you are running inside a fresh `init` and the definitions tree
+   has not been linked yet, `.agentsmyth/assets/adapters/<tool>/council-member.md` is still there
+   as a fallback.
 2. Substitute `<COUNCIL-MODEL>` and, where the tool has a separate effort field, `<COUNCIL-EFFORT>`,
    from the resolved tier. Resolve identifiers against the tool's **current** documentation; the
    templates deliberately do not hard-code model names, because a shipped identifier rots and would
