@@ -828,15 +828,38 @@ function copyRecursive(src, dest) {
 // Expands a workflow-bundle.md (FILE-marker format) into individual files under destDir.
 function expandBundle(bundlePath, destDir) {
   const content = readFileSync(bundlePath, 'utf8');
+  // Create the root before resolving anything into it, so containment is measured against a real
+  // directory on a first install rather than a path that does not exist yet.
+  mkdirSync(destDir, { recursive: true });
   const fileRe = /<!-- FILE: ([^>]+) -->\n([\s\S]*?)<!-- END FILE -->/g;
   const written = [];
   let match;
+  const escaped = [];
   while ((match = fileRe.exec(content)) !== null) {
     const [, relPath, fileContent] = match;
-    const destPath = join(destDir, relPath);
-    mkdirSync(dirname(destPath), { recursive: true });
-    writeFileSync(destPath, fileContent);
+    // VALIDATE THE DECLARED PATH BEFORE WRITING IT.
+    //
+    // The capture group is `([^>]+)`, so the marker format itself places no constraint on the path,
+    // and this write was unguarded: `<!-- FILE: ../../x -->` escaped the tree, got recorded in the
+    // ledger, and was then permanently un-prunable because the prune guard rejects exactly what the
+    // write had accepted. The asymmetry is the bug — one half of a read/write pair was guarded.
+    //
+    // Refusing the entry rather than the whole bundle: a single bad marker in an otherwise valid
+    // bundle should not deny the install, and the collected list is reported below so a damaged
+    // bundle is visible rather than silently partial.
+    const target = resolveInTree(destDir, relPath, 'workflow');
+    if (target === null) {
+      escaped.push(relPath);
+      continue;
+    }
+    mkdirSync(target.dir, { recursive: true });
+    writeFileSync(target.abs, fileContent);
     written.push(relPath);
+  }
+  if (escaped.length > 0) {
+    console.warn(`  ! ${escaped.length} bundle entr${escaped.length === 1 ? 'y' : 'ies'} named a path outside the definitions tree and ${escaped.length === 1 ? 'was' : 'were'} skipped:`);
+    for (const rel of escaped.slice(0, 5)) console.warn(`      ${rel}`);
+    if (escaped.length > 5) console.warn(`      ... and ${escaped.length - 5} more`);
   }
 
   // A bundle that declared NOTHING is a broken bundle. Refuse before the prune can read it as an
@@ -868,16 +891,22 @@ function expandBundle(bundlePath, destDir) {
   // and a version stamp cannot see it: the stamp says which release ran last, not which files that
   // release stopped shipping. A retired validator still resolvable by name is the concrete harm.
   //
-  // THE BLAST RADIUS IS THE LEDGER, NOT THE DIRECTORY. This deletes only paths the previous
-  // expansion recorded having written, and only when the current bundle no longer declares them.
-  // That is deliberately narrower than "anything here the bundle does not declare", which would
-  // reach `validators/` (copied separately, never expanded), OS cruft, and anything a user put here
-  // themselves. A whole-tree sweep is the version of this feature that eats a consumer's own files,
-  // so it is not the version that ships.
+  // THE BLAST RADIUS IS THE LEDGER *AND* THE `workflow/` SUBTREE — both, because the ledger alone
+  // was not the bound this comment claimed it was.
   //
-  // A first run after this change finds no ledger, prunes nothing, and simply records one. The
-  // ledger is written AFTER the deletions so a crash mid-prune leaves the old list intact and the
-  // next run retries, rather than forgetting what it still owns.
+  // The claim used to be that deleting only recorded paths is "deliberately narrower than anything
+  // here the bundle does not declare, which would reach `validators/` (copied separately, never
+  // expanded) ... and anything a user put here themselves." Nothing in the code constrained a ledger
+  // entry to `workflow/`, so it reached both: `validators/lib.mjs` was observed deleted and survived
+  // only because `copyRecursive` happens to run a few lines later, which is ordering rather than
+  // containment, and a user file elsewhere under `~/.agentsmyth/` was deleted permanently.
+  //
+  // A safety argument a comment asserts and the code does not implement is worse than no comment,
+  // because it stops the next reader from checking. The scope is now enforced instead of described:
+  // resolveInTree() is passed the `workflow` prefix, every one of the bundle's 252 declared paths
+  // lies under it, and anything else a ledger names — however it got there — is not a candidate.
+  //
+  // A first run after this change finds no ledger, prunes nothing, and simply records one.
   // The ledger filename is a literal INSIDE this function, not a module-level const. As a const it
   // was a temporal-dead-zone hazard: this function is reached from a top-level command dispatch that
   // runs before the binding initialises, so `prepare` threw "Cannot access 'EXPANDED_LEDGER' before
@@ -909,11 +938,18 @@ function expandBundle(bundlePath, destDir) {
     if (declared.has(rel)) continue;
     // A ledger is machine-written, but it is still a file on disk that something could corrupt, and
     // acting on a path that escapes the tree would turn a stale-file sweep into an arbitrary delete.
-    if (!isSafeRelPath(rel)) continue;
-    const abs = join(destDir, rel);
+    //
+    // resolveInTree() rather than isSafeRelPath(): the string test could not see a symlink, so a
+    // symlinked intermediate directory made this delete files outside the tree while the log line
+    // below still printed a path that looked internal. It also enforces the `workflow/` scope this
+    // function's own safety argument is stated in terms of.
+    const target = resolveInTree(destDir, rel, 'workflow');
+    if (target === null) continue;
     try {
-      if (existsSync(abs) && lstatSync(abs).isFile()) {
-        rmSync(abs);
+      // lstat, not stat: a symlink is not a file by this test, so a link is left alone rather than
+      // followed to a target that containment above cannot vouch for.
+      if (existsSync(target.abs) && lstatSync(target.abs).isFile()) {
+        rmSync(target.abs);
         removed.push(rel);
       }
     } catch { /* leave anything that resists deletion; a stale file is better than a broken install */ }
@@ -1042,10 +1078,77 @@ function isVersionString(value) {
 // Windows drive letters — the traversal check that lived only in check-lifecycle.mjs, which
 // `agentsmyth upgrade` never invokes, so the guarantee sat on the reporting path rather than on the
 // path that performs the writes.
+//
+// SPLIT ON BOTH SEPARATORS. Splitting on `/` alone made the predicate separator-blind, and
+// `path.join` honours `\` on Windows — a declared target of this code — so
+// `..\..\..\Users\me\Desktop\thesis.docx` contained no `..` SEGMENT by this test, was accepted,
+// and resolved outside the tree. The reachable payload is `workflow/provenance.yaml`, a committed
+// file, which puts the whole thing inside an ordinary pull request. A `\` is a legal filename
+// character on POSIX, so treating it as a separator here can only reject a path that no bundle or
+// manifest this project writes has ever contained.
+//
+// This stays a STRING test because its remaining caller validates a path DECLARED in a manifest,
+// where no file need exist yet and the question is whether the declaration is well formed. Anything
+// that then touches the filesystem must use resolveInTree() instead: a string cannot see a symlink.
 function isSafeRelPath(value) {
   if (typeof value !== 'string' || value.length === 0) return false;
-  if (value.startsWith('/') || /^[A-Za-z]:/.test(value)) return false;
-  return !value.split('/').includes('..');
+  if (isAbsolute(value) || /^[A-Za-z]:/.test(value)) return false;
+  const parts = value.split(/[\\/]/);
+  if (parts.includes('..')) return false;
+  return !parts.some((part) => /^[A-Za-z]:/.test(part));
+}
+
+// The real on-disk location a tree-relative path names, or null when it does not live inside the
+// tree once symlinks are resolved.
+//
+// Replaces string inspection at every site that reads or writes a file, because the two guards it
+// supersedes each answered a weaker question than the one being asked. `isSafeRelPath` on the
+// ledger string could not see a symlink, and `lstatSync(abs).isFile()` on the final component
+// resolved nothing above it — so a symlinked DIRECTORY anywhere under the tree turned a stale-file
+// sweep into a delete outside it, while the log line still named a path that looked internal.
+//
+// Resolution walks the parent chain component by component and resolves each through symlinks,
+// asserting containment at every step rather than only at the end. It stops resolving at the first
+// component that does not exist, which is what makes the same function usable on the WRITE side
+// where the parent directories have yet to be created.
+//
+// The leaf is deliberately NOT resolved. Callers get the parent directory and the joined path, so a
+// delete removes the link it found rather than following it to a target that may be a real file
+// somewhere legitimate, and a write creates the entry it names. Leaf-level symlink policy belongs
+// to the caller; containment does not.
+//
+// `scopePrefix` narrows the answer to one top-level subdirectory. The prune's safety argument is
+// stated in terms of the subtree the bundle owns, and nothing enforced it.
+function resolveInTree(rootDir, rel, scopePrefix = null) {
+  if (!isSafeRelPath(rel)) return null;
+  const parts = rel.split(/[\\/]/).filter((part) => part !== '' && part !== '.');
+  if (parts.length === 0) return null;
+  if (scopePrefix !== null && parts[0] !== scopePrefix) return null;
+
+  // A tree that does not exist yet is the FIRST-INSTALL state, not an attack. Resolving the root
+  // through symlinks is what makes a `~/.agentsmyth` that is itself a symlink work; when there is
+  // nothing there to resolve, the lexically-resolved path is the honest answer and the caller is
+  // about to create it. Returning null here instead rejected all 252 entries of a valid bundle on
+  // every fresh install — caught by the upgrade-path suite, not by this function's own tests.
+  let root;
+  try { root = realpathSync(rootDir); } catch { root = resolve(rootDir); }
+
+  const inside = (abs) => {
+    const r = relative(root, abs);
+    return r !== '' && !r.startsWith('..') && !isAbsolute(r);
+  };
+
+  const leaf = parts.pop();
+  let dir = root;
+  for (const part of parts) {
+    const next = join(dir, part);
+    let real = next;
+    try { real = realpathSync(next); } catch { /* not created yet; a write will make it, in-tree */ }
+    if (!inside(real)) return null;
+    dir = real;
+  }
+  const abs = join(dir, leaf);
+  return inside(abs) ? { dir, abs } : null;
 }
 
 // Reads the running package's version. A helper rather than an inline JSON.parse because three
@@ -1432,7 +1535,6 @@ function recordProvenanceBaseline(repoDir, pkgVersion, hookPath, pkgRootDir) {
 //       diffing against nothing. Resolution wins. Supersession skips.
 function writeBackup(repoDir, rel, fromVersion, openBackupPaths) {
   const root = backupRoot(repoDir);
-  const dest = join(root, fromVersion, rel);
 
   // Read-side containment (the same hole as the write side). readFileSync dereferences, so a
   // governed path that is a symlink to `.env` or anything matching `**/*secret*` would otherwise
@@ -1450,22 +1552,98 @@ function writeBackup(repoDir, rel, fromVersion, openBackupPaths) {
   }
   const content = readFileSync(src, 'utf8');
 
-  // Supersede: drop this file's backup under any OTHER agentsmyth-written version segment, unless
-  // an open reconcile item still points at it.
   const protectedPaths = new Set(openBackupPaths ?? []);
+  const asRel = (abs) => relative(repoDir, abs).split(sep).join('/');
+
+  // CHOOSE THE DESTINATION BEFORE SUPERSEDING, because the destination itself can be protected.
+  //
+  // The supersede loop below skips `fromVersion` as "the directory we are writing to", and the
+  // protection test only ever ran on the directories it did NOT skip. So the one backup it could
+  // never protect was the one at the destination — and `fromVersion === pkgVersion` is the state of
+  // every repo after its first real upgrade, which makes the destination the path an open item
+  // names. A second edit then overwrote the first edit's preserved content, the idempotence guard
+  // declined to raise a new item because one was already open, and the run printed "Your edits were
+  // preserved before anything was touched" over the top of having destroyed them.
+  //
+  // Backups are versioned per RELEASE, which is right for the common case and wrong exactly here:
+  // two upgrade runs at the same package version legitimately need two backups. When the
+  // destination collides with a protected path AND the content differs, this run gets its own
+  // directory instead. The suffix is a build-metadata segment, so the result is still a version
+  // string by the same predicate every other reader of this tree uses.
+  let destDir = join(root, fromVersion);
+  if (protectedPaths.has(asRel(join(destDir, rel)))) {
+    let existing = null;
+    try { existing = readFileSync(join(destDir, rel), 'utf8'); } catch { /* nothing there to lose */ }
+    if (existing !== null && existing !== content) {
+      let run = 2;
+      while (existsSync(join(root, `${fromVersion}+r${run}`, rel))) run += 1;
+      destDir = join(root, `${fromVersion}+r${run}`);
+    }
+  }
+  const dest = join(destDir, rel);
+  const destName = basename(destDir);
+
+  // Supersede: drop this file's backup under any OTHER agentsmyth-created version segment, unless
+  // an open reconcile item still points at it.
+  //
+  // OWNERSHIP, NOT SHAPE. The candidate test used to be `isVersionString(versionDir)`, which asks
+  // what a directory is NAMED, not who made it — so a consumer's own `workflow/backups/1.0.0/`,
+  // created by hand or by some other tool, was indistinguishable from one agentsmyth wrote, and
+  // files at governed relpaths inside it were removed with nothing logged. The index below records
+  // what this code creates, and only those directories are ever swept.
+  const owned = readBackupIndex(root);
   if (existsSync(root)) {
+    const unowned = [];
     for (const versionDir of readdirSync(root)) {
-      if (versionDir === fromVersion) continue;
-      if (!isVersionString(versionDir)) continue; // not a directory agentsmyth wrote
+      if (versionDir === destName) continue;
+      if (!statSync(join(root, versionDir)).isDirectory()) continue;
       const stale = join(root, versionDir, rel);
       if (!existsSync(stale)) continue;
-      if (protectedPaths.has(relative(repoDir, stale).split(sep).join('/'))) continue;
+      if (!owned.has(versionDir)) {
+        // A repo upgraded before the index existed has no record of its own backups. Sweeping on
+        // the old shape test would be the F20 delete; not sweeping leaves a stale backup, which
+        // costs disk and nothing else. Taking the safe direction silently is how the shape test
+        // survived, so say it once per run instead.
+        if (isVersionString(versionDir)) unowned.push(versionDir);
+        continue;
+      }
+      if (protectedPaths.has(asRel(stale))) continue;
       rmSync(stale, { force: true });
+    }
+    if (unowned.length > 0) {
+      console.log(`  (note: ${unowned.length} backup director${unowned.length === 1 ? 'y' : 'ies'} predate the ownership index and were left alone: ${unowned.join(', ')})`);
     }
   }
 
   atomicWriteFileSync(dest, content, undefined, root);
-  return relative(repoDir, dest).split(sep).join('/');
+  recordBackupDir(root, destName);
+  return asRel(dest);
+}
+
+// The directories under `workflow/backups/` that agentsmyth itself created.
+//
+// Exists because the supersede sweep needs to tell its own work from a consumer's. A name cannot
+// carry that: `workflow/backups/1.0.0/` is a perfectly ordinary thing for a person to create, and
+// the sweep deleted files inside one. Kept as a plain newline-delimited list rather than YAML
+// because it is read on a path that must not depend on the parser, and written one directory per
+// line so a merge conflict in a committed tree resolves by taking both sides.
+function backupIndexPath(root) { return join(root, '.agentsmyth-owned'); }
+
+function readBackupIndex(root) {
+  try {
+    return new Set(
+      readFileSync(backupIndexPath(root), 'utf8')
+        .split('\n').map((line) => line.trim()).filter(Boolean),
+    );
+  } catch { return new Set(); }
+}
+
+function recordBackupDir(root, name) {
+  const owned = readBackupIndex(root);
+  if (owned.has(name)) return;
+  owned.add(name);
+  mkdirSync(root, { recursive: true });
+  writeFileSync(backupIndexPath(root), `${[...owned].sort().join('\n')}\n`);
 }
 
 // Orders two dotted version strings. Numeric segment-by-segment, so 1.10.0 sorts after 1.9.0 —

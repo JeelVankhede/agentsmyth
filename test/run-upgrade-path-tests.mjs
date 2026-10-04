@@ -806,6 +806,33 @@ const home = mkScratch('wpr18-home-');
     existsSync(consumerFile) && readFileSync(consumerFile, 'utf8') === 'the consumer owns this\n');
 }
 
+// X5b — WP-R25 F20: the same guarantee when the consumer's directory is VERSION-SHAPED.
+//
+// X5 above names its directory `nightly`, which the old candidate test — `isVersionString(dir)` —
+// already excluded, so it passed throughout the defect. F20 is the case that test could not see: a
+// name is not an ownership claim, and `workflow/backups/1.0.0/` is a perfectly ordinary thing for a
+// person or another tool to create. Files at governed relpaths inside one were deleted with nothing
+// logged. The sweep now consults an index of the directories agentsmyth itself wrote.
+{
+  const repo = freshRepo(home, 'xsweepver');
+  const rel = join('workflow', 'config', 'domain.yaml');
+  // Version-shaped, and holding a file at exactly the relpath the sweep looks for — the collision
+  // the shape test could not distinguish from its own work.
+  const consumerFile = join(repo, 'workflow', 'backups', '1.0.0', rel);
+  mkdirSync(dirname(consumerFile), { recursive: true });
+  writeFileSync(consumerFile, 'the consumer owns this too\n');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# edit\n`);
+
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('X5b-version-shaped-survives',
+    "a consumer's version-shaped backup directory is not swept on name alone",
+    existsSync(consumerFile) && readFileSync(consumerFile, 'utf8') === 'the consumer owns this too\n');
+  check('X5b-left-alone-is-reported',
+    'and the run says it left the unowned directory alone rather than doing so silently',
+    /predate the ownership index/.test(result.stdout));
+}
+
 // X6 — a backup an OPEN reconcile item names must survive the next upgrade's supersede.
 {
   const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
@@ -831,6 +858,122 @@ const home = mkScratch('wpr18-home-');
   check('X6-backup-survives', "an open item's backup_path still resolves after a second upgrade",
     Boolean(backupRel) && existsSync(join(repo, backupRel)));
 }
+
+// X7 — WP-R25 F5: the backup an open item names must survive a second upgrade at the SAME version.
+//
+// X6 above steps the manifest version between its two runs, which sends the second backup to a
+// different directory — so it exercised the supersede loop and never touched the destination. F5 is
+// the case the loop structurally could not cover: `fromVersion` is the manifest-level version, so
+// after any upgrade it EQUALS the package version, and every subsequent run writes to the very
+// directory an open item names. The loop skipped that directory as "where we are writing to" before
+// the protection test ran, then `atomicWriteFileSync` overwrote it unconditionally.
+//
+// No descriptor and no package copy is needed: a fresh init already leaves fromVersion ==
+// pkgVersion, and a drifted managed hook block is rewritten on every upgrade regardless of spans
+// (see Y3). That makes this the DEFAULT state of a repo rather than a contrived one.
+{
+  const repo = freshRepo(home, 'xsameversion');
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const BEGIN = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+  const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# FIRST EDIT`));
+  run(['upgrade'], { cwd: repo, home });
+  const firstBackup = readFileSync(pendingPath, 'utf8').match(/backup_path: "([^"]*pre-commit)"/)?.[1];
+  check('X7-first-item', 'the first upgrade raises an item naming a hook backup', Boolean(firstBackup));
+  check('X7-first-content', "and that backup holds the user's first edit",
+    Boolean(firstBackup) && readFileSync(join(repo, firstBackup), 'utf8').includes('# FIRST EDIT'));
+
+  // Edit inside the block again WITHOUT resolving the open item. Pre-fix, this run's backup lands on
+  // the identical path and replaces it, while the run prints "Your edits were preserved before
+  // anything was touched" and the idempotence guard declines to raise a second item — so the first
+  // edit is gone with nothing naming its loss.
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# SECOND EDIT`));
+  const second = run(['upgrade'], { cwd: repo, home });
+
+  const stillThere = Boolean(firstBackup) && existsSync(join(repo, firstBackup));
+  const firstSurvives = stillThere && readFileSync(join(repo, firstBackup), 'utf8').includes('# FIRST EDIT');
+  check('X7-first-edit-not-destroyed',
+    "the open item's backup still holds the first edit after a same-version upgrade",
+    firstSurvives);
+
+  // The second edit must be preserved too — the fix relocates this run's backup rather than dropping
+  // it, so both copies exist. A fix that merely refused to write would trade one silent loss for
+  // another.
+  const allBackups = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else allBackups.push(full);
+    }
+  };
+  const backupsRoot = join(repo, 'workflow', 'backups');
+  if (existsSync(backupsRoot)) walk(backupsRoot);
+  check('X7-second-edit-preserved', "and the second edit is preserved in a backup of its own",
+    allBackups.some((f) => readFileSync(f, 'utf8').includes('# SECOND EDIT')));
+  check('X7-run-succeeded', 'the second upgrade still exits cleanly', second.status === 0);
+}
+
+// X8 — WP-R25 F4: a noop-classified backup must not be deleted when an open item names it.
+//
+// The regression case the Phase 8 commit recorded as missing. `openBackupPaths` was computed once
+// and threaded only into writeBackup(), so the OTHER deletion site — the sweep that drops backups
+// for files whose refresh turned out to change nothing — never consulted it.
+//
+// Reaching it takes a file that is drifted (so it earns a backup, which happens before anything
+// knows whether a delta exists) but whose refresh produces no change (so it is classified noop).
+// An edit OUTSIDE the hook's managed block is exactly that: the digest no longer matches the
+// manifest, while the span agentsmyth rewrites is already current. Pre-fix the backup at the open
+// item's path was deleted outright, the run printed nothing, and the item was left pointing at a
+// file that no longer existed — with the live file already refreshed, nothing could be restored.
+{
+  const repo = freshRepo(home, 'xnoopsweep');
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const BEGIN = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+  const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# EDIT WORTH KEEPING`));
+  run(['upgrade'], { cwd: repo, home });
+  const backupRel = readFileSync(pendingPath, 'utf8').match(/backup_path: "([^"]*pre-commit)"/)?.[1];
+  check('X8-item-raised', 'an item is raised naming the hook backup', Boolean(backupRel));
+  check('X8-backup-has-edit', "and the backup is the only copy of the user's overwritten line",
+    Boolean(backupRel) && readFileSync(join(repo, backupRel), 'utf8').includes('# EDIT WORTH KEEPING')
+      && !readFileSync(hook, 'utf8').includes('# EDIT WORTH KEEPING'));
+
+  // Now drift the hook OUTSIDE the managed block. The refresh has nothing to change, so this file
+  // is classified noop and its backup becomes a sweep candidate — at the path the open item names.
+  writeFileSync(hook, `${readFileSync(hook, 'utf8')}\n# a trailing comment, outside the block\n`);
+  const second = run(['upgrade'], { cwd: repo, home });
+
+  check('X8-backup-survives-noop-sweep',
+    "a noop backup an open item names is kept rather than swept",
+    Boolean(backupRel) && existsSync(join(repo, backupRel)));
+  check('X8-content-intact', 'and it still holds the edit the item exists to help reconcile',
+    Boolean(backupRel) && existsSync(join(repo, backupRel))
+      && readFileSync(join(repo, backupRel), 'utf8').includes('# EDIT WORTH KEEPING'));
+  check('X8-run-succeeded', 'and the second upgrade exits cleanly', second.status === 0);
+}
+
+// A NOTE ON WHAT X8 DOES AND DOES NOT PROVE, recorded because the next reader will look for the
+// guard's own test and not find one.
+//
+// F4's fix added `openBackupPaths` to the noop sweep. X8 asserts the OUTCOME that fix exists to
+// protect — an open item's backup survives a later noop-classified upgrade of the same file — and it
+// fails against the pre-fix CLI, so it is a real regression case for the behaviour.
+//
+// It does not isolate the guard, and no test can, because the F5 fix in the same change removed the
+// only path that reaches it. writeBackup() now relocates this run's backup whenever the destination
+// is protected AND the content differs; when the content is IDENTICAL it does not relocate, and the
+// sweep would then drop the protected path — which is exactly what the guard catches. But identical
+// content requires this run's pre-upgrade file to equal the content of a backup taken before an
+// earlier rewrite of that same file, and if those are equal then that earlier run changed nothing,
+// so it was itself noop and raised no item. The precondition is self-contradictory.
+//
+// The guard therefore stays as a backstop rather than live defence: it was a genuine silent data
+// loss before F5 was fixed, and it is what holds if anyone later changes the relocation rule. Do not
+// delete it for want of a failing test, and do not go looking for the scenario — it is unreachable
+// by construction, not merely unexercised.
 
 // ── Y: silent-misclassification and compatibility regressions ─────────────────────────────────
 
