@@ -278,7 +278,18 @@ if (command === 'check') {
 // repo-local) is what distinguishes `prepare` from `init`. See runPrepare() below.
 
 if (command === 'prepare') {
-  runPrepare(pkgRoot);
+  // runPrepare throws rather than exiting, so that ensureGlobalInstall can catch it and add its own
+  // context. The bare verb has no such caller, so it must print the message itself — otherwise a
+  // legitimate refusal (a damaged bundle, say) reaches the user as a node stack trace naming an
+  // internal frame, which is the same unreadable-failure defect this package fixed elsewhere.
+  try {
+    runPrepare(pkgRoot);
+  } catch (err) {
+    console.error('');
+    console.error(`agentsmyth: prepare failed — ${err.message}`);
+    console.error('');
+    process.exit(1);
+  }
   process.exit(0);
 }
 
@@ -828,6 +839,28 @@ function expandBundle(bundlePath, destDir) {
     written.push(relPath);
   }
 
+  // A bundle that declared NOTHING is a broken bundle. Refuse before the prune can read it as an
+  // instruction to delete everything.
+  //
+  // `declared` was built solely from the regex with nothing asserting it was non-empty, so a
+  // truncated or partially-extracted bundle — or a future change to the FILE marker format — made
+  // every ledger line a prune candidate and removed the whole definitions tree in one pass, exit 0.
+  // Three things made that worse than a bad delete: the ledger was then written empty, destroying
+  // the record this function claims protects a mid-prune crash; the version stamp was still written
+  // afterwards, so the emptied tree read as `current` and the staleness guard could never catch it;
+  // and `init` then exited 0 while linking a repo to nothing.
+  //
+  // Throwing rather than returning: every caller of this already treats a failure here as fatal and
+  // surfaces it, and there is no partial expansion worth keeping.
+  if (written.length === 0) {
+    throw new Error(
+      `the workflow bundle at ${bundlePath} declared no files.\n`
+      + '  That is a damaged or truncated bundle, not an empty release, so nothing was changed —\n'
+      + '  pruning against it would have deleted the entire definitions tree.\n'
+      + '  Reinstall the package and run "agentsmyth prepare" again.',
+    );
+  }
+
   // PRUNE what a previous expansion wrote and this bundle no longer declares.
   //
   // Expansion used to be purely additive, so a skill or validator retired in one release lived on
@@ -861,6 +894,16 @@ function expandBundle(bundlePath, destDir) {
     previous = readFileSync(ledgerPath, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
   } catch { /* no ledger yet — nothing is known to be ours, so nothing is pruned */ }
 
+  // Write the ledger BEFORE deleting, not after.
+  //
+  // Written afterwards, a crash mid-prune left the ledger describing the pre-prune state while the
+  // tree had already lost files — the opposite of what the comment claimed. Written first, a crash
+  // leaves a ledger that describes what this expansion owns, which is exactly what the next run
+  // needs to finish the job. The cost is that a crash can leave a file the new ledger no longer
+  // lists; that file is then unowned and simply stays, which is the safe direction.
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+  writeFileSync(ledgerPath, `${written.join('\n')}\n`);
+
   const removed = [];
   for (const rel of previous) {
     if (declared.has(rel)) continue;
@@ -876,8 +919,6 @@ function expandBundle(bundlePath, destDir) {
     } catch { /* leave anything that resists deletion; a stale file is better than a broken install */ }
   }
 
-  mkdirSync(dirname(ledgerPath), { recursive: true });
-  writeFileSync(ledgerPath, written.length > 0 ? `${written.join('\n')}\n` : '');
   return { written: written.length, removed };
 }
 
@@ -3074,8 +3115,20 @@ if (command === 'upgrade') {
   const noop = backups.filter((b) => !needReconcile.some((n) => n.path === b.path));
 
   for (const b of noop) {
-    // Nothing was rewritten, so the backup serves no item. Remove it rather than leaving a
-    // committed duplicate of a file that still matches it.
+    // Nothing was rewritten, so the backup serves no item — UNLESS an open reconcile item is still
+    // pointing at it.
+    //
+    // `openBackupPaths` was computed above and threaded only into writeBackup, so this second
+    // deletion site never consulted it: a drifted file whose refresh happened to produce no change
+    // was classified noop and its backup deleted outright while an open item named that exact path.
+    // The run printed nothing, and the item was left directing the user at a file that no longer
+    // existed — with the edit already gone from the live file and the backup never committed, there
+    // was nothing left to restore from. The RI20 rule ("resolution wins, supersession skips") held
+    // at one deletion site and not the other; it now holds at both, from the one set.
+    if (openBackupPaths.includes(b.backup)) {
+      console.log(`  kept  ${b.backup}  (an open reconcile item still points at it)`);
+      continue;
+    }
     try { rmSync(join(upgradeRoot, b.backup), { force: true }); } catch { /* best effort */ }
   }
 

@@ -237,6 +237,27 @@ check('r22-every-suite-runs-in-ci', 'every :test script is invoked by CI and by 
   notInCi.length === 0 && notInRelease.length === 0,
   notInCi.length || notInRelease.length ? `ci: ${notInCi.join(', ') || 'none'} | release: ${notInRelease.join(', ') || 'none'}` : '');
 
+// WP-R25 F1 — every phase skill must tell the agent to run its own phase gate at entry.
+//
+// This exists because a rule can be correct, reachable, fixture-covered and mutation-defended while
+// nothing in the shipped product ever invokes it. The council capability gate was exactly that: the
+// commit hook's phase map cannot emit `think`, the router's gate instruction is scoped to
+// Build/Review/Test/Ship writes, and `lifecycle-think/SKILL.md` was the only phase skill of seven
+// with no `agentsmyth check --phase` line — so the one blocking rule this package added had no
+// invoker at all. Every suite passed while that was true, because each asserted the behaviour it
+// named and none asked whether a consumer reaches it.
+//
+// Asserting the WIRING rather than the rule is the point. A fix without this assertion regresses the
+// next time someone edits a skill or the hook's phase map, silently and with every suite green.
+const PHASE_SKILLS = ['think', 'plan', 'build', 'review', 'test', 'ship', 'reflect'];
+const missingGateLine = PHASE_SKILLS.filter((phase) => {
+  const src = readFileSync(join(repoRoot, 'src', 'workflow', 'skills', `lifecycle-${phase}`, 'SKILL.md'), 'utf8');
+  return !new RegExp(`agentsmyth check --phase ${phase}\\b`).test(src);
+});
+check('r25-every-phase-skill-invokes-its-gate', 'every phase skill runs its own phase gate at entry',
+  missingGateLine.length === 0,
+  missingGateLine.length ? `no \`agentsmyth check --phase <phase>\` line in: ${missingGateLine.join(', ')}` : '');
+
 // The mutation audit is the one suite the sweep above cannot catch, because it is deliberately not
 // named `:test` — it costs tens of minutes and must not run on every push. That exemption is what
 // makes it easy to lose: it was added, recorded a baseline, and was invoked by nothing. Pin it to

@@ -387,6 +387,36 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   produce a cost; `npm run validate`, `violations:test`, `conformance:test`, `tuning-merge:test` and
   `mutation:audit` all pass with 0 undefended.
 
+### Phase 8 - Review remediation
+
+- **Manifest IDs:** R3, R4, R5, R9, R10, RI7
+- Added by explicit plan update, 2026-10-04, after the Review council returned `hold` with 22
+  findings. Remediation precedes Test; a finding is settled at Test, not discovered there.
+- Touches: `bin/agentsmyth.mjs`,
+  `src/workflow/validators/check-lifecycle.mjs`,
+  `src/workflow/validators/check-council-record.mjs`,
+  `src/workflow/validators/check-setup-complete.mjs`,
+  `src/workflow/skills/lifecycle-think/SKILL.md`,
+  `src/workflow/skills/think-council/SKILL.md`, `src/workflow/skills/review-council/SKILL.md`,
+  `src/workflow/schemas/artifact-frontmatter.schema.yaml`,
+  `src/setup/SKILL.md`,
+  `test/run-conformance-tests.mjs`, `test/run-violation-tests.mjs`,
+  `test/run-upgrade-path-tests.mjs`, `test/run-init-prepare-interop-tests.mjs`,
+  `test/fixtures/lifecycle-violations/`, `test/fixtures/conformance/`,
+  `test/mutation-baseline.json`, `workflow/artifacts/`
+- Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
+  assert that wiring in conformance (F1); make the tier precondition cover every phase that can
+  dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);
+  refuse to prune when an expansion declared nothing, write the ledger before the deletions, and
+  stamp only after a successful expansion (F3); consult the open-backup set at both deletion sites
+  from one shared derivation (F4). Then the eight highs, the seven mediums and the three lows as
+  enumerated in the review. Every new validator rule carries its own rejection fixture per RI5.
+- **Exit gate:** every one of the 22 findings is either fixed with evidence, or carries a waiver with
+  all six required fields; `finding-quality.yaml` has no `pending` row left for this run that is not
+  waiver-covered; the four criticals each have a regression case that fails when the fix alone is
+  reverted; `validate`, `violations:test`, `conformance:test`, `init-prepare-interop:test`,
+  `upgrade-path:test`, `tuning-merge:test` and `mutation:audit` all pass with 0 undefended.
+
 ## Dependency Order
 
 1. **Phase 1** and **Phase 2** are independent of each other and of everything else. Both are

@@ -142,7 +142,17 @@ council:
   enabled: on-for-complex
   max_rounds: 4
   depth: standard
-  model_tier: standard
+  # model_tier is deliberately ABSENT from the shipped invariant, and that absence is the mechanism.
+  #
+  # It was shipped here as `standard`, which quietly made the blocking setup item pointless: the
+  # gate asks whether a tier is resolved, and a global default resolves one for every repo that
+  # never answered. A default here is this package choosing a spend level on the user's behalf —
+  # exactly what the item exists to prevent — so there is nothing to put.
+  #
+  # Every other council key has a safe default because a safe default exists for it. Fan-out has
+  # 3 and 2; depth has standard, which reproduces prior behaviour; effort has standard for the same
+  # reason. Capability has no such value: cheap, standard and deep differ in what the user pays, not
+  # in whether behaviour is preserved.
   effort: standard
   # Fan-out is per phase, and every phase that gets one says so here. There is no phase-agnostic
   # default: a phase absent from this map gets NO council departure and falls back to the global

@@ -132,65 +132,89 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
   // spend on councils, so there is nothing left to ask it. And a repo with no such item — which is
   // every repo written before this key existed — is unaffected, which is what keeps the change
   // additive.
-  if (targetPhase === 'think') {
-    // Reports through the SHARED errors array, not a locally-named one. The mutation audit finds
-    // rules by the error-push idiom, so a rule reporting through a differently-named array is
-    // invisible to the ratchet: it would read as defended while nothing actually depended on it,
-    // which is the precise failure the ratchet exists to catch. Noticed here because the audit's
-    // rule count had not moved after a rule was added. (Written without the literal token, since
-    // the audit scans for it textually and a mention in a comment becomes a phantom mutation site.)
-    const thinkDetails = ['think: no upstream required'];
+  // ── The council capability precondition ──────────────────────────────────────────────────
+  //
+  // Applies to EVERY phase that can dispatch a council, derived from the resolved per-phase map
+  // rather than from a phase literal. It was keyed on `targetPhase === 'think'`, which left the one
+  // phase gate the commit hook actually invokes — `review`, via the hook's `tasks` mapping — with no
+  // tier check at all, while the Review council's own skill pointed at the Think gate to hold it.
+  // Review is the costlier council and its verdict blocks a commit, so that was the worse half of
+  // the gap. Deriving the phase set from `per_phase` also means a future phase that gains a council
+  // is covered without anyone remembering to extend this.
+  //
+  // Gates on the resolved VALUE, not on an item's status flag. Flipping the item to `resolved` or
+  // `waived` used to clear the block permanently without `tuning.council.model_tier` ever being
+  // written, so the remedy the message advertised was never the thing being checked.
+  const dirIdx = args.indexOf('--dir');
+  const configDir = dirIdx !== -1 ? join(args[dirIdx + 1], 'config') : join(repoRoot, wf, 'config');
 
-    // Honour --dir exactly as check-pending-setup does, so this rule is reachable by a fixture.
-    // A rule no fixture can reach is a rule the mutation ratchet records as undefended, and this
-    // repo's baseline is 0 — see test/run-mutation-audit.mjs on what that number does and does not
-    // establish.
-    const dirIdx = args.indexOf('--dir');
-    const configDir = dirIdx !== -1 ? join(args[dirIdx + 1], 'config') : join(repoRoot, wf, 'config');
+  function councilTierPrecondition() {
+    let behaviorCfg = null;
+    try {
+      behaviorCfg = loadYaml(defsPath('agent-behavior.yaml'));
+    } catch {
+      return null; // unreadable definitions is another validator's finding, not this rule's to guess
+    }
+
+    const councilPhases = Object.keys(behaviorCfg?.council?.per_phase ?? {});
+    if (!councilPhases.includes(targetPhase)) return null;
+
+    const profilePath = join(configDir, 'repo-profile.yaml');
+    let tuned = {};
+    let profileReadable = true;
+    try {
+      tuned = existsSync(profilePath) ? (loadYaml(profilePath)?.tuning ?? {}) : {};
+    } catch {
+      profileReadable = false;
+    }
+
+    const dispatchEnabled = tuned?.dispatch?.enabled ?? behaviorCfg?.dispatch?.enabled;
+    const councilEnabled = tuned?.council?.enabled ?? behaviorCfg?.council?.enabled;
+    if (dispatchEnabled === 'disabled' || councilEnabled === 'disabled') {
+      return { gated: false, detail: `${targetPhase}: councils disabled for this repo — capability tier not gated` };
+    }
+
+    const resolvedTier = tuned?.council?.model_tier ?? behaviorCfg?.council?.model_tier ?? null;
+    if (resolvedTier) return null;
+
+    let itemId = null;
+    let pendingUnreadable = false;
     const pendingPath = join(configDir, 'pending-setup.yaml');
-    let tierItem = null;
     if (existsSync(pendingPath)) {
       try {
         const pending = loadYaml(pendingPath);
-        tierItem = (pending?.items ?? []).find(
-          (item) => item?.field === 'tuning.council.model_tier' && item?.status === 'open',
-        ) ?? null;
+        itemId = (pending?.items ?? []).find((i) => i?.field === 'tuning.council.model_tier')?.id ?? null;
       } catch {
-        // An unparseable pending-setup file is check-pending-setup's finding to report, not this
-        // rule's to guess at. Staying silent here keeps one defect attributable to one validator.
-        tierItem = null;
+        // Fail CLOSED on an unreadable pending-setup file. This used to swallow the parse error and
+        // pass, delegating the report to a validator `agentsmyth check` never invokes — so a corrupt
+        // or deleted file was both an undetected fault and a silent clearance of the only blocking
+        // item in the package. The sibling repo-profile branch already failed closed.
+        pendingUnreadable = true;
       }
     }
 
-    if (tierItem) {
-      let councilsCanFire = true;
-      try {
-        const behaviorCfg = loadYaml(defsPath('agent-behavior.yaml'));
-        const profilePath = join(configDir, 'repo-profile.yaml');
-        const tuned = existsSync(profilePath) ? (loadYaml(profilePath)?.tuning ?? {}) : {};
-        const dispatchEnabled = tuned?.dispatch?.enabled ?? behaviorCfg?.dispatch?.enabled;
-        const councilEnabled = tuned?.council?.enabled ?? behaviorCfg?.council?.enabled;
-        councilsCanFire = dispatchEnabled !== 'disabled' && councilEnabled !== 'disabled';
-      } catch {
-        // Cannot resolve the config: assume councils can fire. Failing closed is right for a cost
-        // guard — the alternative silently permits the spend this rule exists to gate.
-        councilsCanFire = true;
-      }
+    const where = pendingUnreadable
+      ? `${wf}/config/pending-setup.yaml could not be parsed, so no capability tier can be confirmed`
+      : `no council capability tier is resolved${itemId ? ` (${itemId} names it)` : ''}`;
 
-      if (councilsCanFire) {
-        errors.push(
-          `think: ${tierItem.id ?? 'the council model_tier item'} in ${wf}/config/pending-setup.yaml is still open, `
-          + 'so no council capability tier has been chosen and a council must not dispatch. This is the one '
-          + 'pending-setup item that blocks, because there is no default the package can pick without choosing '
-          + 'how much you spend. Three ways forward: answer it and write tuning.council.model_tier '
-          + '(cheap | standard | deep) into repo-profile.yaml; or set tuning.council.enabled to disabled if this '
-          + 'repo should never run councils; or record a waiver in the brief naming this requirement.',
-        );
-      } else {
-        thinkDetails.push('think: council model_tier unset, but councils are disabled for this repo — not gated');
-      }
-    }
+    return {
+      gated: true,
+      message:
+        `${targetPhase}: ${where}, and a council must not dispatch. This is the one setup answer that `
+        + 'blocks, because there is no default the package can pick without choosing how much you spend. '
+        + 'Two ways forward: write tuning.council.model_tier (cheap | standard | deep) into '
+        + `${wf}/config/repo-profile.yaml; or set tuning.council.enabled to disabled if this repo should `
+        + 'never run councils.'
+        + (profileReadable ? '' : ' Note: repo-profile.yaml could not be parsed either.'),
+    };
+  }
 
+  const tierPrecondition = councilTierPrecondition();
+  if (tierPrecondition?.gated) errors.push(tierPrecondition.message);
+
+  if (targetPhase === 'think') {
+    const thinkDetails = ['think: no upstream required'];
+    if (tierPrecondition && !tierPrecondition.gated) thinkDetails.push(tierPrecondition.detail);
     finish('check-lifecycle --phase think', errors, thinkDetails);
     process.exit(errors.length > 0 ? 1 : 0);
   }

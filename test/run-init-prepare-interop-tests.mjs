@@ -206,7 +206,7 @@ if (process.getuid?.() === 0) {
   check('F5-resolves', 'a subsequent check-lifecycle invocation resolves cleanly from the global tree',
     /check-lifecycle --phase think: (ok|failed with)/.test(followUp.stdout + followUp.stderr));
   check('F5b-tier-gated', 'and the freshly bootstrapped repo is gated on the unanswered capability tier',
-    /no council capability tier has been chosen/.test(followUp.stdout + followUp.stderr));
+    /no council capability tier is resolved/.test(followUp.stdout + followUp.stderr));
   check('F6-setup-incomplete-flagged', 'the same invocation also surfaces the (correct, expected) setup-completeness failure',
     followUp.status !== 0 && /check-setup-complete: failed/.test(followUp.stderr));
 }

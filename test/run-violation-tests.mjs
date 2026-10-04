@@ -363,7 +363,11 @@ const fixtures = [
   // WP-R25 R4 — the one pending-setup item that blocks. Reachable only because the Think gate
   // honours --dir; the rule itself fires before stage 1, which is before any fan-out, so the refusal
   // lands ahead of the spend rather than after it.
-  { id: 'je', dir: 'test/fixtures/lifecycle-violations/je-council-tier-unset', description: '(WP-R25) the council capability tier is unanswered and councils can fire — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier has been chosen and a council must not dispatch' },
+  // WP-R25 F8/F9 remediation — the gate now keys on the resolved VALUE, so neither flipping the
+  // item's status nor removing the item clears it. Both were silent clearances before.
+  { id: 'jl', dir: 'test/fixtures/lifecycle-violations/jj-tier-resolved-no-value', description: '(WP-R25 F8) the tier item is marked resolved but no value was written — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  { id: 'jm', dir: 'test/fixtures/lifecycle-violations/jk-pending-absent', description: '(WP-R25 F9) no pending-setup file at all, and still no resolved tier — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  { id: 'je', dir: 'test/fixtures/lifecycle-violations/je-council-tier-unset', description: '(WP-R25) the council capability tier is unanswered and councils can fire — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries

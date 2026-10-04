@@ -2,7 +2,7 @@
 slug: wp-r25-prerelease-hardening
 version: 1
 artifact: task
-status: ready-for-next-phase
+status: in-progress
 created: 2026-10-03
 updated: 2026-10-03
 manifest_ids:
@@ -28,7 +28,7 @@ upstream:
   - workflow/artifacts/plans/wp-r25-prerelease-hardening-v1.md
 orchestration:
   phase: build
-  status: ready-for-next-phase
+  status: in-progress
   next_phase: review
   blockers: []
   user_checkpoint: none
@@ -38,7 +38,15 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 7 - Release integration and invariants — COMPLETE. All seven phases are done; Build is finished and the chain is ready for Review.
+- Phase: Phase 8 - Review remediation
+- Manifest IDs: R3, R4, R5, R9, R10, RI7
+- Exit gate: all 22 Review council findings resolved with evidence; any finding not resolved must
+  appear as a row in a `## Waivers` table carrying every required field, which this artifact does not
+  currently have; no `pending` finding-quality row left uncovered for this run; each critical carries
+  a regression case that fails when its fix alone is reverted; the full suite set and `mutation:audit`
+  pass with 0 undefended.
+- Phases 1-7 are complete and recorded below. Review returned `hold`; see
+  `workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md`.
 - Manifest IDs: R3, R4, R5 — extended by the user on 2026-10-04 and declared as an extension in the
   plan's Phase 6 note rather than left to the manifest to imply.
 - Exit gate: a fixture proves a per-phase override of one key leaves that phase's sibling keys and
@@ -67,6 +75,7 @@ orchestration:
 | Phase 5 - Release evidence and delivery honesty | complete | R11, RI10 |
 | Phase 6 - Council config depth, override, cost history | complete | R3, R4, R5 |
 | Phase 7 - Release integration and invariants | complete | R6, RI1, RI3, RI4, RI5, RI6 |
+| Phase 8 - Review remediation | active | R3, R4, R5, R9, R10, RI7 |
 
 ## Branch / Repo Status
 
