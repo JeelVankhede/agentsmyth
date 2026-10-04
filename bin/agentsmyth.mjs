@@ -269,6 +269,53 @@ if (command === 'check') {
   // On the staged leg the run is scoped to staged artifact paths via `--files`, so the cost is
   // proportional to the commit rather than to the repo's whole artifact history. A commit touching
   // no artifacts gets an empty list and the validator exits 0 without reading anything.
+  // check-config on the consumer path.
+  //
+  // It is the only validator that enum-checks the values a repo writes into its own config, and
+  // nothing a consumer runs invoked it — so `tuning.council.model_tier: supreme` passed
+  // `agentsmyth check` and was handed to five adapter mappings with no row for it. The capability
+  // gate now rejects an unmappable tier at the point of use too; this catches the whole config
+  // surface rather than the one key, at the place the value is written.
+  //
+  // Scoped out of `--staged` with the same reasoning as check-setup-complete: that leg is the fast
+  // pre-commit proxy, and a config file is not something a commit usually touches.
+  let configFailed = false;
+  if (stagedIdx === -1) {
+    const { resolved: resolvedConfig } = resolveValidator(checkRoot, profilePath, 'check-config.mjs');
+    if (resolvedConfig) {
+      try {
+        execFileSync(process.execPath, [resolvedConfig], { stdio: 'inherit', cwd: checkRoot });
+      } catch {
+        configFailed = true;
+        // NAME THE LIKELY CAUSE when the definitions are stale.
+        //
+        // Wiring this validator in created a new misdiagnosis trap, found immediately on my own
+        // machine: a repo-profile.yaml carrying `tuning.council.model_tier` validates against the
+        // CURRENT schema and is rejected by an older one as "not allowed". A consumer whose global
+        // tree predates the key therefore gets a hard failure that reads as "your config is wrong"
+        // when the config is right and the definitions are old — and no amount of editing config
+        // fixes it. That is exactly the mixed-install failure OI-112 describes, now reachable from
+        // a different direction.
+        //
+        // The skew warning printed further up says it "does not block anything", which this change
+        // makes untrue, so the correction belongs here where the blocking actually happens.
+        try {
+          const install = globalInstallState(pkgRoot);
+          if (install.state === 'stale' || install.state === 'unstamped') {
+            console.error('');
+            console.error('  Note: the global lifecycle definitions are '
+              + (install.state === 'stale'
+                ? `stamped v${install.stamp} while this CLI is v${install.cliVersion}.`
+                : 'not version-stamped, so they predate the stamp entirely.'));
+            console.error('  Config is validated against THOSE schemas, so a key this CLI supports can be');
+            console.error('  reported as "not allowed" by an older schema even though the config is correct.');
+            console.error('  Run "agentsmyth upgrade" before treating the errors above as config faults.');
+          }
+        } catch { /* advisory only — never let the hint itself fail the run */ }
+      }
+    }
+  }
+
   let councilFailed = false;
   {
     const { resolved: resolvedCouncil } = resolveValidator(checkRoot, profilePath, 'check-council-record.mjs');
@@ -288,7 +335,7 @@ if (command === 'check') {
     }
   }
 
-  process.exit(setupCompleteFailed || lifecycleFailed || councilFailed ? 1 : 0);
+  process.exit(setupCompleteFailed || lifecycleFailed || councilFailed || configFailed ? 1 : 0);
 }
 
 // ─── prepare ───────────────────────────────────────────────────────────────

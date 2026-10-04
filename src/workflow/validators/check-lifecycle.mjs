@@ -175,6 +175,27 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
     }
 
     const resolvedTier = tuned?.council?.model_tier ?? behaviorCfg?.council?.model_tier ?? null;
+
+    // A tier this gate cannot MAP is not a resolved tier.
+    //
+    // Keying on presence alone left the other half of the hole open: `model_tier: supreme` passed
+    // here, because something was written, and was then handed to five adapter mappings that have
+    // no row for it. The value is enum-checked by check-config.mjs, which no consumer path ran —
+    // so an invented tier cleared the one gate whose entire job is to confirm the capability
+    // question was answered. "Answered" has to mean answered with one of the three values the
+    // adapters can express, or the gate is checking that a key exists rather than that a decision
+    // was made. check-config is now wired into `agentsmyth check` as well; this is the same rule at
+    // the point of use, because the gate is what hands the value onward.
+    const TIERS = ['cheap', 'standard', 'deep'];
+    if (resolvedTier && !TIERS.includes(String(resolvedTier).trim())) {
+      return {
+        gated: true,
+        message:
+          `${targetPhase}: tuning.council.model_tier is "${resolvedTier}", which is not one of `
+          + `${TIERS.join(' | ')}, and a council must not dispatch on a tier no adapter can map. `
+          + `Correct it in ${wf}/config/repo-profile.yaml.`,
+      };
+    }
     if (resolvedTier) return null;
 
     let itemId = null;

@@ -392,6 +392,11 @@ const fixtures = [
   // which is one day later than the axes boundary because a definition only reaches a repo through
   // the release that bundles the templates.
   { id: 'jv', dir: 'test/fixtures/lifecycle-violations/jv-council-member-no-definition', description: '(WP-R25 F22) members recorded with no definition, indistinguishable from dispatch by prose — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'gives no Definition for member(s)' },
+  // WP-R25 F8, second half. The gate keyed on PRESENCE, so a tier that no adapter mapping has a row
+  // for satisfied it and was handed onward; the enum was checked only by check-config.mjs, which no
+  // consumer path invoked. Both halves are closed now — the gate rejects an unmappable value at the
+  // point of use, and check-config runs from `agentsmyth check`.
+  { id: 'jw', dir: 'test/fixtures/lifecycle-violations/jw-council-tier-not-an-enum-value', description: '(WP-R25 F8) a tier is written but is not a value any adapter can map — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'which is not one of cheap | standard | deep' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries

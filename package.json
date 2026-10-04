@@ -48,6 +48,7 @@
     "init-prepare-interop:test": "node test/run-init-prepare-interop-tests.mjs",
     "upgrade-path:test": "node test/run-upgrade-path-tests.mjs",
     "path-containment:test": "node test/run-path-containment-tests.mjs",
+    "finding-closure:test": "node test/run-finding-closure-probes.mjs .",
     "checkpoint-approval:test": "node test/run-checkpoint-approval-tests.mjs",
     "setup-validator-definitions-root:test": "node test/run-setup-validator-definitions-root-tests.mjs",
     "commit-coverage:test": "node test/run-commit-coverage-tests.mjs",

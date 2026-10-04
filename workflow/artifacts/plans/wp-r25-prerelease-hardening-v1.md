@@ -417,7 +417,9 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   already had once), `package.json` (the script entry the two workflows invoke),
   `src/workflow/validators/check-setup-complete.mjs` and
   `.claude/agents/agentsmyth-council-member.md` (F22 — the tier had no mechanical expression on
-  either side, and this repo turned out not to have the file it was requiring of consumers)
+  either side, and this repo turned out not to have the file it was requiring of consumers), and
+  `test/run-finding-closure-probes.mjs` (added after "all findings resolved" was asserted and found
+  wrong in two places — it probes each finding's own symptom rather than the existence of a test)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);

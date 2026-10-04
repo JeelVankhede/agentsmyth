@@ -977,11 +977,26 @@ for (const file of artifactFiles) {
   // operational meaning cannot be held to the depth a repo configures afterwards. wp-r18's review
   // records `deep` against a repo that now resolves `standard`, and that is a true statement about
   // a run that happened under the earlier reading, not a departure anyone chose.
-  if (!predatesAxes && recordDepth && councilConfig.depth && recordDepth !== councilConfig.depth) {
-    const declared = council.overrides && typeof council.overrides === 'object' && !Array.isArray(council.overrides)
-      ? Object.keys(council.overrides) : [];
-    if (!declared.includes('depth')) {
-      errors.push(`${file} records council.depth "${recordDepth}" but the resolved configuration says "${councilConfig.depth}"; a departure must appear in council.overrides with a council.override_reason, because depth decides which sampling obligation this record is held to`);
+  // Every recorded axis must be the RESOLVED one, or a declared departure.
+  //
+  // `depth` is here because it decides which sampling obligation this record is held to, so a record
+  // free to name its own depth could pick the weakest one. `model_tier` and `effort` are here for
+  // the reason the whole axis requirement exists: requiring a record to CARRY a value it is free to
+  // invent records a choice nobody made, which is the defect being closed rather than a smaller
+  // version of it. An intentional departure is expressible — that is what `overrides` is for — and
+  // the reason requirement above then applies to it.
+  const declaredOverrides = council.overrides && typeof council.overrides === 'object' && !Array.isArray(council.overrides)
+    ? Object.keys(council.overrides) : [];
+  const axisChecks = [
+    ['depth', recordDepth, councilConfig.depth, 'depth decides which sampling obligation this record is held to'],
+    ['model_tier', typeof council.model_tier === 'string' ? council.model_tier.trim() : null, councilConfig.model_tier, 'the tier is what each member actually ran on'],
+    ['effort', typeof council.effort === 'string' ? council.effort.trim() : null, councilConfig.effort, 'effort is an independent axis and is billed independently'],
+  ];
+  if (!predatesAxes) {
+    for (const [key, recorded, configured, why] of axisChecks) {
+      if (!recorded || !configured || recorded === configured) continue;
+      if (declaredOverrides.includes(key)) continue;
+      errors.push(`${file} records council.${key} "${recorded}" but the resolved configuration says "${configured}"; a departure must appear in council.overrides with a council.override_reason, because ${why}`);
     }
   }
 

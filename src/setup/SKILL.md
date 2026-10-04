@@ -319,6 +319,14 @@ before Phase 1 of this skill ever runs.
   `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content
   to that path relative to the repo root. Create parent directories as needed. Do not expand
   files under `workflow/config/` — those were already written by the agent in Phase 3.
+
+  **Refuse any block whose declared path is not inside `workflow/`.** Skip it, and say which
+  blocks you skipped. A path containing `..`, an absolute path, or a Windows drive letter escapes
+  the repository, and a path outside `workflow/` is not this bundle's to write. The marker format
+  places no constraint on the path — the capture is anything up to the closing `-->` — so this is
+  the only check there is on this route. The CLI performs exactly the same check when it expands
+  the bundle itself; this branch exists for the case where the CLI did not, which is precisely
+  when nothing else will catch it.
   `workflow/artifacts/` and `workflow/learnings/` should already exist too (same reason as
   above — `init` runs before this skill regardless of link state); if somehow absent, create
   the same 7 empty phase directories and copy `workflow/learnings/{README.md,curated.md}` from
