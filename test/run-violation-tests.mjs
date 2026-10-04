@@ -368,6 +368,19 @@ const fixtures = [
   { id: 'jl', dir: 'test/fixtures/lifecycle-violations/jj-tier-resolved-no-value', description: '(WP-R25 F8) the tier item is marked resolved but no value was written — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
   { id: 'jm', dir: 'test/fixtures/lifecycle-violations/jk-pending-absent', description: '(WP-R25 F9) no pending-setup file at all, and still no resolved tier — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
   { id: 'je', dir: 'test/fixtures/lifecycle-violations/je-council-tier-unset', description: '(WP-R25) the council capability tier is unanswered and councils can fire — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  // WP-R25 F10/F11/F12/F16 remediation — the record must carry the dispatch it describes, and the
+  // three axes must be checked against the config rather than taken on the record's word.
+  //
+  // Each fixture is derived from one clean council-mode review and carries exactly ONE defect, which
+  // is what keeps the attribution sweep meaningful. jp and jq additionally ship a fixture-local
+  // `config/repo-profile.yaml`: without it jp's record also contradicted its own `mode` (two errors,
+  // so the new rule was not the one being proven) and jq's depth read as an undeclared departure
+  // rather than reaching the sampling quota at all.
+  { id: 'jn', dir: 'test/fixtures/lifecycle-violations/jn-council-member-tokens-absent', description: '(WP-R25 F11) a council record omits member_tokens, so no cost history can ever accumulate — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'requires frontmatter council.member_tokens' },
+  { id: 'jo', dir: 'test/fixtures/lifecycle-violations/jo-council-overrides-as-string', description: '(WP-R25 F12) overrides written as the obvious shorthand string bypassed the mandatory-reason rule — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'it must be a mapping of setting to value' },
+  { id: 'jp', dir: 'test/fixtures/lifecycle-violations/jp-council-enabled-contradicts-config', description: '(WP-R25 F16) the record claims councils were enabled while the repo configures them off — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'but the resolved configuration says' },
+  { id: 'jq', dir: 'test/fixtures/lifecycle-violations/jq-council-deep-unsampled-member', description: '(WP-R25 F10) depth deep leaves one web-citing member unsampled, which standard would have allowed — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'deep requires one sample per member that filed a web citation' },
+  { id: 'jr', dir: 'test/fixtures/lifecycle-violations/jr-council-depth-departs-unflagged', description: '(WP-R25 F10) the record declares a depth the config does not, with no override — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'a departure must appear in council.overrides' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries

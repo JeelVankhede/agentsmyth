@@ -325,6 +325,43 @@ for (const file of artifactFiles) {
     } else if (expectedReason && council.refusal_reason && council.refusal_reason !== expectedReason) {
       errors.push(`${file} council.refusal_reason is "${council.refusal_reason}" but the recorded resolution inputs require "${expectedReason}" — the kill switch is checked before council.enabled, which is checked before task class`);
     }
+
+    // The recorded inputs must match the CONFIG, not merely each other.
+    //
+    // Everything above cross-checks the resolution block against the record's own `mode`, which
+    // makes the block internally consistent and otherwise unverified. `council.enabled: disabled`
+    // is the gate's second advertised remedy for an unresolved capability tier, and it was honoured
+    // by the gate and enforced nowhere: a repo could declare councils disabled to clear the
+    // blocking item, record `council_enabled: on-for-complex` anyway, run a full council, and have
+    // both validators report green. A self-reported input that nothing compares against the source
+    // it claims to have read is an assertion, not a record.
+    //
+    // ONE DIRECTION ONLY: a council that RAN while the configuration says it must not.
+    //
+    // Checking both directions was wrong, and two existing fixtures said so — both record
+    // `council_enabled: disabled` to construct a refusal, and both began failing twice over. The
+    // reverse mismatch is not a bypass: a record saying the council stood down while config would
+    // have allowed it describes under-spending, which costs nobody anything. It is also frequently
+    // just true, because the resolution block records what was resolved AT RUN TIME and config
+    // drifts afterwards — the same reason the axes above are grandfathered by date.
+    //
+    // The asymmetry is the whole rule. Only the enabled-while-forbidden direction can hide a spend
+    // the user declined, which is what makes `council.enabled: disabled` a free bypass otherwise:
+    // declare councils off to clear the blocking setup item, record them as on, run them, green.
+    //
+    // Only checked when the config actually resolved a value — a fixture directory that declares no
+    // config keeps the defaults, and demanding a match against a default nobody set would reject
+    // every fixture.
+    const configuredEnabled = councilConfig.enabled;
+    if (configuredEnabled === 'disabled' && res.council_enabled !== undefined
+        && res.council_enabled !== 'disabled') {
+      errors.push(
+        `${file} records council.resolution.council_enabled "${res.council_enabled}" but the resolved `
+        + 'configuration says "disabled"; a council cannot have fired under a configuration that '
+        + 'forbids it, and "disabled" is the remedy the capability gate offers — so accepting the '
+        + 'record\'s own word here makes turning councils off a way to run them unexamined',
+      );
+    }
   }
 
   if (mode === 'refused') {
@@ -346,7 +383,19 @@ for (const file of artifactFiles) {
   // not a violation and must not be treated as one: most runs do not depart from configuration, and
   // requiring a reason from them would make the field noise.
   const overrides = council.overrides;
-  if (overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0) {
+  // SHAPE FIRST. The reason requirement below tested `typeof overrides === 'object'`, so the obvious
+  // shorthand — `overrides: "model_tier=deep"` — was invisible to it and the rule never fired, while
+  // an array fired and reported a nonsense key list (its indices). The only validator that rejects
+  // the shape, check-artifacts.mjs, is on no consumer path. A guard that silently ignores every
+  // shape but one is a guard that the shorthand walks straight past.
+  if (overrides !== undefined && overrides !== null
+      && (typeof overrides !== 'object' || Array.isArray(overrides))) {
+    errors.push(
+      `${file} council.overrides is ${Array.isArray(overrides) ? 'an array' : `a ${typeof overrides}`} `
+      + '("' + String(overrides).slice(0, 60) + '"); it must be a mapping of setting to value, because '
+      + 'the reason requirement is keyed on which settings departed and cannot read them from a string',
+    );
+  } else if (overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0) {
     const reason = typeof council.override_reason === 'string' ? council.override_reason.trim() : '';
     if (reason === '') {
       errors.push(
@@ -378,10 +427,59 @@ for (const file of artifactFiles) {
     }
   }
 
-  for (const key of ['authorization', 'cap_resolved', 'cap_source', 'dispatch_depth', 'rounds_run', 'termination_reason']) {
+  // A RECORD MUST RECORD THE DISPATCH IT DESCRIBES.
+  //
+  // `depth`, `model_tier` and `effort` were added to the schema as optional and left out of this
+  // list, so a council record omitting every one of them validated — which reproduced, for three
+  // new keys at once, precisely the defect `agent-behavior.yaml` cites as the reason for defining
+  // `depth` in the first place: "a knob a repo can set, an artifact records, and no behaviour
+  // consults is worse than an absent one, because the record implies a choice took effect."
+  //
+  // They are required HERE rather than in the schema because the schema is shared with every
+  // earlier record: a council brief written before these keys existed must stay valid, and this
+  // validator only reaches this line for `mode: council`. So the contract tightens for new records
+  // without invalidating old ones.
+  //
+  // GRANDFATHERED BY DATE, and this is the honest option rather than the convenient one. Requiring
+  // the three new keys retroactively would have meant editing records that describe councils which
+  // ran before the keys existed — writing a `model_tier` for a dispatch that never had one. A
+  // record exists to say what happened; backfilling it with a plausible value is the one thing it
+  // must never do. So the requirement starts on the day the keys gained operational meaning and
+  // every earlier record keeps describing its own run truthfully.
+  //
+  // The boundary is a FIXED DATE, not a rolling window, so it cannot widen: every record written
+  // from here on is covered, and the grandfathered set is closed and enumerable.
+  //
+  // Known limit, stated rather than hidden: `created` is author-written, so a new record could
+  // backdate itself past the boundary. That dodge lives in a committed artifact whose git history
+  // contradicts it, which is a different and much more visible kind of problem than a missing
+  // field — but it is not mechanically prevented here.
+  const COUNCIL_AXES_REQUIRED_FROM = '2026-10-04';
+  const createdOn = typeof parsed.frontmatter.created === 'string' ? parsed.frontmatter.created.trim() : '';
+  const predatesAxes = createdOn !== '' && createdOn < COUNCIL_AXES_REQUIRED_FROM;
+
+  const alwaysRequired = ['authorization', 'cap_resolved', 'cap_source', 'dispatch_depth', 'rounds_run', 'termination_reason'];
+  const requiredSinceAxes = ['depth', 'model_tier', 'effort'];
+  for (const key of predatesAxes ? alwaysRequired : [...alwaysRequired, ...requiredSinceAxes]) {
     if (council[key] === undefined || council[key] === null || council[key] === '') {
       errors.push(`${file} council mode requires frontmatter council.${key}`);
     }
+  }
+
+  // `member_tokens` with `unavailable` as the explicit opt-out.
+  //
+  // It was optional and unenforced, which made the cost history R13 is defined against impossible
+  // to accumulate: every record could omit it, so `cost_estimate: no-history` was permanently and
+  // correctly the only answer any council could ever give. A field that may always be omitted is
+  // not a record of anything. Hosts that genuinely cannot report per-member usage say so in the
+  // value — the same convention the adapters already use for an absent effort control — so the
+  // distinction between "not measured" and "not measurable here" survives in the artifact.
+  if (!predatesAxes && (council.member_tokens === undefined || council.member_tokens === null || council.member_tokens === '')) {
+    errors.push(
+      `${file} council mode requires frontmatter council.member_tokens; record per-member token usage, `
+      + 'or the literal "unavailable" when the host does not report it — an always-omittable field '
+      + 'cannot accumulate the cost history a later run\'s cost_estimate is measured against',
+    );
   }
 
   if (council.dispatch_depth !== undefined && Number(council.dispatch_depth) !== 1) {
@@ -690,13 +788,75 @@ for (const file of artifactFiles) {
   // Per ROUND, which is what the skill and the README actually say. Satisfying every round from a
   // single challenger finding anywhere in the brief made the rule weaker than its own statement:
   // a later round could introduce web findings nobody sampled.
+  // BRANCHED ON DEPTH, because the three depths make three different promises.
+  //
+  // This rule keyed only on round, web findings and challenger presence, with no branch on depth at
+  // all — so it contradicted the semantics in both directions. `shallow` is DEFINED as running no
+  // challenge stage, which made it unusable: the moment any member filed a `web` citation the record
+  // was rejected for lacking a challenger spot-check that shallow had just been told not to produce.
+  // And `deep`, whose stated obligation is a per-member quota, got the identical single sample as
+  // `standard`, so the stricter setting bought nothing.
+  //
+  // The depth read is the RECORD's, which F11 above now requires, cross-checked against config
+  // below. Validating against the record is right here: the question is whether this run met the
+  // obligation of the depth it declares it ran at, not the one the repo currently happens to
+  // configure.
+  const recordDepth = typeof council.depth === 'string' ? council.depth.trim() : null;
+  const effectiveDepth = recordDepth || councilConfig.depth || 'standard';
+  const isSpotCheck = (f) => f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason);
   const webRounds = new Set(findings.filter((f) => f.cls === 'web').map((f) => f.round));
-  for (const r of [...webRounds].sort((a, b) => a - b)) {
-    const sampled = findings.some(
-      (f) => f.round === r && f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason)
-    );
-    if (!sampled) {
-      errors.push(`${file} round ${r} has web finding(s) but no challenger spot-check in that round; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
+
+  if (effectiveDepth === 'shallow') {
+    // No challenge stage runs, so no sampling can be demanded. The web class still has no mechanical
+    // floor, and that cost is what choosing shallow buys — stated in the details so the reader of a
+    // shallow record knows the citations in it were never sampled, rather than having to infer it.
+    if (webRounds.size > 0) {
+      details.push(`${file} declares depth "shallow", so its ${webRounds.size} round(s) with web findings carry no challenger spot-check by definition; web citations in this record are unsampled`);
+    }
+  } else {
+    for (const r of [...webRounds].sort((a, b) => a - b)) {
+      const inRound = findings.filter((f) => f.round === r);
+      if (effectiveDepth === 'deep') {
+        // Per MEMBER that filed a web finding, which is what `deep` promises over `standard`.
+        // Reviewers only. A challenger that files a `web` citation is usually filing the spot-check
+        // itself, and demanding a sample of the sampler is an infinite regress — the first version
+        // of this rule did exactly that and reported the challenger as unsampled. The quota exists
+        // to put a second pair of eyes on research citations; the challenger IS that second pair.
+        const webFilers = [...new Set(
+          inRound.filter((f) => f.cls === 'web' && f.role !== 'challenger').map((f) => f.member),
+        )];
+        const sampledMembers = new Set(inRound.filter(isSpotCheck).flatMap((f) => {
+          // A challenger's spot-check names the member whose citation it sampled; when it names
+          // nobody it counts for whichever member it is attributed to, so a deep council cannot
+          // satisfy the quota with one unattributed sample.
+          const named = webFilers.filter((m) => m && (f.surface + f.citation + f.reason).includes(m));
+          return named.length > 0 ? named : [f.member];
+        }));
+        const unsampled = webFilers.filter((m) => !sampledMembers.has(m));
+        if (unsampled.length > 0) {
+          errors.push(`${file} declares depth "deep" but round ${r} has web finding(s) from member(s) ${unsampled.join(', ')} with no challenger spot-check naming them; deep requires one sample per member that filed a web citation, not one per round`);
+        }
+      } else if (!inRound.some(isSpotCheck)) {
+        errors.push(`${file} round ${r} has web finding(s) but no challenger spot-check in that round; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
+      }
+    }
+  }
+
+  // The declared depth must be the configured one, or a declared departure.
+  //
+  // Without this, F11's new requirement would be satisfiable by writing whichever depth has the
+  // weakest obligation: a run configured `deep` could record `shallow` and skip sampling entirely.
+  // That turns a required field into a self-issued exemption, which is worse than the optional field
+  // it replaced.
+  // Grandfathered with the keys above, for the same reason: a record written before `depth` had
+  // operational meaning cannot be held to the depth a repo configures afterwards. wp-r18's review
+  // records `deep` against a repo that now resolves `standard`, and that is a true statement about
+  // a run that happened under the earlier reading, not a departure anyone chose.
+  if (!predatesAxes && recordDepth && councilConfig.depth && recordDepth !== councilConfig.depth) {
+    const declared = council.overrides && typeof council.overrides === 'object' && !Array.isArray(council.overrides)
+      ? Object.keys(council.overrides) : [];
+    if (!declared.includes('depth')) {
+      errors.push(`${file} records council.depth "${recordDepth}" but the resolved configuration says "${councilConfig.depth}"; a departure must appear in council.overrides with a council.override_reason, because depth decides which sampling obligation this record is held to`);
     }
   }
 

@@ -276,6 +276,17 @@ const shipScoped = run(V('check-release-readiness'), ['--dir', 'test/fixtures/co
 check('r22-ship-gate-chain-scoped', "another chain's pending finding does not block this chain's ship",
   shipScoped.status === 0);
 
+// WP-R25 F10 — `depth: shallow` must be USABLE. The web spot-check rule had no depth branch, so a
+// shallow council — defined by this package as running no challenge stage — was rejected the moment
+// any member filed a web citation, demanding a challenger it had just been told not to dispatch.
+// This is a positive control because no negative fixture can prove a rule stopped over-firing: the
+// fixture is a shallow record with web findings and no challenger, and it must pass.
+const shallowWeb = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-shallow-web']);
+check('r25-shallow-council-with-web-findings-validates',
+  'a shallow council record carrying web findings and no challenger is accepted',
+  shallowWeb.status === 0,
+  shallowWeb.status === 0 ? '' : `check-council-record rejected it: ${(shallowWeb.stdout || '').split('\n').filter((l) => l.startsWith('- ')).join(' | ')}`);
+
 // WP-R22 RI10 (OI-81) — the negative half of the per-question join, which is the whole reason the
 // change was made. A genuinely external question, resting on web alone and naming a bucket whose
 // classification names only web, must NOT be flagged. Under the old brief-wide approximation it
