@@ -80,7 +80,7 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readdirSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
 // lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
@@ -312,6 +312,23 @@ check('r22-ship-gate-chain-scoped', "another chain's pending finding does not bl
     firstRef.endsWith('<definitions_root>/adapters/<tool>/council-member.md'),
     `the first council-member reference is "...${firstRef.slice(-70)}"`);
 }
+
+// WP-R25 F22 — the positive half: a record that DOES name the definition each member was dispatched
+// from must pass. Without this the negative fixture alone would be satisfied by a rule that rejects
+// every record, which is the failure mode a one-sided rule actually has.
+const namedDefinition = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-member-definition-named']);
+check('r25-council-member-definition-named-validates',
+  'a council record naming the definition each member ran from is accepted',
+  namedDefinition.status === 0,
+  namedDefinition.status === 0 ? '' : `rejected: ${(namedDefinition.stdout || '').split('\n').filter((l) => l.startsWith('- ')).join(' | ')}`);
+
+// And this repo owes itself the file, because it dogfoods its own lifecycle and resolves a tier.
+// F22 found it had none — a tier configured and nothing expressing it — so its own Review council
+// members ran on the host default. Asserted here so the next council here cannot quietly do the same.
+check('r25-this-repo-has-a-member-definition',
+  'this repo renders the council member definition its own resolved tier requires',
+  existsSync(join(repoRoot, '.claude', 'agents', 'agentsmyth-council-member.md')),
+  '.claude/agents/agentsmyth-council-member.md is absent while repo-profile.yaml resolves a tier');
 
 const shallowWeb = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-shallow-web']);
 check('r25-shallow-council-with-web-findings-validates',

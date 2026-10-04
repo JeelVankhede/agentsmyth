@@ -192,7 +192,14 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   remedies clear the block, plus the no-remedy control — IDs: R4
 - `test/run-commit-coverage-tests.mjs` (Phase 8) — the `--staged` leg validates a staged
   `blocked-for-user` council record — IDs: R10
-- `test/mutation-baseline.json` (Phase 8) — `check-council-record.mjs` 76 → 81 rules — IDs: R3, R4
+- `src/workflow/validators/check-setup-complete.mjs` (Phase 8) — requires at least one rendered
+  council member definition once a capability tier resolves and councils are not disabled — IDs: R5
+- `.claude/agents/agentsmyth-council-member.md` (Phase 8, new) — this repo's own rendered member
+  definition, `model: sonnet` / `effort: xhigh` from its resolved `standard` / `very-high`; it had
+  configured a tier and never expressed it, which is the finding it was requiring of consumers
+  — IDs: R5
+- `test/mutation-baseline.json` (Phase 8) — `check-council-record.mjs` 76 → 85 and
+  `check-setup-complete.mjs` 13 → 14 rules — IDs: R3, R4, R5
 - `.github/workflows/ci.yml`, `.github/workflows/release.yml` (Phase 8) — the path-containment suite
   runs in both — IDs: R9
 - `src/workflow/agent-behavior.yaml` (Phase 3) — `council.depth` gains an operational definition for

@@ -22,7 +22,10 @@ council:
   depth: standard
   model_tier: standard
   effort: standard
-  member_tokens: unavailable
+  member_tokens:
+    m1: unavailable
+    m2: unavailable
+    c1: unavailable
   overrides: "model_tier=deep"
   override_reason: "a deeper tier for a security-sensitive diff"
   dispatch_depth: 1

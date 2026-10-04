@@ -3,8 +3,8 @@ slug: probe
 version: 1
 artifact: review
 status: ready-for-next-phase
-created: 2026-10-04
-updated: 2026-10-04
+created: 2026-10-06
+updated: 2026-10-06
 manifest_ids: [R1]
 upstream:
   - workflow/artifacts/tasks/probe-v1.md

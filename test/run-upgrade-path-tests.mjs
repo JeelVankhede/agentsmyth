@@ -19,7 +19,7 @@
 // actual ~/.agentsmyth.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { platform, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1420,6 +1420,53 @@ function commitWithStub(repo, stubDir, file, message) {
   });
 }
 
+// ── WP-R25 F21: an existing hook's MODE is a decision, not a default ─────────────────────────
+//
+// The write passed `{ mode: 0o755 }` unconditionally, which bypassed atomicWriteFileSync's
+// mode-preserving branch and widened a deliberate 0700 hook to group and world execute. No bytes
+// were lost, which is why it read as harmless — but reversing a permission the user narrowed on
+// purpose, while reporting success, is the same shape as the rest of this review.
+//
+// Mode bits are not meaningful on Windows and `chmod` there is a no-op, so this asserts on POSIX
+// only rather than claiming a guarantee it cannot make.
+if (process.platform !== 'win32') {
+  const repo = mkScratch('wpr25-hookmode-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  git(repo, 'config', 'core.hooksPath', '.githooks');
+  mkdirSync(join(repo, '.githooks'), { recursive: true });
+  // Owner-only, and executable — a hook a security-conscious user wrote for themselves.
+  writeFileSync(join(repo, '.githooks', 'pre-commit'), '#!/bin/sh\necho MINE\n', { mode: 0o700 });
+  chmodSync(join(repo, '.githooks', 'pre-commit'), 0o700);
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const mode = statSync(hook).mode & 0o777;
+  check('HM1-mode-preserved', "an existing hook's 0700 mode is preserved, not widened to 0755",
+    mode === 0o700);
+  check('HM2-still-executable', 'and it is still executable by its owner', (mode & 0o100) !== 0);
+  check('HM3-gate-installed', 'the gate was installed despite the narrow mode',
+    readFileSync(hook, 'utf8').includes('agentsmyth:mandatory-lifecycle-gate'));
+  check('HM4-user-content-kept', "the user's own line survives", readFileSync(hook, 'utf8').includes('echo MINE'));
+
+  // A hook agentsmyth CREATES has no prior decision to preserve and must be executable, or git
+  // silently ignores it and the gate is not a gate.
+  const fresh = mkScratch('wpr25-hookmode-fresh-');
+  cleanup.push(fresh);
+  git(fresh, 'init', '-q');
+  git(fresh, 'config', 'user.email', 'test@example.com');
+  git(fresh, 'config', 'user.name', 'test');
+  git(fresh, 'config', 'core.hooksPath', '.githooks');
+  syncHome(home);
+  run(['init'], { cwd: fresh, home });
+  const freshMode = statSync(join(fresh, '.githooks', 'pre-commit')).mode & 0o777;
+  check('HM5-created-executable', 'a hook agentsmyth creates is 0755, since there is no prior mode to keep',
+    freshMode === 0o755);
+}
+
 // ── husky v9: core.hooksPath points at the GENERATED directory ───────────────────────────────
 {
   const repo = mkScratch('wpr25-husky9-');
@@ -1448,11 +1495,26 @@ function commitWithStub(repo, stubDir, file, message) {
 
   check('HK1-durable-target', 'the gate is written to the durable parent, not the generated directory',
     durableText.includes('agentsmyth:mandatory-lifecycle-gate') && !generatedText.includes('agentsmyth:mandatory-lifecycle-gate'));
-  check('HK2-gate-first', 'the gate block is the first content in the durable hook',
-    durableText.indexOf('# >>> agentsmyth:mandatory-lifecycle-gate >>>') === 0);
+  // WP-R25 F21 changed this contract deliberately, so the assertion changed with it — and got
+  // stronger rather than looser. It used to require the gate at byte 0, which MOVED the host's
+  // `#!/usr/bin/env sh` to line 102 and left the file no longer declaring its own interpreter:
+  // inert under husky's `sh -e` dispatch, live the moment a developer runs the hook directly to
+  // debug it. The gate now sits directly beneath a leading shebang.
+  //
+  // Both halves are asserted, because satisfying either alone reintroduces one of the two bugs: the
+  // shebang must be on line 1, and the gate must still precede the host's own commands. HK6 proves
+  // the ordering actually holds by running a real commit; this is the structural statement of it.
+  const shebangFirst = durableText.startsWith('#!/usr/bin/env sh\n');
+  const gateAt = durableText.indexOf('# >>> agentsmyth:mandatory-lifecycle-gate >>>');
+  check('HK2-gate-first', 'the gate block follows a preserved line-1 shebang and precedes the host content',
+    shebangFirst && gateAt > 0 && gateAt < durableText.indexOf('echo HOST-RAN'));
   check('HK3-host-preserved', "the host's own content is preserved below the gate",
     durableText.includes('echo HOST-RAN'));
   check('HK4-executable', 'the written hook is executable', (statSync(durable).mode & 0o111) !== 0);
+  // WP-R25 F21 — a shebang is only a shebang on line 1. Asserted separately from HK2 so a future
+  // change to the gate's position cannot quietly take this with it.
+  check('HK4b-shebang-line-1', "the host's shebang is still the first line of the file",
+    durableText.split('\n')[0] === '#!/usr/bin/env sh');
   check('HK5-advertises-written', 'AGENTS.md advertises the path actually written',
     /pre-commit hook at `\.husky\/pre-commit`/.test(agentsMd));
 

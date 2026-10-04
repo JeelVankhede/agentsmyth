@@ -2671,9 +2671,33 @@ function installPreCommitHook(repoDir, pkgRootDir) {
   const target = join(hooksPath, 'pre-commit');
   const template = readFileSync(join(pkgRootDir, 'src', 'assets', 'hooks', 'pre-commit'), 'utf8');
 
+  // PRESERVE the mode of a hook that already exists; only a file we create gets 0o755.
+  //
+  // Passing `{ mode: 0o755 }` unconditionally bypassed atomicWriteFileSync's mode-preserving branch
+  // and WIDENED a deliberate 0700 hook to group and world execute. No user bytes were lost, which is
+  // why it read as harmless — but a permission a user narrowed on purpose is a decision, and
+  // silently reversing it while reporting success is the same shape as the other findings in this
+  // review. A file we are creating has no prior decision to preserve, so it still gets 0o755: a
+  // hook git cannot execute is not a hook.
+  const hookWriteOpts = () => {
+    if (!existsSync(target)) return { mode: 0o755 };
+    try { return { mode: statSync(target).mode & 0o7777 }; } catch { return { mode: 0o755 }; }
+  };
+
+  // Keep a leading `#!` on line 1 when hoisting the gate above the user's script.
+  //
+  // The gate-first merge moved the user's shebang to line 102, so the file no longer declared its
+  // own interpreter. Inert under husky's `sh -e` dispatch, which is why it survived review of the
+  // gate-first change — and live the moment anyone executes the hook directly, which is exactly
+  // what a developer debugging a hook does. A shebang is only a shebang on line 1.
+  const splitShebang = (text) => {
+    const match = text.match(/^#![^\n]*\n?/);
+    return match ? [match[0], text.slice(match[0].length)] : ['', text];
+  };
+
   try {
     if (!existsSync(target)) {
-      atomicWriteFileSync(target, template, { mode: 0o755 }, dirname(target));
+      atomicWriteFileSync(target, template, hookWriteOpts(), dirname(target));
       return target;
     }
     const existing = readFileSync(target, 'utf8');
@@ -2703,7 +2727,7 @@ function installPreCommitHook(repoDir, pkgRootDir) {
       }
       const current = template.slice(template.indexOf(hookBeginMarker()));
       const refreshed = existing.slice(0, begin) + current.trimEnd() + '\n' + existing.slice(end + hookEndMarker().length).replace(/^\n/, '');
-      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, { mode: 0o755 }, dirname(target));
+      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, hookWriteOpts(), dirname(target));
       return target;
     }
     const block = template.slice(template.indexOf(hookBeginMarker()));
@@ -2722,10 +2746,15 @@ function installPreCommitHook(repoDir, pkgRootDir) {
     // the point: under a generator the environment is already prepared, and outside one it may not
     // be.
     const gateFirst = hasGeneratedHooksChild(hooksPath);
-    const merged = gateFirst
-      ? `${block.trimEnd()}\n\n${existing.replace(/^\n+/, '')}`
-      : (existing.endsWith('\n') ? existing + block : existing + '\n' + block);
-    atomicWriteFileSync(target, merged, { mode: 0o755 }, dirname(target));
+    let merged;
+    if (gateFirst) {
+      // The shebang, if any, stays on line 1 and the gate goes directly beneath it.
+      const [shebang, body] = splitShebang(existing);
+      merged = `${shebang}${block.trimEnd()}\n\n${body.replace(/^\n+/, '')}`;
+    } else {
+      merged = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
+    }
+    atomicWriteFileSync(target, merged, hookWriteOpts(), dirname(target));
     return target;
   } catch (err) {
     console.warn(`agentsmyth: could not write pre-commit hook at ${target} — skipping.`);
@@ -2756,8 +2785,9 @@ function installPreCommitHook(repoDir, pkgRootDir) {
 // THE SIGNAL IS THE STAMP, NOT A DIGEST. Published v1.0.1 never wrote installed-version.txt at all,
 // so every stale tree a consumer can actually be holding carries no stamp — absence is both the
 // common case and sufficient to catch it. A digest was considered and rejected: it would have to
-// survive `npm pack` and CRLF checkouts, it cannot use the expanded tree (expandBundle never
-// prunes, so retired files and OS cruft make a tree digest permanently unequal), and it would be
+// survive `npm pack` and CRLF checkouts, it cannot use the expanded tree (a digest over it would
+// have to agree with the prune's own scope, and OS cruft and anything a user put there make a
+// whole-tree digest permanently unequal regardless), and it would be
 // deciding the very same question. The one case a stamp cannot see is rebuilt source at an unchanged
 // version string, which is reachable only in development where `prepare` is a single command. That
 // residual is accepted and recorded, not engineered away.

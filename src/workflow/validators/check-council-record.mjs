@@ -65,6 +65,43 @@ function resolveCouncilConfig() {
   return merged;
 }
 const councilConfig = resolveCouncilConfig();
+
+// How many OTHER council records in this tree carry per-member token data worth averaging.
+//
+// Reads the whole artifacts tree rather than the `--files` scope: a cost estimate rests on the
+// repo's accumulated history, and a staged-leg run that saw one file would otherwise call every
+// honest estimate inflated. Memoised because the cost rule can fire once per record.
+//
+// Scoped by `--dir` when one is given, for the reason resolveCouncilConfig() already records about
+// config: a fixture that resolves against the HOST repo's artifacts passes or fails depending on
+// which machine runs it, and on how many councils that machine's repo happens to have recorded.
+// Written unscoped first, which made the sample-exceeds-history fixture read "but 1 other council
+// record" from THIS repo's tree — it would have silently stopped failing once the repo accumulated
+// enough records.
+//
+// `unavailable` member values do not count. They are the honest answer where a host reports nothing,
+// and the schema is explicit that they must never be read as zero — a record whose every member is
+// `unavailable` contributes no measurement, so it is not history.
+let costHistoryCache = null;
+function priorCouncilCostRecords(excludeFile) {
+  if (costHistoryCache === null) {
+    costHistoryCache = new Map();
+    for (const candidate of listFiles(artifactsDir)) {
+      if (!candidate.endsWith('.md') || candidate.endsWith('/README.md')) continue;
+      let fm;
+      try { fm = parseFrontmatter(readText(candidate))?.frontmatter; } catch { continue; }
+      const c = fm?.council;
+      if (!c || c.mode !== 'council') continue;
+      const tokens = c.member_tokens;
+      if (!tokens || typeof tokens !== 'object') continue;
+      const measured = Object.values(tokens).some((v) => typeof v === 'number' && Number.isFinite(v));
+      if (measured) costHistoryCache.set(candidate, true);
+    }
+  }
+  let count = 0;
+  for (const candidate of costHistoryCache.keys()) if (candidate !== excludeFile) count += 1;
+  return count;
+}
 // Indirection so the fence helpers above can read the resolved config without a forward reference.
 const councilConfigRef = { value: councilConfig };
 
@@ -434,12 +471,47 @@ for (const file of artifactFiles) {
   // reader can tell a mean of twelve runs from a mean of one.
   if (typeof council.cost_estimate === 'string' && council.cost_estimate.trim() !== '') {
     const estimate = council.cost_estimate.trim();
-    if (estimate !== 'no-history' && !/\b(?:over|across|from)\s+\d+\s+(?:prior\s+)?council/i.test(estimate)) {
-      errors.push(
-        `${file} council.cost_estimate "${estimate}" neither states the sample it rests on nor declares `
-        + '"no-history"; a cost figure that does not say how many prior runs produced it cannot be told '
-        + 'apart from one that was guessed',
-      );
+    if (estimate !== 'no-history') {
+      const sampleMatch = estimate.match(/\b(?:over|across|from)\s+(\d+)\s+(?:prior\s+)?councils?/i);
+      if (!sampleMatch) {
+        errors.push(
+          `${file} council.cost_estimate "${estimate}" neither states the sample it rests on nor declares `
+          + '"no-history"; a cost figure that does not say how many prior runs produced it cannot be told '
+          + 'apart from one that was guessed',
+        );
+      } else {
+        const claimed = Number(sampleMatch[1]);
+        // CHECK THE CLAIM, NOT ITS GRAMMAR.
+        //
+        // This rule used to be satisfied by the SHAPE of a sample clause and nothing else, so three
+        // things passed that the rule's own text forbids: "from 0 councils" — precisely the case it
+        // says must be declared `no-history`; "from 3 councils" carrying no figure at all, which is
+        // a provenance note dressed as an estimate; and an asserted sample of 99 in a tree holding
+        // one council record, while this validator was enumerating those records in the same pass.
+        // A rule that reads its subject's syntax and not its substance is a spellchecker.
+        if (claimed === 0) {
+          errors.push(
+            `${file} council.cost_estimate "${estimate}" rests on a sample of zero; that is what `
+            + '"no-history" means and what this field requires for a repo\'s first council — a mean '
+            + 'over no runs is not a measurement',
+          );
+        } else if (!/\d[\d,._]*\s*(?:k\b|m\b|tokens?|usd|eur|cents?)|[$€£]\s*\d/i.test(estimate)) {
+          errors.push(
+            `${file} council.cost_estimate "${estimate}" names a sample of ${claimed} council(s) but `
+            + 'states no cost figure; the sample is the provenance of an estimate, not the estimate',
+          );
+        } else {
+          const available = priorCouncilCostRecords(file);
+          if (claimed > available) {
+            errors.push(
+              `${file} council.cost_estimate "${estimate}" claims a sample of ${claimed} council(s), but `
+              + `${available} other council record(s) in this tree carry per-member token data to average. `
+              + 'The sample cannot exceed the history it is drawn from — this validator enumerates those '
+              + 'records in the same pass, so the figure is checkable rather than a matter of trust',
+            );
+          }
+        }
+      }
     }
   }
 
@@ -492,9 +564,10 @@ for (const file of artifactFiles) {
   // distinction between "not measured" and "not measurable here" survives in the artifact.
   if (!predatesAxes && (council.member_tokens === undefined || council.member_tokens === null || council.member_tokens === '')) {
     errors.push(
-      `${file} council mode requires frontmatter council.member_tokens; record per-member token usage, `
-      + 'or the literal "unavailable" when the host does not report it — an always-omittable field '
-      + 'cannot accumulate the cost history a later run\'s cost_estimate is measured against',
+      `${file} council mode requires frontmatter council.member_tokens; record it per member id, `
+      + 'using the literal "unavailable" as a member\'s value where the host reports nothing — an '
+      + 'always-omittable field cannot accumulate the cost history a later run\'s cost_estimate is '
+      + 'measured against',
     );
   }
 
@@ -567,7 +640,43 @@ for (const file of artifactFiles) {
     input: col(m, 'input').toLowerCase(),
     status: col(m, 'status').toLowerCase(),
     sandbox: col(m, 'sandbox').trim(),
+    definition: col(m, 'definition').trim(),
   }));
+
+  // DISPATCHED BY NAMED DEFINITION, recorded per member.
+  //
+  // A record of members dispatched by prose was indistinguishable from one dispatched by
+  // named definition, so the mechanism that makes the capability tier a parameter rather than a wish
+  // had no check on either side — check-setup-complete now requires the file to exist, and this
+  // requires the record to say it was used. Either alone is evadable: the file can exist and be
+  // ignored, and a record can claim a definition that was never rendered.
+  //
+  // Grandfathered on its OWN boundary, one day later than the axes, and the difference is not
+  // fussiness. The axes became recordable the moment the keys existed — a council could resolve a
+  // tier and write it down the same day. A DEFINITION could not: the templates only reach a repo
+  // through the release that bundles them, so no record written before that release can name one.
+  //
+  // This repo is the worked example. Its own Review council resolved `model_tier: standard`,
+  // dispatched two members, and named no definition — because none had been rendered, which is
+  // precisely the gap F22 reported. Holding that record to this rule would force it to claim a
+  // mechanism its members never used, and a record that lies about how a council ran is worth less
+  // than no record.
+  //
+  // Paired with check-setup-complete, which requires the file to EXIST once a tier is resolved.
+  // Either check alone is evadable: a file can exist and be ignored, and a record can name a file
+  // that was never rendered. Together they bracket the mechanism.
+  const MEMBER_DEFINITION_REQUIRED_FROM = '2026-10-05';
+  const predatesDefinitions = createdOn !== '' && createdOn < MEMBER_DEFINITION_REQUIRED_FROM;
+  if (!predatesDefinitions) {
+    const undeclared = members.filter((m) => m.definition === '');
+    if (undeclared.length > 0) {
+      errors.push(
+        `${file} council log Members table gives no Definition for member(s) ${undeclared.map((m) => m.id).join(', ')}; `
+        + 'a member dispatched by prose cannot be told from one dispatched by a named definition, and only '
+        + 'the named definition carries the capability tier and effort the host actually resolves',
+      );
+    }
+  }
 
   if (members.length === 0) {
     errors.push(`${file} council log has no "### Members" subsection; findings cannot be attributed to members that are never declared`);

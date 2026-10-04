@@ -414,7 +414,10 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   remedies need positive controls), `test/run-commit-coverage-tests.mjs` (F18 — the `--staged` leg
   is what regressed), `.github/workflows/ci.yml` and `.github/workflows/release.yml` (F6/F7/F13/F14
   — a suite that runs in no workflow is not coverage, which is itself a finding this repo has
-  already had once), and `package.json` (the script entry the two workflows invoke)
+  already had once), `package.json` (the script entry the two workflows invoke),
+  `src/workflow/validators/check-setup-complete.mjs` and
+  `.claude/agents/agentsmyth-council-member.md` (F22 — the tier had no mechanical expression on
+  either side, and this repo turned out not to have the file it was requiring of consumers)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);

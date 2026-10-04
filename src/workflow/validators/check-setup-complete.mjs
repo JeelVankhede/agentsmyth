@@ -235,6 +235,59 @@ if (presentAdapters.length === 0) {
   console.log(`  adapters present: ${presentAdapters.join(', ')}`);
 }
 
+// ── Check: the council member definition exists once a tier has been chosen ───
+//
+// The mechanism that turns the capability tier "from a wish into a
+// parameter" had no mechanical check anywhere: a setup agent that skipped step 5a.3 left no trace,
+// and the tier sat in config as a note nothing acted on. Councils dispatch members BY NAMING this
+// definition, and the host resolves the model and effort it declares before the member runs — so
+// without the file, a tier is prose again, which is the exact failure `agent-behavior.yaml` names
+// when it says a knob nothing consults is worse than an absent one.
+//
+// Conditional on the tier being RESOLVED, and that condition is doing real work rather than being
+// lenient. Step 5a.3 cannot run before the tier is answered — the item deliberately blocks, so the
+// tier is unanswered by construction while `init` runs, and rendering then would write an
+// unsubstituted placeholder. A repo that has not answered is already held by the phase gate; this
+// check covers the state after it, where the answer exists and the file it was supposed to produce
+// may not.
+//
+// AT LEAST ONE of the five, not one per present adapter.
+//
+// Written the stricter way first and it was wrong: it mapped a present `AGENTS.md` to a required
+// `.codex/agents/...toml`, but AGENTS.md is the CROSS-TOOL FALLBACK router — this repo carries one
+// because it dogfoods its own lifecycle, not because it uses Codex. (There is a whole suite named
+// `agents-md:test` for that fallback behaviour.) Keying a per-tool requirement to an adapter marker
+// that is deliberately not tool-specific manufactures a failure for an honest consumer, which is
+// the same defect class as the findings this chain is closing.
+//
+// A repo uses one tool and owes one definition. Which one is its business.
+{
+  const memberDefinitionPaths = [
+    '.claude/agents/agentsmyth-council-member.md',
+    '.codex/agents/agentsmyth-council-member.toml',
+    '.github/agents/agentsmyth-council-member.md',
+    '.cursor/agents/agentsmyth-council-member.md',
+    '.devin/agents/agentsmyth-council-member.md',
+  ];
+  const tierResolved = /\n\s*model_tier:\s*(cheap|standard|deep)\s*(?:#.*)?$/m.test(profileText ?? '');
+  const councilsDisabled = /\n\s*enabled:\s*disabled\s*(?:#.*)?$/m.test(profileText ?? '');
+
+  if (tierResolved && !councilsDisabled) {
+    const present = memberDefinitionPaths.filter((defPath) => exists(defPath));
+    if (present.length === 0) {
+      errors.push(
+        'no council member definition found — workflow/config/repo-profile.yaml resolves a council '
+        + 'capability tier, but the definition that tier is expressed through was never rendered '
+        + '(src/setup/SKILL.md step 5a.3). Councils dispatch members by naming this file; without it the '
+        + 'tier is a note, not a parameter, and members run on whatever the host defaults to. Expected '
+        + `one of: ${memberDefinitionPaths.join(', ')}`,
+      );
+    } else {
+      console.log(`  council member definition present: ${present.join(', ')}`);
+    }
+  }
+}
+
 // ── Check: AGENTS.md's marker stamp matches the installed version ─────────
 //
 // This repairs a check that could no longer fail, and gives a version stamp its first reader, in

@@ -26,6 +26,7 @@ council:
     m1: unavailable
     m2: unavailable
     c1: unavailable
+  cost_estimate: "~180k tokens, from 99 prior councils"
   dispatch_depth: 1
   rounds_run: 1
   termination_reason: resolved

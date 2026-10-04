@@ -381,6 +381,17 @@ const fixtures = [
   { id: 'jp', dir: 'test/fixtures/lifecycle-violations/jp-council-enabled-contradicts-config', description: '(WP-R25 F16) the record claims councils were enabled while the repo configures them off — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'but the resolved configuration says' },
   { id: 'jq', dir: 'test/fixtures/lifecycle-violations/jq-council-deep-unsampled-member', description: '(WP-R25 F10) depth deep leaves one web-citing member unsampled, which standard would have allowed — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'deep requires one sample per member that filed a web citation' },
   { id: 'jr', dir: 'test/fixtures/lifecycle-violations/jr-council-depth-departs-unflagged', description: '(WP-R25 F10) the record declares a depth the config does not, with no override — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'a departure must appear in council.overrides' },
+  // WP-R25 F15 — the cost rule read its subject's GRAMMAR, so all three of these passed while the
+  // rule's own text forbids each one. The sample-vs-history case is why the history lookup is
+  // scoped by --dir: unscoped it counted this repo's own records and would have stopped failing.
+  { id: 'js', dir: 'test/fixtures/lifecycle-violations/js-cost-estimate-zero-sample', description: '(WP-R25 F15) a cost estimate resting on a sample of zero, which must be declared no-history — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'rests on a sample of zero' },
+  { id: 'jt', dir: 'test/fixtures/lifecycle-violations/jt-cost-estimate-no-figure', description: '(WP-R25 F15) a cost estimate naming a sample but stating no cost figure — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'states no cost figure' },
+  { id: 'ju', dir: 'test/fixtures/lifecycle-violations/ju-cost-estimate-sample-exceeds-history', description: '(WP-R25 F15) a cost estimate claiming a larger sample than the tree holds — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'The sample cannot exceed the history it is drawn from' },
+  // WP-R25 F22 — the mechanism that makes the tier a parameter had no check on either side. This is
+  // the record half; check-setup-complete requires the file to exist. Dated past its own boundary,
+  // which is one day later than the axes boundary because a definition only reaches a repo through
+  // the release that bundles the templates.
+  { id: 'jv', dir: 'test/fixtures/lifecycle-violations/jv-council-member-no-definition', description: '(WP-R25 F22) members recorded with no definition, indistinguishable from dispatch by prose — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'gives no Definition for member(s)' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries

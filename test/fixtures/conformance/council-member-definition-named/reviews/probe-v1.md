@@ -3,8 +3,8 @@ slug: probe
 version: 1
 artifact: review
 status: ready-for-next-phase
-created: 2026-10-04
-updated: 2026-10-04
+created: 2026-10-06
+updated: 2026-10-06
 manifest_ids: [R1]
 upstream:
   - workflow/artifacts/tasks/probe-v1.md
@@ -83,11 +83,11 @@ reaches this section, and every member that produced one is cited by name.
 
 ### Members
 
-| Member | Role | Round | Capabilities | Input | Status | Sandbox |
-|---|---|---|---|---|---|---|
-| m1 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
-| m2 | reviewer | 1 | read, fetch, search | diff+manifest | ran | |
-| c1 | challenger | 1 | read, fetch, search | diff+manifest | ran | |
+| Member | Role | Round | Capabilities | Input | Status | Sandbox | Definition |
+|---|---|---|---|---|---|---|---|
+| m1 | reviewer | 1 | read, fetch, search | diff+manifest | ran | | .claude/agents/agentsmyth-council-member.md |
+| m2 | reviewer | 1 | read, fetch, search | diff+manifest | ran | | .claude/agents/agentsmyth-council-member.md |
+| c1 | challenger | 1 | read, fetch, search | diff+manifest | ran | | .claude/agents/agentsmyth-council-member.md |
 
 ### Rounds
 

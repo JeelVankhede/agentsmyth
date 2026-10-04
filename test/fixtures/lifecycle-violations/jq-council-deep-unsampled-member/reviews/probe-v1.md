@@ -22,7 +22,10 @@ council:
   depth: deep
   model_tier: standard
   effort: standard
-  member_tokens: unavailable
+  member_tokens:
+    m1: unavailable
+    m2: unavailable
+    c1: unavailable
   dispatch_depth: 1
   rounds_run: 1
   termination_reason: resolved
