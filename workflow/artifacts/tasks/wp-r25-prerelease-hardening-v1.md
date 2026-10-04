@@ -38,7 +38,7 @@ orchestration:
 
 ## Active Phase
 
-- Phase: Phase 8 - Review remediation
+- Phase: Phase 8 - Review remediation (complete; chain ready for Test)
 - Manifest IDs: R3, R4, R5, R9, R10, RI7
 - Exit gate: all 22 Review council findings resolved with evidence; any finding not resolved must
   appear as a row in a `## Waivers` table carrying every required field, which this artifact does not
@@ -75,7 +75,7 @@ orchestration:
 | Phase 5 - Release evidence and delivery honesty | complete | R11, RI10 |
 | Phase 6 - Council config depth, override, cost history | complete | R3, R4, R5 |
 | Phase 7 - Release integration and invariants | complete | R6, RI1, RI3, RI4, RI5, RI6 |
-| Phase 8 - Review remediation | active | R3, R4, R5, R9, R10, RI7 |
+| Phase 8 - Review remediation | complete | R3, R4, R5, R9, R10, RI7 |
 
 ## Branch / Repo Status
 
@@ -490,6 +490,16 @@ explicitly rather than the scope being widened silently, and the amendment recor
 | `npm run agents-md:test` | regression | pass | exit 0 |
 | `npm run commit-coverage:test` | regression | pass | exit 0 |
 | `npm run root-resolution:test` | regression | pass | exit 0 |
+
+| `npm run violations:test` | Phase 8 exit gate | pass | 238/238, attribution 122/122. Nine new rejection fixtures (jn-jv) across F10, F11, F12, F15, F16 and F22, each carrying exactly one defect. |
+| `npm run conformance:test` | Phase 8 exit gate | pass | 55/55. Four new checks: the every-phase-gate wiring assertion (F1), the shallow-council positive (F10), council-member delivery (F19) and this repo's own member definition (F22). Caught `shipped-neutrality` twice more — my own tracker IDs in `src/` comments. |
+| `npm run upgrade-path:test` | Phase 8 exit gate | pass | 178 passed, 0 failed, 1 platform skip. New: X5b (F20), X7 (F5), X8 (F4), HM1-HM5 and HK4b (F21). Six of them verified failing against the pre-fix CLI. |
+| `npm run path-containment:test` | Phase 8, new suite | pass | 21/21. Covers F3, F6, F7, F13 and F14 — none is a validator rule, so the negative suite could not host them. 17/21 with the F3 guard alone removed; 8/14 reporting against the whole pre-fix file. Wired into `ci.yml` and `release.yml`. |
+| `npm run checkpoint-approval:test` | Phase 8 exit gate | pass | 13/13. Three gate-remedy positives plus the no-remedy control (F17), and the review-phase case (F2) that no existing fixture could host because all three used `--phase think`. |
+| `npm run commit-coverage:test` | Phase 8 exit gate | pass | 8 passed. The `--staged` leg now validates a staged `blocked-for-user` council record (F18); verified failing against the pre-fix wiring. |
+| `npm run setup-checks:test` | Phase 8 exit gate | pass | 20/20 with the new member-definition requirement (F22). |
+| `node src/workflow/validators/check-finding-quality.mjs` | Phase 8 exit gate | pass | 154 proved real, 0 noise, 0 waived, 1 pending — and that one is WP-R18's Reflect-owned FQ-63. |
+| `node src/workflow/validators/check-scope-fence.mjs` | Phase 8 | pass | ok, after the plan's Phase 8 Touches were extended by explicit update for seven paths the original list predated. The fence refused two commits before that, correctly. |
 | `npm run tuning-merge:test` | regression | pass | exit 0 |
 | `npm run setup-refs:test` | regression | pass | exit 0 |
 | `npm run domain-placeholders:test` | regression | pass | exit 0 |
@@ -593,6 +603,7 @@ existence rather than measured, and Phase 7's run is what confirms it.
 
 | Phase | Status | Completed | Notes |
 |---|---|---|---|
+| Phase 8 - Review remediation | complete | 2026-10-04 | All 22 Review findings fixed with evidence; no waiver used. Exit gate met: each of the four criticals has a permanent regression case verified to fail when its fix alone is reverted (F1 conformance, F2 checkpoint-approval, F3 path-containment, F4 upgrade-path X8 with a recorded caveat), the finding-quality ledger has no pending row for this run, and fifteen suites exit 0. Six findings turned out to be one defect family — string inspection standing in for resolved containment — and were fixed with one shared helper plus a new suite. Four corrections of my own are recorded in the commits: scalar `member_tokens` where the schema wants an object, an AGENTS.md-to-Codex mapping that would have failed honest consumers, a conformance check that sliced an empty string and reported a failure about itself, and a provenance note placed above frontmatter twenty minutes after fixing the identical shebang bug. Three findings could not be closed as cleanly as the others and say so rather than claiming otherwise: F4's guard is unreachable by construction once F5 is fixed, F8 exposed a Phase 3 default of mine that would have made R4 vacuous anyway, and F9's proposed catch would never have fired because the parser tolerates the malformed YAML. F22 caught this repo itself — a tier configured with nothing expressing it — and its definition is now rendered. |
 | Phase 7 - Release integration and invariants | complete | 2026-10-04 | R6, RI1, RI3, RI4, RI5, RI6. Ran last, as the plan required. CHANGELOG `[1.1.0]` extended to cover the whole chain with the placeholder date deliberately retained; build regenerated; `mutation:audit` 0/238 undefended; `dependencies` empty; adapter shims current. RI1's carve-out went unused — no required field was added anywhere, so no historical artifact needed amending. |
 | Phase 6 - Council config depth, override, cost history | complete | 2026-10-04 | R3, R4, R5 extended by the user. Merge depth fixed first; per-phase `model_tier` and `effort`; recorded override enforced both ways; cost reported from `member_tokens` history with `no-history` a first-class answer and no formula path. Three new rules, three rejection fixtures, baseline 73 to 76. |
 | Phase 5 - Release evidence and delivery honesty | complete | 2026-10-04 | R11, RI10. OI-69 re-derived against the genuinely published 1.0.1, which also produced the chain's strongest R1 evidence. `site/updating.md`'s false gate-parity claim corrected; OI-115 filed for the delivery fix itself. |
