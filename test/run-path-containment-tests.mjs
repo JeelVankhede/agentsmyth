@@ -215,6 +215,62 @@ await section('f13-write', async () => {
     readFileSync(join(defs, 'workflow', 'expanded-files.txt'), 'utf8').trim());
 });
 
+// ── F3: a bundle that declares NOTHING must refuse, not prune ──────────────────────────
+//
+// The critical finding, and the only one of the four whose evidence was a sandbox trial rather than
+// a permanent test — which the plan's own exit gate requires for each critical, so the trial was not
+// enough.
+//
+// `declared` was built solely from the FILE-marker regex with nothing asserting it was non-empty, so
+// a truncated bundle, or any future change to the marker format, made EVERY ledger line a prune
+// candidate and removed the whole definitions tree in one pass, exit 0. Three things made that worse
+// than a bad delete: the ledger was then written empty, destroying the record this function claims
+// protects a mid-prune crash; the version stamp was still written afterwards, so the emptied tree
+// read as `current` and the staleness guard could never catch it; and `init` then exited 0 while
+// linking a repo to nothing.
+await section('f3-empty-bundle', async () => {
+  const home = scratch('agentsmyth-emptybundle-');
+  const defs = join(home, '.agentsmyth');
+  mkdirSync(join(defs, 'workflow', 'skills'), { recursive: true });
+  // A tree as a previous good expansion left it, with a ledger naming every file.
+  const owned = ['workflow/router.md', 'workflow/lifecycle.md', 'workflow/skills/a.md'];
+  for (const rel of owned) writeFileSync(join(defs, rel), `content of ${rel}\n`);
+  writeFileSync(join(defs, 'workflow', 'expanded-files.txt'), `${owned.join('\n')}\n`);
+
+  // A bundle whose markers no longer match — truncation, or a format change.
+  const bundle = join(home, 'truncated-bundle.md');
+  writeFileSync(bundle, '<!-- compiled from src/workflow/ sources -->\n\nno FILE markers at all\n');
+
+  const lifted = liftFunctions(
+    ['function isSafeRelPath', 'function resolveInTree', 'function expandBundle'],
+    [
+      "import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync, realpathSync, rmSync } from 'node:fs';",
+      "import { join, dirname, isAbsolute, relative } from 'node:path';",
+    ].join('\n'),
+  );
+  const { expandBundle } = await import(lifted);
+
+  let threw = false;
+  let message = '';
+  try {
+    expandBundle(bundle, defs);
+  } catch (err) {
+    threw = true;
+    message = err.message;
+  }
+
+  check('f3-refuses-empty-bundle', '(F3) a bundle declaring no files is refused rather than acted on',
+    threw, threw ? '' : 'expandBundle returned normally');
+  check('f3-says-why', '(F3) and the refusal names the damaged bundle rather than failing obscurely',
+    /declared no files/.test(message), message.slice(0, 120));
+  check('f3-nothing-pruned', '(F3) every file the previous expansion owned is still present',
+    owned.every((rel) => existsSync(join(defs, rel))),
+    `survivors: ${owned.filter((rel) => existsSync(join(defs, rel))).length}/${owned.length}`);
+  check('f3-ledger-intact', '(F3) and the ledger still describes them, rather than being emptied',
+    readFileSync(join(defs, 'workflow', 'expanded-files.txt'), 'utf8').trim().split('\n').length === owned.length,
+    readFileSync(join(defs, 'workflow', 'expanded-files.txt'), 'utf8').trim());
+});
+
 // ── report ─────────────────────────────────────────────────────────────────────────────
 const failed = results.filter((r) => !r.pass).length;
 console.log(`\n${results.length - failed}/${results.length} path-containment assertions hold`);

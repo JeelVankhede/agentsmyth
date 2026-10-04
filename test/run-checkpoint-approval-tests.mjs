@@ -234,6 +234,34 @@ const realDefs = join(repoRoot, 'src', 'workflow');
 
   // The control first: if this stopped gating, the two below would pass for the wrong reason.
   remedy('none', null, true);
+
+  // WP-R25 F2 — the gate must fire at REVIEW, not only at think.
+  //
+  // The precondition was keyed on `targetPhase === 'think'`, so `review` — the one phase gate the
+  // commit hook actually invokes — had no tier check at all, while the Review council's own skill
+  // pointed at the Think gate to hold it. Every existing fixture for this rule passes `--phase
+  // think`, so none of them could see it; this is the case that distinguishes the fix from the bug.
+  //
+  // A STAGED ARTIFACT is required, not incidental setup: the review gate exits early with "no
+  // lifecycle artifacts staged — skipping phase gate (trivial commit)" before the precondition is
+  // reached, so a fixture without one proves nothing. Found by this case failing for that reason on
+  // its first run.
+  {
+    const dir = scratchRepo('lifecycle-tier-review-');
+    mkdirSync(join(dir, 'workflow', 'config'), { recursive: true });
+    mkdirSync(join(dir, 'workflow', 'artifacts', 'tasks'), { recursive: true });
+    writeFileSync(join(dir, 'workflow', 'config', 'pending-setup.yaml'), pendingTierItem);
+    writeFileSync(join(dir, 'workflow', 'config', 'repo-profile.yaml'), profile(''));
+    writeFileSync(join(dir, 'workflow', 'artifacts', 'tasks', 'probe-chain-v1.md'), artifactBody('probe-chain', 'task'));
+    spawnSync('git', ['add', '-A'], { cwd: dir });
+    const r = spawnSync(process.execPath, [validator, '--phase', 'review'], {
+      cwd: dir, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: realDefs },
+    });
+    const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+    scratchCheck('tier-gates-at-review',
+      'the capability gate fires at --phase review, the phase the commit hook invokes',
+      r.status !== 0 && /no council capability tier is resolved/.test(out), out);
+  }
   remedy('write-a-tier', '\ntuning:\n  council:\n    model_tier: standard\n', false);
   remedy('disable-councils', '\ntuning:\n  council:\n    enabled: disabled\n', false);
 }
