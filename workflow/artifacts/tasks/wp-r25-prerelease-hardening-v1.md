@@ -198,6 +198,10 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   definition, `model: sonnet` / `effort: xhigh` from its resolved `standard` / `very-high`; it had
   configured a tier and never expressed it, which is the finding it was requiring of consumers
   — IDs: R5
+- `workflow/artifacts/reflect/wp-r25-prerelease-hardening-v1.md`,
+  `workflow/learnings/sessions/2026-10-05-wp-r25-prerelease-hardening.md` (Reflect phase, new) — the
+  retrospective and its raw session; 23 coverage rows, three `propose-only` learning candidates, and
+  six follow-ups appended as OI-116..OI-121 — IDs: R6, RI5
 - `CHANGELOG.md` (Ship phase) — `[1.1.0]` date set from the placeholder to 2026-10-05, and seven
   `Fixed` entries added for the Review remediation. Review named release copy as its one unread
   surface and warned it might OVERSTATE what shipped; it understated it, describing Phases 1-3 and

@@ -423,7 +423,9 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   and `docs/release-checklist.md` (the manual verification this chain proved is needed — the host
   honouring a tier, the other four tools, Windows, a real husky repo, a genuinely stale global),
   and at Ship `CHANGELOG.md` plus the two open-items ledger files (release copy and item closure,
-  which `source-of-truth.yaml` assigns to the ship phase)
+  which `source-of-truth.yaml` assigns to the ship phase), and at Reflect
+  `workflow/artifacts/reflect/`, `workflow/learnings/sessions/` and the open-items ledger again
+  (the phase's own two artifacts plus six follow-ups)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);

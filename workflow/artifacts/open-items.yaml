@@ -245,4 +245,39 @@ items:
     next_action: "Close the gate DELIVERY gap, or decide deliberately not to. CLAUDE.md golden rule 3 requires all five adapters to carry the same mandatory-gate content, and they do - but delivery is not parity, and WP-R25 documented the difference rather than fixing it (RI10). Concretely: both Copilot writes in bin/agentsmyth.mjs are wrapped in a darwin platform check, because the target path is a macOS Application Support location, so on Linux and Windows Copilot receives neither a global gate nor an invocation command; and Cursor receives no global gate file on any platform, because it has no global config file to write - its gate is text printed for the user to paste into Settings, which means the gate is live only if a human completed a manual step. So at most four of five gates install automatically on macOS and three of five elsewhere. site/updating.md previously claimed prepare refreshes the gate in every supported tool's config and was corrected on 2026-10-04 to say what actually happens; this item is the fix rather than the disclosure. Options: find a non-macOS Copilot config path and write it; detect whether Cursor's paste was completed and report honestly when it was not; or declare the two exceptions permanent and state them wherever five-tool support is claimed. Note that a paste nobody completed is indistinguishable today from one that was, which is the part that makes the current state a silent gap rather than a documented limitation."
     status: open
     first_seen_run: wp-r25-prerelease-hardening-v1
-
+  - id: OI-116
+    source: follow-up
+    owner: workflow owner
+    next_action: "Implement `agentsmyth doctor`. The verb and its help entry exist and print "not yet implemented". It is the natural home for diagnosing a global definitions install — absent, unstamped, stale, or half-expanded — which currently has to be done by hand against installed-version.txt. WP-R25 gave it a second customer: when `check-config` fails because the global schemas predate the keys this CLI writes, the errors read as config faults the user cannot fix by editing config, and the CLI now prints a hint rather than a diagnosis. Worth its own brief."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-117
+    source: follow-up
+    owner: workflow owner
+    next_action: "Guard `mutation:audit` against concurrent work. It mutates src/workflow/validators/*.mjs in place and restores them afterward, so any edit or commit alongside it can clobber a fix, and the result is invalid either way because the thing being measured is whether tests notice changes to those files. WP-R25 hit this twice in one phase and discarded two ~20-minute runs. A refusal on a dirty working tree, or a lock file, would cost less than one discarded run."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-118
+    source: follow-up
+    owner: workflow owner
+    next_action: "Decide whether clause-level Fix-line verification belongs in the Review or Test contract. WP-R25 reported 22 of 22 findings closed while two (F8, F13) had two-obligation Fix lines with one obligation landed each; a finding-level check passed both. Decomposing every Fix line into clauses afterward found four more obligations never tested. The chain's answer was test/run-finding-closure-probes.mjs, which lives in one repo's test directory rather than in the lifecycle contract — so the next chain in any repo re-derives it or does not. Worth its own brief."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-119
+    source: follow-up
+    owner: workflow owner
+    next_action: "Investigate why 154 finding-quality rows have settled `proved-real` with ZERO `noise`, across the entire history of both ledger files. Either the councils are extraordinarily accurate, or `noise` is a verdict nobody reaches for — and the second is more likely. If `noise` is effectively unreachable then the ledger measures council VOLUME rather than council QUALITY, which is the opposite of its stated purpose. Check whether any phase skill makes `noise` a realistic outcome, and whether the parent's consolidation step can even produce one."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-120
+    source: follow-up
+    owner: workflow owner
+    next_action: "`workflow/config/release.yaml` declares `gates.ci.provider: none` and `checks: []` while `.github/workflows/ci.yml` runs on every push and exercises seventeen suites. The config understates the real CI, which made WP-R25's ship artifact record its PR/CI readiness as thinner than the truth. Either declare the actual provider and checks, or record why the gate is deliberately not config-driven."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-121
+    source: follow-up
+    owner: workflow owner
+    next_action: "Two lifecycle enum gaps carried from WP-R18 and still open. `council.cap_source` has no value for a cap the USER raised mid-session — only `configured` and `council-default` exist. `finding-quality.closed_in_phase` has no member for work that returns to Build: WP-R25's Phase 8 was exactly that shape (a Build-phase remediation pass after Review) and had to record `review`, which the schema's own description permits but describes as the exception."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1

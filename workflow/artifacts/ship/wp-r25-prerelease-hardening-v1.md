@@ -253,18 +253,23 @@ required by config, so nothing is blocked on it.
 ## Checkpoint Approval
 
 - Checkpoint: ship-review
-- Status: pending
-- Approved: —
+- Status: approved
+- User's own words (verbatim, this turn): "Continue to reflect"
+- Approved: 2026-10-05, after the ship result was presented — recommendation `ship`, 23 of 23
+  requirements shipped with no waiver, OI-112/113/114 closed, the CHANGELOG dated 2026-10-05 and
+  extended to cover the remediation, and four residual risks stated and explicitly unwaived.
+  Directing the chain past Ship is acceptance of that state.
 
-The user's "continue" directed the chain into Ship; it is not acceptance of a ship decision that did
-not exist yet. This artifact declares `user_checkpoint: ship-review` with no approval block, so
-`check-lifecycle --phase reflect` hard-blocks until one is recorded. That is the mechanism working as
-designed rather than a formality.
+**What this approval does and does not cover.** It accepts the ship decision and releases Reflect.
+It does NOT authorize pushing the branch, opening a pull request, or dispatching `release.yml` —
+those were named as explicit user actions when the decision was presented, and nothing in "continue
+to reflect" speaks to them. The branch remains local with 27 unpushed commits and no CI run against
+this work.
 
-What approval would cover: the `ship` recommendation, the four unwaived residual risks above, closing
-OI-112/113/114, the CHANGELOG date of 2026-10-05, and releasing Reflect to start. What it would not
-cover: pushing the branch, opening a PR, or dispatching the release — each of those stays an explicit
-user action.
+It also does not convert the four residual risks into accepted risk. They are unwaived by design:
+whether a host honours the rendered council-member definition, the four non-Claude hosts, Windows,
+and the absent CI run all remain open questions recorded in `docs/release-checklist.md`. Approving
+the ship decision is not the same as having answered them, and no waiver claims otherwise.
 
 ## Exit Gate
 
