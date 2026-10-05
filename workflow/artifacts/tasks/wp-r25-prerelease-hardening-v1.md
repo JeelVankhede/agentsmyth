@@ -198,6 +198,14 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   definition, `model: sonnet` / `effort: xhigh` from its resolved `standard` / `very-high`; it had
   configured a tier and never expressed it, which is the finding it was requiring of consumers
   — IDs: R5
+- `CHANGELOG.md` (Ship phase) — `[1.1.0]` date set from the placeholder to 2026-10-05, and seven
+  `Fixed` entries added for the Review remediation. Review named release copy as its one unread
+  surface and warned it might OVERSTATE what shipped; it understated it, describing Phases 1-3 and
+  omitting the 22 findings fixed before release — IDs: R6
+- `workflow/artifacts/open-items.yaml`, `workflow/artifacts/open-items-archive.yaml` (Ship phase) —
+  OI-112, OI-113 and OI-114 closed with resolutions and rotated to the archive; they are this
+  chain's reason for existing and are fixed with independent evidence, so they are resolved scope
+  notes rather than waivers. OI-115 stays open, predating this chain — IDs: R1, R2, R3, R4, R5
 - `docs/release-checklist.md` (Test phase) — a "Manual verification the automated suites cannot do"
   section: the host honouring a resolved tier, the four non-Claude hosts, Windows, a real
   generator-managed hooks repo, and a genuinely stale global install. Records that this file already

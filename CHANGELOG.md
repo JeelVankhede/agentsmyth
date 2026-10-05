@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-09-08
+## [1.1.0] - 2026-10-05
 
 ### Added
 - **Version-aware delta upgrades** (WP-R18) — a new `agentsmyth upgrade` command brings an
@@ -174,6 +174,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A missing definitions file explains itself** (WP-R25) — an absent definitions file meant the
   install a repo is linked to is gone or incomplete, which no edit inside the repo can fix, and it
   surfaced as a stack trace naming an internal frame. It now names the file and the remedy.
+
+- **Path containment in the install and upgrade paths** (WP-R25) — found by this release's own
+  Review council and fixed before it shipped. Four defects were one mistake with four faces: a
+  string was asked a question only the filesystem can answer. The traversal predicate split on `/`
+  alone, so a `\`-separated path contained no `..` segment by that test and was accepted — and the
+  payload is a committed file, which puts it inside an ordinary pull request. The bundle prune
+  validated the ledger string and then the final component, resolving nothing in between, so a
+  symlinked directory turned a stale-file sweep into a delete outside the tree while the log line
+  still printed a path that looked internal. Nothing constrained a ledger entry to `workflow/`, so
+  the prune reached the separately-copied validators and a user's own files — both of which its own
+  comment asserted were out of reach. And the write side had no validation at all while the delete
+  side did, so a declared path could escape the tree, enter the ledger, and then be permanently
+  un-prunable because the prune rejected exactly what the write had accepted. All four now resolve
+  the real path and assert containment per component.
+- **A damaged bundle no longer deletes the definitions tree** (WP-R25) — a bundle matching zero file
+  markers made every ledger line a prune candidate, removed the whole tree in one pass, exited 0,
+  and then wrote the version stamp so the emptied tree read as current. A bundle that declares
+  nothing is a broken bundle, not an instruction to delete everything; it now refuses, and the
+  ledger is written before the deletions rather than after.
+- **Your preserved edits survive a second upgrade** (WP-R25) — backups are versioned per release,
+  and after any upgrade the manifest version equals the package version, so a second upgrade wrote
+  to the exact path an open reconcile item still named. The one backup the supersede loop could
+  never protect was the one most likely to be protected. A second edit replaced the first edit's
+  only surviving copy while the run printed "Your edits were preserved before anything was touched".
+  The destination is now chosen before superseding and relocates on collision, so both survive.
+  Separately, the sweep now consults a record of the directories agentsmyth created rather than
+  testing whether a name looks like a version — a consumer's own `workflow/backups/1.0.0/` was
+  indistinguishable from one agentsmyth wrote.
+- **A private hook stays private** (WP-R25) — installing the gate passed an unconditional `0755`,
+  which widened a deliberately owner-only hook to group and world execute, and hoisting the gate
+  moved the user's `#!` line off line 1 so the file no longer declared its interpreter. Both are
+  preserved now.
+- **The capability gate cannot be cleared without answering it** (WP-R25) — the gate that blocks a
+  council until a tier is chosen read the setup item's own `status` field, so marking the item
+  resolved cleared the block permanently with no tier ever written; it was keyed to the Think phase
+  only, so Review — the one phase gate the commit hook invokes — had no tier check at all; and it
+  passed outright when the setup file was unreadable or absent. It now derives its phase set from
+  the resolved council config, keys on the resolved VALUE, rejects a tier no adapter can map, and
+  fails closed on an unreadable file. The global default that would have made all of this vacuous
+  was removed: capability has no safe default, because the three tiers differ in what the user pays.
+- **A council record records the dispatch it describes** (WP-R25) — `depth`, `model_tier`, `effort`
+  and per-member token usage were all optional, so a record could omit every one of them and
+  validate, which reproduced for five new keys the exact defect the depth definition cites as its
+  own reason for existing. They are required on new records and compared against the resolved
+  configuration, with departures expressible only through a declared override and a reason. The
+  `shallow` depth was also unusable — it is defined as running no challenge stage, and the web
+  sampling rule rejected it the moment any member cited a source, demanding a challenger it had
+  just been told not to dispatch.
+- **The documented way out of a blocking gate exists** (WP-R25) — the setup step that resolves the
+  capability tier told the reader to open a file in the `init` staging directory, which only `init`
+  creates and setup then deletes, while the blocking item is appended to repos that already exist.
+  The population holding the gate had no copy of the file the remedy names. The templates now ship
+  in the bundle, so `prepare` installs them where every path produces them and nothing deletes them.
 
 ### Changed
 - **`prepare` removes files a previous version shipped and this one does not** (WP-R25) — expansion

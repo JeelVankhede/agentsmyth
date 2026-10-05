@@ -421,7 +421,9 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `test/run-finding-closure-probes.mjs` (added after "all findings resolved" was asserted and found
   wrong in two places — it probes each finding's own symptom rather than the existence of a test),
   and `docs/release-checklist.md` (the manual verification this chain proved is needed — the host
-  honouring a tier, the other four tools, Windows, a real husky repo, a genuinely stale global)
+  honouring a tier, the other four tools, Windows, a real husky repo, a genuinely stale global),
+  and at Ship `CHANGELOG.md` plus the two open-items ledger files (release copy and item closure,
+  which `source-of-truth.yaml` assigns to the ship phase)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);
