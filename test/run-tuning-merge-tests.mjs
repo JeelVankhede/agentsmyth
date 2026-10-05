@@ -97,6 +97,24 @@ check('m13', 'overriding neither phase inherits both',
   mergeTunedMap(globalCouncilPerPhase, {}),
   globalCouncilPerPhase);
 
+// m15/m16 — per-phase entries now carry MORE than fan-out, so "override one key" and "replace the
+// entry" stop being the same operation. m12 above passes today only because `default_fan_out` is
+// currently the single per-phase key in the shipped config; it would keep passing while silently
+// describing the wrong behaviour the moment a second key exists. These two assert the property
+// directly, against an entry that has siblings.
+const multiKeyPhases = {
+  think: { default_fan_out: 3, model_tier: 'cheap', effort: 'standard' },
+  review: { default_fan_out: 2, model_tier: 'deep', effort: 'high' },
+};
+
+check('m15', 'overriding one key of one phase preserves that phase\'s sibling keys',
+  mergeTunedMap(multiKeyPhases, { review: { model_tier: 'standard' } }).review,
+  { default_fan_out: 2, model_tier: 'standard', effort: 'high' });
+
+check('m16', 'and leaves the other phase entirely alone',
+  mergeTunedMap(multiKeyPhases, { review: { model_tier: 'standard' } }).think,
+  { default_fan_out: 3, model_tier: 'cheap', effort: 'standard' });
+
 // m14 previously asserted that a `plan` phase survives the merge — true of the helper, and
 // unreachable through the config contract, since both schemas close per_phase to think|review.
 // A test that locks in behaviour the schema forbids teaches the next reader the wrong contract.
@@ -118,6 +136,7 @@ check('m8', 'complexity_score stays finite under a partial nested edit (F1 conse
 // These spawn the real validator against fixtures that DO carry tuning, so the assertion is that
 // repo-local tuning actually reaches predicate evaluation and changes the outcome.
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 
@@ -126,6 +145,20 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 // resolve to src/workflow while the data root stays workflow/. Same shape here so the test
 // exercises the configuration CI actually runs.
 const env = { ...process.env, AGENTSMYTH_HOME: 'src/workflow' };
+
+// m17 — a structural guard on the RESOLVER, not on the helper. check-council-record resolved council
+// config with a flat spread, which replaces map-valued entries wholesale; the helper asserted above
+// cannot protect a caller that does not use it. Asserts the call rather than the outcome, because the
+// resolver is module-private and a regression there is silent by construction.
+//
+// Placed here rather than beside m15/m16 because it needs `repoRoot`, which is declared below them.
+// A `const` referenced above its declaration is a temporal-dead-zone error, which is the third
+// instance of that hazard this chain has walked into — it is worth stating that the cause is always
+// the same: reaching for a module-level binding from a line that runs earlier than it.
+const councilRecordSrc = readFileSync(join(repoRoot, 'src/workflow/validators/check-council-record.mjs'), 'utf8');
+check('m17', 'the council config resolver merges per_phase per entry rather than by flat spread',
+  /merged\.per_phase = mergeTunedMap\(/.test(councilRecordSrc)
+  && !/return \{ \.\.\.defaults, \.\.\.global, \.\.\.repo \};/.test(councilRecordSrc), true);
 
 function runValidator(dir) {
   const args = [join(repoRoot, 'src', 'workflow', 'validators', 'check-trigger-predicates.mjs')];

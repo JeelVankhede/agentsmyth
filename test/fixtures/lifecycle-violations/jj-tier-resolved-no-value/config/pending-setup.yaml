@@ -1,0 +1,14 @@
+version: 1
+kind: pending-setup
+
+# Fixture: the council capability tier is still unanswered, and this repo has NOT disabled
+# councils — so a Think gate must refuse before any member is dispatched. The one blocking
+# pending-setup item in the package; every other one is non-blocking by contract.
+items:
+  - id: PS-1
+    config: repo-profile.yaml
+    field: "tuning.council.model_tier"
+    question: "What capability tier should council members run on?"
+    hint: "Ask the user directly; do not infer this from the repo."
+    status: resolved
+    resolved_by: user

@@ -240,7 +240,102 @@ if (command === 'check') {
   } catch (e) {
     lifecycleFailed = true;
   }
-  process.exit(setupCompleteFailed || lifecycleFailed ? 1 : 0);
+
+  // The council-record contract, run where consumers actually are.
+  //
+  // check-council-record.mjs holds roughly thirty rules about what a council run must leave behind,
+  // and until now not one of them executed in a consumer repo: `agentsmyth check` ran
+  // check-setup-complete plus check-lifecycle or check-commit-coverage, and this validator appeared
+  // only in the repo's own template-validation script. So a consumer could record a council run in
+  // any shape at all and nothing would say so — which makes a capability tier "recorded on the
+  // council record" worth nothing to them, since no consumer-reachable check reads it.
+  //
+  // Skipped on the --staged proxy path. That path is the fast pre-commit gate and is deliberately
+  // narrow; a full artifacts sweep there would pay for every commit. The full `check` runs it.
+  //
+  // A repo with no council artifacts must stay silent and exit 0 — councils are Complex-only and
+  // most repos will never record one. The validator already behaves that way; the test asserts it,
+  // because a new rule on the commit gate that fires where it has nothing to say is worse than the
+  // gap it closes.
+  // Both legs now, scoped differently — the `--staged` leg was the gap.
+  //
+  // This ran only when `--staged` was absent, which excluded the one check that runs on EVERY
+  // commit. The per-artifact leg of the hook does invoke it, but skips any artifact whose
+  // orchestration status is not `ready-for-next-phase`, and a council terminating
+  // `user-decision-required` is written `blocked-for-user` — the shape all three of this chain's own
+  // fixtures carry. So the commonest council record there is went to a commit with no council-record
+  // validation at all, while the wiring looked done.
+  //
+  // On the staged leg the run is scoped to staged artifact paths via `--files`, so the cost is
+  // proportional to the commit rather than to the repo's whole artifact history. A commit touching
+  // no artifacts gets an empty list and the validator exits 0 without reading anything.
+  // check-config on the consumer path.
+  //
+  // It is the only validator that enum-checks the values a repo writes into its own config, and
+  // nothing a consumer runs invoked it — so `tuning.council.model_tier: supreme` passed
+  // `agentsmyth check` and was handed to five adapter mappings with no row for it. The capability
+  // gate now rejects an unmappable tier at the point of use too; this catches the whole config
+  // surface rather than the one key, at the place the value is written.
+  //
+  // Scoped out of `--staged` with the same reasoning as check-setup-complete: that leg is the fast
+  // pre-commit proxy, and a config file is not something a commit usually touches.
+  let configFailed = false;
+  if (stagedIdx === -1) {
+    const { resolved: resolvedConfig } = resolveValidator(checkRoot, profilePath, 'check-config.mjs');
+    if (resolvedConfig) {
+      try {
+        execFileSync(process.execPath, [resolvedConfig], { stdio: 'inherit', cwd: checkRoot });
+      } catch {
+        configFailed = true;
+        // NAME THE LIKELY CAUSE when the definitions are stale.
+        //
+        // Wiring this validator in created a new misdiagnosis trap, found immediately on my own
+        // machine: a repo-profile.yaml carrying `tuning.council.model_tier` validates against the
+        // CURRENT schema and is rejected by an older one as "not allowed". A consumer whose global
+        // tree predates the key therefore gets a hard failure that reads as "your config is wrong"
+        // when the config is right and the definitions are old — and no amount of editing config
+        // fixes it. That is exactly the mixed-install failure OI-112 describes, now reachable from
+        // a different direction.
+        //
+        // The skew warning printed further up says it "does not block anything", which this change
+        // makes untrue, so the correction belongs here where the blocking actually happens.
+        try {
+          const install = globalInstallState(pkgRoot);
+          if (install.state === 'stale' || install.state === 'unstamped') {
+            console.error('');
+            console.error('  Note: the global lifecycle definitions are '
+              + (install.state === 'stale'
+                ? `stamped v${install.stamp} while this CLI is v${install.cliVersion}.`
+                : 'not version-stamped, so they predate the stamp entirely.'));
+            console.error('  Config is validated against THOSE schemas, so a key this CLI supports can be');
+            console.error('  reported as "not allowed" by an older schema even though the config is correct.');
+            console.error('  Run "agentsmyth upgrade" before treating the errors above as config faults.');
+          }
+        } catch { /* advisory only — never let the hint itself fail the run */ }
+      }
+    }
+  }
+
+  let councilFailed = false;
+  {
+    const { resolved: resolvedCouncil } = resolveValidator(checkRoot, profilePath, 'check-council-record.mjs');
+    let councilArgs = null;
+    if (stagedIdx === -1) {
+      councilArgs = [];
+    } else {
+      const stagedArtifacts = stagedArtifactPaths(checkRoot);
+      if (stagedArtifacts.length > 0) councilArgs = ['--files', ...stagedArtifacts];
+    }
+    if (resolvedCouncil && councilArgs) {
+      try {
+        execFileSync(process.execPath, [resolvedCouncil, ...councilArgs], { stdio: 'inherit', cwd: checkRoot });
+      } catch {
+        councilFailed = true;
+      }
+    }
+  }
+
+  process.exit(setupCompleteFailed || lifecycleFailed || councilFailed || configFailed ? 1 : 0);
 }
 
 // ─── prepare ───────────────────────────────────────────────────────────────
@@ -249,7 +344,18 @@ if (command === 'check') {
 // repo-local) is what distinguishes `prepare` from `init`. See runPrepare() below.
 
 if (command === 'prepare') {
-  runPrepare(pkgRoot);
+  // runPrepare throws rather than exiting, so that ensureGlobalInstall can catch it and add its own
+  // context. The bare verb has no such caller, so it must print the message itself — otherwise a
+  // legitimate refusal (a damaged bundle, say) reaches the user as a node stack trace naming an
+  // internal frame, which is the same unreadable-failure defect this package fixed elsewhere.
+  try {
+    runPrepare(pkgRoot);
+  } catch (err) {
+    console.error('');
+    console.error(`agentsmyth: prepare failed — ${err.message}`);
+    console.error('');
+    process.exit(1);
+  }
   process.exit(0);
 }
 
@@ -314,6 +420,23 @@ function councilTuningItemSpecs() {
       field: 'tuning.council.per_phase',
       question: 'How many council members should Think and Review each dispatch on Complex work? Defaults are 3 for Think and 2 for Review; lower numbers cost less per chain. Leave unset to inherit both.',
       hint: 'Only ask if the repo runs Complex work often enough for the cost to matter. Merged per entry — naming review alone leaves think at the global value. Set 1 to make a phase effectively single-agent without disabling councils outright.',
+    },
+    {
+      // The one item in this package that BLOCKS. Every other pending-setup item is non-blocking by
+      // contract, and deliberately so: until it resolves, the value falls back to the global install
+      // and behaviour is unchanged. This one is different because there is no safe fallback to fall
+      // back TO. A fan-out has a defensible default — 3 and 2 — but a capability tier does not: any
+      // default the package picks is the package choosing a spend level on the user's behalf, and the
+      // whole reason this item exists is that councils were billing without anyone having chosen.
+      //
+      // So `check-lifecycle --phase think` refuses while this item is open and councils can fire.
+      // That is checked at the Think gate, which the router runs BEFORE stage 1, so it lands ahead of
+      // any research and ahead of any fan-out rather than after the money is spent. Three ways out,
+      // all of them cheap: answer it, set tuning.council.enabled to disabled, or waive it in the
+      // artifact.
+      field: 'tuning.council.model_tier',
+      question: 'What capability tier should council members run on — cheap, standard, or deep? This is the one setup answer that blocks: a council will not dispatch until it is set, because there is no default the package can pick for you without choosing how much you spend. cheap favours throughput, standard matches a normal session, deep buys capability per member.',
+      hint: 'Ask the user directly; do not infer this from the repo. Each adapter maps the tier to a real model for its own tool, so the answer stays portable across tools. If this repo should never run councils, setting tuning.council.enabled to disabled is the other way to clear the block.',
     },
   ];
 }
@@ -467,6 +590,11 @@ function appendIntentPendingItems(configDir) {
   return appendPendingItems(configDir, intentItemSpecs(), 'field: "intent.');
 }
 
+// The idempotency marker is the FAMILY's first field, and the family now has two members. Keying it
+// on the first field alone is what the existing marker already did; the appender writes the whole
+// spec list or none of it, so one marker still describes the whole family and a second run adds
+// nothing. Keying on the newer field instead would re-append the older one into a repo that already
+// has it.
 function appendCouncilTuningPendingItems(configDir) {
   return appendPendingItems(configDir, councilTuningItemSpecs(), 'field: "tuning.council.per_phase');
 }
@@ -558,18 +686,7 @@ function headlessBootstrap(repoDir, pkgRootDir) {
   // Link to a global definitions install, same treatment as bare `init`: auto-run
   // `prepare` when missing, surface any failure clearly, and exit before touching any repo
   // file — no partial stub-config state on a prepare failure.
-  const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
-  if (!existsSync(globalWorkflowDir)) {
-    try {
-      runPrepare(pkgRootDir);
-    } catch (err) {
-      console.error('');
-      console.error('agentsmyth: could not install the global lifecycle definitions needed to bootstrap this repo.');
-      console.error(`  ${err.message}`);
-      console.error('  Fix the issue above and re-run "agentsmyth check" (or run "agentsmyth prepare" directly to see the full error).');
-      process.exit(1);
-    }
-  }
+  ensureGlobalInstall(pkgRootDir);
 
   const configDir = join(repoDir, 'workflow', 'config');
   mkdirSync(configDir, { recursive: true });
@@ -777,14 +894,134 @@ function copyRecursive(src, dest) {
 // Expands a workflow-bundle.md (FILE-marker format) into individual files under destDir.
 function expandBundle(bundlePath, destDir) {
   const content = readFileSync(bundlePath, 'utf8');
+  // Create the root before resolving anything into it, so containment is measured against a real
+  // directory on a first install rather than a path that does not exist yet.
+  mkdirSync(destDir, { recursive: true });
   const fileRe = /<!-- FILE: ([^>]+) -->\n([\s\S]*?)<!-- END FILE -->/g;
+  const written = [];
   let match;
+  const escaped = [];
   while ((match = fileRe.exec(content)) !== null) {
     const [, relPath, fileContent] = match;
-    const destPath = join(destDir, relPath);
-    mkdirSync(dirname(destPath), { recursive: true });
-    writeFileSync(destPath, fileContent);
+    // VALIDATE THE DECLARED PATH BEFORE WRITING IT.
+    //
+    // The capture group is `([^>]+)`, so the marker format itself places no constraint on the path,
+    // and this write was unguarded: `<!-- FILE: ../../x -->` escaped the tree, got recorded in the
+    // ledger, and was then permanently un-prunable because the prune guard rejects exactly what the
+    // write had accepted. The asymmetry is the bug — one half of a read/write pair was guarded.
+    //
+    // Refusing the entry rather than the whole bundle: a single bad marker in an otherwise valid
+    // bundle should not deny the install, and the collected list is reported below so a damaged
+    // bundle is visible rather than silently partial.
+    const target = resolveInTree(destDir, relPath, 'workflow');
+    if (target === null) {
+      escaped.push(relPath);
+      continue;
+    }
+    mkdirSync(target.dir, { recursive: true });
+    writeFileSync(target.abs, fileContent);
+    written.push(relPath);
   }
+  if (escaped.length > 0) {
+    console.warn(`  ! ${escaped.length} bundle entr${escaped.length === 1 ? 'y' : 'ies'} named a path outside the definitions tree and ${escaped.length === 1 ? 'was' : 'were'} skipped:`);
+    for (const rel of escaped.slice(0, 5)) console.warn(`      ${rel}`);
+    if (escaped.length > 5) console.warn(`      ... and ${escaped.length - 5} more`);
+  }
+
+  // A bundle that declared NOTHING is a broken bundle. Refuse before the prune can read it as an
+  // instruction to delete everything.
+  //
+  // `declared` was built solely from the regex with nothing asserting it was non-empty, so a
+  // truncated or partially-extracted bundle — or a future change to the FILE marker format — made
+  // every ledger line a prune candidate and removed the whole definitions tree in one pass, exit 0.
+  // Three things made that worse than a bad delete: the ledger was then written empty, destroying
+  // the record this function claims protects a mid-prune crash; the version stamp was still written
+  // afterwards, so the emptied tree read as `current` and the staleness guard could never catch it;
+  // and `init` then exited 0 while linking a repo to nothing.
+  //
+  // Throwing rather than returning: every caller of this already treats a failure here as fatal and
+  // surfaces it, and there is no partial expansion worth keeping.
+  if (written.length === 0) {
+    throw new Error(
+      `the workflow bundle at ${bundlePath} declared no files.\n`
+      + '  That is a damaged or truncated bundle, not an empty release, so nothing was changed —\n'
+      + '  pruning against it would have deleted the entire definitions tree.\n'
+      + '  Reinstall the package and run "agentsmyth prepare" again.',
+    );
+  }
+
+  // PRUNE what a previous expansion wrote and this bundle no longer declares.
+  //
+  // Expansion used to be purely additive, so a skill or validator retired in one release lived on
+  // forever in every tree that had ever installed the older one. That is a second staleness channel,
+  // and a version stamp cannot see it: the stamp says which release ran last, not which files that
+  // release stopped shipping. A retired validator still resolvable by name is the concrete harm.
+  //
+  // THE BLAST RADIUS IS THE LEDGER *AND* THE `workflow/` SUBTREE — both, because the ledger alone
+  // was not the bound this comment claimed it was.
+  //
+  // The claim used to be that deleting only recorded paths is "deliberately narrower than anything
+  // here the bundle does not declare, which would reach `validators/` (copied separately, never
+  // expanded) ... and anything a user put here themselves." Nothing in the code constrained a ledger
+  // entry to `workflow/`, so it reached both: `validators/lib.mjs` was observed deleted and survived
+  // only because `copyRecursive` happens to run a few lines later, which is ordering rather than
+  // containment, and a user file elsewhere under `~/.agentsmyth/` was deleted permanently.
+  //
+  // A safety argument a comment asserts and the code does not implement is worse than no comment,
+  // because it stops the next reader from checking. The scope is now enforced instead of described:
+  // resolveInTree() is passed the `workflow` prefix, every one of the bundle's 252 declared paths
+  // lies under it, and anything else a ledger names — however it got there — is not a candidate.
+  //
+  // A first run after this change finds no ledger, prunes nothing, and simply records one.
+  // The ledger filename is a literal INSIDE this function, not a module-level const. As a const it
+  // was a temporal-dead-zone hazard: this function is reached from a top-level command dispatch that
+  // runs before the binding initialises, so `prepare` threw "Cannot access 'EXPANDED_LEDGER' before
+  // initialization". That is the second time in this chain and at least the third in this file's
+  // history, and the standing remedy is the same each time — make position irrelevant rather than
+  // re-order declarations and trust the next edit to preserve the order.
+  //
+  // It is also not part of the bundle, so it never appears in its own file list and can never be a
+  // pruning candidate.
+  const ledgerPath = join(destDir, 'workflow', 'expanded-files.txt');
+  const declared = new Set(written);
+  let previous = [];
+  try {
+    previous = readFileSync(ledgerPath, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  } catch { /* no ledger yet — nothing is known to be ours, so nothing is pruned */ }
+
+  // Write the ledger BEFORE deleting, not after.
+  //
+  // Written afterwards, a crash mid-prune left the ledger describing the pre-prune state while the
+  // tree had already lost files — the opposite of what the comment claimed. Written first, a crash
+  // leaves a ledger that describes what this expansion owns, which is exactly what the next run
+  // needs to finish the job. The cost is that a crash can leave a file the new ledger no longer
+  // lists; that file is then unowned and simply stays, which is the safe direction.
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+  writeFileSync(ledgerPath, `${written.join('\n')}\n`);
+
+  const removed = [];
+  for (const rel of previous) {
+    if (declared.has(rel)) continue;
+    // A ledger is machine-written, but it is still a file on disk that something could corrupt, and
+    // acting on a path that escapes the tree would turn a stale-file sweep into an arbitrary delete.
+    //
+    // resolveInTree() rather than isSafeRelPath(): the string test could not see a symlink, so a
+    // symlinked intermediate directory made this delete files outside the tree while the log line
+    // below still printed a path that looked internal. It also enforces the `workflow/` scope this
+    // function's own safety argument is stated in terms of.
+    const target = resolveInTree(destDir, rel, 'workflow');
+    if (target === null) continue;
+    try {
+      // lstat, not stat: a symlink is not a file by this test, so a link is left alone rather than
+      // followed to a target that containment above cannot vouch for.
+      if (existsSync(target.abs) && lstatSync(target.abs).isFile()) {
+        rmSync(target.abs);
+        removed.push(rel);
+      }
+    } catch { /* leave anything that resists deletion; a stale file is better than a broken install */ }
+  }
+
+  return { written: written.length, removed };
 }
 
 // Installs or updates a delimited gate section in a target file.
@@ -890,19 +1127,94 @@ function provenanceFormatVersion() { return 1; }
 // string is not a manifest agentsmyth wrote, and normalising one into something path-safe would be
 // pretending otherwise. The same predicate bounds the backup-supersede sweep, so "a directory
 // agentsmyth created" is a closed, checkable set rather than "whatever is under the backup root".
-const VERSION_STRING_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/;
+// The pattern lives INSIDE the function rather than in a module-level `const`, and that is load
+// bearing. As a `const` it was a temporal-dead-zone hazard for any caller reached before this line
+// executes: the function declaration hoists and the binding does not, so an early top-level call
+// threw "Cannot access 'VERSION_STRING_RE' before initialization" — a stack trace naming an
+// internal regex, raised from a call site that looked entirely ordinary. WP-R25 hit exactly that by
+// consulting this predicate from `check`'s bootstrap path, which runs earlier than every previous
+// caller did. This file's history records the same hazard twice before, and the standing remedy is
+// to make position irrelevant rather than to re-order declarations and hope the next edit preserves
+// the order.
 function isVersionString(value) {
-  return typeof value === 'string' && VERSION_STRING_RE.test(value);
+  return typeof value === 'string' && /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(value);
 }
 
 // A repo-relative path a manifest entry may name. Rejects absolute paths, any `..` segment, and
 // Windows drive letters — the traversal check that lived only in check-lifecycle.mjs, which
 // `agentsmyth upgrade` never invokes, so the guarantee sat on the reporting path rather than on the
 // path that performs the writes.
+//
+// SPLIT ON BOTH SEPARATORS. Splitting on `/` alone made the predicate separator-blind, and
+// `path.join` honours `\` on Windows — a declared target of this code — so
+// `..\..\..\Users\me\Desktop\thesis.docx` contained no `..` SEGMENT by this test, was accepted,
+// and resolved outside the tree. The reachable payload is `workflow/provenance.yaml`, a committed
+// file, which puts the whole thing inside an ordinary pull request. A `\` is a legal filename
+// character on POSIX, so treating it as a separator here can only reject a path that no bundle or
+// manifest this project writes has ever contained.
+//
+// This stays a STRING test because its remaining caller validates a path DECLARED in a manifest,
+// where no file need exist yet and the question is whether the declaration is well formed. Anything
+// that then touches the filesystem must use resolveInTree() instead: a string cannot see a symlink.
 function isSafeRelPath(value) {
   if (typeof value !== 'string' || value.length === 0) return false;
-  if (value.startsWith('/') || /^[A-Za-z]:/.test(value)) return false;
-  return !value.split('/').includes('..');
+  if (isAbsolute(value) || /^[A-Za-z]:/.test(value)) return false;
+  const parts = value.split(/[\\/]/);
+  if (parts.includes('..')) return false;
+  return !parts.some((part) => /^[A-Za-z]:/.test(part));
+}
+
+// The real on-disk location a tree-relative path names, or null when it does not live inside the
+// tree once symlinks are resolved.
+//
+// Replaces string inspection at every site that reads or writes a file, because the two guards it
+// supersedes each answered a weaker question than the one being asked. `isSafeRelPath` on the
+// ledger string could not see a symlink, and `lstatSync(abs).isFile()` on the final component
+// resolved nothing above it — so a symlinked DIRECTORY anywhere under the tree turned a stale-file
+// sweep into a delete outside it, while the log line still named a path that looked internal.
+//
+// Resolution walks the parent chain component by component and resolves each through symlinks,
+// asserting containment at every step rather than only at the end. It stops resolving at the first
+// component that does not exist, which is what makes the same function usable on the WRITE side
+// where the parent directories have yet to be created.
+//
+// The leaf is deliberately NOT resolved. Callers get the parent directory and the joined path, so a
+// delete removes the link it found rather than following it to a target that may be a real file
+// somewhere legitimate, and a write creates the entry it names. Leaf-level symlink policy belongs
+// to the caller; containment does not.
+//
+// `scopePrefix` narrows the answer to one top-level subdirectory. The prune's safety argument is
+// stated in terms of the subtree the bundle owns, and nothing enforced it.
+function resolveInTree(rootDir, rel, scopePrefix = null) {
+  if (!isSafeRelPath(rel)) return null;
+  const parts = rel.split(/[\\/]/).filter((part) => part !== '' && part !== '.');
+  if (parts.length === 0) return null;
+  if (scopePrefix !== null && parts[0] !== scopePrefix) return null;
+
+  // A tree that does not exist yet is the FIRST-INSTALL state, not an attack. Resolving the root
+  // through symlinks is what makes a `~/.agentsmyth` that is itself a symlink work; when there is
+  // nothing there to resolve, the lexically-resolved path is the honest answer and the caller is
+  // about to create it. Returning null here instead rejected all 252 entries of a valid bundle on
+  // every fresh install — caught by the upgrade-path suite, not by this function's own tests.
+  let root;
+  try { root = realpathSync(rootDir); } catch { root = resolve(rootDir); }
+
+  const inside = (abs) => {
+    const r = relative(root, abs);
+    return r !== '' && !r.startsWith('..') && !isAbsolute(r);
+  };
+
+  const leaf = parts.pop();
+  let dir = root;
+  for (const part of parts) {
+    const next = join(dir, part);
+    let real = next;
+    try { real = realpathSync(next); } catch { /* not created yet; a write will make it, in-tree */ }
+    if (!inside(real)) return null;
+    dir = real;
+  }
+  const abs = join(dir, leaf);
+  return inside(abs) ? { dir, abs } : null;
 }
 
 // Reads the running package's version. A helper rather than an inline JSON.parse because three
@@ -1127,6 +1439,35 @@ function siblingRepoDirs(repoDir) {
 // `tools/.github-actions/` or a repo whose own name contains ".git" is not mistaken for git
 // metadata. Works for an absolute `core.hooksPath` outside the repo too, which simply is not inside
 // this repo's `.git` and is therefore governable.
+// Whether a path lies within the repository working tree. Distinct from isInsideGitDir(), which
+// asks whether it is within `.git/`: a path can be outside `.git/` and outside the repo too, which
+// is exactly the linked-worktree case R8 fixes.
+// Staged lifecycle-artifact paths, repo-relative.
+//
+// A `function` declaration rather than a const for the reason this file records at
+// provenanceFormatVersion(): `check` is dispatched near the top of the file, so a const here sits in
+// the temporal dead zone and throws. That has happened four times in this chain alone.
+function stagedArtifactPaths(repoDir) {
+  try {
+    return execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], {
+      cwd: repoDir, encoding: 'utf8',
+    })
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => /(?:^|\/)workflow\/artifacts\/.+\.md$/.test(line))
+      .filter((line) => !line.endsWith('/README.md'));
+  } catch {
+    // No git, no index, or a detached state. Returning nothing means the staged leg simply does not
+    // run this validator, which is where it already was — never a hard failure of the commit.
+    return [];
+  }
+}
+
+function isInsideRepo(repoDir, filePath) {
+  const rel = relative(repoDir, filePath);
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+}
+
 function isInsideGitDir(repoDir, filePath) {
   const rel = relative(resolve(repoDir), resolve(filePath));
   if (rel.startsWith('..')) return false;
@@ -1160,7 +1501,15 @@ function governedArtifacts(repoDir, hookPath) {
   // A repo that sets `core.hooksPath` to a tracked directory — this repository itself does, via
   // `npm run hooks:install` pointing at `.githooks/` — puts the hook outside `.git/`, where it is
   // both trackable and safe to govern. Those repos get a manifest entry for it.
-  if (hookPath && !isInsideGitDir(repoDir, hookPath)) candidates.push(hookPath);
+  //
+  // ...and it must also be INSIDE the repository. In a linked worktree `resolveHooksDir()` returns
+  // the common dir, which is correct for enforcement (the hook is live and shared) but lands outside
+  // this working tree — so `relative()` produced `../main/.git/hooks/pre-commit`, the manifest
+  // recorded it, and `classifyManifest()`'s own `isSafeRelPath` guard then rejected the file it had
+  // just written, leaving `agentsmyth upgrade` exiting 1 forever with no user error involved. Found
+  // by WP-R25's Think council (brief v2, R8). The `.githooks` case above is unaffected: a tracked
+  // hooks directory is inside the repo and stays governed.
+  if (hookPath && !isInsideGitDir(repoDir, hookPath) && isInsideRepo(repoDir, hookPath)) candidates.push(hookPath);
   candidates.push(join(repoDir, '.cursor', 'rules', 'agentsmyth.mdc'));
   candidates.push(join(repoDir, '.github', 'copilot-instructions.md'));
 
@@ -1273,7 +1622,6 @@ function recordProvenanceBaseline(repoDir, pkgVersion, hookPath, pkgRootDir) {
 //       diffing against nothing. Resolution wins. Supersession skips.
 function writeBackup(repoDir, rel, fromVersion, openBackupPaths) {
   const root = backupRoot(repoDir);
-  const dest = join(root, fromVersion, rel);
 
   // Read-side containment (the same hole as the write side). readFileSync dereferences, so a
   // governed path that is a symlink to `.env` or anything matching `**/*secret*` would otherwise
@@ -1291,22 +1639,98 @@ function writeBackup(repoDir, rel, fromVersion, openBackupPaths) {
   }
   const content = readFileSync(src, 'utf8');
 
-  // Supersede: drop this file's backup under any OTHER agentsmyth-written version segment, unless
-  // an open reconcile item still points at it.
   const protectedPaths = new Set(openBackupPaths ?? []);
+  const asRel = (abs) => relative(repoDir, abs).split(sep).join('/');
+
+  // CHOOSE THE DESTINATION BEFORE SUPERSEDING, because the destination itself can be protected.
+  //
+  // The supersede loop below skips `fromVersion` as "the directory we are writing to", and the
+  // protection test only ever ran on the directories it did NOT skip. So the one backup it could
+  // never protect was the one at the destination — and `fromVersion === pkgVersion` is the state of
+  // every repo after its first real upgrade, which makes the destination the path an open item
+  // names. A second edit then overwrote the first edit's preserved content, the idempotence guard
+  // declined to raise a new item because one was already open, and the run printed "Your edits were
+  // preserved before anything was touched" over the top of having destroyed them.
+  //
+  // Backups are versioned per RELEASE, which is right for the common case and wrong exactly here:
+  // two upgrade runs at the same package version legitimately need two backups. When the
+  // destination collides with a protected path AND the content differs, this run gets its own
+  // directory instead. The suffix is a build-metadata segment, so the result is still a version
+  // string by the same predicate every other reader of this tree uses.
+  let destDir = join(root, fromVersion);
+  if (protectedPaths.has(asRel(join(destDir, rel)))) {
+    let existing = null;
+    try { existing = readFileSync(join(destDir, rel), 'utf8'); } catch { /* nothing there to lose */ }
+    if (existing !== null && existing !== content) {
+      let run = 2;
+      while (existsSync(join(root, `${fromVersion}+r${run}`, rel))) run += 1;
+      destDir = join(root, `${fromVersion}+r${run}`);
+    }
+  }
+  const dest = join(destDir, rel);
+  const destName = basename(destDir);
+
+  // Supersede: drop this file's backup under any OTHER agentsmyth-created version segment, unless
+  // an open reconcile item still points at it.
+  //
+  // OWNERSHIP, NOT SHAPE. The candidate test used to be `isVersionString(versionDir)`, which asks
+  // what a directory is NAMED, not who made it — so a consumer's own `workflow/backups/1.0.0/`,
+  // created by hand or by some other tool, was indistinguishable from one agentsmyth wrote, and
+  // files at governed relpaths inside it were removed with nothing logged. The index below records
+  // what this code creates, and only those directories are ever swept.
+  const owned = readBackupIndex(root);
   if (existsSync(root)) {
+    const unowned = [];
     for (const versionDir of readdirSync(root)) {
-      if (versionDir === fromVersion) continue;
-      if (!isVersionString(versionDir)) continue; // not a directory agentsmyth wrote
+      if (versionDir === destName) continue;
+      if (!statSync(join(root, versionDir)).isDirectory()) continue;
       const stale = join(root, versionDir, rel);
       if (!existsSync(stale)) continue;
-      if (protectedPaths.has(relative(repoDir, stale).split(sep).join('/'))) continue;
+      if (!owned.has(versionDir)) {
+        // A repo upgraded before the index existed has no record of its own backups. Sweeping on
+        // the old shape test would be the F20 delete; not sweeping leaves a stale backup, which
+        // costs disk and nothing else. Taking the safe direction silently is how the shape test
+        // survived, so say it once per run instead.
+        if (isVersionString(versionDir)) unowned.push(versionDir);
+        continue;
+      }
+      if (protectedPaths.has(asRel(stale))) continue;
       rmSync(stale, { force: true });
+    }
+    if (unowned.length > 0) {
+      console.log(`  (note: ${unowned.length} backup director${unowned.length === 1 ? 'y' : 'ies'} predate the ownership index and were left alone: ${unowned.join(', ')})`);
     }
   }
 
   atomicWriteFileSync(dest, content, undefined, root);
-  return relative(repoDir, dest).split(sep).join('/');
+  recordBackupDir(root, destName);
+  return asRel(dest);
+}
+
+// The directories under `workflow/backups/` that agentsmyth itself created.
+//
+// Exists because the supersede sweep needs to tell its own work from a consumer's. A name cannot
+// carry that: `workflow/backups/1.0.0/` is a perfectly ordinary thing for a person to create, and
+// the sweep deleted files inside one. Kept as a plain newline-delimited list rather than YAML
+// because it is read on a path that must not depend on the parser, and written one directory per
+// line so a merge conflict in a committed tree resolves by taking both sides.
+function backupIndexPath(root) { return join(root, '.agentsmyth-owned'); }
+
+function readBackupIndex(root) {
+  try {
+    return new Set(
+      readFileSync(backupIndexPath(root), 'utf8')
+        .split('\n').map((line) => line.trim()).filter(Boolean),
+    );
+  } catch { return new Set(); }
+}
+
+function recordBackupDir(root, name) {
+  const owned = readBackupIndex(root);
+  if (owned.has(name)) return;
+  owned.add(name);
+  mkdirSync(root, { recursive: true });
+  writeFileSync(backupIndexPath(root), `${[...owned].sort().join('\n')}\n`);
 }
 
 // Orders two dotted version strings. Numeric segment-by-segment, so 1.10.0 sorts after 1.9.0 —
@@ -1431,6 +1855,13 @@ function applyChanges(text, changes) {
 // being added later that nothing recognises. This is the third instance of that coupling in this
 // feature; the other two were fixed pointwise.
 const REWRITE_ACTIONS = new Set(['delta-applied', 're-rendered', 'gate-refreshed', 'marker-refreshed']);
+
+// States meaning "this recorded entry is no longer a governed file on a governed path". Derived as a
+// set rather than compared against literals at each site, for the reason REWRITE_ACTIONS above
+// records: there were two independent `state === 'missing'` comparisons, and adding a second such
+// state would have left one of them silently unaware of it — which is how a drifted hook once
+// landed in the no-op bucket and had its backup deleted as a false no-op.
+const UNGOVERNED_STATES = new Set(['missing', 'superseded']);
 
 function applyUpgradeTo(repoDir, pkgRootDir, rel, state, fromVersion, toVersion) {
   const abs = join(repoDir, rel);
@@ -1692,10 +2123,18 @@ function classifyGoverned(repoDir, hookPath, manifest) {
     results.push({ path: rel, state: actual === entry.sha256 ? 'pristine' : 'drifted', recorded: entry.sha256, actual });
   }
 
-  // Recorded but no longer on disk. Deliberately a distinct state from `drifted`.
+  // Recorded but no longer governed. Two distinct states, and both are distinct from `drifted`.
+  //
+  // `missing` means the file is gone. `superseded` means it is still on disk but has left the
+  // governed set — which is what happens when the gate's own location changes: the old entry's file
+  // is still there, regenerated by the tool that owns it, so reporting "recorded but no longer on
+  // disk" states something the user can see is false. Conflating the two produced exactly that line
+  // on every upgrade after a hook relocation.
   const presentSet = new Set(present);
   for (const entry of manifest.entries) {
-    if (!presentSet.has(entry.path)) results.push({ path: entry.path, state: 'missing' });
+    if (presentSet.has(entry.path)) continue;
+    const stillOnDisk = existsSync(join(repoDir, entry.path));
+    results.push({ path: entry.path, state: stillOnDisk ? 'superseded' : 'missing' });
   }
 
   return results;
@@ -1997,18 +2436,58 @@ function placeDeterministicAdapters(repoDir, pkgRootDir) {
   }
 }
 
+// A hooks directory that a tool GENERATES and rewrites, and the durable file beside it.
+//
+// husky points core.hooksPath at a dispatch directory it owns, and a hook written there does not
+// survive: husky's installer unconditionally rewrites every hook file inside that directory on every
+// run, and the directory self-ignores via a `.gitignore` of `*`, so the gate could never be
+// committed either. Both halves fail. Its durable, tracked, user-owned entry point is the PARENT —
+// husky's dispatcher sources `<parent>/<hook>` and executes it, so a gate placed there is kept AND
+// run.
+//
+// Detected structurally, never by the name `.husky`. The directory is a parameter on husky's side,
+// so a custom one yields `<name>/_` and a literal match would silently miss it. All three invariants
+// are required together, so an unrelated repo that merely keeps hooks in a directory called `_` is
+// not relocated out from under itself. Returns null when this is not that shape.
+function generatedHooksParent(hooksPath) {
+  if (basename(hooksPath) !== '_') return null;
+  if (!existsSync(join(hooksPath, 'h'))) return null;
+  let ignore;
+  try {
+    ignore = readFileSync(join(hooksPath, '.gitignore'), 'utf8').trim();
+  } catch {
+    return null;
+  }
+  return ignore === '*' ? dirname(hooksPath) : null;
+}
+
+// Whether this hooks directory is the durable parent of a generated dispatch directory — i.e. the
+// relocation above either already applied, or would. Used to decide write ORDER, not location.
+function hasGeneratedHooksChild(hooksPath) {
+  return existsSync(join(hooksPath, '_', 'h'));
+}
+
 // Where git will look for hooks in this repo: an explicit core.hooksPath (absolute, or relative to
-// the repo) when one is configured, otherwise .git/hooks. Single caller by design —
-// installPreCommitHook(), which returns the path it actually wrote so placeAgentsMd() can advertise
-// that value rather than re-deriving it. The earlier fix for F2 had both functions call this and
-// agree by construction; returning the written path is strictly stronger, because it also carries
-// the one thing a shared resolver cannot express — whether a hook was written at all (F5).
+// the repo) when one is configured, otherwise .git/hooks — except that a GENERATED dispatch
+// directory resolves to its durable parent instead, for the reasons above.
+//
+// FOUR callers, not one. An earlier comment here claimed "single caller by design", which the code
+// has not matched for some time: installPreCommitHook() calls it, and so do
+// refreshEnforcementSurfaces() and both provenance-baseline paths, each re-deriving
+// `resolveHooksDir(root) + '/pre-commit'` independently. That is precisely why a change to WHERE
+// the gate lives belongs in here and nowhere else: all four agree by construction only while this
+// function is the single source of the answer. A fix applied inside installPreCommitHook() would
+// leave the other three computing a path that function no longer writes, which is the F2/F5 defect
+// class returning by the back door.
 function resolveHooksDir(repoDir) {
   try {
     const configured = execFileSync('git', ['config', 'core.hooksPath'], {
       cwd: repoDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
-    if (configured) return isAbsolute(configured) ? configured : join(repoDir, configured);
+    if (configured) {
+      const resolved = isAbsolute(configured) ? configured : join(repoDir, configured);
+      return generatedHooksParent(resolved) ?? resolved;
+    }
   } catch { /* not a git repo, or core.hooksPath unset — fall through below */ }
 
   // Ask git where the hooks directory IS rather than assuming `.git` is a directory. In a linked
@@ -2239,9 +2718,33 @@ function installPreCommitHook(repoDir, pkgRootDir) {
   const target = join(hooksPath, 'pre-commit');
   const template = readFileSync(join(pkgRootDir, 'src', 'assets', 'hooks', 'pre-commit'), 'utf8');
 
+  // PRESERVE the mode of a hook that already exists; only a file we create gets 0o755.
+  //
+  // Passing `{ mode: 0o755 }` unconditionally bypassed atomicWriteFileSync's mode-preserving branch
+  // and WIDENED a deliberate 0700 hook to group and world execute. No user bytes were lost, which is
+  // why it read as harmless — but a permission a user narrowed on purpose is a decision, and
+  // silently reversing it while reporting success is the same shape as the other findings in this
+  // review. A file we are creating has no prior decision to preserve, so it still gets 0o755: a
+  // hook git cannot execute is not a hook.
+  const hookWriteOpts = () => {
+    if (!existsSync(target)) return { mode: 0o755 };
+    try { return { mode: statSync(target).mode & 0o7777 }; } catch { return { mode: 0o755 }; }
+  };
+
+  // Keep a leading `#!` on line 1 when hoisting the gate above the user's script.
+  //
+  // The gate-first merge moved the user's shebang to line 102, so the file no longer declared its
+  // own interpreter. Inert under husky's `sh -e` dispatch, which is why it survived review of the
+  // gate-first change — and live the moment anyone executes the hook directly, which is exactly
+  // what a developer debugging a hook does. A shebang is only a shebang on line 1.
+  const splitShebang = (text) => {
+    const match = text.match(/^#![^\n]*\n?/);
+    return match ? [match[0], text.slice(match[0].length)] : ['', text];
+  };
+
   try {
     if (!existsSync(target)) {
-      atomicWriteFileSync(target, template, { mode: 0o755 }, dirname(target));
+      atomicWriteFileSync(target, template, hookWriteOpts(), dirname(target));
       return target;
     }
     const existing = readFileSync(target, 'utf8');
@@ -2271,12 +2774,34 @@ function installPreCommitHook(repoDir, pkgRootDir) {
       }
       const current = template.slice(template.indexOf(hookBeginMarker()));
       const refreshed = existing.slice(0, begin) + current.trimEnd() + '\n' + existing.slice(end + hookEndMarker().length).replace(/^\n/, '');
-      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, { mode: 0o755 }, dirname(target));
+      if (refreshed !== existing) atomicWriteFileSync(target, refreshed, hookWriteOpts(), dirname(target));
       return target;
     }
     const block = template.slice(template.indexOf(hookBeginMarker()));
-    const appended = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
-    atomicWriteFileSync(target, appended, { mode: 0o755 }, dirname(target));
+
+    // GATE FIRST when a generator dispatches into this file; appended everywhere else.
+    //
+    // husky runs this file via `sh -e` from its own dispatcher, which has already set up PATH. Under
+    // `-e` the first command that fails ends the script, and a host command that calls `exit 0` ends
+    // it just as effectively — so an appended gate sat behind whatever the generator pre-populated
+    // and never executed. That is the worst available outcome: the file survives the install, the
+    // path advertised in AGENTS.md is literally correct, and nothing is enforced.
+    //
+    // Everywhere else the gate stays appended, deliberately. A hand-written `.git/hooks/pre-commit`
+    // may establish the environment the gate itself depends on — a version manager, a PATH export —
+    // and hoisting the gate above that would break the gate rather than the host. The asymmetry is
+    // the point: under a generator the environment is already prepared, and outside one it may not
+    // be.
+    const gateFirst = hasGeneratedHooksChild(hooksPath);
+    let merged;
+    if (gateFirst) {
+      // The shebang, if any, stays on line 1 and the gate goes directly beneath it.
+      const [shebang, body] = splitShebang(existing);
+      merged = `${shebang}${block.trimEnd()}\n\n${body.replace(/^\n+/, '')}`;
+    } else {
+      merged = existing.endsWith('\n') ? existing + block : existing + '\n' + block;
+    }
+    atomicWriteFileSync(target, merged, hookWriteOpts(), dirname(target));
     return target;
   } catch (err) {
     console.warn(`agentsmyth: could not write pre-commit hook at ${target} — skipping.`);
@@ -2293,6 +2818,101 @@ function installPreCommitHook(repoDir, pkgRootDir) {
 // (e.g. when the global install already existed), so there is no shared value worth returning.
 // Throws on failure (e.g. an unwritable home directory) so callers can surface the error
 // instead of silently continuing.
+// Whether the global definitions install is the one THIS CLI ships, and what to do about it.
+//
+// The decision used to be `existsSync(globalWorkflowDir)`, evaluated independently at three call
+// sites. That predicate answers "is there a directory", not "are these the definitions this CLI
+// expects", and three consequences were all reachable and all silent: an empty directory counted as
+// installed (`init` exited 0 and the next `check` died on an ENOENT stack trace); a tree expanded by
+// an older package counted as installed, so a newer CLI seeded pending-setup items whose values
+// that tree's schema rejects with `additionalProperties: false`; and a half-expanded tree counted as
+// installed. Reported from a real consumer setup and reproduced end-to-end by WP-R25's Think
+// council (brief v2, R1 / RI2).
+//
+// THE SIGNAL IS THE STAMP, NOT A DIGEST. Published v1.0.1 never wrote installed-version.txt at all,
+// so every stale tree a consumer can actually be holding carries no stamp — absence is both the
+// common case and sufficient to catch it. A digest was considered and rejected: it would have to
+// survive `npm pack` and CRLF checkouts, it cannot use the expanded tree (a digest over it would
+// have to agree with the prune's own scope, and OS cruft and anything a user put there make a
+// whole-tree digest permanently unequal regardless), and it would be
+// deciding the very same question. The one case a stamp cannot see is rebuilt source at an unchanged
+// version string, which is reachable only in development where `prepare` is a single command. That
+// residual is accepted and recorded, not engineered away.
+//
+// Hoisted `function` declarations on purpose: the `init` call site runs at top level before these
+// definitions appear in the file, and this file's own history records a command dispatch being
+// moved above a `const` block twice. Position cannot reintroduce that hazard here.
+function globalInstallState(pkgRootDir) {
+  const workflowDir = join(homedir(), '.agentsmyth', 'workflow');
+  if (!existsSync(workflowDir)) return { state: 'absent', workflowDir };
+
+  const stampPath = join(workflowDir, 'installed-version.txt');
+  let stamp = null;
+  try {
+    stamp = readFileSync(stampPath, 'utf8').trim();
+  } catch {
+    return { state: 'unstamped', workflowDir, stampPath };
+  }
+  if (!isVersionString(stamp)) return { state: 'unstamped', workflowDir, stampPath, stamp };
+
+  let cliVersion = null;
+  try {
+    cliVersion = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8')).version;
+  } catch {
+    // Unreadable own package.json is not the user's problem to solve and not this guard's business
+    // to adjudicate; let the run proceed rather than blocking on a question we cannot answer.
+    return { state: 'current', workflowDir, stamp };
+  }
+  if (stamp !== cliVersion) return { state: 'stale', workflowDir, stampPath, stamp, cliVersion };
+  return { state: 'current', workflowDir, stamp, cliVersion };
+}
+
+// Install when absent; REFUSE when present but not ours. The asymmetry is deliberate.
+//
+// Auto-installing a missing tree is additive — there was nothing to disagree with. Auto-REFRESHING
+// a tree that other repos on this machine are already linked to is not: it would change their
+// resolved skills and schemas as a side effect of running a command in an unrelated repo. That is
+// why `prepare` is an explicit global-only verb and `upgrade` is the verb that refreshes. So a
+// stale tree stops with the remedy named, rather than being silently rewritten.
+function ensureGlobalInstall(pkgRootDir) {
+  const info = globalInstallState(pkgRootDir);
+  if (info.state === 'current') return;
+
+  if (info.state === 'absent') {
+    try {
+      runPrepare(pkgRootDir);
+    } catch (err) {
+      console.error('');
+      console.error('agentsmyth: could not install the global lifecycle definitions this repo needs.');
+      console.error(`  ${err.message}`);
+      console.error('  Fix the issue above, then re-run. "agentsmyth prepare" shows the full error.');
+      process.exit(1);
+    }
+    return;
+  }
+
+  console.error('');
+  console.error(`agentsmyth: the global lifecycle definitions at ${info.workflowDir}`);
+  console.error('  are not the ones this CLI ships.');
+  console.error('');
+  if (info.state === 'unstamped') {
+    console.error(`  No readable version stamp at ${info.stampPath}.`);
+    console.error('  That is how every install from before v1.1.0 looks, and also how a partially');
+    console.error('  expanded or emptied install looks.');
+  } else {
+    console.error(`  They were installed by v${info.stamp}; this CLI is v${info.cliVersion}.`);
+  }
+  console.error('');
+  console.error('  Continuing would link this repo to definitions whose schemas can reject the very');
+  console.error('  values setup is about to write, leaving a config that cannot validate from its');
+  console.error('  first run. Refusing is the fix for that, not an inconvenience around it.');
+  console.error('');
+  console.error('  Run "agentsmyth prepare" to refresh the global definitions, then re-run this');
+  console.error('  command. In a repo that is already set up, "agentsmyth upgrade" does both.');
+  console.error('');
+  process.exit(1);
+}
+
 function runPrepare(pkgRootDir) {
   const globalDir = join(homedir(), '.agentsmyth');
   const pkg = JSON.parse(readFileSync(join(pkgRootDir, 'package.json'), 'utf8'));
@@ -2302,7 +2922,7 @@ function runPrepare(pkgRootDir) {
   console.log(`Installing global definitions to ${globalDir} ...`);
 
   // Expand workflow bundle to ~/.agentsmyth/workflow/
-  expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
+  const expansion = expandBundle(join(pkgRootDir, 'dist', 'workflow-bundle.md'), globalDir);
   // Copy validators
   copyRecursive(join(pkgRootDir, 'validators'), join(globalDir, 'validators'));
 
@@ -2324,6 +2944,10 @@ function runPrepare(pkgRootDir) {
   writeFileSync(join(globalDir, 'workflow', 'installed-version.txt'), `${version}\n`);
 
   console.log('  ✓ definitions installed');
+  if (expansion.removed.length > 0) {
+    console.log(`  ✓ removed ${expansion.removed.length} file(s) this version no longer ships:`);
+    for (const rel of expansion.removed) console.log(`      ${rel}`);
+  }
 
   // Install global gates
   const gatesInstalled = [];
@@ -2675,12 +3299,13 @@ if (command === 'upgrade') {
       pristine: 'unchanged since agentsmyth wrote it',
       drifted: 'edited since agentsmyth wrote it',
       missing: 'recorded but no longer on disk',
+      superseded: 'still on disk, no longer governed — the gate moved',
       'newly-governed': 'newly governed by this version',
     }[r.state];
     console.log(`  ${r.state.padEnd(15)} ${r.path}  (${label})`);
   }
   console.log('');
-  console.log(`  ${by('pristine').length} unchanged, ${by('drifted').length} edited, ${by('missing').length} missing, ${by('newly-governed').length} newly governed`);
+  console.log(`  ${by('pristine').length} unchanged, ${by('drifted').length} edited, ${by('missing').length} missing, ${by('superseded').length} superseded, ${by('newly-governed').length} newly governed`);
 
   const fromVersion = classified.manifest.written_by_version;
 
@@ -2689,7 +3314,7 @@ if (command === 'upgrade') {
   // the code the real thing would run — not a separate model of it that can drift from the real one.
   if (dryRun) {
     const descriptorPreview = results
-      .filter((r) => r.state !== 'missing')
+      .filter((r) => !UNGOVERNED_STATES.has(r.state))
       .map((r) => ({ rel: r.path, ids: loadMigrations(pkgRoot, fromVersion, pkgVersion, r.path).map((d) => d.id) }))
       .filter((d) => d.ids.length > 0);
 
@@ -2755,7 +3380,7 @@ if (command === 'upgrade') {
   // upgrade. Re-creating it would silently undo a deliberate removal.
   const applied = [];
   for (const r of results) {
-    if (r.state === 'missing') continue;
+    if (UNGOVERNED_STATES.has(r.state)) continue;
     try {
       applied.push(applyUpgradeTo(upgradeRoot, pkgRoot, r.path, r.state, fromVersion, pkgVersion));
     } catch (err) {
@@ -2785,8 +3410,20 @@ if (command === 'upgrade') {
   const noop = backups.filter((b) => !needReconcile.some((n) => n.path === b.path));
 
   for (const b of noop) {
-    // Nothing was rewritten, so the backup serves no item. Remove it rather than leaving a
-    // committed duplicate of a file that still matches it.
+    // Nothing was rewritten, so the backup serves no item — UNLESS an open reconcile item is still
+    // pointing at it.
+    //
+    // `openBackupPaths` was computed above and threaded only into writeBackup, so this second
+    // deletion site never consulted it: a drifted file whose refresh happened to produce no change
+    // was classified noop and its backup deleted outright while an open item named that exact path.
+    // The run printed nothing, and the item was left directing the user at a file that no longer
+    // existed — with the edit already gone from the live file and the backup never committed, there
+    // was nothing left to restore from. The RI20 rule ("resolution wins, supersession skips") held
+    // at one deletion site and not the other; it now holds at both, from the one set.
+    if (openBackupPaths.includes(b.backup)) {
+      console.log(`  kept  ${b.backup}  (an open reconcile item still points at it)`);
+      continue;
+    }
     try { rmSync(join(upgradeRoot, b.backup), { force: true }); } catch { /* best effort */ }
   }
 
@@ -2911,18 +3548,7 @@ if (existsSync(targetDir)) {
 // setup skill's interview starts. No opt-out, no fallback to a local copy — any failure here
 // is surfaced clearly and stops `init`, rather than silently continuing into a half-linked
 // repo (see runPrepare()'s own comment for why it throws instead of exiting internally).
-const globalWorkflowDir = join(homedir(), '.agentsmyth', 'workflow');
-if (!existsSync(globalWorkflowDir)) {
-  try {
-    runPrepare(pkgRoot);
-  } catch (err) {
-    console.error('');
-    console.error('agentsmyth: could not install the global lifecycle definitions needed by "init".');
-    console.error(`  ${err.message}`);
-    console.error('  Fix the issue above and re-run "agentsmyth init" (or run "agentsmyth prepare" directly to see the full error).');
-    process.exit(1);
-  }
-}
+ensureGlobalInstall(pkgRoot);
 // Migration: audit for a pre-existing local definitions tree before
 // committing the link — see auditStaleDefinitions()'s own comment for why this never blocks
 // linking either way.

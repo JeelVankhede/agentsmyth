@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-09-08
+## [1.1.0] - 2026-10-05
 
 ### Added
 - **Version-aware delta upgrades** (WP-R18) — a new `agentsmyth upgrade` command brings an
@@ -146,6 +146,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file shows; reading the lean file alone is how a number gets taken twice.
 
 ### Fixed
+- **`init` refuses a global definitions install that is not the one it ships** (WP-R25) — `init`,
+  `check`'s bootstrap and `headlessBootstrap` each decided whether the shared definitions tree was
+  usable by asking whether the directory existed. That answers the wrong question, and three
+  consequences were reachable and silent: an empty tree counted as installed, so `init` exited 0 and
+  the next `check` died on a stack trace; a tree expanded by an older package counted as installed,
+  so a newer CLI seeded setup items whose values that tree's schema rejects; and a half-expanded tree
+  counted as installed. One predicate now answers it for all three entry points, keyed on the version
+  stamp — published 1.0.1 wrote none at all, so absence is both the common case and sufficient to
+  catch it. Verified against the genuinely published 1.0.1 fetched from the registry, not a
+  synthesised one.
+- **The lifecycle gate is installed where it both survives and runs** (WP-R25) — husky points
+  `core.hooksPath` at a directory it regenerates, so the gate was deleted by the next dependency
+  install while `AGENTS.md` went on advertising it. The gate now resolves to husky's own durable
+  entry point, detected structurally rather than by the name `.husky`, and is written FIRST in that
+  file: husky executes it under `sh -e` and always pre-populates it, so an appended gate sat behind a
+  host command that could exit 0 and never ran. A hook that survives an install and does not execute
+  is worse than one that is missing, because the file is present and the claim reads as true.
+- **A husky repo no longer reports its own tool's regeneration as your edits** (WP-R25) — every
+  upgrade after a dependency install backed husky's generated shim into `workflow/backups/` and
+  raised a reconcile item for a file nobody had touched. A recorded entry that is still on disk but
+  has left the governed set is now reported as superseded rather than missing.
+- **`init` inside a linked git worktree no longer breaks `upgrade` permanently** (WP-R25) — the hook
+  resolves to the common dir there, which is correct for enforcement but outside the working tree, so
+  the manifest recorded a path its own reader then rejected as escaping the repository. Every later
+  `upgrade` exited 1 with no user error involved.
+- **A missing definitions file explains itself** (WP-R25) — an absent definitions file meant the
+  install a repo is linked to is gone or incomplete, which no edit inside the repo can fix, and it
+  surfaced as a stack trace naming an internal frame. It now names the file and the remedy.
+
+- **Path containment in the install and upgrade paths** (WP-R25) — found by this release's own
+  Review council and fixed before it shipped. Four defects were one mistake with four faces: a
+  string was asked a question only the filesystem can answer. The traversal predicate split on `/`
+  alone, so a `\`-separated path contained no `..` segment by that test and was accepted — and the
+  payload is a committed file, which puts it inside an ordinary pull request. The bundle prune
+  validated the ledger string and then the final component, resolving nothing in between, so a
+  symlinked directory turned a stale-file sweep into a delete outside the tree while the log line
+  still printed a path that looked internal. Nothing constrained a ledger entry to `workflow/`, so
+  the prune reached the separately-copied validators and a user's own files — both of which its own
+  comment asserted were out of reach. And the write side had no validation at all while the delete
+  side did, so a declared path could escape the tree, enter the ledger, and then be permanently
+  un-prunable because the prune rejected exactly what the write had accepted. All four now resolve
+  the real path and assert containment per component.
+- **A damaged bundle no longer deletes the definitions tree** (WP-R25) — a bundle matching zero file
+  markers made every ledger line a prune candidate, removed the whole tree in one pass, exited 0,
+  and then wrote the version stamp so the emptied tree read as current. A bundle that declares
+  nothing is a broken bundle, not an instruction to delete everything; it now refuses, and the
+  ledger is written before the deletions rather than after.
+- **Your preserved edits survive a second upgrade** (WP-R25) — backups are versioned per release,
+  and after any upgrade the manifest version equals the package version, so a second upgrade wrote
+  to the exact path an open reconcile item still named. The one backup the supersede loop could
+  never protect was the one most likely to be protected. A second edit replaced the first edit's
+  only surviving copy while the run printed "Your edits were preserved before anything was touched".
+  The destination is now chosen before superseding and relocates on collision, so both survive.
+  Separately, the sweep now consults a record of the directories agentsmyth created rather than
+  testing whether a name looks like a version — a consumer's own `workflow/backups/1.0.0/` was
+  indistinguishable from one agentsmyth wrote.
+- **A private hook stays private** (WP-R25) — installing the gate passed an unconditional `0755`,
+  which widened a deliberately owner-only hook to group and world execute, and hoisting the gate
+  moved the user's `#!` line off line 1 so the file no longer declared its interpreter. Both are
+  preserved now.
+- **The capability gate cannot be cleared without answering it** (WP-R25) — the gate that blocks a
+  council until a tier is chosen read the setup item's own `status` field, so marking the item
+  resolved cleared the block permanently with no tier ever written; it was keyed to the Think phase
+  only, so Review — the one phase gate the commit hook invokes — had no tier check at all; and it
+  passed outright when the setup file was unreadable or absent. It now derives its phase set from
+  the resolved council config, keys on the resolved VALUE, rejects a tier no adapter can map, and
+  fails closed on an unreadable file. The global default that would have made all of this vacuous
+  was removed: capability has no safe default, because the three tiers differ in what the user pays.
+- **A council record records the dispatch it describes** (WP-R25) — `depth`, `model_tier`, `effort`
+  and per-member token usage were all optional, so a record could omit every one of them and
+  validate, which reproduced for five new keys the exact defect the depth definition cites as its
+  own reason for existing. They are required on new records and compared against the resolved
+  configuration, with departures expressible only through a declared override and a reason. The
+  `shallow` depth was also unusable — it is defined as running no challenge stage, and the web
+  sampling rule rejected it the moment any member cited a source, demanding a challenger it had
+  just been told not to dispatch.
+- **The documented way out of a blocking gate exists** (WP-R25) — the setup step that resolves the
+  capability tier told the reader to open a file in the `init` staging directory, which only `init`
+  creates and setup then deletes, while the blocking item is appended to repos that already exist.
+  The population holding the gate had no copy of the file the remedy names. The templates now ship
+  in the bundle, so `prepare` installs them where every path produces them and nothing deletes them.
+
+### Changed
+- **`prepare` removes files a previous version shipped and this one does not** (WP-R25) — expansion
+  was purely additive, so a skill or validator retired in one release lived on in every tree that had
+  installed the older one, still resolvable by name. A version stamp cannot see that: it says which
+  release ran last, not which files that release stopped shipping. Pruning is bounded by a ledger of
+  what the previous expansion wrote, never by the directory — so the separately copied validators
+  tree, OS cruft, and anything you put there yourself are not candidates.
+- **Council capability is configurable, per phase, and recorded** (WP-R25) — `council.depth` shipped
+  as a tunable key recorded in artifact frontmatter with no operational definition and no reader. It
+  now says what its three values do: `shallow` runs research only, `standard` adds the challenge
+  stage, `deep` adds a per-round web spot-check quota. Two genuinely new axes join it —
+  `council.model_tier` (`cheap`/`standard`/`deep`) for what members run on, and `council.effort`
+  (`low` through `max`) for how hard they think — both as portable vocabularies rather than any one
+  tool's model names or enum, since naming one tool's would leave the other four wrong by default.
+  All three may be set per phase, because a Review verdict blocks a commit and a Think verdict does
+  not. A single run may depart from the configuration and must record why.
+  `model_tier` is the one setup answer that BLOCKS: a council will not dispatch until it is set,
+  because any default would be this package choosing how much you spend.
+- **Council cost is reported before the fan-out, from your own history** (WP-R25) — council records
+  now carry per-member token counts, and the estimate is the mean of your repo's recorded councils.
+  A first council says `no-history` and projects nothing; a figure derived from fan-out and rounds
+  would read as a measurement and be a guess.
+- **The council-record contract now runs in a consumer repo** (WP-R25) — roughly thirty rules about
+  what a council run must leave behind existed and none of them executed outside this repository, so
+  a recorded tier meant nothing to anyone using the package.
+- **`agentsmyth prepare` documentation corrected** (WP-R25) — it does not refresh the global gate in
+  every supported tool's config: Copilot's path is macOS-specific and Cursor has no global config
+  file at all, so its gate is a one-time manual paste. At most four of five install automatically on
+  macOS and three of five elsewhere.
 - **`check-setup-complete` can fail again, and the `AGENTS.md` version stamp finally has a reader**
   (OI-105) — the adapter-presence check had become unfalsifiable once `init` started always writing
   a root `AGENTS.md`, since that file is one of the five paths it accepts. It now parses the

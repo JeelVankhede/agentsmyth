@@ -19,7 +19,7 @@
 // actual ~/.agentsmyth.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { platform, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,6 +63,24 @@ function git(cwd, ...args) {
   return spawnSync('git', args, { cwd, encoding: 'utf8' });
 }
 
+// Bring the shared scratch home's global install current for the REAL CLI.
+//
+// `home` is shared by every scenario in this file, and the version-step scenarios deliberately run a
+// synthetic-version package against it — which stamps that synthetic version into the global tree.
+// `init` now refuses a global install that is not the one the running CLI ships (WP-R25 R1), so an
+// init in a later scenario would fail on a stamp an earlier scenario left behind. That is the guard
+// working, not a bug in it: the contamination was always there, and before the guard existed it
+// merely went unnoticed because nothing compared.
+//
+// Called before every `init` here rather than once at the top, because the contamination happens
+// mid-file and a single up-front call would be stale by the time the later scenarios run. It does
+// not weaken any scenario: each one means "a repo initialised by the current CLI", and the ones that
+// care about a version step take that step explicitly afterwards.
+function syncHome(home) {
+  const result = run(['prepare'], { cwd: repoRoot, home });
+  if (result.status !== 0) throw new Error(`syncHome: prepare failed: ${result.stderr}`);
+}
+
 // A repo that has been through a real `init`, with a tracked hooks path so the pre-commit hook is
 // governed (a hook inside .git/ is deliberately not, since .git/** is a declared protected path).
 function freshRepo(home, label) {
@@ -71,6 +89,7 @@ function freshRepo(home, label) {
   git(repo, 'config', 'user.email', 'test@example.com');
   git(repo, 'config', 'user.name', 'test');
   git(repo, 'config', 'core.hooksPath', '.githooks');
+  syncHome(home);
   const result = run(['init'], { cwd: repo, home });
   if (result.status !== 0) throw new Error(`init failed for ${label}: ${result.stderr}`);
   return repo;
@@ -325,6 +344,7 @@ const home = mkScratch('wpr18-home-');
   git(repo, 'init', '-q');
   git(repo, 'config', 'user.email', 'test@example.com');
   git(repo, 'config', 'user.name', 'test');
+  syncHome(home);
   run(['init'], { cwd: repo, home });
 
   const hook = join(repo, '.git', 'hooks', 'pre-commit');
@@ -360,6 +380,7 @@ const home = mkScratch('wpr18-home-');
   mkdirSync(join(repo, '.github'), { recursive: true });
   const mine = '# MY OWN COPILOT INSTRUCTIONS\nDo not delete me.\n';
   writeFileSync(join(repo, '.github', 'copilot-instructions.md'), mine);
+  syncHome(home);
   run(['init'], { cwd: repo, home });
 
   check('E2-not-governed', 'a file agentsmyth did not write is not adopted into the manifest',
@@ -404,6 +425,7 @@ const home = mkScratch('wpr18-home-');
   git(defaultRepo, 'init', '-q');
   git(defaultRepo, 'config', 'user.email', 'test@example.com');
   git(defaultRepo, 'config', 'user.name', 'test');
+  syncHome(home);
   run(['init'], { cwd: defaultRepo, home });
   check('G4-git-hook-not-governed', 'a hook inside .git/ is not governed — .git/** is a protected path',
     !readManifest(defaultRepo).includes('.git/hooks/pre-commit'));
@@ -756,6 +778,7 @@ const home = mkScratch('wpr18-home-');
   // was the one this finding is about.
   rmSync(join(repo, '.agentsmyth'), { recursive: true, force: true });
 
+  syncHome(home);
   const reinit = run(['init'], { cwd: repo, home });
   check('X4-init-succeeds', 're-running init on a set-up repo still succeeds', reinit.status === 0);
   check('X4-manifest-untouched', 'the manifest is left exactly as it was, not re-baselined against disk',
@@ -783,6 +806,33 @@ const home = mkScratch('wpr18-home-');
     existsSync(consumerFile) && readFileSync(consumerFile, 'utf8') === 'the consumer owns this\n');
 }
 
+// X5b — WP-R25 F20: the same guarantee when the consumer's directory is VERSION-SHAPED.
+//
+// X5 above names its directory `nightly`, which the old candidate test — `isVersionString(dir)` —
+// already excluded, so it passed throughout the defect. F20 is the case that test could not see: a
+// name is not an ownership claim, and `workflow/backups/1.0.0/` is a perfectly ordinary thing for a
+// person or another tool to create. Files at governed relpaths inside one were deleted with nothing
+// logged. The sweep now consults an index of the directories agentsmyth itself wrote.
+{
+  const repo = freshRepo(home, 'xsweepver');
+  const rel = join('workflow', 'config', 'domain.yaml');
+  // Version-shaped, and holding a file at exactly the relpath the sweep looks for — the collision
+  // the shape test could not distinguish from its own work.
+  const consumerFile = join(repo, 'workflow', 'backups', '1.0.0', rel);
+  mkdirSync(dirname(consumerFile), { recursive: true });
+  writeFileSync(consumerFile, 'the consumer owns this too\n');
+  const target = join(repo, 'workflow', 'config', 'domain.yaml');
+  writeFileSync(target, `${readFileSync(target, 'utf8').replace(/\n*$/, '')}\n# edit\n`);
+
+  const result = run(['upgrade'], { cwd: repo, home });
+  check('X5b-version-shaped-survives',
+    "a consumer's version-shaped backup directory is not swept on name alone",
+    existsSync(consumerFile) && readFileSync(consumerFile, 'utf8') === 'the consumer owns this too\n');
+  check('X5b-left-alone-is-reported',
+    'and the run says it left the unowned directory alone rather than doing so silently',
+    /predate the ownership index/.test(result.stdout));
+}
+
 // X6 — a backup an OPEN reconcile item names must survive the next upgrade's supersede.
 {
   const bin = pkgWithDescriptor('1.1.0', '1.0.1-to-1.1.0', 'domain.yaml', [
@@ -808,6 +858,122 @@ const home = mkScratch('wpr18-home-');
   check('X6-backup-survives', "an open item's backup_path still resolves after a second upgrade",
     Boolean(backupRel) && existsSync(join(repo, backupRel)));
 }
+
+// X7 — WP-R25 F5: the backup an open item names must survive a second upgrade at the SAME version.
+//
+// X6 above steps the manifest version between its two runs, which sends the second backup to a
+// different directory — so it exercised the supersede loop and never touched the destination. F5 is
+// the case the loop structurally could not cover: `fromVersion` is the manifest-level version, so
+// after any upgrade it EQUALS the package version, and every subsequent run writes to the very
+// directory an open item names. The loop skipped that directory as "where we are writing to" before
+// the protection test ran, then `atomicWriteFileSync` overwrote it unconditionally.
+//
+// No descriptor and no package copy is needed: a fresh init already leaves fromVersion ==
+// pkgVersion, and a drifted managed hook block is rewritten on every upgrade regardless of spans
+// (see Y3). That makes this the DEFAULT state of a repo rather than a contrived one.
+{
+  const repo = freshRepo(home, 'xsameversion');
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const BEGIN = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+  const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# FIRST EDIT`));
+  run(['upgrade'], { cwd: repo, home });
+  const firstBackup = readFileSync(pendingPath, 'utf8').match(/backup_path: "([^"]*pre-commit)"/)?.[1];
+  check('X7-first-item', 'the first upgrade raises an item naming a hook backup', Boolean(firstBackup));
+  check('X7-first-content', "and that backup holds the user's first edit",
+    Boolean(firstBackup) && readFileSync(join(repo, firstBackup), 'utf8').includes('# FIRST EDIT'));
+
+  // Edit inside the block again WITHOUT resolving the open item. Pre-fix, this run's backup lands on
+  // the identical path and replaces it, while the run prints "Your edits were preserved before
+  // anything was touched" and the idempotence guard declines to raise a second item — so the first
+  // edit is gone with nothing naming its loss.
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# SECOND EDIT`));
+  const second = run(['upgrade'], { cwd: repo, home });
+
+  const stillThere = Boolean(firstBackup) && existsSync(join(repo, firstBackup));
+  const firstSurvives = stillThere && readFileSync(join(repo, firstBackup), 'utf8').includes('# FIRST EDIT');
+  check('X7-first-edit-not-destroyed',
+    "the open item's backup still holds the first edit after a same-version upgrade",
+    firstSurvives);
+
+  // The second edit must be preserved too — the fix relocates this run's backup rather than dropping
+  // it, so both copies exist. A fix that merely refused to write would trade one silent loss for
+  // another.
+  const allBackups = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else allBackups.push(full);
+    }
+  };
+  const backupsRoot = join(repo, 'workflow', 'backups');
+  if (existsSync(backupsRoot)) walk(backupsRoot);
+  check('X7-second-edit-preserved', "and the second edit is preserved in a backup of its own",
+    allBackups.some((f) => readFileSync(f, 'utf8').includes('# SECOND EDIT')));
+  check('X7-run-succeeded', 'the second upgrade still exits cleanly', second.status === 0);
+}
+
+// X8 — WP-R25 F4: a noop-classified backup must not be deleted when an open item names it.
+//
+// The regression case the Phase 8 commit recorded as missing. `openBackupPaths` was computed once
+// and threaded only into writeBackup(), so the OTHER deletion site — the sweep that drops backups
+// for files whose refresh turned out to change nothing — never consulted it.
+//
+// Reaching it takes a file that is drifted (so it earns a backup, which happens before anything
+// knows whether a delta exists) but whose refresh produces no change (so it is classified noop).
+// An edit OUTSIDE the hook's managed block is exactly that: the digest no longer matches the
+// manifest, while the span agentsmyth rewrites is already current. Pre-fix the backup at the open
+// item's path was deleted outright, the run printed nothing, and the item was left pointing at a
+// file that no longer existed — with the live file already refreshed, nothing could be restored.
+{
+  const repo = freshRepo(home, 'xnoopsweep');
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const BEGIN = '# >>> agentsmyth:mandatory-lifecycle-gate >>>';
+  const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
+
+  writeFileSync(hook, readFileSync(hook, 'utf8').replace(BEGIN, `${BEGIN}\n# EDIT WORTH KEEPING`));
+  run(['upgrade'], { cwd: repo, home });
+  const backupRel = readFileSync(pendingPath, 'utf8').match(/backup_path: "([^"]*pre-commit)"/)?.[1];
+  check('X8-item-raised', 'an item is raised naming the hook backup', Boolean(backupRel));
+  check('X8-backup-has-edit', "and the backup is the only copy of the user's overwritten line",
+    Boolean(backupRel) && readFileSync(join(repo, backupRel), 'utf8').includes('# EDIT WORTH KEEPING')
+      && !readFileSync(hook, 'utf8').includes('# EDIT WORTH KEEPING'));
+
+  // Now drift the hook OUTSIDE the managed block. The refresh has nothing to change, so this file
+  // is classified noop and its backup becomes a sweep candidate — at the path the open item names.
+  writeFileSync(hook, `${readFileSync(hook, 'utf8')}\n# a trailing comment, outside the block\n`);
+  const second = run(['upgrade'], { cwd: repo, home });
+
+  check('X8-backup-survives-noop-sweep',
+    "a noop backup an open item names is kept rather than swept",
+    Boolean(backupRel) && existsSync(join(repo, backupRel)));
+  check('X8-content-intact', 'and it still holds the edit the item exists to help reconcile',
+    Boolean(backupRel) && existsSync(join(repo, backupRel))
+      && readFileSync(join(repo, backupRel), 'utf8').includes('# EDIT WORTH KEEPING'));
+  check('X8-run-succeeded', 'and the second upgrade exits cleanly', second.status === 0);
+}
+
+// A NOTE ON WHAT X8 DOES AND DOES NOT PROVE, recorded because the next reader will look for the
+// guard's own test and not find one.
+//
+// F4's fix added `openBackupPaths` to the noop sweep. X8 asserts the OUTCOME that fix exists to
+// protect — an open item's backup survives a later noop-classified upgrade of the same file — and it
+// fails against the pre-fix CLI, so it is a real regression case for the behaviour.
+//
+// It does not isolate the guard, and no test can, because the F5 fix in the same change removed the
+// only path that reaches it. writeBackup() now relocates this run's backup whenever the destination
+// is protected AND the content differs; when the content is IDENTICAL it does not relocate, and the
+// sweep would then drop the protected path — which is exactly what the guard catches. But identical
+// content requires this run's pre-upgrade file to equal the content of a backup taken before an
+// earlier rewrite of that same file, and if those are equal then that earlier run changed nothing,
+// so it was itself noop and raised no item. The precondition is self-contradictory.
+//
+// The guard therefore stays as a backstop rather than live defence: it was a genuine silent data
+// loss before F5 was fixed, and it is what holds if anyone later changes the relocation rule. Do not
+// delete it for want of a failing test, and do not go looking for the scenario — it is unreachable
+// by construction, not merely unexercised.
 
 // ── Y: silent-misclassification and compatibility regressions ─────────────────────────────────
 
@@ -926,6 +1092,7 @@ const home = mkScratch('wpr18-home-');
   const mdc = join(repo, '.cursor', 'rules', 'agentsmyth.mdc');
   mkdirSync(dirname(mdc), { recursive: true });
   writeFileSync(mdc, '# the user wrote this cursor rule themselves\n');
+  syncHome(home);
   const init = run(['init'], { cwd: repo, home });
   check('Y6-init-ok', 'init succeeds over a pre-existing .mdc', init.status === 0);
   check('Y6-not-adopted', 'a .mdc agentsmyth did not write is not adopted into the manifest',
@@ -957,6 +1124,7 @@ const home = mkScratch('wpr18-home-');
     { cwd: ws, encoding: 'utf8' }).status === 0;
   check('Z1-fixture-valid', 'the polyrepo `workspace_root` is genuinely outside any git repo', !wsIsGit);
 
+  syncHome(home);
   const init = run(['init'], { cwd: ws, home });
   check('Z1-init-ok', 'init succeeds at a polyrepo `workspace_root`', init.status === 0);
 
@@ -1100,6 +1268,7 @@ const home = mkScratch('wpr18-home-');
     git(repo, 'config', 'user.name', 'test');
     git(repo, 'config', 'core.hooksPath', '.githooks');
     if (seed !== null) writeFileSync(join(repo, 'AGENTS.md'), seed);
+    syncHome(home);
     const init = run(['init'], { cwd: repo, home });
     return { repo, init, read: () => readFileSync(join(repo, 'AGENTS.md'), 'utf8') };
   };
@@ -1214,6 +1383,279 @@ const home = mkScratch('wpr18-home-');
     check('H1-upgrade-clean-at-eight', 'and an upgrade over eight governed artifacts reports all of them unchanged',
       result.status === 0 && /8 unchanged/.test(result.stdout));
   }
+}
+
+// ── Generated-hooks-directory scenarios (husky v9 and v8) ───────────────────────────────────
+//
+// The defect these cover is not "the hook is missing". It is a hook that SURVIVES and does not RUN,
+// which is strictly worse: the file is on disk, the path advertised in AGENTS.md is literally
+// correct, and nothing is enforced. So every assertion below that matters is a real `git commit`,
+// never the presence of a file.
+
+// husky's own dispatcher, transcribed from its installer: it derives <parent>/<hookname>, exits 0
+// when that file is absent, and otherwise runs it under `sh -e` with node_modules/.bin on PATH.
+const HUSKY_DISPATCHER = 'n=$(basename "$0")\n'
+  + 's=$(dirname "$(dirname "$0")")/$n\n'
+  + '[ ! -f "$s" ] && exit 0\n'
+  + 'export PATH="node_modules/.bin:$PATH"\n'
+  + 'sh -e "$s" "$@"\n';
+const HUSKY_SHIM = '#!/usr/bin/env sh\n. "$(dirname "$0")/h"\n';
+
+// A stub `agentsmyth` on PATH, so a commit can prove the GATE BLOCK EXECUTED without running the
+// real validator or reaching the network through the template's npx fallback. What is under test is
+// placement and ORDER; what the validator then decides is a different suite's business.
+function stubGateBin(label) {
+  const dir = mkScratch(`wpr25-${label}-bin-`);
+  cleanup.push(dir);
+  writeFileSync(join(dir, 'agentsmyth'), '#!/bin/sh\necho GATE-RAN\nexit 0\n', { mode: 0o755 });
+  return dir;
+}
+
+function commitWithStub(repo, stubDir, file, message) {
+  writeFileSync(join(repo, file), 'x\n');
+  git(repo, 'add', file);
+  return spawnSync('git', ['commit', '-m', message], {
+    cwd: repo, encoding: 'utf8',
+    env: { ...process.env, PATH: `${stubDir}:${process.env.PATH}` },
+  });
+}
+
+// ── WP-R25 F21: an existing hook's MODE is a decision, not a default ─────────────────────────
+//
+// The write passed `{ mode: 0o755 }` unconditionally, which bypassed atomicWriteFileSync's
+// mode-preserving branch and widened a deliberate 0700 hook to group and world execute. No bytes
+// were lost, which is why it read as harmless — but reversing a permission the user narrowed on
+// purpose, while reporting success, is the same shape as the rest of this review.
+//
+// Mode bits are not meaningful on Windows and `chmod` there is a no-op, so this asserts on POSIX
+// only rather than claiming a guarantee it cannot make.
+if (process.platform !== 'win32') {
+  const repo = mkScratch('wpr25-hookmode-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  git(repo, 'config', 'core.hooksPath', '.githooks');
+  mkdirSync(join(repo, '.githooks'), { recursive: true });
+  // Owner-only, and executable — a hook a security-conscious user wrote for themselves.
+  writeFileSync(join(repo, '.githooks', 'pre-commit'), '#!/bin/sh\necho MINE\n', { mode: 0o700 });
+  chmodSync(join(repo, '.githooks', 'pre-commit'), 0o700);
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const hook = join(repo, '.githooks', 'pre-commit');
+  const mode = statSync(hook).mode & 0o777;
+  check('HM1-mode-preserved', "an existing hook's 0700 mode is preserved, not widened to 0755",
+    mode === 0o700);
+  check('HM2-still-executable', 'and it is still executable by its owner', (mode & 0o100) !== 0);
+  check('HM3-gate-installed', 'the gate was installed despite the narrow mode',
+    readFileSync(hook, 'utf8').includes('agentsmyth:mandatory-lifecycle-gate'));
+  check('HM4-user-content-kept', "the user's own line survives", readFileSync(hook, 'utf8').includes('echo MINE'));
+
+  // A hook agentsmyth CREATES has no prior decision to preserve and must be executable, or git
+  // silently ignores it and the gate is not a gate.
+  const fresh = mkScratch('wpr25-hookmode-fresh-');
+  cleanup.push(fresh);
+  git(fresh, 'init', '-q');
+  git(fresh, 'config', 'user.email', 'test@example.com');
+  git(fresh, 'config', 'user.name', 'test');
+  git(fresh, 'config', 'core.hooksPath', '.githooks');
+  syncHome(home);
+  run(['init'], { cwd: fresh, home });
+  const freshMode = statSync(join(fresh, '.githooks', 'pre-commit')).mode & 0o777;
+  check('HM5-created-executable', 'a hook agentsmyth creates is 0755, since there is no prior mode to keep',
+    freshMode === 0o755);
+}
+
+// ── husky v9: core.hooksPath points at the GENERATED directory ───────────────────────────────
+{
+  const repo = mkScratch('wpr25-husky9-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  const gen = join(repo, '.husky', '_');
+  mkdirSync(gen, { recursive: true });
+  writeFileSync(join(gen, 'h'), HUSKY_DISPATCHER, { mode: 0o755 });
+  writeFileSync(join(gen, '.gitignore'), '*');
+  writeFileSync(join(gen, 'pre-commit'), HUSKY_SHIM, { mode: 0o755 });
+  // What `husky init` actually pre-populates is a command, and a host command that exits 0 is the
+  // case that silently skipped an appended gate.
+  writeFileSync(join(repo, '.husky', 'pre-commit'), '#!/usr/bin/env sh\necho HOST-RAN\nexit 0\n', { mode: 0o755 });
+  git(repo, 'config', 'core.hooksPath', '.husky/_');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const durable = join(repo, '.husky', 'pre-commit');
+  const generated = join(repo, '.husky', '_', 'pre-commit');
+  const durableText = existsSync(durable) ? readFileSync(durable, 'utf8') : '';
+  const generatedText = existsSync(generated) ? readFileSync(generated, 'utf8') : '';
+  const agentsMd = readFileSync(join(repo, 'AGENTS.md'), 'utf8');
+  const stub = stubGateBin('husky9');
+
+  check('HK1-durable-target', 'the gate is written to the durable parent, not the generated directory',
+    durableText.includes('agentsmyth:mandatory-lifecycle-gate') && !generatedText.includes('agentsmyth:mandatory-lifecycle-gate'));
+  // WP-R25 F21 changed this contract deliberately, so the assertion changed with it — and got
+  // stronger rather than looser. It used to require the gate at byte 0, which MOVED the host's
+  // `#!/usr/bin/env sh` to line 102 and left the file no longer declaring its own interpreter:
+  // inert under husky's `sh -e` dispatch, live the moment a developer runs the hook directly to
+  // debug it. The gate now sits directly beneath a leading shebang.
+  //
+  // Both halves are asserted, because satisfying either alone reintroduces one of the two bugs: the
+  // shebang must be on line 1, and the gate must still precede the host's own commands. HK6 proves
+  // the ordering actually holds by running a real commit; this is the structural statement of it.
+  const shebangFirst = durableText.startsWith('#!/usr/bin/env sh\n');
+  const gateAt = durableText.indexOf('# >>> agentsmyth:mandatory-lifecycle-gate >>>');
+  check('HK2-gate-first', 'the gate block follows a preserved line-1 shebang and precedes the host content',
+    shebangFirst && gateAt > 0 && gateAt < durableText.indexOf('echo HOST-RAN'));
+  check('HK3-host-preserved', "the host's own content is preserved below the gate",
+    durableText.includes('echo HOST-RAN'));
+  check('HK4-executable', 'the written hook is executable', (statSync(durable).mode & 0o111) !== 0);
+  // WP-R25 F21 — a shebang is only a shebang on line 1. Asserted separately from HK2 so a future
+  // change to the gate's position cannot quietly take this with it.
+  check('HK4b-shebang-line-1', "the host's shebang is still the first line of the file",
+    durableText.split('\n')[0] === '#!/usr/bin/env sh');
+  check('HK5-advertises-written', 'AGENTS.md advertises the path actually written',
+    /pre-commit hook at `\.husky\/pre-commit`/.test(agentsMd));
+
+  const first = commitWithStub(repo, stub, 'a.txt', 'first');
+  check('HK6-gate-executes', 'a real commit executes the gate ahead of the host command',
+    /GATE-RAN/.test(first.stdout + first.stderr));
+
+  // Now do what a dependency install does: husky rewrites every hook inside its generated dir.
+  writeFileSync(generated, HUSKY_SHIM, { mode: 0o755 });
+  const second = commitWithStub(repo, stub, 'b.txt', 'second');
+  check('HK7-survives-reinstall', 'the gate still executes after husky regenerates its dispatch directory',
+    /GATE-RAN/.test(second.stdout + second.stderr));
+
+  const up = run(['upgrade'], { cwd: repo, home });
+  const upOut = up.stdout + up.stderr;
+  check('HK8-no-false-drift', 'upgrade after a husky reinstall reports zero drifted files',
+    /0 edited/.test(upOut));
+  check('HK9-no-backup', 'no husky-generated content is copied into workflow/backups/',
+    !existsSync(join(repo, 'workflow', 'backups')) || readdirSync(join(repo, 'workflow', 'backups')).length === 0);
+  check('HK10-no-reconcile', 'no reconcile item is raised for a file the user never edited',
+    !/reconcile\./.test(readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8')));
+}
+
+// ── husky v8: core.hooksPath points at the PARENT, so no relocation must happen ──────────────
+{
+  const repo = mkScratch('wpr25-husky8-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  mkdirSync(join(repo, '.husky', '_'), { recursive: true });
+  writeFileSync(join(repo, '.husky', '_', '.gitignore'), '*');
+  // v8 writes `_/husky.sh`, never `_/h`, and points core.hooksPath at the parent — so git invokes
+  // `.husky/pre-commit` DIRECTLY as the hook, which makes the executable bit load-bearing here in a
+  // way it is not under v9, where the file is only sourced.
+  writeFileSync(join(repo, '.husky', '_', 'husky.sh'), '#!/usr/bin/env sh\n');
+  git(repo, 'config', 'core.hooksPath', '.husky');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  const hook = join(repo, '.husky', 'pre-commit');
+  const stub = stubGateBin('husky8');
+  check('HV1-no-relocation', 'a v8 layout is left where it already resolves correctly',
+    existsSync(hook) && readFileSync(hook, 'utf8').includes('agentsmyth:mandatory-lifecycle-gate'));
+  check('HV2-executable', 'the hook git invokes directly is executable', (statSync(hook).mode & 0o111) !== 0);
+  const commit = commitWithStub(repo, stub, 'c.txt', 'v8');
+  check('HV3-gate-executes', 'a real commit executes the gate under a v8 layout',
+    /GATE-RAN/.test(commit.stdout + commit.stderr));
+}
+
+// ── A manifest written before the relocation reports superseded, not missing ─────────────────
+{
+  const repo = mkScratch('wpr25-superseded-');
+  cleanup.push(repo);
+  git(repo, 'init', '-q');
+  git(repo, 'config', 'user.email', 'test@example.com');
+  git(repo, 'config', 'user.name', 'test');
+  const gen = join(repo, '.husky', '_');
+  mkdirSync(gen, { recursive: true });
+  writeFileSync(join(gen, 'h'), HUSKY_DISPATCHER, { mode: 0o755 });
+  writeFileSync(join(gen, '.gitignore'), '*');
+  writeFileSync(join(gen, 'pre-commit'), HUSKY_SHIM, { mode: 0o755 });
+  git(repo, 'config', 'core.hooksPath', '.husky/_');
+  syncHome(home);
+  run(['init'], { cwd: repo, home });
+
+  // Rewrite the manifest to the path a pre-relocation CLI would have recorded.
+  const manifestPath = join(repo, 'workflow', 'provenance.yaml');
+  writeFileSync(manifestPath,
+    readFileSync(manifestPath, 'utf8').replace('path: .husky/pre-commit', 'path: .husky/_/pre-commit'));
+
+  const up = run(['upgrade'], { cwd: repo, home });
+  const upOut = up.stdout + up.stderr;
+  check('HS1-superseded', 'an entry still on disk but no longer governed reports as superseded',
+    /superseded\s+\.husky\/_\/pre-commit/.test(upOut));
+  check('HS2-not-missing', 'it is not reported as recorded but no longer on disk',
+    !/\.husky\/_\/pre-commit\s+\(recorded but no longer on disk\)/.test(upOut));
+  check('HS3-no-backup', 'a superseded entry produces no backup and no reconcile item',
+    (!existsSync(join(repo, 'workflow', 'backups')) || readdirSync(join(repo, 'workflow', 'backups')).length === 0)
+    && !/reconcile\./.test(readFileSync(join(repo, 'workflow', 'config', 'pending-setup.yaml'), 'utf8')));
+}
+
+// ── Bundle pruning: the ledger is the blast radius ──────────────────────────────────────────
+//
+// Expansion used to be purely additive, so a skill or validator retired in one release lived on in
+// every tree that had installed the older one. The dangerous version of the fix is a whole-tree
+// sweep; the assertions below are mostly about what must SURVIVE, because that is the half that
+// eats a consumer's own files when it is wrong.
+{
+  const home = mkScratch('wpr25-prune-home-');
+  cleanup.push(home);
+  const wf = join(home, '.agentsmyth', 'workflow');
+
+  run(['prepare'], { cwd: repoRoot, home });
+  const ledgerPath = join(wf, 'expanded-files.txt');
+  const ledgerPresent = existsSync(ledgerPath);
+
+  // A file a PREVIOUS version shipped: present on disk and recorded in the ledger, but absent from
+  // the current bundle. This is the only shape that may be deleted.
+  const retired = join(wf, 'skills', 'retired-skill', 'SKILL.md');
+  mkdirSync(dirname(retired), { recursive: true });
+  writeFileSync(retired, '# retired by a later release\n');
+
+  // A file nothing ever recorded as ours — a user's own note, OS cruft, and the separately-copied
+  // validators tree. None of these may be touched.
+  const userFile = join(wf, 'my-own-notes.md');
+  writeFileSync(userFile, '# mine, not agentsmyth\'s\n');
+  const cruft = join(wf, 'skills', '.DS_Store');
+  writeFileSync(cruft, 'x');
+  const validatorsDir = join(home, '.agentsmyth', 'validators');
+
+  if (ledgerPresent) {
+    writeFileSync(ledgerPath, `${readFileSync(ledgerPath, 'utf8').trimEnd()}\nworkflow/skills/retired-skill/SKILL.md\n`);
+  }
+
+  run(['prepare'], { cwd: repoRoot, home });
+
+  check('PR1-ledger-written', 'prepare records what it expanded', ledgerPresent);
+  check('PR2-retired-pruned', 'a file the ledger records and this bundle no longer declares is removed',
+    !existsSync(retired));
+  check('PR3-unowned-survives', 'a file the ledger never recorded is left alone', existsSync(userFile));
+  check('PR4-cruft-survives', 'OS cruft is not a pruning candidate', existsSync(cruft));
+  check('PR5-validators-survive', 'the separately-copied validators tree is untouched',
+    existsSync(validatorsDir) && readdirSync(validatorsDir).length > 0);
+
+  // Idempotence: a second expansion over an already-current tree must change nothing.
+  const digest = () => {
+    const files = [];
+    const walk = (dir) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (e.isFile()) files.push(`${full.slice(home.length)}:${readFileSync(full).length}`);
+      }
+    };
+    walk(join(home, '.agentsmyth'));
+    return createHash('sha256').update(files.sort().join('\n')).digest('hex');
+  };
+  const before = digest();
+  run(['prepare'], { cwd: repoRoot, home });
+  check('PR6-idempotent', 'a repeated prepare over a current tree changes nothing', digest() === before);
 }
 
 for (const dir of cleanup) {

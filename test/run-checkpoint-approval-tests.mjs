@@ -196,6 +196,76 @@ const realDefs = join(repoRoot, 'src', 'workflow');
     r.status !== 0 && /RI1: artifact-shaped file outside/.test(out), out);
 }
 
+// WP-R25 F17 — BOTH advertised remedies must actually work.
+//
+// The gate used to offer three ways past the capability block, and one of them — "record a waiver in
+// the brief naming this requirement" — could not work: the gate exits before resolving any artifact
+// path and finish() has no waiver suppression, so a complete six-field waiver changed nothing. That
+// option is gone; these cases pin the two that remain, because an error that recommends a remedy
+// nobody implemented costs the reader a cycle and then teaches them to distrust the next one.
+//
+// Positive controls by necessity. The negative side already has three fixtures (je, jl, jm); none of
+// them can show that a remedy CLEARS the gate, which is the half a user actually follows.
+{
+  const profile = (extra) => 'version: 1\nkind: repo-profile\n\nrepository:\n  mode: single-repository\n'
+    + '  root: .\n  default_branch: main\n  workflow_root: workflow\n'
+    + '  artifacts_root: workflow/artifacts\n  learnings_sessions_root: workflow/learnings/sessions\n'
+    + `${extra}`;
+  const pendingTierItem = 'version: 1\nkind: pending-setup\nitems:\n  - id: PS-1\n'
+    + '    field: "tuning.council.model_tier"\n    status: open\n'
+    + '    question: "Which capability tier should council members run on?"\n';
+
+  const remedy = (label, extra, expectGated) => {
+    const dir = scratchRepo(`lifecycle-tier-${label}-`);
+    mkdirSync(join(dir, 'config'), { recursive: true });
+    writeFileSync(join(dir, 'config', 'pending-setup.yaml'), pendingTierItem);
+    if (extra !== null) writeFileSync(join(dir, 'config', 'repo-profile.yaml'), profile(extra));
+    const r = spawnSync(process.execPath, [validator, '--phase', 'think', '--dir', dir], {
+      cwd: dir, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: realDefs },
+    });
+    const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+    const gated = r.status !== 0;
+    scratchCheck(`tier-remedy-${label}`,
+      expectGated
+        ? 'with no tier and no opt-out, the capability gate still blocks'
+        : `the gate's advertised remedy "${label}" actually clears the block`,
+      gated === expectGated, out);
+  };
+
+  // The control first: if this stopped gating, the two below would pass for the wrong reason.
+  remedy('none', null, true);
+
+  // WP-R25 F2 — the gate must fire at REVIEW, not only at think.
+  //
+  // The precondition was keyed on `targetPhase === 'think'`, so `review` — the one phase gate the
+  // commit hook actually invokes — had no tier check at all, while the Review council's own skill
+  // pointed at the Think gate to hold it. Every existing fixture for this rule passes `--phase
+  // think`, so none of them could see it; this is the case that distinguishes the fix from the bug.
+  //
+  // A STAGED ARTIFACT is required, not incidental setup: the review gate exits early with "no
+  // lifecycle artifacts staged — skipping phase gate (trivial commit)" before the precondition is
+  // reached, so a fixture without one proves nothing. Found by this case failing for that reason on
+  // its first run.
+  {
+    const dir = scratchRepo('lifecycle-tier-review-');
+    mkdirSync(join(dir, 'workflow', 'config'), { recursive: true });
+    mkdirSync(join(dir, 'workflow', 'artifacts', 'tasks'), { recursive: true });
+    writeFileSync(join(dir, 'workflow', 'config', 'pending-setup.yaml'), pendingTierItem);
+    writeFileSync(join(dir, 'workflow', 'config', 'repo-profile.yaml'), profile(''));
+    writeFileSync(join(dir, 'workflow', 'artifacts', 'tasks', 'probe-chain-v1.md'), artifactBody('probe-chain', 'task'));
+    spawnSync('git', ['add', '-A'], { cwd: dir });
+    const r = spawnSync(process.execPath, [validator, '--phase', 'review'], {
+      cwd: dir, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: realDefs },
+    });
+    const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+    scratchCheck('tier-gates-at-review',
+      'the capability gate fires at --phase review, the phase the commit hook invokes',
+      r.status !== 0 && /no council capability tier is resolved/.test(out), out);
+  }
+  remedy('write-a-tier', '\ntuning:\n  council:\n    model_tier: standard\n', false);
+  remedy('disable-councils', '\ntuning:\n  council:\n    enabled: disabled\n', false);
+}
+
 for (const dir of scratchDirs) {
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
 }

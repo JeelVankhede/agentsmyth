@@ -237,6 +237,48 @@ Before writing the adapter to its target path, render all `{{TOKEN}}` values:
 
 Write the **rendered output** — not the raw template — to the tool-native path.
 
+#### Step 5a.3 — Place the council member definition, once the capability tier is answered
+
+Do this **only after** the `tuning.council.model_tier` pending-setup item is resolved, and do it as
+part of resolving it. Placement cannot happen at `init`: that item deliberately blocks, so the tier
+is unanswered by construction when `init` runs, and writing a definition then would put an
+unsubstituted placeholder into a host-native agent file — invalid frontmatter, expressing a value
+nobody has chosen.
+
+This is the step that makes the tier a parameter rather than a note. Councils dispatch members BY
+NAMING this definition, and the host resolves the model and effort it declares before the member
+runs. A tier passed as prose in a dispatch prompt is unenforceable: nothing reads it, nothing
+verifies it, and the parent cannot observe which model answered.
+
+1. Read `<definitions_root>/adapters/<tool>/council-member.md` for the tool this repo uses — the
+   same `definitions_root` recorded in `workflow/config/repo-profile.yaml`, which for a global
+   install is `~/.agentsmyth/workflow`. It carries that tool's own tier mapping and — importantly —
+   what that tool can and cannot honour.
+
+   Resolve it from the definitions tree, **not** from `.agentsmyth/`. This step used to name
+   `.agentsmyth/assets/adapters/<tool>/council-member.md`, which only `init` ever creates and which
+   setup then deletes — while the blocking tier item is appended to repos that **already exist**,
+   on version skew, by `upgrade`. So the one population that receives the item had no copy of the
+   template this step tells it to read, and the documented way out of a blocking gate did not exist.
+   `prepare` now installs these templates into the definitions tree, which every install path
+   produces and nothing deletes. If you are running inside a fresh `init` and the definitions tree
+   has not been linked yet, `.agentsmyth/assets/adapters/<tool>/council-member.md` is still there
+   as a fallback.
+2. Substitute `<COUNCIL-MODEL>` and, where the tool has a separate effort field, `<COUNCIL-EFFORT>`,
+   from the resolved tier. Resolve identifiers against the tool's **current** documentation; the
+   templates deliberately do not hard-code model names, because a shipped identifier rots and would
+   then be wrong for every consumer.
+3. Write the rendered definition to that tool's native per-repo agent path, named in the template's
+   own first line.
+4. Record what was actually honoured, not what was requested. Two of the five tools cannot express a
+   per-member effort at all — one has no effort field, and one keeps it in repository settings rather
+   than the agent file. For those, the effort axis is `unavailable`, and saying otherwise would claim
+   a capability the tool does not have.
+
+If the tier item is waived rather than answered, skip this step and record that councils will run on
+whatever the host defaults to — which is a legitimate choice, but is not a configured tier and must
+not be recorded as one.
+
 #### Step 5a.2 — Re-render the `init`-placed Cursor / non-macOS-Copilot adapter, if present
 
 `agentsmyth init` places `.cursor/rules/agentsmyth.mdc` unconditionally and
@@ -277,6 +319,14 @@ before Phase 1 of this skill ever runs.
   `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content
   to that path relative to the repo root. Create parent directories as needed. Do not expand
   files under `workflow/config/` — those were already written by the agent in Phase 3.
+
+  **Refuse any block whose declared path is not inside `workflow/`.** Skip it, and say which
+  blocks you skipped. A path containing `..`, an absolute path, or a Windows drive letter escapes
+  the repository, and a path outside `workflow/` is not this bundle's to write. The marker format
+  places no constraint on the path — the capture is anything up to the closing `-->` — so this is
+  the only check there is on this route. The CLI performs exactly the same check when it expands
+  the bundle itself; this branch exists for the case where the CLI did not, which is precisely
+  when nothing else will catch it.
   `workflow/artifacts/` and `workflow/learnings/` should already exist too (same reason as
   above — `init` runs before this skill regardless of link state); if somehow absent, create
   the same 7 empty phase directories and copy `workflow/learnings/{README.md,curated.md}` from

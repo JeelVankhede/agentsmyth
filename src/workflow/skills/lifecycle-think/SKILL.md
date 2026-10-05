@@ -90,6 +90,7 @@ For resumed or revised work, load the current slug chain first through `restore-
 
 Stop and ask, or return a blocked brief, when any of these apply:
 
+- Phase gate check exits non-zero: run `agentsmyth check --phase think --slug <active-slug>` at entry — stop immediately, do not proceed with a caveat.
 - The source-of-truth location or authority is required but unknown.
 - The domain rule, non-goal, protected path, release expectation, or verification expectation would change scope and is unclear.
 - The user request conflicts with configured repo/domain constraints and no waiver is provided (`constraint-conflict-scan` surfaces this — see What To Load).

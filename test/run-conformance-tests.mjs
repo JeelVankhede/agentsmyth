@@ -80,7 +80,7 @@ check('r10-table', 'action waiver claim in a table cell still flagged',
 const wt = run(V('check-waivers'), ['--dir', 'test/fixtures/conformance/waived-test'], { AGENTSMYTH_HOME: 'src/workflow' });
 check('r4-waiver-complete', 'waived-Test verify passes waiver completeness (no false-positive)',
   wt.status === 0);
-import { readdirSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
 // lib.mjs resolves its definitions root from repo-profile.yaml's `definitions_root`, which points
@@ -237,6 +237,27 @@ check('r22-every-suite-runs-in-ci', 'every :test script is invoked by CI and by 
   notInCi.length === 0 && notInRelease.length === 0,
   notInCi.length || notInRelease.length ? `ci: ${notInCi.join(', ') || 'none'} | release: ${notInRelease.join(', ') || 'none'}` : '');
 
+// WP-R25 F1 — every phase skill must tell the agent to run its own phase gate at entry.
+//
+// This exists because a rule can be correct, reachable, fixture-covered and mutation-defended while
+// nothing in the shipped product ever invokes it. The council capability gate was exactly that: the
+// commit hook's phase map cannot emit `think`, the router's gate instruction is scoped to
+// Build/Review/Test/Ship writes, and `lifecycle-think/SKILL.md` was the only phase skill of seven
+// with no `agentsmyth check --phase` line — so the one blocking rule this package added had no
+// invoker at all. Every suite passed while that was true, because each asserted the behaviour it
+// named and none asked whether a consumer reaches it.
+//
+// Asserting the WIRING rather than the rule is the point. A fix without this assertion regresses the
+// next time someone edits a skill or the hook's phase map, silently and with every suite green.
+const PHASE_SKILLS = ['think', 'plan', 'build', 'review', 'test', 'ship', 'reflect'];
+const missingGateLine = PHASE_SKILLS.filter((phase) => {
+  const src = readFileSync(join(repoRoot, 'src', 'workflow', 'skills', `lifecycle-${phase}`, 'SKILL.md'), 'utf8');
+  return !new RegExp(`agentsmyth check --phase ${phase}\\b`).test(src);
+});
+check('r25-every-phase-skill-invokes-its-gate', 'every phase skill runs its own phase gate at entry',
+  missingGateLine.length === 0,
+  missingGateLine.length ? `no \`agentsmyth check --phase <phase>\` line in: ${missingGateLine.join(', ')}` : '');
+
 // The mutation audit is the one suite the sweep above cannot catch, because it is deliberately not
 // named `:test` — it costs tens of minutes and must not run on every push. That exemption is what
 // makes it easy to lose: it was added, recorded a baseline, and was invoked by nothing. Pin it to
@@ -254,6 +275,66 @@ check('r22-mutation-audit-runs-at-release', 'the mutation-coverage ratchet is in
 const shipScoped = run(V('check-release-readiness'), ['--dir', 'test/fixtures/conformance/ship-gate-chain-scoped']);
 check('r22-ship-gate-chain-scoped', "another chain's pending finding does not block this chain's ship",
   shipScoped.status === 0);
+
+// WP-R25 F10 — `depth: shallow` must be USABLE. The web spot-check rule had no depth branch, so a
+// shallow council — defined by this package as running no challenge stage — was rejected the moment
+// any member filed a web citation, demanding a challenger it had just been told not to dispatch.
+// This is a positive control because no negative fixture can prove a rule stopped over-firing: the
+// fixture is a shallow record with web findings and no challenger, and it must pass.
+// WP-R25 F19 — the blocking item's documented way out must exist for the repos that receive it.
+//
+// Step 5a.3 of the setup skill told the reader to open
+// `.agentsmyth/assets/adapters/<tool>/council-member.md`. Only `init` creates `.agentsmyth/`, setup
+// deletes it on completion, and `check-setup-complete` REQUIRES it gone — while the blocking
+// capability item is appended to already-existing repos by `upgrade`. So the one population holding
+// the gate had no copy of the file the remedy names.
+//
+// Both halves are asserted, because fixing either alone leaves the path broken: the templates must
+// ride in the bundle (so `prepare` installs them into the definitions tree), and the skill must
+// resolve them from there rather than from the staging directory.
+{
+  const bundle = readFileSync(join(repoRoot, 'dist', 'workflow-bundle.md'), 'utf8');
+  const bundled = [...bundle.matchAll(/<!-- FILE: (workflow\/adapters\/[^/]+\/council-member\.md) -->/g)].map((m) => m[1]);
+  check('r25-council-member-templates-bundled',
+    'every adapter ships its council-member template inside the workflow bundle',
+    bundled.length === 5,
+    `bundle declares ${bundled.length} of 5: ${bundled.join(', ')}`);
+
+  // Scoped to the first council-member reference in the file rather than to a section slice.
+  // Slicing between "Step 5a.3" and "Step 5a.2" produced an EMPTY string, because 5a.2 is
+  // cross-referenced earlier in the document than 5a.3 is defined — so the assertion failed while
+  // the instruction it was checking was already correct. An empty haystack is the worst shape for a
+  // conformance check: it can only ever report a failure that is about itself.
+  const setupSkill = readFileSync(join(repoRoot, 'src', 'setup', 'SKILL.md'), 'utf8');
+  const firstRef = setupSkill.slice(0, setupSkill.indexOf('council-member.md') + 'council-member.md'.length);
+  check('r25-council-member-resolved-from-definitions',
+    'the tier-resolution step reads the template from the definitions tree, not the deleted staging dir',
+    firstRef.endsWith('<definitions_root>/adapters/<tool>/council-member.md'),
+    `the first council-member reference is "...${firstRef.slice(-70)}"`);
+}
+
+// WP-R25 F22 — the positive half: a record that DOES name the definition each member was dispatched
+// from must pass. Without this the negative fixture alone would be satisfied by a rule that rejects
+// every record, which is the failure mode a one-sided rule actually has.
+const namedDefinition = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-member-definition-named']);
+check('r25-council-member-definition-named-validates',
+  'a council record naming the definition each member ran from is accepted',
+  namedDefinition.status === 0,
+  namedDefinition.status === 0 ? '' : `rejected: ${(namedDefinition.stdout || '').split('\n').filter((l) => l.startsWith('- ')).join(' | ')}`);
+
+// And this repo owes itself the file, because it dogfoods its own lifecycle and resolves a tier.
+// F22 found it had none — a tier configured and nothing expressing it — so its own Review council
+// members ran on the host default. Asserted here so the next council here cannot quietly do the same.
+check('r25-this-repo-has-a-member-definition',
+  'this repo renders the council member definition its own resolved tier requires',
+  existsSync(join(repoRoot, '.claude', 'agents', 'agentsmyth-council-member.md')),
+  '.claude/agents/agentsmyth-council-member.md is absent while repo-profile.yaml resolves a tier');
+
+const shallowWeb = run(V('check-council-record'), ['--dir', 'test/fixtures/conformance/council-shallow-web']);
+check('r25-shallow-council-with-web-findings-validates',
+  'a shallow council record carrying web findings and no challenger is accepted',
+  shallowWeb.status === 0,
+  shallowWeb.status === 0 ? '' : `check-council-record rejected it: ${(shallowWeb.stdout || '').split('\n').filter((l) => l.startsWith('- ')).join(' | ')}`);
 
 // WP-R22 RI10 (OI-81) — the negative half of the per-question join, which is the whole reason the
 // change was made. A genuinely external question, resting on web alone and naming a bucket whose

@@ -60,6 +60,103 @@ it, so the entry for the version being released has to be committed *before* the
 - [ ] The release branch is merged into `main`, or you have accepted that `release.yml` will push
       the dispatched ref to `main` itself (`git push origin HEAD:main` is one of its steps).
 
+## Manual verification the automated suites cannot do
+
+> A readable, tickable version of this section is published at
+> <https://claude.ai/code/artifact/79171083-58f4-49a8-bf9a-b964a8fd05b8>.
+> **This file is canonical.** The page restates this section only — not the upgrade-path rehearsal
+> above or the deprecation windows below — and it carries counts that were current at WP-R25's Test
+> phase. Edit here; republish there.
+
+Seventeen suites and a mutation ratchet run in CI. They cover everything that can be checked from
+inside this repository — which is not the same as everything that matters. The entries below are the
+ones no suite here can settle, each with the reason it cannot.
+
+Run them against a **packed tarball** (`npm run pack:local`), not the working tree. Half the point is
+to exercise what a consumer receives.
+
+### The capability tier must take effect, not merely be recorded
+
+This is the claim the council feature rests on: a tier is "a parameter rather than a wish". Two
+validators now enforce that the member definition exists and that the record names it — and neither
+can observe whether the **host** honoured it. That is outside this repository by construction.
+
+- [ ] In a repo with a resolved `tuning.council.model_tier`, start work that classifies Complex so a
+      council fires, and confirm the dispatched member actually ran on the mapped model and effort.
+      For Claude Code with `standard` / `very-high` that is Sonnet at `xhigh`, per the mapping table
+      in `src/adapters/claude/council-member.md`.
+- [ ] Confirm the council record's `model_actual` reflects what the host reported, not what was
+      requested. A tier is a REQUEST — some hosts substitute by plan or admin policy, and the whole
+      reason the record carries both fields is that the two can differ.
+
+If the host silently ignores the definition, every mechanical check still passes and the feature is
+decorative. There is no way to learn that from here.
+
+### The other four tools
+
+- [ ] Run a council member on at least one non-Claude host before claiming five-tool support.
+      `prepare` installs all five templates and `check-setup-complete` requires one to be rendered;
+      nothing has ever executed a member on Codex, Copilot, Cursor or Windsurf.
+- [ ] Confirm the two hosts whose templates declare `effort: unavailable` genuinely have no
+      per-member effort control. That claim came from reading their docs, and a doc can be stale or
+      the product can gain the control without this package noticing.
+
+### Windows
+
+- [ ] Run `prepare`, `init`, `upgrade` and a `git commit` on Windows.
+
+`isSafeRelPath` rejects `\`-separated traversal and is unit-tested under `node:path/win32`
+semantics, which observes the predicate's behaviour but not the end-to-end filesystem consequence.
+The payload path is `workflow/provenance.yaml`, a committed file, so the traversal is reachable
+through an ordinary pull request — the inference is load-bearing and still an inference.
+
+### A real generator-managed hooks repo
+
+- [ ] `husky init` in a scratch repo, then `agentsmyth init`, then `git commit`, and confirm the gate
+      runs — not that the hook file exists. A hook that survives installation and never executes is
+      the failure this guards, and it is strictly worse than a missing hook because the path
+      advertised in `AGENTS.md` is literally correct.
+- [ ] Reinstall dependencies so husky regenerates `.husky/_/`, then commit again. The gate must still
+      run.
+- [ ] `chmod 0700` a hook before `init` and confirm the mode survives. An unconditional `0o755`
+      widened a deliberately private hook for one release.
+
+The suites transcribe husky's dispatcher from its installer. That is close, and it is not husky.
+
+### A genuinely stale global install
+
+The upgrade rehearsal above covers version skew. This covers the other half — a global definitions
+tree whose SCHEMAS predate the keys a newer CLI writes.
+
+- [ ] Install the previously published version globally, then run the candidate's `init` in a fresh
+      repo. Confirm the stale tree is detected and refreshed rather than linked to.
+- [ ] Before refreshing, run `agentsmyth check` against a repo whose config uses a key the old schema
+      does not declare. It must report that the DEFINITIONS are stale and name `agentsmyth upgrade`
+      — not report the valid config as "not allowed", which is a fault the user cannot fix by editing
+      config and which reads as though they can.
+
+This is the shape of the first real consumer bug report this feature produced, and it is reachable
+only in a mixed install.
+
+### Why this section exists
+
+`docs/release-checklist.md` has described the double-edit upgrade rehearsal — *"edit the same file a
+second time and upgrade again WITHOUT resolving the first reconcile item"* — since 1.0.1 shipped.
+A Review council then found that the code did not hold it: the supersede loop skipped the
+destination directory before the protection test, so the second edit overwrote the first edit's only
+surviving copy while the run printed "Your edits were preserved before anything was touched".
+
+So a correct manual step was written down and the defect shipped anyway. Two things follow, and both
+are the point of this section:
+
+1. **A checklist entry is not coverage until something executes it.** That scenario is now
+   `X7` in `test/run-upgrade-path-tests.mjs` and fails against the pre-fix CLI. Promote these entries
+   into suites whenever it becomes possible, and delete them from here when you do.
+2. **The entries that CANNOT be promoted are the ones to actually run.** Everything above is here
+   because automation from inside this repo cannot reach it — a different host, a different OS, a
+   different tool, a real generator. Those are exactly the entries a reader is most tempted to skip
+   because they take a machine and ten minutes.
+
 ## Deprecation windows
 
 `x_enforcement: warn-until-<version>` marks a schema declaration that is validated but whose

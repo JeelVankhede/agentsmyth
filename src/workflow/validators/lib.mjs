@@ -259,7 +259,40 @@ export function repoPath(...parts) {
 
 export function readText(pathFromRoot) {
   const abs = isAbsolute(pathFromRoot) ? pathFromRoot : repoPath(pathFromRoot);
-  return readFileSync(abs, 'utf8');
+  try {
+    return readFileSync(abs, 'utf8');
+  } catch (err) {
+    if (err?.code !== 'ENOENT') throw err;
+
+    // A missing DEFINITIONS file is a different failure from a missing artifact, and conflating the
+    // two is what made this unreadable. An absent artifact is content a validator should report on;
+    // an absent definitions file means the global install this repo is LINKED to is gone or
+    // incomplete, which no amount of editing the repo can fix. The raw ENOENT that used to escape
+    // here surfaced as a node stack trace naming an internal frame (`readText` then `loadYaml` then
+    // the calling validator) and said nothing about the install. Reachable today: linking a repo to
+    // an empty global tree succeeds, and the next check dies on it.
+    //
+    // THROWN, never exited. Exiting from here was tried and is wrong: a validator that reads an
+    // optional definitions file and wants to GATE on it being unreadable — rather than die — must be
+    // able to catch this, and one of them does exactly that. So this carries a flag instead, and the
+    // entry points that load definitions unconditionally at module scope catch the flag and print
+    // without a stack.
+    if (_defsRoot && abs.startsWith(_defsRoot)) {
+      const e = new Error(
+        `agentsmyth: required lifecycle definitions file not found: ${abs}\n`
+        + '\n  That path is inside the global definitions install this repo is linked to, so the'
+        + '\n  install is absent or incomplete rather than merely out of date.\n'
+        + '\n  Run "agentsmyth prepare" to reinstall the global definitions.'
+        + '\n  In a repo that is already set up, "agentsmyth upgrade" refreshes them and brings'
+        + '\n  this repo current in one step.',
+      );
+      e.code = 'ENOENT';
+      e.isMissingDefinitions = true;
+      e.missingPath = abs;
+      throw e;
+    }
+    throw err;
+  }
 }
 
 export function pathExists(pathFromRoot) {

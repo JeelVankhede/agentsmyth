@@ -10,7 +10,7 @@
 // A green result here means the record is well-formed and internally consistent. It does not mean
 // the thinking was good.
 import { homedir } from 'node:os';
-import { dataPath, defsPath, finish, listFiles, loadYaml, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
+import { dataPath, defsPath, finish, listFiles, loadYaml, mergeTunedMap, parseFrontmatter, pathExists, readText, repoRoot, wf } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const dirArgIdx = args.indexOf('--dir');
@@ -36,9 +36,72 @@ function resolveCouncilConfig() {
     ? `${artifactsDir}/config/repo-profile.yaml`
     : dataPath('config/repo-profile.yaml');
   try { repo = loadYaml(repoProfile)?.tuning?.council ?? {}; } catch { /* absent is fine */ }
-  return { ...defaults, ...global, ...repo };
+
+  // PER-ENTRY merge, reaching as deep as the data does — not a flat spread.
+  //
+  // This resolved council config with `{ ...defaults, ...global, ...repo }`. A flat spread replaces
+  // whole objects, which is harmless while every council key is a scalar and silently destructive
+  // the moment one is not. `per_phase` is map-valued and nests twice
+  // (`per_phase.<phase>.<setting>`), so a repo naming one setting of one phase lost every sibling
+  // setting of that phase — with nothing erroring, because a key that was dropped reads exactly like
+  // a key nobody set.
+  //
+  // `lib.mjs` documents this failure class at the `mergeTunedMap` definition: the same mistake in
+  // `skill_scoring.complexity_score.weights` dropped a `cap`, made the score NaN, turned every
+  // `complexity_score >= N` comparison false, and stopped every score-driven skill firing with no
+  // error anywhere. That helper is reused here rather than reimplemented, because a second merge
+  // with its own idea of depth is how the two drift apart.
+  //
+  // `mergeTunedMap` reaches ONE level, which is right for every other council key and one short for
+  // `per_phase`. Hence the explicit second pass: merge the phase map per entry, so naming
+  // `per_phase.review.model_tier` leaves `per_phase.review.default_fan_out` and the whole of
+  // `per_phase.think` exactly as resolved.
+  const merged = mergeTunedMap({ ...defaults, ...global }, repo);
+  const globalPhases = global?.per_phase;
+  const repoPhases = repo?.per_phase;
+  if (globalPhases || repoPhases) {
+    merged.per_phase = mergeTunedMap(globalPhases ?? {}, repoPhases ?? {});
+  }
+  return merged;
 }
 const councilConfig = resolveCouncilConfig();
+
+// How many OTHER council records in this tree carry per-member token data worth averaging.
+//
+// Reads the whole artifacts tree rather than the `--files` scope: a cost estimate rests on the
+// repo's accumulated history, and a staged-leg run that saw one file would otherwise call every
+// honest estimate inflated. Memoised because the cost rule can fire once per record.
+//
+// Scoped by `--dir` when one is given, for the reason resolveCouncilConfig() already records about
+// config: a fixture that resolves against the HOST repo's artifacts passes or fails depending on
+// which machine runs it, and on how many councils that machine's repo happens to have recorded.
+// Written unscoped first, which made the sample-exceeds-history fixture read "but 1 other council
+// record" from THIS repo's tree — it would have silently stopped failing once the repo accumulated
+// enough records.
+//
+// `unavailable` member values do not count. They are the honest answer where a host reports nothing,
+// and the schema is explicit that they must never be read as zero — a record whose every member is
+// `unavailable` contributes no measurement, so it is not history.
+let costHistoryCache = null;
+function priorCouncilCostRecords(excludeFile) {
+  if (costHistoryCache === null) {
+    costHistoryCache = new Map();
+    for (const candidate of listFiles(artifactsDir)) {
+      if (!candidate.endsWith('.md') || candidate.endsWith('/README.md')) continue;
+      let fm;
+      try { fm = parseFrontmatter(readText(candidate))?.frontmatter; } catch { continue; }
+      const c = fm?.council;
+      if (!c || c.mode !== 'council') continue;
+      const tokens = c.member_tokens;
+      if (!tokens || typeof tokens !== 'object') continue;
+      const measured = Object.values(tokens).some((v) => typeof v === 'number' && Number.isFinite(v));
+      if (measured) costHistoryCache.set(candidate, true);
+    }
+  }
+  let count = 0;
+  for (const candidate of costHistoryCache.keys()) if (candidate !== excludeFile) count += 1;
+  return count;
+}
 // Indirection so the fence helpers above can read the resolved config without a forward reference.
 const councilConfigRef = { value: councilConfig };
 
@@ -223,7 +286,23 @@ function checkCitation(file, id, cls, citation) {
   }
 }
 
-const artifactFiles = listFiles(artifactsDir).filter(
+// `--files <path>...` scopes the run to an explicit list instead of sweeping the artifacts tree.
+//
+// Added so the commit hook's `--staged` leg can run this validator at a cost proportional to the
+// commit. That leg is the only check that runs on EVERY commit, and it skipped this validator
+// outright; the per-artifact leg that does invoke it skips any artifact whose orchestration status
+// is not `ready-for-next-phase`, and a council terminating `user-decision-required` is written
+// `blocked-for-user`. So the commonest council record shape there is — the one that ends by asking
+// the user something — was committed with no council-record validation at all.
+//
+// Paths are taken as given and still filtered on extension, so a non-artifact staged alongside an
+// artifact is ignored rather than parsed as a record.
+const filesArgIdx = args.indexOf('--files');
+const explicitFiles = filesArgIdx !== -1
+  ? args.slice(filesArgIdx + 1).filter((a) => !a.startsWith('--'))
+  : null;
+
+const artifactFiles = (explicitFiles ?? listFiles(artifactsDir)).filter(
   (f) => f.endsWith('.md') && !f.endsWith('/README.md')
 );
 
@@ -299,6 +378,43 @@ for (const file of artifactFiles) {
     } else if (expectedReason && council.refusal_reason && council.refusal_reason !== expectedReason) {
       errors.push(`${file} council.refusal_reason is "${council.refusal_reason}" but the recorded resolution inputs require "${expectedReason}" — the kill switch is checked before council.enabled, which is checked before task class`);
     }
+
+    // The recorded inputs must match the CONFIG, not merely each other.
+    //
+    // Everything above cross-checks the resolution block against the record's own `mode`, which
+    // makes the block internally consistent and otherwise unverified. `council.enabled: disabled`
+    // is the gate's second advertised remedy for an unresolved capability tier, and it was honoured
+    // by the gate and enforced nowhere: a repo could declare councils disabled to clear the
+    // blocking item, record `council_enabled: on-for-complex` anyway, run a full council, and have
+    // both validators report green. A self-reported input that nothing compares against the source
+    // it claims to have read is an assertion, not a record.
+    //
+    // ONE DIRECTION ONLY: a council that RAN while the configuration says it must not.
+    //
+    // Checking both directions was wrong, and two existing fixtures said so — both record
+    // `council_enabled: disabled` to construct a refusal, and both began failing twice over. The
+    // reverse mismatch is not a bypass: a record saying the council stood down while config would
+    // have allowed it describes under-spending, which costs nobody anything. It is also frequently
+    // just true, because the resolution block records what was resolved AT RUN TIME and config
+    // drifts afterwards — the same reason the axes above are grandfathered by date.
+    //
+    // The asymmetry is the whole rule. Only the enabled-while-forbidden direction can hide a spend
+    // the user declined, which is what makes `council.enabled: disabled` a free bypass otherwise:
+    // declare councils off to clear the blocking setup item, record them as on, run them, green.
+    //
+    // Only checked when the config actually resolved a value — a fixture directory that declares no
+    // config keeps the defaults, and demanding a match against a default nobody set would reject
+    // every fixture.
+    const configuredEnabled = councilConfig.enabled;
+    if (configuredEnabled === 'disabled' && res.council_enabled !== undefined
+        && res.council_enabled !== 'disabled') {
+      errors.push(
+        `${file} records council.resolution.council_enabled "${res.council_enabled}" but the resolved `
+        + 'configuration says "disabled"; a council cannot have fired under a configuration that '
+        + 'forbids it, and "disabled" is the remedy the capability gate offers — so accepting the '
+        + 'record\'s own word here makes turning councils off a way to run them unexamined',
+      );
+    }
   }
 
   if (mode === 'refused') {
@@ -315,10 +431,144 @@ for (const file of artifactFiles) {
   }
 
   // --- council mode: summary fields must be complete --------------------------------------
-  for (const key of ['authorization', 'cap_resolved', 'cap_source', 'dispatch_depth', 'rounds_run', 'termination_reason']) {
+  // An override must say why. Checked here rather than left to review, because an override that is
+  // easy to set and easy to forget is a spend with nobody's name on it. Absence of `overrides` is
+  // not a violation and must not be treated as one: most runs do not depart from configuration, and
+  // requiring a reason from them would make the field noise.
+  const overrides = council.overrides;
+  // SHAPE FIRST. The reason requirement below tested `typeof overrides === 'object'`, so the obvious
+  // shorthand — `overrides: "model_tier=deep"` — was invisible to it and the rule never fired, while
+  // an array fired and reported a nonsense key list (its indices). The only validator that rejects
+  // the shape, check-artifacts.mjs, is on no consumer path. A guard that silently ignores every
+  // shape but one is a guard that the shorthand walks straight past.
+  if (overrides !== undefined && overrides !== null
+      && (typeof overrides !== 'object' || Array.isArray(overrides))) {
+    errors.push(
+      `${file} council.overrides is ${Array.isArray(overrides) ? 'an array' : `a ${typeof overrides}`} `
+      + '("' + String(overrides).slice(0, 60) + '"); it must be a mapping of setting to value, because '
+      + 'the reason requirement is keyed on which settings departed and cannot read them from a string',
+    );
+  } else if (overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0) {
+    const reason = typeof council.override_reason === 'string' ? council.override_reason.trim() : '';
+    if (reason === '') {
+      errors.push(
+        `${file} council.overrides departs from the resolved configuration (${Object.keys(overrides).join(', ')}) `
+        + 'but carries no council.override_reason; a departure with no stated reason is a spend with no owner',
+      );
+    }
+  } else if (typeof council.override_reason === 'string' && council.override_reason.trim() !== '') {
+    errors.push(
+      `${file} council.override_reason is set but council.overrides is empty; a reason for a departure `
+      + 'that did not happen describes a run other than this one',
+    );
+  }
+
+  // A cost estimate must either name the history it rests on, or say there is none.
+  //
+  // The failure this guards is a confident figure with nothing behind it. `no-history` is the correct
+  // and required answer for a repo's first council: there is nothing to average, and a number
+  // produced anyway would be invented. Any other value must state the sample it came from, so a
+  // reader can tell a mean of twelve runs from a mean of one.
+  if (typeof council.cost_estimate === 'string' && council.cost_estimate.trim() !== '') {
+    const estimate = council.cost_estimate.trim();
+    if (estimate !== 'no-history') {
+      const sampleMatch = estimate.match(/\b(?:over|across|from)\s+(\d+)\s+(?:prior\s+)?councils?/i);
+      if (!sampleMatch) {
+        errors.push(
+          `${file} council.cost_estimate "${estimate}" neither states the sample it rests on nor declares `
+          + '"no-history"; a cost figure that does not say how many prior runs produced it cannot be told '
+          + 'apart from one that was guessed',
+        );
+      } else {
+        const claimed = Number(sampleMatch[1]);
+        // CHECK THE CLAIM, NOT ITS GRAMMAR.
+        //
+        // This rule used to be satisfied by the SHAPE of a sample clause and nothing else, so three
+        // things passed that the rule's own text forbids: "from 0 councils" — precisely the case it
+        // says must be declared `no-history`; "from 3 councils" carrying no figure at all, which is
+        // a provenance note dressed as an estimate; and an asserted sample of 99 in a tree holding
+        // one council record, while this validator was enumerating those records in the same pass.
+        // A rule that reads its subject's syntax and not its substance is a spellchecker.
+        if (claimed === 0) {
+          errors.push(
+            `${file} council.cost_estimate "${estimate}" rests on a sample of zero; that is what `
+            + '"no-history" means and what this field requires for a repo\'s first council — a mean '
+            + 'over no runs is not a measurement',
+          );
+        } else if (!/\d[\d,._]*\s*(?:k\b|m\b|tokens?|usd|eur|cents?)|[$€£]\s*\d/i.test(estimate)) {
+          errors.push(
+            `${file} council.cost_estimate "${estimate}" names a sample of ${claimed} council(s) but `
+            + 'states no cost figure; the sample is the provenance of an estimate, not the estimate',
+          );
+        } else {
+          const available = priorCouncilCostRecords(file);
+          if (claimed > available) {
+            errors.push(
+              `${file} council.cost_estimate "${estimate}" claims a sample of ${claimed} council(s), but `
+              + `${available} other council record(s) in this tree carry per-member token data to average. `
+              + 'The sample cannot exceed the history it is drawn from — this validator enumerates those '
+              + 'records in the same pass, so the figure is checkable rather than a matter of trust',
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // A RECORD MUST RECORD THE DISPATCH IT DESCRIBES.
+  //
+  // `depth`, `model_tier` and `effort` were added to the schema as optional and left out of this
+  // list, so a council record omitting every one of them validated — which reproduced, for three
+  // new keys at once, precisely the defect `agent-behavior.yaml` cites as the reason for defining
+  // `depth` in the first place: "a knob a repo can set, an artifact records, and no behaviour
+  // consults is worse than an absent one, because the record implies a choice took effect."
+  //
+  // They are required HERE rather than in the schema because the schema is shared with every
+  // earlier record: a council brief written before these keys existed must stay valid, and this
+  // validator only reaches this line for `mode: council`. So the contract tightens for new records
+  // without invalidating old ones.
+  //
+  // GRANDFATHERED BY DATE, and this is the honest option rather than the convenient one. Requiring
+  // the three new keys retroactively would have meant editing records that describe councils which
+  // ran before the keys existed — writing a `model_tier` for a dispatch that never had one. A
+  // record exists to say what happened; backfilling it with a plausible value is the one thing it
+  // must never do. So the requirement starts on the day the keys gained operational meaning and
+  // every earlier record keeps describing its own run truthfully.
+  //
+  // The boundary is a FIXED DATE, not a rolling window, so it cannot widen: every record written
+  // from here on is covered, and the grandfathered set is closed and enumerable.
+  //
+  // Known limit, stated rather than hidden: `created` is author-written, so a new record could
+  // backdate itself past the boundary. That dodge lives in a committed artifact whose git history
+  // contradicts it, which is a different and much more visible kind of problem than a missing
+  // field — but it is not mechanically prevented here.
+  const COUNCIL_AXES_REQUIRED_FROM = '2026-10-04';
+  const createdOn = typeof parsed.frontmatter.created === 'string' ? parsed.frontmatter.created.trim() : '';
+  const predatesAxes = createdOn !== '' && createdOn < COUNCIL_AXES_REQUIRED_FROM;
+
+  const alwaysRequired = ['authorization', 'cap_resolved', 'cap_source', 'dispatch_depth', 'rounds_run', 'termination_reason'];
+  const requiredSinceAxes = ['depth', 'model_tier', 'effort'];
+  for (const key of predatesAxes ? alwaysRequired : [...alwaysRequired, ...requiredSinceAxes]) {
     if (council[key] === undefined || council[key] === null || council[key] === '') {
       errors.push(`${file} council mode requires frontmatter council.${key}`);
     }
+  }
+
+  // `member_tokens` with `unavailable` as the explicit opt-out.
+  //
+  // It was optional and unenforced, which made the cost history R13 is defined against impossible
+  // to accumulate: every record could omit it, so `cost_estimate: no-history` was permanently and
+  // correctly the only answer any council could ever give. A field that may always be omitted is
+  // not a record of anything. Hosts that genuinely cannot report per-member usage say so in the
+  // value — the same convention the adapters already use for an absent effort control — so the
+  // distinction between "not measured" and "not measurable here" survives in the artifact.
+  if (!predatesAxes && (council.member_tokens === undefined || council.member_tokens === null || council.member_tokens === '')) {
+    errors.push(
+      `${file} council mode requires frontmatter council.member_tokens; record it per member id, `
+      + 'using the literal "unavailable" as a member\'s value where the host reports nothing — an '
+      + 'always-omittable field cannot accumulate the cost history a later run\'s cost_estimate is '
+      + 'measured against',
+    );
   }
 
   if (council.dispatch_depth !== undefined && Number(council.dispatch_depth) !== 1) {
@@ -390,7 +640,43 @@ for (const file of artifactFiles) {
     input: col(m, 'input').toLowerCase(),
     status: col(m, 'status').toLowerCase(),
     sandbox: col(m, 'sandbox').trim(),
+    definition: col(m, 'definition').trim(),
   }));
+
+  // DISPATCHED BY NAMED DEFINITION, recorded per member.
+  //
+  // A record of members dispatched by prose was indistinguishable from one dispatched by
+  // named definition, so the mechanism that makes the capability tier a parameter rather than a wish
+  // had no check on either side — check-setup-complete now requires the file to exist, and this
+  // requires the record to say it was used. Either alone is evadable: the file can exist and be
+  // ignored, and a record can claim a definition that was never rendered.
+  //
+  // Grandfathered on its OWN boundary, one day later than the axes, and the difference is not
+  // fussiness. The axes became recordable the moment the keys existed — a council could resolve a
+  // tier and write it down the same day. A DEFINITION could not: the templates only reach a repo
+  // through the release that bundles them, so no record written before that release can name one.
+  //
+  // This repo is the worked example. Its own Review council resolved `model_tier: standard`,
+  // dispatched two members, and named no definition — because none had been rendered, which is
+  // precisely the gap F22 reported. Holding that record to this rule would force it to claim a
+  // mechanism its members never used, and a record that lies about how a council ran is worth less
+  // than no record.
+  //
+  // Paired with check-setup-complete, which requires the file to EXIST once a tier is resolved.
+  // Either check alone is evadable: a file can exist and be ignored, and a record can name a file
+  // that was never rendered. Together they bracket the mechanism.
+  const MEMBER_DEFINITION_REQUIRED_FROM = '2026-10-05';
+  const predatesDefinitions = createdOn !== '' && createdOn < MEMBER_DEFINITION_REQUIRED_FROM;
+  if (!predatesDefinitions) {
+    const undeclared = members.filter((m) => m.definition === '');
+    if (undeclared.length > 0) {
+      errors.push(
+        `${file} council log Members table gives no Definition for member(s) ${undeclared.map((m) => m.id).join(', ')}; `
+        + 'a member dispatched by prose cannot be told from one dispatched by a named definition, and only '
+        + 'the named definition carries the capability tier and effort the host actually resolves',
+      );
+    }
+  }
 
   if (members.length === 0) {
     errors.push(`${file} council log has no "### Members" subsection; findings cannot be attributed to members that are never declared`);
@@ -627,13 +913,90 @@ for (const file of artifactFiles) {
   // Per ROUND, which is what the skill and the README actually say. Satisfying every round from a
   // single challenger finding anywhere in the brief made the rule weaker than its own statement:
   // a later round could introduce web findings nobody sampled.
+  // BRANCHED ON DEPTH, because the three depths make three different promises.
+  //
+  // This rule keyed only on round, web findings and challenger presence, with no branch on depth at
+  // all — so it contradicted the semantics in both directions. `shallow` is DEFINED as running no
+  // challenge stage, which made it unusable: the moment any member filed a `web` citation the record
+  // was rejected for lacking a challenger spot-check that shallow had just been told not to produce.
+  // And `deep`, whose stated obligation is a per-member quota, got the identical single sample as
+  // `standard`, so the stricter setting bought nothing.
+  //
+  // The depth read is the RECORD's, which F11 above now requires, cross-checked against config
+  // below. Validating against the record is right here: the question is whether this run met the
+  // obligation of the depth it declares it ran at, not the one the repo currently happens to
+  // configure.
+  const recordDepth = typeof council.depth === 'string' ? council.depth.trim() : null;
+  const effectiveDepth = recordDepth || councilConfig.depth || 'standard';
+  const isSpotCheck = (f) => f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason);
   const webRounds = new Set(findings.filter((f) => f.cls === 'web').map((f) => f.round));
-  for (const r of [...webRounds].sort((a, b) => a - b)) {
-    const sampled = findings.some(
-      (f) => f.round === r && f.role === 'challenger' && /spot-?check/i.test(f.surface + f.citation + f.reason)
-    );
-    if (!sampled) {
-      errors.push(`${file} round ${r} has web finding(s) but no challenger spot-check in that round; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
+
+  if (effectiveDepth === 'shallow') {
+    // No challenge stage runs, so no sampling can be demanded. The web class still has no mechanical
+    // floor, and that cost is what choosing shallow buys — stated in the details so the reader of a
+    // shallow record knows the citations in it were never sampled, rather than having to infer it.
+    if (webRounds.size > 0) {
+      details.push(`${file} declares depth "shallow", so its ${webRounds.size} round(s) with web findings carry no challenger spot-check by definition; web citations in this record are unsampled`);
+    }
+  } else {
+    for (const r of [...webRounds].sort((a, b) => a - b)) {
+      const inRound = findings.filter((f) => f.round === r);
+      if (effectiveDepth === 'deep') {
+        // Per MEMBER that filed a web finding, which is what `deep` promises over `standard`.
+        // Reviewers only. A challenger that files a `web` citation is usually filing the spot-check
+        // itself, and demanding a sample of the sampler is an infinite regress — the first version
+        // of this rule did exactly that and reported the challenger as unsampled. The quota exists
+        // to put a second pair of eyes on research citations; the challenger IS that second pair.
+        const webFilers = [...new Set(
+          inRound.filter((f) => f.cls === 'web' && f.role !== 'challenger').map((f) => f.member),
+        )];
+        const sampledMembers = new Set(inRound.filter(isSpotCheck).flatMap((f) => {
+          // A challenger's spot-check names the member whose citation it sampled; when it names
+          // nobody it counts for whichever member it is attributed to, so a deep council cannot
+          // satisfy the quota with one unattributed sample.
+          const named = webFilers.filter((m) => m && (f.surface + f.citation + f.reason).includes(m));
+          return named.length > 0 ? named : [f.member];
+        }));
+        const unsampled = webFilers.filter((m) => !sampledMembers.has(m));
+        if (unsampled.length > 0) {
+          errors.push(`${file} declares depth "deep" but round ${r} has web finding(s) from member(s) ${unsampled.join(', ')} with no challenger spot-check naming them; deep requires one sample per member that filed a web citation, not one per round`);
+        }
+      } else if (!inRound.some(isSpotCheck)) {
+        errors.push(`${file} round ${r} has web finding(s) but no challenger spot-check in that round; web is the only class with no mechanical floor, so sampling is the only way a fabricated quote is caught`);
+      }
+    }
+  }
+
+  // The declared depth must be the configured one, or a declared departure.
+  //
+  // Without this, F11's new requirement would be satisfiable by writing whichever depth has the
+  // weakest obligation: a run configured `deep` could record `shallow` and skip sampling entirely.
+  // That turns a required field into a self-issued exemption, which is worse than the optional field
+  // it replaced.
+  // Grandfathered with the keys above, for the same reason: a record written before `depth` had
+  // operational meaning cannot be held to the depth a repo configures afterwards. wp-r18's review
+  // records `deep` against a repo that now resolves `standard`, and that is a true statement about
+  // a run that happened under the earlier reading, not a departure anyone chose.
+  // Every recorded axis must be the RESOLVED one, or a declared departure.
+  //
+  // `depth` is here because it decides which sampling obligation this record is held to, so a record
+  // free to name its own depth could pick the weakest one. `model_tier` and `effort` are here for
+  // the reason the whole axis requirement exists: requiring a record to CARRY a value it is free to
+  // invent records a choice nobody made, which is the defect being closed rather than a smaller
+  // version of it. An intentional departure is expressible — that is what `overrides` is for — and
+  // the reason requirement above then applies to it.
+  const declaredOverrides = council.overrides && typeof council.overrides === 'object' && !Array.isArray(council.overrides)
+    ? Object.keys(council.overrides) : [];
+  const axisChecks = [
+    ['depth', recordDepth, councilConfig.depth, 'depth decides which sampling obligation this record is held to'],
+    ['model_tier', typeof council.model_tier === 'string' ? council.model_tier.trim() : null, councilConfig.model_tier, 'the tier is what each member actually ran on'],
+    ['effort', typeof council.effort === 'string' ? council.effort.trim() : null, councilConfig.effort, 'effort is an independent axis and is billed independently'],
+  ];
+  if (!predatesAxes) {
+    for (const [key, recorded, configured, why] of axisChecks) {
+      if (!recorded || !configured || recorded === configured) continue;
+      if (declaredOverrides.includes(key)) continue;
+      errors.push(`${file} records council.${key} "${recorded}" but the resolved configuration says "${configured}"; a departure must appear in council.overrides with a council.override_reason, because ${why}`);
     }
   }
 
@@ -954,7 +1317,9 @@ for (const file of artifactFiles) {
 }
 
 if (artifactFiles.length === 0) {
-  details.push(`no lifecycle artifact files found under ${artifactsDir}`);
+  details.push(explicitFiles
+    ? 'no lifecycle artifact files among the paths given'
+    : `no lifecycle artifact files found under ${artifactsDir}`);
 }
 
 // Texture, not a bare pass. The resolved-vs-shape-checked ratio is how a reader sees how much of a

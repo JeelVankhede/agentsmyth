@@ -93,6 +93,74 @@ round**, filed as its own finding. `web` is the only evidence class with no mech
 sampling is the sole mechanism by which a fabricated quote gets caught rather than merely being
 wrong.
 
+## Capability Tier
+
+Resolve `council.model_tier` BEFORE the fan-out stage, in the same pass that resolves the cap — and
+refuse to dispatch if it is unresolved while `tuning.council.model_tier` is still an open
+pending-setup item. That refusal is not this skill's to improvise: `check-lifecycle --phase think`
+holds it mechanically, and the Think gate runs ahead of stage 1, so it lands before any member is
+spawned rather than after the bill.
+
+This is the one setup answer in the package that blocks, and the asymmetry is deliberate. Fan-out has
+a defensible default; a capability tier does not, because any default chosen here is this package
+deciding how much the user spends.
+
+**Dispatch members BY NAMING the adapter's council-member definition**, never by describing a role in
+prose and hoping. A tier passed as prompt text is unenforceable — nothing reads it, nothing verifies
+the member honoured it, and the parent cannot observe which model answered. A named definition is
+resolved by the host before the member runs, which is the difference between a parameter and a wish.
+The definition is placed by the setup skill at the tool's native per-repo agent path; its template
+lives in that adapter's `council-member.md` and carries the tool's own tier mapping.
+
+**Record the request and the outcome separately.** `council.model_tier` is what was asked for;
+`council.model_actual` is what the host reports members ran on, or the literal `unknown` when it
+reports nothing. They are two fields because a tier is a request, not a guarantee: some hosts replace
+a declared model by plan or administrator policy, so writing the request into the outcome would be
+claiming external state without evidence. `unknown` is an honest value and must never be inferred
+from the tier.
+
+**Two of the five supported tools cannot express a per-member effort at all** — one has no effort
+field, and one keeps it in repository settings rather than the agent file. For those, the effort axis
+is `unavailable`, recorded the same way an unavailable evidence class is. Reporting it as honoured
+would assert a capability the tool does not have.
+
+**Report the likely cost before dispatching, from this repo's own history.** Read the `member_tokens`
+recorded on prior council records under `workflow/artifacts/`, take the mean per member, and multiply
+by the fan-out this round will actually use. Record what you told the user as `council.cost_estimate`,
+and say how many prior councils it rests on — a mean of twelve runs and a mean of one are different
+claims and must not read alike.
+
+If there are no prior records, the estimate is the literal `no-history`. Do not produce a figure
+anyway. **Never compute a cost from fan-out times rounds times an assumed per-member price**: that
+produces a confident number with no evidence behind it, which is the shape `[safety-3]` forbids, and
+a validator rejects any estimate that neither names its sample nor declares `no-history`.
+
+A host that does not report per-member usage contributes `unavailable` for that member, never zero. A
+zero would be averaged in as though it were a measurement and would drag every later estimate down.
+
+**A run may depart from the resolved configuration, and must say why.** Raise `depth`, `model_tier`
+or `effort` for a single round when the work genuinely warrants it, record the departure under
+`council.overrides` and the reason under `council.override_reason`. The reason is mandatory and
+mechanically enforced: an override that is easy to set and easy to forget is a spend with nobody's
+name on it. Do not ask the user to confirm an override every time — a question whose most common
+answer restores the status quo trains people to wave it through. Record it instead.
+
+Per-phase configuration resolves before any of this: `council.per_phase.<phase>` may carry its own
+`model_tier` and `effort` alongside `default_fan_out`, merged per entry against the council-wide
+values. Review and Think are not equivalent — a Review verdict blocks a commit and a Think verdict
+does not — so they are allowed to be funded differently.
+
+**Three axes, three questions, and none of them substitutes for another.** `depth` decides how many
+stages run. `model_tier` decides what each member runs on. `council.effort` decides how hard each
+member thinks within a stage, on a portable five-level scale (`low`, `standard`, `high`,
+`very-high`, `max`) that each adapter maps onto its own host. A research-only pass on the standard
+tier at `very-high` effort is a coherent request, and so is a full challenge pass on a cheap tier at
+`low`.
+
+Resolve all three before fan-out and record all three. An earlier version folded effort into the
+tier, which made the first of those requests inexpressible and left the richest host's top two
+effort levels unreachable — a three-value tier cannot address five levels.
+
 ## Evidence And Dispositions
 
 Follow `dispatch-subagents/references/council-contracts.md`. It is the shared contract — the Review

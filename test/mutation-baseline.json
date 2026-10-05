@@ -22,7 +22,7 @@
       "undefended": 0
     },
     "check-council-record.mjs": {
-      "rules": 73,
+      "rules": 85,
       "undefended": 0
     },
     "check-coverage-ledger.mjs": {
@@ -54,7 +54,7 @@
       "undefended": 0
     },
     "check-lifecycle.mjs": {
-      "rules": 22,
+      "rules": 23,
       "undefended": 0
     },
     "check-manifest-coverage.mjs": {
@@ -86,7 +86,7 @@
       "undefended": 0
     },
     "check-setup-complete.mjs": {
-      "rules": 13,
+      "rules": 14,
       "undefended": 0
     },
     "check-setup-refs.mjs": {

@@ -1073,3 +1073,179 @@ items:
     outcome: proved-real
     closed_in_phase: ship
     resolution: "Closed before merge rather than carried. The finding was real - the eight-entry branch was genuinely unexercised through Review, Test and Ship - but the waiver assumed a missing platform when what was missing was an assertion on a platform CI already ran. Block H1 in test/run-upgrade-path-tests.mjs now exercises it on ubuntu and skips loudly on darwin with the platform named. Verified before push by forcing the non-darwin branch in a package copy: 5/5."
+  - id: FQ-134
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Think gate wired to the shipped skill; the real fix is the conformance case asserting EVERY phase skill invokes its own gate, verified failing when the line alone is removed."
+  - id: FQ-135
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Precondition now derives its phase set from the resolved council.per_phase map, so review gates too and a future phase gaining a council is covered without anyone remembering."
+  - id: FQ-136
+    finding_id: F3
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "expandBundle refuses a bundle declaring nothing, ledger written before deletions; trial on a truncated bundle went from 252 files removed to 254 intact, exit 1, no stack frames."
+  - id: FQ-137
+    finding_id: F4
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Real silent data loss, fixed at both deletion sites. Honest nuance: F5 relocation removed the only path that reaches the guard, so it stands as a backstop and no test can isolate it; X8 covers the behaviour and fails pre-fix. Reasoning recorded beside the code."
+  - id: FQ-138
+    finding_id: F5
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Destination chosen before superseding and relocated on a protected collision, so both edits survive; X7 fails pre-fix. X6 could not have caught it - it steps the version between runs."
+  - id: FQ-139
+    finding_id: F6
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "resolveInTree resolves the parent chain through symlinks and asserts containment per component; a user file outside the tree now survives a prune that names it."
+  - id: FQ-140
+    finding_id: F7
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "isSafeRelPath splits on both separators and rejects a drive letter in any segment; eight cases pinned under node:path/win32 so a POSIX runner still observes Windows semantics."
+  - id: FQ-141
+    finding_id: F8
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Gate keys on the resolved VALUE. Exposed a second defect the review missed: the global model_tier default shipped in Phase 3 made a value-based gate vacuous, so it was removed and its absence is now the mechanism."
+  - id: FQ-142
+    finding_id: F9
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Fixed structurally rather than by a catch - a corrupt or absent file cannot produce a tier, so the value-based gate fails closed. Note: loadYaml does not throw on the malformed YAML tested, so the catch F9 proposed would never have fired."
+  - id: FQ-143
+    finding_id: F10
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Spot-check rule branched three ways on resolved depth; shallow is usable again and deep enforces a per-member quota. A conformance positive proves shallow stopped over-firing, which no negative fixture can."
+  - id: FQ-144
+    finding_id: F11
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "depth, model_tier, effort and member_tokens required on post-boundary records, grandfathered by date rather than backfilled - inventing a tier for a dispatch that never had one is the one thing a record must not do. This chain own review already carried all four with real counts, so the cost history F11 called impossible now has its first entry."
+  - id: FQ-145
+    finding_id: F12
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Shape checked before the reason rule, so the shorthand string no longer walks past it."
+  - id: FQ-146
+    finding_id: F13
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Declared paths validated on the write side with the same containment the delete uses; the read/write asymmetry was the bug."
+  - id: FQ-147
+    finding_id: F14
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Prune scoped to the workflow/ subtree and the overclaiming comment corrected. validators/lib.mjs survived pre-fix only because copyRecursive runs later - ordering, not containment - so the test asserts on a file nothing restores."
+  - id: FQ-148
+    finding_id: F15
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Rule now checks the claim rather than its grammar: zero sample must be no-history, a sample needs a figure, and it may not exceed the records carrying token data. History scoped by --dir after an unscoped first draft counted this repo own artifacts."
+  - id: FQ-149
+    finding_id: F16
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Recorded council_enabled cross-checked against resolved config in one direction only - enabled-while-forbidden. Two existing fixtures proved both directions wrong by failing twice over."
+  - id: FQ-150
+    finding_id: F17
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "The unimplementable waiver remedy was already dropped by the F8 rewrite; what was owed was proof the two survivors work, added as positive controls since no negative fixture can show a remedy clearing a block."
+  - id: FQ-151
+    finding_id: F18
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Council validator now runs on the --staged leg too, scoped to staged artifacts via a new --files argument; the blocked-for-user shape that both legs skipped is covered and the test drives the real CLI, since the defect was wiring."
+  - id: FQ-152
+    finding_id: F19
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Council-member templates ride in the bundle so prepare installs them into the definitions tree, and the skill resolves definitions_root first; verified against a scratch HOME, all five land in the tree and the ledger."
+  - id: FQ-153
+    finding_id: F20
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Supersede sweep consults an ownership index instead of a name-shape test, and says once per run when it leaves pre-index directories alone. X5 could not have caught it - its fixture directory is named nightly, which the shape test already excluded."
+  - id: FQ-154
+    finding_id: F21
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Existing hook modes preserved and the gate inserted below a line-1 shebang. HK2 changed with the contract and got stronger; three assertions verified failing pre-fix."
+  - id: FQ-155
+    finding_id: F22
+    source_artifact: workflow/artifacts/reviews/wp-r25-prerelease-hardening-v1.md
+    first_seen_run: wp-r25-prerelease-hardening-v1
+    disposition: accepted
+    outcome: proved-real
+    closed_in_phase: review
+    resolution: "Both halves closed - the file must exist and the record must name it. It caught this repo: a tier was configured and nothing expressed it, so its own council members ran on the host default. Definition now rendered; the existing record is NOT backfilled, and the requirement has its own later boundary because a definition only arrives with the release that bundles the templates."

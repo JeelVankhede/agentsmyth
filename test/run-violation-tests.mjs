@@ -203,6 +203,10 @@ const fixtures = [
   // base (test/fixtures/conformance/council-wellformed) with exactly one mutation, so a rejection
   // is attributable to the rule under test rather than to incidental breakage. The positive control
   // lives in the conformance suite so this suite stays purely negative.
+  // WP-R25 Phase 7 — the three rules added with the per-run override and the cost history.
+  { id: 'jf', dir: 'test/fixtures/lifecycle-violations/jf-override-no-reason', description: '(WP-R25) a run departs from configuration with no stated reason — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'carries no council.override_reason' },
+  { id: 'jg', dir: 'test/fixtures/lifecycle-violations/jg-reason-no-override', description: '(WP-R25) a reason is given for a departure that did not happen — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'council.overrides is empty' },
+  { id: 'jh', dir: 'test/fixtures/lifecycle-violations/jh-estimate-no-sample', description: '(WP-R25) a cost figure that names no sample and is not no-history — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'neither states the sample it rests on' },
   { id: 'ca', dir: 'test/fixtures/lifecycle-violations/ca-unattributed-finding', description: '(WP-R21, R3) council finding has no source member — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'finding F1 has no source member — unattributed findings are invalid'},
   { id: 'cb', dir: 'test/fixtures/lifecycle-violations/cb-empty-rejection-reason', description: '(WP-R21, R4) rejected-with-reason carries an empty reason — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'finding F3 is rejected-with-reason but its reason is empty — "rejected'},
   { id: 'cc', dir: 'test/fixtures/lifecycle-violations/cc-fanout-growth', description: '(WP-R21, R13) round 2 fan-out exceeds round 1 — non-increasing invariant — check-council-record', validator: validatorPath('check-council-record.mjs') , expect: 'round 2 fan-out (5) exceeds round 1 (4)'},
@@ -356,6 +360,43 @@ const fixtures = [
   { id: 'gc', dir: 'test/fixtures/definitions/gc-schema-missing-artifact', description: '(OI-82) frontmatter schema omits an artifact the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gc-schema-missing-artifact' }, expect: 'schema missing artifact reflect' },
   { id: 'gd', dir: 'test/fixtures/definitions/gd-schema-missing-phase', description: '(OI-82) frontmatter schema omits a phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/gd-schema-missing-phase' }, expect: 'schema missing phase reflect' },
   { id: 'ge', dir: 'test/fixtures/definitions/ge-schema-missing-next-phase', description: '(OI-82) frontmatter schema omits a next_phase the contract requires — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), env: { AGENTSMYTH_WF: 'test/fixtures/definitions/ge-schema-missing-next-phase' }, expect: 'schema missing next_phase done' },
+  // WP-R25 R4 — the one pending-setup item that blocks. Reachable only because the Think gate
+  // honours --dir; the rule itself fires before stage 1, which is before any fan-out, so the refusal
+  // lands ahead of the spend rather than after it.
+  // WP-R25 F8/F9 remediation — the gate now keys on the resolved VALUE, so neither flipping the
+  // item's status nor removing the item clears it. Both were silent clearances before.
+  { id: 'jl', dir: 'test/fixtures/lifecycle-violations/jj-tier-resolved-no-value', description: '(WP-R25 F8) the tier item is marked resolved but no value was written — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  { id: 'jm', dir: 'test/fixtures/lifecycle-violations/jk-pending-absent', description: '(WP-R25 F9) no pending-setup file at all, and still no resolved tier — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  { id: 'je', dir: 'test/fixtures/lifecycle-violations/je-council-tier-unset', description: '(WP-R25) the council capability tier is unanswered and councils can fire — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'no council capability tier is resolved' },
+  // WP-R25 F10/F11/F12/F16 remediation — the record must carry the dispatch it describes, and the
+  // three axes must be checked against the config rather than taken on the record's word.
+  //
+  // Each fixture is derived from one clean council-mode review and carries exactly ONE defect, which
+  // is what keeps the attribution sweep meaningful. jp and jq additionally ship a fixture-local
+  // `config/repo-profile.yaml`: without it jp's record also contradicted its own `mode` (two errors,
+  // so the new rule was not the one being proven) and jq's depth read as an undeclared departure
+  // rather than reaching the sampling quota at all.
+  { id: 'jn', dir: 'test/fixtures/lifecycle-violations/jn-council-member-tokens-absent', description: '(WP-R25 F11) a council record omits member_tokens, so no cost history can ever accumulate — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'requires frontmatter council.member_tokens' },
+  { id: 'jo', dir: 'test/fixtures/lifecycle-violations/jo-council-overrides-as-string', description: '(WP-R25 F12) overrides written as the obvious shorthand string bypassed the mandatory-reason rule — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'it must be a mapping of setting to value' },
+  { id: 'jp', dir: 'test/fixtures/lifecycle-violations/jp-council-enabled-contradicts-config', description: '(WP-R25 F16) the record claims councils were enabled while the repo configures them off — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'but the resolved configuration says' },
+  { id: 'jq', dir: 'test/fixtures/lifecycle-violations/jq-council-deep-unsampled-member', description: '(WP-R25 F10) depth deep leaves one web-citing member unsampled, which standard would have allowed — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'deep requires one sample per member that filed a web citation' },
+  { id: 'jr', dir: 'test/fixtures/lifecycle-violations/jr-council-depth-departs-unflagged', description: '(WP-R25 F10) the record declares a depth the config does not, with no override — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'a departure must appear in council.overrides' },
+  // WP-R25 F15 — the cost rule read its subject's GRAMMAR, so all three of these passed while the
+  // rule's own text forbids each one. The sample-vs-history case is why the history lookup is
+  // scoped by --dir: unscoped it counted this repo's own records and would have stopped failing.
+  { id: 'js', dir: 'test/fixtures/lifecycle-violations/js-cost-estimate-zero-sample', description: '(WP-R25 F15) a cost estimate resting on a sample of zero, which must be declared no-history — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'rests on a sample of zero' },
+  { id: 'jt', dir: 'test/fixtures/lifecycle-violations/jt-cost-estimate-no-figure', description: '(WP-R25 F15) a cost estimate naming a sample but stating no cost figure — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'states no cost figure' },
+  { id: 'ju', dir: 'test/fixtures/lifecycle-violations/ju-cost-estimate-sample-exceeds-history', description: '(WP-R25 F15) a cost estimate claiming a larger sample than the tree holds — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'The sample cannot exceed the history it is drawn from' },
+  // WP-R25 F22 — the mechanism that makes the tier a parameter had no check on either side. This is
+  // the record half; check-setup-complete requires the file to exist. Dated past its own boundary,
+  // which is one day later than the axes boundary because a definition only reaches a repo through
+  // the release that bundles the templates.
+  { id: 'jv', dir: 'test/fixtures/lifecycle-violations/jv-council-member-no-definition', description: '(WP-R25 F22) members recorded with no definition, indistinguishable from dispatch by prose — check-council-record', validator: validatorPath('check-council-record.mjs'), expect: 'gives no Definition for member(s)' },
+  // WP-R25 F8, second half. The gate keyed on PRESENCE, so a tier that no adapter mapping has a row
+  // for satisfied it and was handed onward; the enum was checked only by check-config.mjs, which no
+  // consumer path invoked. Both halves are closed now — the gate rejects an unmappable value at the
+  // point of use, and check-config runs from `agentsmyth check`.
+  { id: 'jw', dir: 'test/fixtures/lifecycle-violations/jw-council-tier-not-an-enum-value', description: '(WP-R25 F8) a tier is written but is not a value any adapter can map — check-lifecycle', validator: validatorPath('check-lifecycle.mjs'), args: ['--phase', 'think'], expect: 'which is not one of cheap | standard | deep' },
   // OI-82 — check-pending-setup, previously 8 of 8 undefended for a structural reason rather than
   // an oversight: it was the one validator without `--dir`, resolving a hardcoded repoRoot path, so
   // no fixture could reach any of its rules. Adding the flag every other validator already carries
@@ -575,7 +616,13 @@ const SWEPT_VALIDATORS = /check-(council-record|finding-quality|lifecycle)\.mjs$
 const councilFixtures = fixtures.filter((f) => SWEPT_VALIDATORS.test(f.validator));
 let multi = 0;
 for (const fixture of councilFixtures) {
-  const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir],
+  // Pass `fixture.args` here too. The sweep previously re-ran each fixture with `--dir` ALONE, so a
+  // fixture whose rule is only reachable with an extra flag ran in a different mode than the main
+  // pass — it then emitted zero errors and was reported as failing attribution, which reads as "this
+  // fixture rejects for two reasons" when the truth is "the sweep did not invoke the rule at all".
+  // The sweep must exercise the fixture the same way the suite does, or it is measuring a different
+  // run than the one it is drawing a conclusion about.
+  const result = spawnSync(process.execPath, [fixture.validator, '--dir', fixture.dir, ...(fixture.args ?? [])],
     { cwd: repoRoot, encoding: 'utf8', env: { ...env, ...(fixture.env ?? {}) } });
   const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   const count = combined.split('\n').filter((l) => l.startsWith('- ')).length;
