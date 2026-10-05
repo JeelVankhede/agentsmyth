@@ -82,9 +82,26 @@ const bundleLines = [
   '',
 ];
 
-for (const rel of workflowFiles) {
+// The council-member templates ride in the bundle so the DEFINITIONS TREE carries them.
+//
+// They used to reach a consumer only through `init`, which stages them in `.agentsmyth/` — a
+// directory setup deletes, and which `prepare` and `upgrade` never create at all. But the blocking
+// capability-tier item is appended to EXISTING repos on version skew, so exactly the population that
+// receives the item had no copy of the template its documented resolution step tells them to read.
+// Bundling them puts them wherever the definitions root resolves to, which is the one location every
+// install path produces and nothing deletes.
+//
+// Synced from src/adapters/ rather than duplicated into src/workflow/, so the adapters stay the
+// single source of truth (golden rule 3: change one, change all — which only holds while there IS
+// one).
+const councilMemberTemplates = walkFiles('src/adapters').filter((rel) => rel.endsWith('/council-member.md'));
+
+for (const rel of [...workflowFiles, ...councilMemberTemplates]) {
   const content = read(rel);
-  bundleLines.push(`<!-- FILE: ${rel.replace(/^src\/workflow\//, 'workflow/')} -->`);
+  const bundledAs = rel.startsWith('src/adapters/')
+    ? rel.replace(/^src\/adapters\//, 'workflow/adapters/')
+    : rel.replace(/^src\/workflow\//, 'workflow/');
+  bundleLines.push(`<!-- FILE: ${bundledAs} -->`);
   bundleLines.push(content.trimEnd());
   bundleLines.push(`<!-- END FILE -->`);
   bundleLines.push('');

@@ -2,7 +2,7 @@
 slug: fix-definitions-root-portability
 version: 1
 artifact: task
-status: complete
+status: done
 created: 2026-07-23
 updated: 2026-07-23
 manifest_ids: [R1, R2]
@@ -11,7 +11,7 @@ upstream:
   - workflow/artifacts/plans/fix-definitions-root-portability-v1.md
 orchestration:
   phase: build
-  status: complete
+  status: done
   next_phase: review
   blockers: []
   user_checkpoint: none

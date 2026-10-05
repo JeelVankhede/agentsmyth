@@ -12,6 +12,12 @@ const sourceCommands = [
   // Recurrence guard: every field named in the setup reference docs must exist in the schemas
   // (audit-remediation R8). Reads src/setup/references/ and src/workflow/schemas/.
   ['node', ['src/workflow/validators/check-setup-refs.mjs']],
+  // Definitions must be validated against their schemas HERE, under AGENTSMYTH_WF, not from
+  // check-config below. check-config runs on the repo-local root because it also reads
+  // workflow/config/; the definitions it would reach from there are whichever copy the two-root
+  // resolver returns — ~/.agentsmyth on a developer machine, the build-synced copy in CI. Local and
+  // CI validated different files, and a source change read clean until `prepare` ran.
+  ['node', ['src/workflow/validators/check-definitions.mjs']],
 ];
 
 // WP-R4 Wave 1 semantic checks — validate this repo's own dogfooded lifecycle artifacts
@@ -22,6 +28,11 @@ const sourceCommands = [
 // two-root resolver (WP-R2) used exactly as designed, not a new mechanism.
 const artifactEnv = { ...process.env, AGENTSMYTH_HOME: 'src/workflow' };
 const artifactCommands = [
+  // check-artifacts was never invoked here — it ran only against test fixtures, so this repo's own
+  // artifacts went unchecked and drifted (WP-R8 Review F7). Wired in with a baseline that
+  // grandfathers the 96 violations that already existed; every new one fails, including new ones in
+  // the same files. The baseline can only shrink — a stale entry is an error.
+  ['node', ['src/workflow/validators/check-artifacts.mjs', '--baseline', 'workflow/config/artifact-baseline.yaml']],
   ['node', ['src/workflow/validators/check-waivers.mjs']],
   ['node', ['src/workflow/validators/check-coverage-ledger.mjs']],
   ['node', ['src/workflow/validators/check-coverage-range-shorthand.mjs']],
@@ -33,13 +44,19 @@ const artifactCommands = [
   ['node', ['src/workflow/validators/check-skill-triggers.mjs']],
   ['node', ['src/workflow/validators/check-phase-map.mjs']],
   ['node', ['src/workflow/validators/check-assumptions.mjs']],
+  ['node', ['src/workflow/validators/check-council-record.mjs']],
   ['node', ['src/workflow/validators/check-verify-matrix.mjs']],
   ['node', ['src/workflow/validators/check-followups.mjs']],
   ['node', ['src/workflow/validators/check-open-items.mjs']],
+  // Was never registered anywhere, so it never ran — the same "exists but is not wired" defect as
+  // the unapplied agent-behavior schema. Run directly it failed immediately on this repo.
+  ['node', ['src/workflow/validators/check-pending-setup.mjs']],
+  ['node', ['src/workflow/validators/check-finding-quality.mjs']],
   // Previously documented but never actually invoked by any script, CI job, or test runner
   // (found via audit-validator-fixture-gaps) — both check real dev-workspace/repo state directly,
   // no env override needed.
   ['node', ['src/workflow/validators/check-config.mjs']],
+  ['node', ['src/workflow/validators/check-schema-keywords.mjs']],
   ['node', ['src/workflow/validators/check-domain-placeholders.mjs']],
   ['node', ['src/workflow/validators/check-constraint-conflicts.mjs']],
   // Mechanical regression check for skill_scoring.triggers predicates against the fixed

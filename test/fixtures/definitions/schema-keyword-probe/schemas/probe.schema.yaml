@@ -1,0 +1,38 @@
+$schema: http://json-schema.org/draft-07/schema#
+$id: probe
+title: Schema-engine keyword probe
+type: object
+required: [version, kind]
+properties:
+  version:
+    type: integer
+  kind:
+    type: string
+    enum: [probe]
+  patterned:
+    type: string
+    pattern: "^[a-z]+$"
+  short:
+    type: string
+    minLength: 5
+  low:
+    type: integer
+    minimum: 10
+  high:
+    type: integer
+    maximum: 10
+  few:
+    type: array
+    minItems: 2
+  dupes:
+    type: array
+    uniqueItems: true
+  needs:
+    type: array
+    contains:
+      type: string
+      enum: [required-value]
+  choice:
+    oneOf:
+      - type: integer
+      - type: number

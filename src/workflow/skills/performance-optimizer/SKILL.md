@@ -14,7 +14,7 @@ This is a power skill, not a lifecycle phase. It is passive/scored: the agent ev
 ## Invocation Context
 
 Use this skill when the recorded `skill_scoring` trigger for `domain.performance-optimizer`
-evaluates true: `path~hotpath_globs OR complexity_score >= 60`.
+evaluates true: `path~hotpath_globs OR complexity_score >= thresholds.domain.performance-optimizer`.
 
 Do not invoke it for changes with no plausible performance impact (documentation, test-only
 changes, or logic entirely off any hot path).

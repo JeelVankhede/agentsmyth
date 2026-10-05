@@ -1,0 +1,162 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: release.schema.yaml
+title: Release Config
+type: object
+additionalProperties: false
+required:
+  - version
+  - kind
+  - release
+  - gates
+  - statuses
+  - recommendations
+  - rollback
+  - waivers
+properties:
+  version:
+    const: 1
+  kind:
+    const: release
+  release:
+    type: object
+    additionalProperties: false
+    required:
+      - required
+      - owner
+      - default_recommendation_when_no_release_gate
+    properties:
+      required:
+        type: boolean
+      owner:
+        type: string
+      default_recommendation_when_no_release_gate:
+        type: string
+        enum:
+          - ship
+          - hold
+  gates:
+    type: object
+    additionalProperties: false
+    required:
+      - branch
+      - pull_request
+      - ci
+      - release
+      - deployment
+      - docs
+      - package
+      - generated_output
+      - source_of_truth
+      - rollback
+    properties:
+      branch:
+        $ref: '#/$defs/gate'
+      pull_request:
+        allOf:
+          - $ref: '#/$defs/gate'
+          - type: object
+            properties:
+              create_policy:
+                type: string
+                enum:
+                  - user_requested_or_configured
+                  - never
+                  - always_when_required
+      ci:
+        allOf:
+          - $ref: '#/$defs/gate'
+          - type: object
+            properties:
+              provider:
+                type: string
+              checks:
+                type: array
+                items:
+                  type: string
+      release:
+        $ref: '#/$defs/gate'
+      deployment:
+        $ref: '#/$defs/gate'
+      docs:
+        $ref: '#/$defs/gate'
+      package:
+        $ref: '#/$defs/gate'
+      generated_output:
+        $ref: '#/$defs/gate'
+      source_of_truth:
+        $ref: '#/$defs/gate'
+      rollback:
+        $ref: '#/$defs/gate'
+  statuses:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      enum:
+        - pass
+        - fail
+        - pending
+        - blocked
+        - not applicable
+        - waived
+  recommendations:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      enum:
+        - ship
+        - hold
+        - hold-with-waiver
+  rollback:
+    type: object
+    additionalProperties: false
+    required:
+      - do_not_invent_commands
+      - required_fields
+    properties:
+      do_not_invent_commands:
+        type: boolean
+      required_fields:
+        type: array
+        minItems: 1
+        items:
+          type: string
+  waivers:
+    type: object
+    additionalProperties: false
+    required:
+      - approvers
+      - required_fields
+    properties:
+      approvers:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      required_fields:
+        type: array
+        minItems: 1
+        items:
+          type: string
+  extensions:
+    type: object
+    additionalProperties: true
+$defs:
+  gate:
+    type: object
+    additionalProperties: true
+    required:
+      - required
+      - evidence
+    properties:
+      required:
+        oneOf:
+          - type: boolean
+          - type: string
+            enum:
+              - when_changed_or_configured
+              - when_configured
+              - when_release_or_external_handoff_is_in_scope
+      evidence:
+        type: string

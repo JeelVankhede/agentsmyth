@@ -130,6 +130,11 @@ Stop and ask, or return a blocked task artifact, when any of these apply:
     elsewhere.
 7. Use authorized dispatch only for independent workstreams with no file, import, contract, or generated-output overlap.
 8. Record every changed file with manifest IDs and a short reason.
+8a. Run the repo's configured validate command right after writing or updating an artifact, not
+    only at the end of the phase. It is cheap, and the failures it catches are failures in the
+    artifact's own prose — a coverage cell whose wording reads as a drop claim, a malformed phase
+    number, a table missing a required column. Deferring it to Test means finding them long after
+    the context that produced them is gone, and having to reconstruct what the cell meant.
 9. Run focused checks that are available and relevant to the active phase.
 10. Record exact commands, area, outcome, and notes; record not-run checks with reason and risk.
 11. Update blockers when conflicts, missing dependencies, sandbox/network limits, branch mismatches, or scope changes appear.

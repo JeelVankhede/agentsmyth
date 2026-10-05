@@ -160,8 +160,7 @@ For each item in `.agentsmyth/assets/`, apply the collision rule:
 | Target path | Rule |
 |---|---|
 | `workflow/config/` (no existing populated configs) | Copy placeholder YAMLs — agent already filled them in Phase 3, so this is a no-op (configs were written directly to `workflow/config/`) |
-| `AGENTS.md` does not exist | Copy `.agentsmyth/assets/AGENTS.md` to repo root |
-| `AGENTS.md` exists | Read the existing file. Append the agentsmyth section from `.agentsmyth/assets/AGENTS.md` under a `## agentsmyth Workflow` heading. Never overwrite. |
+| `AGENTS.md` (any state) | **Do not touch it.** `agentsmyth init` owns this file and has already written its marked block before this skill starts — see the repo-local marker note in Step 5a.1. Copying or appending here would leave a second, unmarked copy that no later upgrade could find, refresh, or remove. |
 | `adapters/` does not exist | Copy `.agentsmyth/assets/adapters/` to repo root |
 | `adapters/<tool>/` exists | Copy only missing subdirs. Skip what is already there. |
 | `docs/knowledge-map/` does not exist | Create it and write `repo-mental-map.md` (already written in Phase 3) |
@@ -179,6 +178,31 @@ Before placing anything, check whether the chosen tool's **global** gate is alre
 | Copilot (macOS only) | `~/Library/Application Support/Code/User/prompts/agentsmyth.instructions.md` | `<!-- agentsmyth global gate BEGIN -->` / `<!-- agentsmyth global gate END -->` |
 | Cursor | none — no global mechanism exists for this tool | not applicable |
 
+##### Repo-local marker — not a global gate
+
+The table above lists **global** gate files, outside any repository. Separately from all of them,
+`agentsmyth init` writes one marked block into the repository's own root `AGENTS.md`:
+
+| Written by | File | Begin / end marker |
+|---|---|---|
+| `agentsmyth init` | `AGENTS.md` (repo root) | `<!-- agentsmyth:<version> BEGIN -->` / `<!-- agentsmyth:<version> END -->` |
+
+The stamp is the package version that wrote the block. `init` locates it by **pattern**, never by
+literal string, which is what lets a later release find a block an earlier release wrote, replace it
+in place, and tell which version it is migrating from. A literal match would make every release
+append a second block instead of replacing the first.
+
+Two consequences worth stating plainly. Content between those markers is overwritten by the next
+`init`, so never hand-edit it. Content outside them is the user's and is never touched — including a
+stray unpaired marker, which `init` deliberately leaves alone rather than absorbing.
+
+One known limitation, recorded so it is not discovered the hard way. The match is a text pattern,
+not a Markdown parse, so it has no notion of a fenced code block. A well-formed marker pair shown
+inside a fenced sample in `AGENTS.md` — documentation of this very convention, most likely — is
+indistinguishable from a real block and will be replaced by a live one on the next `init`. If that
+file must document the markers, escape the angle brackets or split the marker across lines. Nothing
+outside `AGENTS.md` is affected: `init` reads no other file for markers.
+
 If the marker pair is present in the tool's global file, **skip the per-repo placement below for that tool** — the global gate already covers it. Two cases always still need the per-repo placement, since no global mechanism reaches them: **Cursor** (no global file exists for it at all) and **Copilot on a non-macOS platform** (the global install only writes Copilot's gate on macOS). `agentsmyth init` already places both of these mechanically and deterministically before this skill starts (see Step 5a.2 below) — check whether the target path already exists before treating either as unplaced.
 
 Based on the agent tool identified during Phase 2's resolution pass, and only when the check above did not find an active global gate for it and the target path isn't already populated by `init` (Cursor / non-macOS Copilot), place the adapter at the path the tool reads automatically:
@@ -186,7 +210,7 @@ Based on the agent tool identified during Phase 2's resolution pass, and only wh
 | Agent tool | Source adapter | Target path in repo | Notes |
 |---|---|---|---|
 | Claude Code | `adapters/claude/CLAUDE.md` | `.claude/CLAUDE.md` | Create `.claude/` if missing. If `.claude/CLAUDE.md` exists, append agentsmyth gate under a `## agentsmyth` heading. |
-| Codex | `adapters/codex/AGENTS.md` | `AGENTS.md` (root) | Handled by Step 5a above — AGENTS.md placement already covers this. |
+| Codex | none — nothing to place | `AGENTS.md` (root) | Already written by `init` as the generic fallback block, which Codex reads natively. The generic block serves Codex and every tool with no first-class adapter, so there is no separate Codex placement. |
 | Copilot | `adapters/copilot/copilot-instructions.md` | `.github/copilot-instructions.md` | Create `.github/` if missing. Append if file exists. |
 | Cursor | `adapters/cursor/rules/index.mdc` | `.cursor/rules/agentsmyth.mdc` | Create `.cursor/rules/` if missing. |
 | Windsurf | `adapters/windsurf/.windsurfrules` | `.windsurfrules` (root) | Append if file exists. |
@@ -212,6 +236,48 @@ Before writing the adapter to its target path, render all `{{TOKEN}}` values:
    Do not remove the section line itself — the consumer must see what is missing.
 
 Write the **rendered output** — not the raw template — to the tool-native path.
+
+#### Step 5a.3 — Place the council member definition, once the capability tier is answered
+
+Do this **only after** the `tuning.council.model_tier` pending-setup item is resolved, and do it as
+part of resolving it. Placement cannot happen at `init`: that item deliberately blocks, so the tier
+is unanswered by construction when `init` runs, and writing a definition then would put an
+unsubstituted placeholder into a host-native agent file — invalid frontmatter, expressing a value
+nobody has chosen.
+
+This is the step that makes the tier a parameter rather than a note. Councils dispatch members BY
+NAMING this definition, and the host resolves the model and effort it declares before the member
+runs. A tier passed as prose in a dispatch prompt is unenforceable: nothing reads it, nothing
+verifies it, and the parent cannot observe which model answered.
+
+1. Read `<definitions_root>/adapters/<tool>/council-member.md` for the tool this repo uses — the
+   same `definitions_root` recorded in `workflow/config/repo-profile.yaml`, which for a global
+   install is `~/.agentsmyth/workflow`. It carries that tool's own tier mapping and — importantly —
+   what that tool can and cannot honour.
+
+   Resolve it from the definitions tree, **not** from `.agentsmyth/`. This step used to name
+   `.agentsmyth/assets/adapters/<tool>/council-member.md`, which only `init` ever creates and which
+   setup then deletes — while the blocking tier item is appended to repos that **already exist**,
+   on version skew, by `upgrade`. So the one population that receives the item had no copy of the
+   template this step tells it to read, and the documented way out of a blocking gate did not exist.
+   `prepare` now installs these templates into the definitions tree, which every install path
+   produces and nothing deletes. If you are running inside a fresh `init` and the definitions tree
+   has not been linked yet, `.agentsmyth/assets/adapters/<tool>/council-member.md` is still there
+   as a fallback.
+2. Substitute `<COUNCIL-MODEL>` and, where the tool has a separate effort field, `<COUNCIL-EFFORT>`,
+   from the resolved tier. Resolve identifiers against the tool's **current** documentation; the
+   templates deliberately do not hard-code model names, because a shipped identifier rots and would
+   then be wrong for every consumer.
+3. Write the rendered definition to that tool's native per-repo agent path, named in the template's
+   own first line.
+4. Record what was actually honoured, not what was requested. Two of the five tools cannot express a
+   per-member effort at all — one has no effort field, and one keeps it in repository settings rather
+   than the agent file. For those, the effort axis is `unavailable`, and saying otherwise would claim
+   a capability the tool does not have.
+
+If the tier item is waived rather than answered, skip this step and record that councils will run on
+whatever the host defaults to — which is a legitimate choice, but is not a configured tier and must
+not be recorded as one.
 
 #### Step 5a.2 — Re-render the `init`-placed Cursor / non-macOS-Copilot adapter, if present
 
@@ -253,6 +319,14 @@ before Phase 1 of this skill ever runs.
   `.agentsmyth/workflow-bundle.md`. For each `<!-- FILE: <path> -->` block, write the content
   to that path relative to the repo root. Create parent directories as needed. Do not expand
   files under `workflow/config/` — those were already written by the agent in Phase 3.
+
+  **Refuse any block whose declared path is not inside `workflow/`.** Skip it, and say which
+  blocks you skipped. A path containing `..`, an absolute path, or a Windows drive letter escapes
+  the repository, and a path outside `workflow/` is not this bundle's to write. The marker format
+  places no constraint on the path — the capture is anything up to the closing `-->` — so this is
+  the only check there is on this route. The CLI performs exactly the same check when it expands
+  the bundle itself; this branch exists for the case where the CLI did not, which is precisely
+  when nothing else will catch it.
   `workflow/artifacts/` and `workflow/learnings/` should already exist too (same reason as
   above — `init` runs before this skill regardless of link state); if somehow absent, create
   the same 7 empty phase directories and copy `workflow/learnings/{README.md,curated.md}` from
@@ -281,7 +355,7 @@ Before removing `.agentsmyth/`, output a one-line summary for each file written 
 copied   workflow/router.md
 copied   workflow/lifecycle.md
 ...
-skipped  AGENTS.md (exists — appended agentsmyth section instead)
+skipped  AGENTS.md (owned by init — marked block already written, not touched here)
 ```
 
 Show the log to the user and wait for acknowledgement before proceeding.
@@ -304,6 +378,35 @@ dirs, Markdown) and small single-file diffs pass automatically; anything else mu
 a real lifecycle task artifact, or the commit is rejected. The only bypass is git's own
 `git commit --no-verify` — no new flag or config toggle exists. If the repo already had a custom
 `pre-commit` hook, `init` appended this check to the end of it rather than overwriting.
+
+#### Step 5f — Re-record the provenance baseline
+
+```bash
+agentsmyth upgrade --baseline
+```
+
+This is not optional and it is not a formality. `init` recorded a provenance baseline at the end
+of its run — a digest of every governed file as agentsmyth wrote it — but that was **before** this
+skill existed to fill anything in. Phase 3 of this skill rewrote all five config files, replacing
+placeholder templates with real values, so every digest `init` recorded is now stale by design.
+
+Leave it stale and the first `agentsmyth upgrade` this repo ever runs will read all five configs as
+user-edited, back up all five, and raise five reconcile items about edits the user never made. The
+feature that exists to tell deliberate edits from staleness would report drift on a repo nobody
+had touched.
+
+Re-running it here says "this filled state is what agentsmyth wrote", which is true, and is the
+point at which it becomes true.
+
+Confirm the command reported a non-zero file count, and include that count in the Output summary
+below. If it reports fewer files than `init` did, something this skill wrote is missing — stop and
+report rather than proceeding.
+
+Then run `agentsmyth check` and confirm it reports no drift. That check compares every recorded
+digest against the file on disk, so it is the mechanical confirmation that this step actually
+happened — without it, a skipped or failed 5f is invisible until the first real upgrade fires a
+reconcile item for every config. If `check` reports that all governed files differ from what is
+recorded, 5f did not take effect; re-run it before proceeding.
 
 This is the final step.
 

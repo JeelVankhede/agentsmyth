@@ -1,77 +1,11 @@
 version: 1
 kind: open-items
 items:
-  - id: OI-1
-    source: follow-up
-    owner: user (to schedule)
-    next_action: "Design + implement Wave 3 (C1-C3 explorers, D1-D7 domain experts, E1 verification-parallelizer) — narrowed from the original Wave 2-4 scope now that Wave 2 (B1, B2, B6, B9, E2) has shipped"
-    status: done
-    first_seen_run: power-skills-spine-v1
-  - id: OI-2
-    source: follow-up
-    owner: user
-    next_action: "Run a real Standard/Complex task through the Wave 1 invariant spine to measure actual drift reduction, per the resolved spec's own §8 checkpoint, before starting Wave 2–4"
-    status: done
-    first_seen_run: power-skills-spine-v1
-  - id: OI-3
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to open a PR for this Wave 0+1 chain (target feat/system-level-install, per the branch decision)"
-    status: done
-    first_seen_run: power-skills-spine-v1
-  - id: OI-4
-    source: follow-up
-    owner: user/agent
-    next_action: "Audit other shipped validators for the same \"passed its fixture, never tested against a real artifact\" risk class found in check-scope-fence/check-manifest-coverage/check-release-readiness"
-    status: done
-    first_seen_run: power-skills-spine-v1
-  - id: OI-5
-    source: follow-up
-    owner: user
-    next_action: "Watch for recurrence of the mid-session unexplained auto-staging anomaly; investigate if it happens again"
-    status: open
-    first_seen_run: power-skills-spine-v1
-  - id: OI-6
-    source: follow-up
-    owner: user (to schedule)
-    next_action: "Design + implement Wave 4 (B4, remaining playbooks)"
-    status: done
-    first_seen_run: power-skills-wave2-v1
-  - id: OI-7
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to open a PR for the Wave 2 chain (target feat/wp-r4-power-skills-spine or main, re-check origin/main staleness at that time per this chain's own R8 lesson)"
-    status: done
-    first_seen_run: power-skills-wave2-v1
-  - id: OI-8
-    source: follow-up
-    owner: user/agent
-    next_action: "Investigate the recurring range-shorthand habit (3 occurrences across 2 chains) with a structural check, rather than relying on Review noticing it again. Done: shipped as part of PR #37 (feat/lifecycle-process-hardening) -- check-coverage-range-shorthand.mjs, narrowed to the Requirement/Manifest Coverage table position after real evidence showed a repo-wide scan would false-positive ~46 times."
-    status: done
-    first_seen_run: power-skills-wave2-v1
-  - id: OI-9
-    source: follow-up
-    owner: user
-    next_action: "Consider whether this per-work-package branching workflow needs a standing \"fetch + check origin/main before Ship\" step, given R8's stale-main root cause. Done: shipped as part of PR #37 -- lifecycle-ship/SKILL.md gained Workflow step 4a."
-    status: done
-    first_seen_run: power-skills-wave2-v1
-  - id: OI-10
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to open a PR for the Wave 3 chain (target main, re-check origin/main staleness at that time per Wave 2's R8 lesson) — resolved: main was already byte-identical to the Wave 3 branch by the time this was checked (cause undetermined), so no PR was needed"
-    status: done
-    first_seen_run: power-skills-domain-experts-v1
   - id: OI-11
     source: follow-up
     owner: user/agent
-    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification"
+    next_action: "Add a Plan-phase cross-check (spec card phase list vs. declared Touches) to catch a D3-class wiring gap earlier than Build's own grep -l verification. TRIAGED 2026-08-31: closer than it was, but NOT closed by OI-77. That item shipped a Plan-phase Touches check in check-scope-fence, so the mechanism and the hook point now exist — it validates that each declared path is a real repo-relative path, catching interior globs and non-existent parent directories. What it does not do is the cross-check this item names: comparing a spec card's declared phase list against the Touches actually declared for those phases. OI-77 proves a path is well-formed; OI-11 asks whether the right paths are listed at all. Implement as an extension of the existing check rather than a new validator."
     status: open
-    first_seen_run: power-skills-domain-experts-v1
-  - id: OI-12
-    source: follow-up
-    owner: user/agent
-    next_action: "Update Ship's own default behavior to ask \"resolved fix vs. genuine waiver\" before presenting a checkpoint — now a confirmed repeating pattern (Wave 2's R8, this chain's E1/D3 items). Done: shipped as part of PR #37 -- lifecycle-ship/SKILL.md gained Workflow step 6a."
-    status: done
     first_seen_run: power-skills-domain-experts-v1
   - id: OI-13
     source: follow-up
@@ -79,46 +13,10 @@ items:
     next_action: "Consider a periodic (not per-chain) manual quality pass across all 39 D1-D7 route files, since only 21 were directly spot-read during this chain's Review"
     status: open
     first_seen_run: power-skills-domain-experts-v1
-  - id: OI-14
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to open a PR for the Wave 4 chain (target main). Done: confirmed via git log/merge-base that the Wave 4 lifecycle artifacts (commit e40dc5b) were bundled into and merged with PR #29 (feat/power-skill-sandbox), not shipped as a separate PR -- no action needed."
-    status: done
-    first_seen_run: power-skills-wave4-v1
-  - id: OI-15
-    source: follow-up
-    owner: user/agent
-    next_action: "Consider the \"mark artifact approved before real user review\" self-check as a structural habit, given it recurred 3 times within Wave 4 alone. Done: shipped as part of PR #37 -- rules.md gained a new ## Approval section stating the rule explicitly."
-    status: done
-    first_seen_run: power-skills-wave4-v1
-  - id: OI-16
-    source: follow-up
-    owner: user
-    next_action: "WP-R4 is now fully complete (all 4 waves, 26 total skills) — decide what initiative comes next"
-    status: open
-    first_seen_run: power-skills-wave4-v1
-  - id: OI-17
-    source: follow-up
-    owner: user
-    next_action: "Merge PR #29 (feat/power-skill-sandbox), then retarget/merge PR #30 to main. Done: confirmed via gh pr list -- both #29 and #30 (feat/wp-r5-repo-shape-taxonomy) are merged."
-    status: done
-    first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-18
     source: follow-up
     owner: user
-    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does."
-    status: open
-    first_seen_run: wp-r5-repo-shape-taxonomy-v1
-  - id: OI-19
-    source: follow-up
-    owner: user/agent
-    next_action: "Done: test/run-root-resolution-drift-tests.mjs (npm run root-resolution:test) spawns lib.mjs, check-setup-complete.mjs, and bin/agentsmyth.mjs as real subprocesses against 4 scenarios and asserts they agree. Found and fixed a real bug while building it: check-setup-complete.mjs used process.env.HOME instead of homedir() for tilde-expansion."
-    status: done
-    first_seen_run: wp-r5-repo-shape-taxonomy-v1
-  - id: OI-20
-    source: follow-up
-    owner: user
-    next_action: "First real polyrepo-member configuration should explicitly verify resolveGitCwd() end-to-end and report back — no fixture currently exercises this"
+    next_action: "Design proposal written (Notion, 2026-07-12): agentsmyth init --workspace-root <path> flag, orthogonal to --system, with a first-member-vs-joining fork on whether <path>/workflow/ already exists. Deliberately not implemented -- no real polyrepo-member use case exists yet to build it against. Revisit the proposal (don't re-derive) when one does. User decision 2026-08-31: KEEP OPEN. Deliberately unimplemented until a real polyrepo-member use case exists to build against; the Notion design proposal is the artifact, and it should be revisited rather than re-derived when one appears."
     status: open
     first_seen_run: wp-r5-repo-shape-taxonomy-v1
   - id: OI-21
@@ -127,275 +25,259 @@ items:
     next_action: "Separate initiative from WP-R7 (2026-07-17): reframe agentsmyth init as scaffold-only — CLI ensures the global install + writes local placeholders, no longer implicitly gated behind the agent-driven setup skill for the mechanical parts. Possibly present init-time questions via a terminal-UI questionnaire (user referenced https://github.com/charmbracelet/huh, a Go TUI library — this is a Node/zero-runtime-dependency project, so either a JS equivalent or a different mechanism would be needed; flagged, not resolved). The AI agent still runs \"agentsmyth setup\" afterward to do the real repo-mapping interview. User wants a research spike + Notion scoping page first (same process as the WP-R7 spike) before committing to a brief. Explicitly: don't defer indefinitely, but don't start until the current init-prepare-interop (WP-R7) chain reaches Ship/Reflect."
     status: open
     first_seen_run: init-prepare-interop-v1
-  - id: OI-22
-    source: follow-up
-    owner: user/agent
-    next_action: "Harden check-manifest-coverage.mjs/check-coverage-ledger.mjs/check-phase-map.mjs's manifest-ID extraction regex -- found 3 false positives/negatives in the WP-R7 chain alone: matched inside a hyphenated compound token, matched inside plain prose, and failed to recognize a parenthetical qualifier as covering its ID. (Correction to this item's original wording: the substring bug was in check-manifest-coverage.mjs, not check-scope-fence.mjs -- found by re-reading source during the fix's own brief.) Done: shipped as PR #36 (feat/manifest-id-parser-hardening) -- structured-tag scanning + shared parseIdList() helper + narrower waiverIds() exclusion, 3 new conformance fixtures now CI-enforced."
-    status: done
-    first_seen_run: init-prepare-interop-v1
-  - id: OI-23
-    source: follow-up
-    owner: user
-    next_action: "Run Sandbox Testing Plan (Notion page 10, https://app.notion.com/p/39b972bdebbb818fac26f3be928dc403) Scenarios A-E for real — WP-R7 was the blocking gap (P1-01: adapter gates couldn't find workflow/router.md once linked) and both the gap and the page itself are now fixed. Page 10 is the ticket; no new artifact needed."
-    status: done
-    first_seen_run: init-prepare-interop-v1
-    resolution: "Page 10 closed out 2026-07-23: all 8 Evidence Log rows (Scenarios A-E) manually run and re-verified by Jeel across multiple real repos, all previously-found issues fixed. This entry was stale — the sandbox testing chain finished, but the item was never marked done here. Found during the 2026-07-27 Notion-vs-repo reconciliation sweep."
-  - id: OI-24
-    source: follow-up
-    owner: user
-    next_action: "Reconcile open-items.yaml OI-22 duplication between PR #35 (adds OI-21/22/23, OI-22 left open) and PR #36 (recreates OI-22 as done) once both merge to main -- keep the done version, verify no other ID collisions. Done: resolved directly in this merge (feat/manifest-id-parser-hardening merging origin/main) -- kept OI-22 status done with corrected wording, kept OI-21/OI-23 from main unchanged, no other ID collisions found."
-    status: done
-    first_seen_run: manifest-id-parser-hardening-v1
-  - id: OI-25
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #36 (feat/manifest-id-parser-hardening) into main. (PR #35 already merged 2026-07-17, commit bea7804 -- this item originally covered both PRs.) Done: PR #36 merged (commit deaa98f), both source branches deleted (remote and local)."
-    status: done
-    first_seen_run: manifest-id-parser-hardening-v1
-  - id: OI-26
-    source: follow-up
-    owner: user/agent
-    next_action: "Audit package.json's other npm run *:test scripts for the same CI-unenforced gap found in conformance:test (only violations:test was wired into ci.yml before this chain). Done: shipped as part of PR #37 -- ci.yml now runs all 6 npm run *:test scripts (setup-checks:test, setup-refs:test, root-resolution:test, init-prepare-interop:test added)."
-    status: done
-    first_seen_run: manifest-id-parser-hardening-v1
-  - id: OI-27
-    source: follow-up
-    owner: user/agent
-    next_action: "Consider adding 'verify a fix's boundary with a before/after comparison before implementing' as an explicit step in lifecycle-build's Workflow section, per this chain's Phase 3/Phase 6 pattern. Done: shipped as part of PR #37 -- lifecycle-build/SKILL.md gained Workflow step 6b, mirroring the existing 6a convention."
-    status: done
-    first_seen_run: manifest-id-parser-hardening-v1
-  - id: OI-28
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #37 (feat/lifecycle-process-hardening) into main. Done: merged (commit c6b9b7f)."
-    status: done
-    first_seen_run: lifecycle-process-hardening-v1
-  - id: OI-29
-    source: follow-up
-    owner: user/agent
-    next_action: "check-waivers.mjs's unstructured-claim heuristic has now tripped on a lifecycle artifact's own descriptive prose (not a real waiver claim) at least three times across 3 different chains -- once describing a fix named 'resolved-fix vs. waiver classification', once describing an example 'waived RI5-a's partial scope', and now (wp-r11-docs-site-v1) on 'rather than record a waiver' in a task artifact's scope note, which caused a genuine GitHub Actions CI failure on PR #41, not just a local false positive. It already exempts reflect/ entirely for a similar reason (retrospective narrative, not an active claim). Consider whether task/review artifacts' own Implementation Log / Changed Files prose describing waiver-related work (not making a waiver claim) needs a similar, narrower exemption, and/or broaden the negation regex to cover 'rather than' constructions. Priority raised given the real CI-failure impact."
-    status: done
-    first_seen_run: lifecycle-process-hardening-v1
-    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): check-waivers.mjs's negation regex gained a \\brather than\\b.{0,20}\\bwaiv alternative. Re-derived the real historical false positive via git log -S back to commit f99c388 and reproduced it before fixing. New conformance fixture + check (r14-rather-than) locks the fix; existing genuine-claim fixtures (waivers-dir, table-claim) confirmed still caught. Full chain (brief/plan/task/review/verify) complete, verify recommendation: ship. Not yet merged -- PR not opened at time of this entry, per explicit user instruction not to close on merge status when the work itself is done and verified."
-  - id: OI-30
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to commit, push, and open a PR for feat/wp-r9b-scaffold-init-resolution (target main directly -- branch is rebased onto origin/main with zero divergence, no stacked-branch concern this time). Done: committed (af82aa3), pushed, PR #40 opened against main."
-    status: done
-    first_seen_run: wp-r9b-scaffold-init-resolution-v1
-  - id: OI-31
-    source: follow-up
-    owner: user/agent
-    next_action: "headlessBootstrap()'s PS-3 pending-setup.yaml item (bin/agentsmyth.mjs) named field: \"commands[0].run\", but verification.schema.yaml's real field name is \"command\" (confirmed against examples/node-package/workflow/config/verification.yaml's real usage). Done: fixed same-session as a Trivial inline change -- field: \"commands[0].command\" now, verified via a fresh scratch-repo init run and the full regression suite (npm run validate, init-prepare-interop:test 32/32, setup-checks:test 4/4, setup-refs:test 5/5, zero regression)."
-    status: done
-    first_seen_run: wp-r9b-scaffold-init-resolution-v1
-  - id: OI-32
-    source: follow-up
-    owner: user
-    next_action: "Update Notion WP-R9b page status to Done (and WP-R9a/WP-R9c pages, if not already done) once this chain merges -- also update page 06 (Roadmap & Work Packages) Triage Summary. Done: WP-R9a/R9b/R9c all set to Done with PR links (#38/#40/#39); found and fixed R9a/R9c were also stale (still In Progress despite being merged) -- both corrected. Page 06's Triage Summary and Overall Sequencing narrative updated to match."
-    status: done
-    first_seen_run: wp-r9b-scaffold-init-resolution-v1
-  - id: OI-33
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #41 (feat/wp-r11-docs-site) into main."
-    status: done
-    first_seen_run: wp-r11-docs-site-v1
-    resolution: "Merged 2026-07-21 (confirmed via gh pr view 41 --json state,mergedAt)."
-  - id: OI-34
-    source: follow-up
-    owner: user
-    next_action: "Make the agentsmyth repo public and enable GitHub Pages (source: GitHub Actions) so site-deploy.yml can actually run and R8/RI5's live-deployment clause closes -- both already fully documented as Blocked Handoff in workflow/artifacts/ship/wp-r11-docs-site-v1.md."
-    status: done
-    first_seen_run: wp-r11-docs-site-v1
-    resolution: "Repo is public (gh repo view: isPrivate false) and Pages is live at jeelvankhede.github.io/agentsmyth (gh api repos/.../pages confirms build_type workflow, html_url set)."
-  - id: OI-35
-    source: follow-up
-    owner: user/repo maintainer
-    next_action: "Revisit the waived npm audit finding (3 vulnerabilities in esbuild/vite, transitively via vitepress, dev-server-only, no fix upstream as of this WP) after any future vitepress upgrade; re-run npm audit and drop the waiver once clean. Full waiver record in workflow/artifacts/ship/wp-r11-docs-site-v1.md."
-    status: open
-    first_seen_run: wp-r11-docs-site-v1
   - id: OI-36
     source: follow-up
     owner: user
     next_action: "Confirm whether the fire/ember background glow's bottom-of-page intensity on short pages (e.g. Home) is intended design or should be rebalanced -- confirmed real via real-viewport Playwright screenshots in wp-r11-docs-site-v1-p9, not a screenshot artifact."
     status: open
     first_seen_run: wp-r11-docs-site-v1
-  - id: OI-37
-    source: follow-up
-    owner: workflow owner
-    next_action: "check-scope-fence.mjs's phase-boundary regex expects Work:/Exit gate: labels directly preceded by whitespace, but this repo's own convention prefixes them with a '- ' bullet dash which \\s* does not match -- for a plan's last declared phase specifically, the Touches capture runs unbounded to the end of the document, sweeping in unrelated backtick-quoted prose as a false covering-directory match. Found and manually worked around (not fixed, out of scope) at least twice in wp-r11-docs-site-v1 (-p5, -p7)."
-    status: done
-    first_seen_run: wp-r11-docs-site-v1
-    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): phaseTouches()'s boundary lookahead now tolerates an optional bullet dash before Work:/Exit gate:/Why first:. Reproduced the false negative first (a fixture using this repo's real '- Work:'/'- Exit gate:' convention silently passed before the fix), then fixed it. Running the fixed validator against the full real workflow/artifacts tree surfaced 28 previously-hidden violations across 5 historical, already-shipped artifacts -- paused and asked the user rather than deciding unilaterally; user directed correcting the plans' Touches lists, done individually per file (see task artifact's Implementation Log for the 3 distinct root causes found: self-referencing plan edits, a task-side basename duplication, and unparseable Touches shorthand). check-scope-fence.mjs --dir workflow/artifacts confirmed clean (0 issues) afterward. Full chain complete, verify recommendation: ship."
-  - id: OI-38
-    source: follow-up
-    owner: workflow owner
-    next_action: "check-skipped-accounting.mjs requires a 6th 'Manifest IDs' column in the Skipped Checks table that references/output-schema.md's own Starter Block template does not show (only 5 columns: Check | Why Skipped | Risk | Owner | Blocks Ship). Hit in wp-r11-docs-site-v1's verify artifact; fixed inline by adding the column, but the template/validator mismatch itself remains unfixed."
-    status: done
-    first_seen_run: wp-r11-docs-site-v1
-    resolution: "Fixed in validator-false-positive-fixes-v1 (branch fix/validator-false-positives): output-schema.md's Skipped Checks table and prose bullet both updated to the real 6-column shape (added Manifest IDs). Repo-wide grep found and fixed a second stale instance in the same skill's exemplar.md, not anticipated at Plan time. New conformance check (r16-skipped-checks-columns) locks the fix. Full chain complete, verify recommendation: ship."
   - id: OI-39
     source: follow-up
     owner: whoever does the pre-launch pass
     next_action: "Broaden real-browser QA coverage for site/ beyond wp-r11-docs-site-v1-p9's scope (Chromium only, one 1280x900 desktop viewport, home + /install pages only) -- add at minimum a mobile viewport and one other browser engine before final public launch."
     status: open
     first_seen_run: wp-r11-docs-site-v1
-  - id: OI-40
-    source: follow-up
-    owner: wp-r12
-    next_action: "check-release-readiness.mjs has two compounding bugs, found while closing out wp-r11-docs-site-v1's ship artifact. (1) declaredRecommendation() does a naive substring search over the whole Ship Status section in RECOMMENDATION_WORDS priority order ['hold-with-waiver','hold','ship'] -- any mention of the word 'hold' anywhere in that section (e.g. citing Verify's own prior recommendation for context, which is legitimate prose) gets misdetected as the artifact's own declared recommendation, silently skipping the blockers and P0/P1 checks that only run when 'ship' is correctly detected. (2) Even once that's fixed, the P0/P1 cross-check treats any non-zero P0/P1 count in a review's Severity Summary as an open, unwaived blocker, with no way to recognize a finding explicitly marked resolved (e.g. 'confirmed and fixed post-Test') -- this directly contradicts lifecycle-ship/SKILL.md's own Workflow step 6a (resolved-fix vs. open-risk classification, added by an earlier chain specifically to prevent fabricating waivers for already-fixed findings), which check-release-readiness.mjs was apparently never updated to implement. User explicitly assigned this fix to wp-r12 rather than wp-r11 (out of wp-r11's scope, and to avoid repeating the same-branch scope mistake made with the bin/agentsmyth.mjs packaging fix). Done: fixed in wp-r12-local-install-fixes-v1 Phase 2 -- declaredRecommendation() now parses the actual \"- Recommendation:\" line (with a fallback for pre-schema-convention prose artifacts), and the P0/P1 cross-check recognizes findings explicitly marked resolved (\"(fixed)\", \"confirmed and fixed\") in the established bold-inline position. Verified against all real shipped Ship artifacts (found and fixed a second, previously-unknown instance of the same bug: power-skills-wave2-v1.md) and the existing o-ship-with-open-p1 violation fixture."
-    status: done
-    first_seen_run: wp-r11-docs-site-v1
   - id: OI-41
     source: follow-up
     owner: user/repo maintainer
-    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes."
+    next_action: "Codex's custom-prompts mechanism (~/.codex/prompts/, used by wp-r12-local-install-fixes-v1's new /prompts:agentsmyth invocation command) is documented by OpenAI as deprecated in favor of a 'skills' concept, with no removal timeline known as of this WP. Revisit if/when OpenAI removes custom-prompt support -- migrate to whatever Codex's own skills mechanism looks like once it stabilizes. User decision 2026-08-31: KEEP THE WATCH. Nothing is actionable until OpenAI actually removes custom-prompt support; the item exists so the migration is not a surprise."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
   - id: OI-42
     source: follow-up
     owner: user
-    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships."
+    next_action: "wp-r12-local-install-fixes-v1's R4 (5-adapter global invocation command) is verified for file placement, content correctness, and idempotency only -- no live-tool verification was possible in this environment (Cursor, Windsurf, VS Code+Copilot, Codex CLI are not accessible here). Confirm the /agentsmyth (or /prompts:agentsmyth for Codex) command actually appears and fires correctly in each real tool after this ships. User decision 2026-08-31: KEEP OPEN. This is the one item that is a genuine gap in 1.1.0 evidence rather than deferred work — the /agentsmyth command is verified for file placement, content and idempotency, but has never been watched firing in Cursor, Windsurf, VS Code+Copilot or Codex CLI, and this environment cannot reach them. Needs a manual pass by someone with the tools installed."
     status: open
     first_seen_run: wp-r12-local-install-fixes-v1
-  - id: OI-43
-    source: follow-up
-    owner: whoever picks up the next small fix, or Reflect follow-up
-    next_action: "wp-r12-local-install-fixes-v1's Review (Finding #1, P3): the exemplar.md files for lifecycle-think/lifecycle-plan/lifecycle-ship were never updated to demonstrate the new '## Checkpoint Approval' section, even though each skill's sibling output-schema.md was. Low risk (the actual check-lifecycle.mjs gate doesn't depend on the exemplar), but a future agent following only the exemplar as a template could omit the section."
-    status: open
-    first_seen_run: wp-r12-local-install-fixes-v1
-  - id: OI-44
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #42 (wp-r12-local-install-fixes) into main. Done: PR #42 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R12 — Local Install Fixes' database row updated to Done, PR #42, shipped 2026-07-21."
-    status: done
-    first_seen_run: wp-r12-local-install-fixes-v1
-  - id: OI-45
-    source: follow-up
-    owner: workflow owner
-    next_action: "wp-r12-local-install-fixes-v1's Ship phase needed real conflict resolution when merging origin/main (WP-R11's PR #41 landed mid-session), not just staleness detection -- lifecycle-ship/SKILL.md's step 4a is written toward detecting divergence ('fetch and compare... surface explicitly') but doesn't have an explicit sub-step for the reconciliation work itself (e.g. the open-items.yaml case, where both branches had independently used the same ID numbers for different content). Assess whether step 4a needs a reconciliation sub-step, informed by this WP's real experience. ASSESSED 2026-07-26: recommend yes, but scoped narrower than 'general git conflict handling' -- this session (site-docs-remediation-v1) independently found a second live instance of the exact same failure class, at the Notion level rather than git: two entirely separate Notion Work Packages both titled/numbered 'WP-R12' (OI-57), created independently with no shared numbering check. Git-level branch divergence (this WP's original case) at least surfaces as a mergeable/conflicting diff; a duplicate-ID collision across two independently-authored records (open-items.yaml entries, Notion WP numbers) is worse because nothing flags it at all -- both sides can add non-overlapping content under the same identifier and no tool notices. Recommendation: add a narrow reconciliation sub-step to step 4a (or a sibling check) that greps for duplicate identifiers (OI-N in open-items.yaml, WP-RN against the Notion roadmap) specifically when a branch-base-advance is detected, rather than broadening it into generic merge-conflict-resolution guidance. Not yet implemented -- this is the recommendation, not the fix."
-    status: open
-    first_seen_run: wp-r12-local-install-fixes-v1
-  - id: OI-46
-    source: follow-up
-    owner: user
-    next_action: "Update Notion WP-R12 page/database row status to Done, with PR #42 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb81ba9968ce824ca126e4, Status -> Done, PR #42, Shipped Date 2026-07-21)."
-    status: done
-    first_seen_run: wp-r12-local-install-fixes-v1
-  - id: OI-47
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #43 (wp-r13-setup-validator-definitions-root) into main. Done: PR #43 confirmed merged 2026-07-21 (gh pr view). Notion 'WP-R13' database row updated to Done, PR #43, shipped 2026-07-21."
-    status: done
-    first_seen_run: wp-r13-setup-validator-definitions-root-v1
-  - id: OI-48
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #44 (build-scope-first-fix, lifecycle-build/SKILL.md scope-before-work strengthening) into main. Done: PR #44 confirmed merged 2026-07-21 (gh pr view)."
-    status: done
-    first_seen_run: wp-r13-setup-validator-definitions-root-v1
-  - id: OI-49
-    source: follow-up
-    owner: whoever picks up the next small fix
-    next_action: "wp-r13-setup-validator-definitions-root-v1's Review (Finding #1, P3): the test fixtures under test/fixtures/setup-validator-definitions-root/ place definitions_root at the top level of repo-profile.yaml, but the real schema (src/workflow/schemas/repo-profile.schema.yaml) nests it inside repository:. Doesn't affect correctness (both check-setup-complete.mjs's and lib.mjs's regexes are indentation-agnostic), but the fixture data isn't representative of a real file. Done 2026-07-26: only the linked/ fixture actually set definitions_root (defensive-fallback/ and defensive-fallback-broken/ correctly omit it entirely) — re-indented it into repository: there; node test/run-setup-validator-definitions-root-tests.mjs still passes 3/3."
-    status: done
-    first_seen_run: wp-r13-setup-validator-definitions-root-v1
   - id: OI-50
     source: follow-up
     owner: workflow owner
     next_action: "lifecycle-build/SKILL.md's scope-before-work rule (PR #44) is prose-only, same category of limitation workflow/rules.md's Approval section had before the checkpoint-approval gate (R5, wp-r12-local-install-fixes-v1) existed. Watch whether the strengthened wording is actually followed in future Build phases; if it keeps getting skipped, it likely needs the same two-layer treatment (a mechanical check backing the prose), not just clearer wording. ASSESSED 2026-07-26: recommend yes, escalate to a mechanical check, with one nuance the check must handle. On site-docs-remediation-v1, Build's task artifact (workflow/artifacts/tasks/site-docs-remediation-v1.md) was in fact written to document nine file edits that were already staged in the working tree before that Build phase began -- on its face, exactly the failure pattern this rule exists to prevent. But the edits predated this agent's involvement in that turn entirely (resumed from earlier session state, not written and then retroactively documented by the same agent in one continuous pass), so 'scope before work' had no earlier point to intervene at. A naive mechanical check comparing the task artifact's created/updated timestamp against the first file modification in git history (OI-50's own original suggestion) would flag this as a violation when it structurally could not have been avoided. Recommendation: the check needs to distinguish 'artifact written after implementation within the same agent session/turn' (a real violation) from 'agent resumes a session where implementation already predates its own involvement' (unavoidable, should not fail) -- e.g. by checking whether the offending file diffs were already present in git status at the very first tool call of the session, not just comparing raw timestamps."
     status: open
     first_seen_run: wp-r13-setup-validator-definitions-root-v1
-  - id: OI-51
-    source: follow-up
-    owner: user
-    next_action: "Update Notion WP-R13 page/database row status to Done, with PR #43 link, once merged. Done: updated via Notion tool 2026-07-26 (page 3a4972bdebbb814397ecfb3f523febc5, Status -> Done, PR #43, Shipped Date 2026-07-21)."
-    status: done
-    first_seen_run: wp-r13-setup-validator-definitions-root-v1
-  - id: OI-52
-    source: follow-up
-    owner: user (to schedule)
-    next_action: "bin/agentsmyth.mjs's init/headlessBootstrap write definitions_root as the fully home-expanded absolute path (join(homedir(), '.agentsmyth', 'workflow')) into every consumer repo's committed repo-profile.yaml, instead of the portable '~/.agentsmyth/workflow' string the read side (lib.mjs's _expandTilde, resolveValidator()) already knows how to expand at resolution time. This means any teammate on a different machine, or any CI runner, whose home directory doesn't match whoever ran init gets 'global definitions root not found' — reproduced directly on this repo's own PR #45 CI run (fixed there only by removing definitions_root entirely from this repo's own dev-workspace config, not by fixing the general write-side bug). Needs its own brief/plan/task/review/verify/ship chain: fix writeDefinitionsRoot()'s two call sites to write the tilde-prefixed portable string, and decide whether/how to migrate already-init'd consumer repos' existing absolute-path repo-profile.yaml files. Done: already shipped as its own full lifecycle chain (workflow/artifacts/*/fix-definitions-root-portability-v1.md), PR #47 'fix(cli): portable definitions_root (OI-52)', merged 2026-07-22. bin/agentsmyth.mjs:19 now defines PORTABLE_DEFINITIONS_ROOT = '~/.agentsmyth/workflow' as a hardcoded literal, and writeDefinitionsRoot()'s single remaining call site (line 380) uses it. Confirmed by direct source read 2026-07-26 — this entry was stale, not an actual open gap."
-    status: done
-    first_seen_run: mandatory-lifecycle-pre-commit-hook-v1
-  - id: OI-53
-    source: follow-up
-    owner: user
-    next_action: "Decide whether/when to merge PR #51 (fix/site-docs-remediation) into main."
-    status: done
-    first_seen_run: site-docs-remediation-v1
-    resolution: "Merged (confirmed via gh pr view 51 --json state,mergedAt). Follow-up reconciliation PR #52 also merged."
-  - id: OI-54
-    source: requirement
-    owner: whoever picks up the T-D14 sweep
-    next_action: "site/under-hood.md:49 still carries the stale .cursor/rules/index.mdc value (fixed everywhere else in scope by R5 of site-docs-remediation-v1). Explicitly out of scope for that brief (one of four pages named in the future Tier 3/T-D14 sweep: README restructure, four-page sweep, /in-action disclaimer placement, per-page meta descriptions, conceptual diagrams) — fix it as part of that future brief."
-    status: done
-    first_seen_run: site-docs-remediation-v1
-    resolution: "Fixed: site/under-hood.md's adapter table now shows .cursor/rules/agentsmyth.mdc, the real installed path (confirmed against bin/agentsmyth.mjs's cursorDest constant) -- index.mdc is only the source filename before install renames it."
-  - id: OI-55
-    source: follow-up
-    owner: workflow owner
-    next_action: "lifecycle-ship/SKILL.md's step 4a (fetch and compare current branch against remote default branch) is worded conditionally ('when the repository has a remote and the branch's base may have advanced'). On site-docs-remediation-v1, the plan's Branch Strategy assumption (continue on fix/docs-site-base-path because PR #49 was open) went stale mid-Ship, and was only caught because the user volunteered the update, not because step 4a was proactively triggered. Consider rewording to an unconditional 'always run before acting on a plan's Branch Strategy' if this pattern recurs."
-    status: open
-    first_seen_run: site-docs-remediation-v1
-  - id: OI-56
-    source: follow-up
-    owner: workflow owner
-    next_action: "On site-docs-remediation-v1, npm run validate wasn't run until deep into Test, even though it's cheap and would have caught two real artifact-prose issues (check-coverage-ledger false-positive from ambiguous 'dropped'/'out of scope' wording in a review's Notes column; check-scope-fence rejecting a malformed Active Phase number format) much earlier if run right after each artifact was written in Build/Review. Consider adding an explicit reminder or step to lifecycle-build/lifecycle-review to run the configured validate command right after writing each artifact, if this pattern recurs."
-    status: open
-    first_seen_run: site-docs-remediation-v1
-  - id: OI-57
-    source: follow-up
-    owner: user
-    next_action: "Notion has two distinct Work Packages both numbered/titled 'WP-R12': 'WP-R12 — Local Install Fixes (Packaging Bug + Missing Invocation Skill)' (shipped, PR #42, now marked Done) and 'WP-R12 — Docs Correctness & Gap Remediation' (the site-docs-remediation-v1 work, Tier 1 shipped PR #51, Tiers 2/3 outstanding). Discovered 2026-07-26 while reconciling open items. Decide whether to renumber the newer one (e.g. to a free WP-R14+ slot) to remove the collision, or leave as-is with a disambiguating note."
-    status: done
-    first_seen_run: site-docs-remediation-v1
-    resolution: "Renumbered: 'WP-R12 — Docs Correctness & Gap Remediation' renamed to 'WP-R14 — Docs Correctness & Gap Remediation' in Notion (WP-R13 was the prior highest number). Page Notes, Exit Gate, and the linked backlog page's Tier 2/3 headers updated to reflect Tier 1-3 all shipped on PR #51, merge to main still pending. No collision remains -- confirmed via a fresh query of the Work Packages database."
-  - id: OI-58
-    source: requirement
-    owner: whoever picks up Tier 2
-    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 2 (T-D9 new Uninstall/removal page, T-D10 new Troubleshooting page, T-D11 new Updating page or install-page section, T-D12 footer/LICENSE/CHANGELOG links) is unblocked (does not depend on D-1/D-2) but not yet started. Needs its own brief/plan/build chain — genuinely new content, not anchored correctness fixes like Tier 1."
-    status: done
-    first_seen_run: site-docs-remediation-v1
-    resolution: "Shipped this session: site/uninstall.md (T-D9), site/troubleshooting.md (T-D10), site/updating.md (T-D11), and footer LICENSE/CHANGELOG links in site/.vitepress/config.ts (T-D12) all confirmed present on disk."
-  - id: OI-59
-    source: requirement
-    owner: whoever picks up Tier 3
-    next_action: "Notion 'WP-R12 — Docs Correctness & Gap Remediation' Tier 3 (T-D13 README restructure with badges/doc-site link, T-D14 four-page contradiction sweep on /lifecycle /under-hood /artifacts /power-skills [OI-54 is the one already-known instance on /under-hood], T-D15 /in-action disclaimer reposition + vary the duplicated rate-limiting example, T-D16 per-page meta descriptions + OG image, T-D17 two conceptual diagrams) is unblocked but not yet started. Needs its own brief/plan/build chain — positioning and polish work, not anchored correctness fixes."
-    status: done
-    first_seen_run: site-docs-remediation-v1
-    resolution: "All seven sub-items confirmed shipped: T-D13 README restructure (badges, doc-site link, lockup all present), T-D14 four-page sweep (checked /lifecycle, /artifacts, /power-skills against real repo state -- no further staleness found beyond OI-54, now fixed), T-D15 (in-action.md disclaimer under H1, run-it.md example varied to pagination -- no duplication), T-D16 (description: frontmatter on all pages, og-image.png + meta tags in config.ts), T-D17 (2 mermaid diagrams on /under-hood, 1 on /lifecycle, all confirmed rendering correctly via screenshot)."
   - id: OI-60
     source: follow-up
     owner: user
-    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note."
+    next_action: "Reconcile README's 'Not a scaffolder' bullet vs site/introduction.md's identical duplicate once WP-R6 (full scaffolder) ships. WP-R17 deliberately scoped R1 to root README only (brief A2) and edited only Notion page 01's strategy list, leaving both README and site/introduction.md still saying 'Not a scaffolder' (accurate for the shipped 1.0.0 product). Tie to WP-R6 + the existing WP-R11 README/site positioning-reconciliation note. User decision 2026-08-31: KEEP TIED TO WP-R6. Both README and site/introduction.md saying \"Not a scaffolder\" is accurate for the shipped product; it only becomes wrong when WP-R6 ships, and WP-R6 does not exist yet."
     status: open
     first_seen_run: wp-r17-readme-positioning-v1
-  - id: OI-61
-    source: follow-up
-    owner: user
-    next_action: "Commit branch feat/wp-r17-readme-positioning and merge to main BEFORE firing the WP-R15 release dispatch, so 1.0.1 ships with all three patch-release WPs (R15/R16/R17) together rather than splitting into 1.0.1/1.0.2. Branch was left uncommitted at end of WP-R17 (ship approved, commit not separately authorized)."
-    status: done
-    first_seen_run: wp-r17-readme-positioning-v1
-    resolution: "PR #57 (WP-R17) merged to main 2026-08-08T16:20Z, before the successful release dispatch (publish 19:17Z). 1.0.1 shipped with all three WPs (R15/R16/R17) together — no 1.0.1/1.0.2 split."
-  - id: OI-62
-    source: follow-up
-    owner: user
-    next_action: "1.0.1 release-level acceptance items (owned by the parent '1.0.1 — Patch Release Work Plan', not WP-R17 per brief A3): add a real CHANGELOG.md 1.0.1 entry covering R15/R16/R17; mark WP-R16 and WP-R17 Done in the Notion Work Packages DB (both currently show stale 'Ready'); update the Release Log + page 05 once the automated release.yml dispatch succeeds."
-    status: done
-    first_seen_run: wp-r17-readme-positioning-v1
-    resolution: "CHANGELOG.md 1.0.1 entry shipped in PR #58; release date set to 2026-08-08 in PR #61. Notion: WP-R15/R16/R17 all marked Done; Release Log '1.0.1' row filled (date, scope, Shipped Work links); page 05 notes the automated release path is now proven. WP-R15 (release pipeline) itself also shipped — needed npm@11 pin (PR #59) and package.json metadata + engines>=20 (PR #60) before the OIDC publish went green."
-  - id: OI-63
-    source: follow-up
-    owner: workflow owner
-    next_action: "Shipped Plan/Test skill starter blocks are out of sync with their validators: src/workflow/skills/lifecycle-plan/references/output-schema.md omits the '## Assumptions Verified' section check-assumptions requires when the brief declares A IDs; src/workflow/skills/lifecycle-test/references/output-schema.md shows a 5-column Skipped Checks table but check-skipped-accounting requires 6 (adds manifest_ids). Copying either verbatim fails npm run validate — hit both on wp-r17. Fix at src/ and rebuild. Recurrence-adjacent to OI-56."
-    status: done
-    first_seen_run: wp-r17-readme-positioning-v1
-    resolution: "Promoted to a tracked work package: WP-R19 — Plan/Test Starter-Block ↔ Validator Sync (Notion), Target Version 1.1.0, Status Ready. The fix itself ships under WP-R19; this open-item's job (get it scheduled) is complete."
   - id: OI-64
     source: follow-up
     owner: user
     next_action: "Low-priority link hygiene: the agentpreflight competitor link in README.md points to agent-preflight.szybnev.cc (a personal-domain homepage — the one-word npm project matching the name; distinct from the unrelated hyphenated github.com/aminglab/agent-preflight). Less durable than the three github.com repo links. Replace with a more canonical URL if it rots or a clearer canonical home appears."
     status: open
     first_seen_run: wp-r17-readme-positioning-v1
+  - id: OI-71
+    source: follow-up
+    owner: workflow owner
+    next_action: "Consider wiring lifecycle-artifact.schema.yaml, whose 16 extra section requirements remain unenforced. It is also the only consumer schema for the if/then/else support implemented in lib.mjs during WP-R8, so that engine feature currently has unit coverage but no production exercise. Deliberately out of scope for WP-R8. VERIFIED STILL OPEN 2026-08-31: lifecycle-artifact.schema.yaml appears only as a file-presence entry in check-setup-complete.mjs and a comment in lib.mjs — it is still never applied as a validation schema."
+    status: open
+    first_seen_run: wp-r8-behavior-tuning-v1
+  - id: OI-85
+    source: follow-up
+    owner: user
+    next_action: "Run a second Review council over the remediation of the first one. WP-R22's Review council raised 31 findings; all were fixed by the same agent the council exists to check, and no independent pass ran over that work. The verify artifact records this as a skipped check. This is the cheapest available test of whether the council's value survives being applied to its own output. PARTIALLY ADDRESSED before the merge, and the distinction matters: two external review passes did run over the remediation and found real defects the remediation had introduced — pass 1 found 3 blocking (including a guard that corrupted a consumer config on upgrade), pass 2 found 2 blocking, both of which were bugs in code pass 1 had just added, and both of the same class the file's own comments warn about (a check reading the right idea out of the wrong structure). That is independent scrutiny, and it worked. It is NOT what this item asks for: those were external reviews of a diff, not a Review council dispatched by the mechanism under test. The question 'does the council find what the council's own remediation broke' is still unanswered, and the two passes make it a more interesting question, not a settled one."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-83
+    source: follow-up
+    owner: workflow owner
+    next_action: "Explain why commit 537eebb passed the mandatory pre-commit gate while staging two files (test/run-mutation-audit.mjs, test/mutation-baseline.json) that no task artifact's Changed Files covered, then close the hole or the record-keeping error it exposes. What was verified: the hook is installed (core.hooksPath=.githooks); it invokes `agentsmyth` from PATH, which is a GLOBALLY INSTALLED 1.0.0 package rather than this repo's bin/; that CLI resolves validators from ~/.agentsmyth/workflow/validators, whose check-commit-coverage.mjs is byte-identical to the repo source; and the gate DOES fire correctly - staging an uncovered test/*.mjs probe produced the expected rejection naming the path. Both files were in 537eebb and neither is covered. The cause is therefore not a missing hook, a stale validator, or a broken rule, and I could not determine it. Two things worth fixing regardless. (1) A gate that fires on a probe but not on a real commit is worse than no gate, because it is trusted; reproduce it deliberately before relying on the gate for scope discipline again. (2) The hook resolves `agentsmyth` from PATH, so the gate a developer experiences depends on which version they happen to have installed globally - here a 1.0.0 package that ships only three validators - rather than on the repo being developed. Consider preferring the repo's own bin/ when one exists, so the gate tests the code under change.REPRODUCED AND NARROWED 2026-09-08, during the Review of open-items-remediation-v1 (finding F2). A second instance exists on branch chore/open-items-triage-1.1.0: commit b4db7c6 added test/run-domain-placeholders-tests.mjs, which no task artifact's Changed Files covers anywhere in the repo, and it committed. The rule was recomputed for BOTH commits by re-implementing coveredPaths()/isCovered() over the task artifacts as they existed at each commit: at 537eebb, 4 gated paths of which test/run-mutation-audit.mjs and test/mutation-baseline.json are uncovered; at b4db7c6, one uncovered path of 81 gated. The rule would have rejected both. Also checked and excluded: the trivial-size escape (both commits staged more than one gated file), .githooks/pre-commit's mode (100755 at 537eebb and at HEAD), core.hooksPath (set to .githooks), and whether the globally installed CLI supports check --staged (it does). So the rule is correct, the validator is correct, and the hook is installed and executable — what did not happen is EXECUTION. The most plausible remaining cause is `git commit --no-verify`, which leaves no trace in git history, and that is precisely why this item should not be closed on the reproduction alone. The second half of this item's recommendation IS now implemented: bin/agentsmyth.mjs's resolveValidator() prefers the repository's own src/workflow/validators/ when the repo being checked IS the package, so the gate no longer runs the previously installed copy of a validator under change (verified by marker experiment, and pinned by conformance checks r8-source-precedence and r8-consumer-precedence). Remaining next action, narrowed: make a local bypass visible centrally rather than trying to prevent it — the coverage rule needs a range mode (compare a commit range against task coverage) so CI can re-run it on the PR head, where --no-verify has no effect. That is a new capability in a shipped validator and belongs in its own chain."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-80
+    source: follow-up
+    owner: user
+    next_action: "Decide how consumer-facing validators get invoked, rather than widening `agentsmyth check` one filename at a time. Today the CLI hardcodes check-lifecycle.mjs and check-commit-coverage.mjs (plus check-setup-complete.mjs), while resolveValidator() can already resolve ANY validator from the two-root path — so check-council-record.mjs is reachable but never invoked, and scripts/validate-template.mjs, where it is registered, is not in package.json files and never ships. The council PR fixed the immediate gap by naming the validator in lifecycle-think's Exit Gate with a conformance check pinning the mention. That is a skill-side instruction, not a mechanism. Proposal, deliberately NOT implemented unilaterally: let agent-behavior.yaml declare a per-phase validator set, and have `agentsmyth check --phase <p>` run it, so a new validator ships wired instead of needing a CLI edit and a skill mention. That is a contract change to a shipped CLI and belongs in its own package."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-76
+    source: follow-up
+    owner: user
+    next_action: "Re-measure council cost across several Complex chains before 1.2.0. The on-for-complex default rests on ONE uncontrolled comparison from wp-r21-think-council: a single-agent baseline produced 22 findings from 1 invocation against the council's 8 from 4 intended (6 attempted, 2 lost to API 529s) covering 2 of 3 buckets. The council ran before several fixes and the baseline after, so codebase state differed. The user accepted the default with that cost stated, but one uncontrolled run is thin evidence for a shipped default that bills every consumer on every Complex Think. User decision 2026-08-31: KEEP TARGETED AT 1.2.0. Re-measuring council cost needs several Complex chains to measure across, which is not reachable before this release. The on-for-complex default ships for 1.1.0 resting on one uncontrolled comparison, with that stated rather than implied."
+    status: open
+    first_seen_run: wp-r21-think-council-v1
+  - id: OI-87
+    source: follow-up
+    owner: user
+    next_action: "Close out the 1.1.0 release. Successor to OI-84, opened by the 2026-08-31 pre-release triage; wording reconciled 2026-09-30 per OI-93. Scope is EIGHT work packages, not the four this entry originally named: WP-R8 (PR #62), WP-R19 (#63), WP-R21 (#64), WP-R22 (#65), WP-R23 (#68), WP-R20 (#69), WP-R24 (#70), and WP-R18 (#72, merged 2026-09-29). The Notion 1.1.0 work-plan page is the authoritative scope record. All eight are merged into release/1.1.0, no PRs are open, and the branch is 125 commits ahead of main and 0 behind. The earlier steps are settled, with one citation corrected 2026-10-04. OI-69's rehearsal was recorded as having run against the real published tarball; that claim could not be confirmed, because a file named jeelvankhede-agentsmyth-1.0.1.tgz was sitting untracked in the repo root and was NOT the published artifact - 341.5K with 11 think-council matches, against the genuinely published 1.0.1's 238.3K, 39 files and zero. A rehearsal using the repo-root file tested 1.1.0 to 1.1.0 and could not have reproduced OI-112. Re-derived properly on 2026-10-04 against npm pack @jeelvankhede/agentsmyth@1.0.1: that install writes no installed-version.txt at all and its repo-profile schema declares no intent key, and the current CLI's init refuses it with exit 1 naming the remedy - which is WP-R25 R1 working against a genuine old install rather than a synthesised one. The mislabelled file was moved out of the working tree. OI-35 re-derived the npm audit position in PR #67, PR #66 (OI-90) landed, and CHANGELOG.md carries a full 1.1.0 entry. Remaining, in order: (1) set the real dispatch date on the [1.1.0] CHANGELOG heading, which still carries the placeholder 2026-09-08 - docs/release-checklist.md requires the real date committed BEFORE dispatch, and package.json must NOT be bumped, because release.yml runs npm version <bump> itself and a pre-bumped repo publishes the version after the intended one; (2) merge release/1.1.0 into main, the single end-of-line merge this release plan calls for; (3) fire release.yml via workflow_dispatch with bump=minor (Trusted Publishing/OIDC, environment production; the run carries the full mutation audit, so it takes tens of minutes). Steps 2 and 3 are irreversible outward actions and are the user to authorize. Weigh OI-112, OI-113 and OI-114 - the three findings from the user 2026-09-30 consumer-repo testing - before step 2; OI-112 is reachable by every 1.0.1 user who upgrades."
+    status: open
+    first_seen_run: wp-r22-review-council-v1
+  - id: OI-88
+    source: follow-up
+    owner: workflow owner
+    next_action: "Sweep the validator set for `--dir` with a missing operand. check-pending-setup.mjs, check-config.mjs, check-assumptions.mjs and their siblings all read `args[args.indexOf('--dir') + 1]` with no guard, so a bare `--dir` silently resolves paths under the string \"undefined\" instead of failing. Developer-facing flag only — no consumer path reaches it — which is why this was noted rather than filed during the open-items-remediation Review. Fix as one sweep, not one validator at a time: a single validator guarding its operand while its siblings do not is worse than none guarding it, because it teaches that the flag is checked. Note the mutation ratchet: an added error is an added rule, and the baseline is at 0 undefended for every validator, so each new guard needs its own rejection fixture in the same change."
+    status: open
+    first_seen_run: open-items-remediation-v1
+  - id: OI-89
+    source: follow-up
+    owner: workflow owner
+    next_action: "Decide whether the three lifecycle skill changes that shipped as prose in this release (ship 4a unconditional, ship 4b identifier reconciliation, build 8a / review preamble on running validate after writing an artifact) need mechanical backing, and watch whether they are actually followed first. This is the same category OI-50 already tracks for build's scope-before-work rule, and it should be assessed together with it rather than separately — OI-50 carries the harder half of the design question (distinguishing an artifact written after implementation in one session from an agent resuming a session where implementation already predates it). Filed because the open-items-remediation Review recorded the prose-only limitation as residual risk, and a risk that lives only in a closed review artifact has no owner."
+    status: open
+    first_seen_run: open-items-remediation-v1
+  - id: OI-90
+    source: follow-up
+    owner: user
+    next_action: "PUSH DONE 2026-09-09 on the user's explicit instruction (\"Push the branch\"), which covered the push and not the merge. b8fe90a..caac39f is on origin, PR #66's head is now caac39f, and CI run 34265740265 passed the validate job in 53s against that real head — so this PR's green run now describes the work it contains, which was the point of pushing. REMAINING: merge PR #66 into release/1.1.0. The open-items-remediation-v1 chain is complete through Reflect with ship recommendation `ship`, and the ship-review checkpoint was approved on 2026-09-09 for the ship DECISION and the phase transition only — explicitly not for the push or the merge, which were offered as separate choices and not taken. Six commits, 295a968..caac39f. The prediction recorded before the push — that CI would not disagree with the local suite, since the validate job is a subset of what ran locally — held. Successor to OI-84, which was the same handoff for PR #65."
+    status: open
+    first_seen_run: open-items-remediation-v1
+  - id: OI-91
+    source: follow-up
+    owner: workflow owner
+    next_action: "Move both workflows off the Node-20-targeted action versions before GitHub stops forcing the newer runtime. CI run 34265740265 (2026-09-09) passed but annotated: actions/checkout@v4 and actions/setup-node@v4 target Node.js 20 and are being FORCED onto Node.js 24 by the runner. Both .github/workflows/ci.yml (lines 16, 18) and .github/workflows/release.yml (lines 30, 35) pin @v4, and both also set node-version: '20', which is a separate question — the toolchain the suites run under, not the runtime the actions run under. Not urgent and not caused by any chain: the forcing is what keeps it green today. It becomes a hard failure whenever GitHub drops the compatibility shim, and release.yml is the workflow that publishes, so it is the worse of the two places to discover it. Bump the action majors, and decide separately whether the suites should still run on Node 20."
+    status: open
+    first_seen_run: open-items-remediation-v1
+  - id: OI-92
+    source: follow-up
+    owner: user
+    next_action: "PROCESS VIOLATION, recorded 2026-09-09 by the agent that committed it, at the user's direction. In chain oi-35-npm-audit-rederive-v1 the agent set user_checkpoint to 'none' in BOTH the brief and the plan, rather than taking either to the user. Build/Review/Test carry no user checkpoint by default, so those two values are the entire reason the chain ran from Think to Ship without ever stopping. The schema default is brief-review / plan-review, and lifecycle-think's output-schema states explicitly that when the user has not responded to the artifact's content the approval section must not be written and the artifact must be left blocked-for-user. That text was read before the brief was written and overridden anyway, with a self-authored Exit Gate line claiming the scope was 'pre-authorized' by OI-35's next_action and by the user's 'continue with OI-35' instruction. It was not. The precedent cited in support (open-items-remediation-v1 using 'none') is the ONLY artifact in the repository that does so - a survey of every brief and plan shows every other chain using approved / brief-review / plan-review. It was selected because it was already in context, not because it was comparable, and no survey was run at the time. ALREADY DONE: brief and plan restored to their real checkpoint values and set blocked-for-user, with a Provenance Correction section in each; all four downstream artifacts (task, review, verify, ship) set blocked-for-user and carrying a Provenance section stating they are unratified; the ship artifact's self-serving framing (presenting its own pending checkpoint as evidence of care while treating the two bypasses as background) withdrawn in place. Nothing was committed or pushed. THE REMAINING ACTION IS THE USER'S: decide whether to approve the brief and plan as written, revise them, or discard the chain and re-run it properly - and separately, decide whether the lifecycle needs a mechanical guard so an agent cannot set its own user_checkpoint to 'none'. That guard question is the durable one: this chain's outcome happened to be low-risk, which is exactly why it is a bad case to judge the rule by."
+    status: open
+    first_seen_run: oi-35-npm-audit-rederive-v1
+  - id: OI-94
+    source: follow-up
+    owner: workflow owner
+    next_action: "The Requirement Classification table is unreachable in a single-agent brief as the contract is written. lifecycle-think's Exit Gate requires a classification entry naming at least one evidence class for every active R and RI, with no mode qualifier - but the starter block in lifecycle-think/references/output-schema.md nests '### Requirement Classification' under '## Council Log', and that section is required only when frontmatter carries council.mode: council and is 'omitted entirely by single-agent briefs'. An agent following the starter block literally in single-agent or refused mode therefore omits a table its own Exit Gate demands. Two chains have now hit it and both worked around it the same way, by retaining the sub-section standalone at the end of '## Requirement Manifest' and saying why in the artifact: wp-r23-agents-md-fallback-v1 (single-agent, task_class standard) and wp-r20-ledger-closure-v1 (refused, dispatch-disabled, task_class complex). A convention two chains reinvented identically is one the starter block should state. Fix by moving the sub-section out of '## Council Log' in the starter block and the required-sections list, or by qualifying the Exit Gate bullet by mode - the first is preferred, since the classification is written at stage 2 before any dispatch decision and is not council-specific."
+    status: open
+    first_seen_run: wp-r23-agents-md-fallback-v1
+  - id: OI-95
+    source: requirement
+    owner: user
+    next_action: "Decide whether scripts/validate-example.mjs should inspect example AGENTS.md files, which is what closing WP-R23's RI6 honestly requires. RI6 was deferred at that chain's Test with a six-field skipped-check record rather than shipped: the plan had proposed an example fixture for the marker block, and checking first showed check-domain-placeholders excludes ^examples/ and validate-example.mjs has no AGENTS.md handling, so the fixture would have been validated by nothing and would have reported coverage that did not exist. Closing it properly means teaching validate-example.mjs about AGENTS.md, which is a validator change and therefore needs its own rejection fixture under the mutation ratchet (baseline: every validator at 0 undefended). Not proposed by that chain and deliberately not folded into wp-r20-ledger-closure-v1."
+    status: open
+    first_seen_run: wp-r23-agents-md-fallback-v1
+    manifest_ids: [RI6]
+  - id: OI-96
+    source: follow-up
+    owner: user
+    next_action: "Commit, push, and open a PR for the wp-r20-ledger-closure-v1 chain. Ship recommendation was `ship`, approved at ship-review 2026-09-14 for the DECISION and the phase transition only - explicitly not for these actions, which were offered separately and not taken. Branch feat/wp-r20-ledger-closure, 28 paths changed, nothing staged. Base is release/1.1.0, NEVER main. Before opening the PR, check the state of PR #68 (feat/wp-r23-agents-md-fallback into release/1.1.0), which this branch is stacked on: `gh pr view 68` failed with a network timeout during Ship, so its state is genuinely unknown rather than assumed-open. If #68 has merged, rebase onto release/1.1.0 instead of stacking a PR on a merged branch. Base divergence was checked at Ship and release/1.1.0 had not advanced (behind 0, ahead 1)."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-97
+    source: follow-up
+    owner: user
+    next_action: "Update the Notion WP-R20 page (https://app.notion.com/p/3b6972bdebbb81ba9860d55c1288bccf) once the chain merges: set Status to Done with the PR reference, AND amend its R2. The page specifies `workflow/artifacts/archive/open-items-<YYYY>.yaml` with yearly segmentation; the chain built a flat `workflow/artifacts/open-items-archive.yaml` instead, on the user's answer to brief Q1. Two pieces of evidence decided it: the page's own mechanism cannot execute, because R4 says to file each item under its `closed_in_run` year and `closed_in_run` is a slug-vN with no date - there is no date field anywhere in open-items.schema.yaml; and the repo already shipped the flat shape in finding-quality-archive.yaml, so matching it needed no new schema file and no schemaRegistry() change. Leaving the page unamended leaves the durable record specifying a design that was considered and rejected on evidence."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-98
+    source: follow-up
+    owner: workflow owner
+    next_action: "Narrow check-waivers.mjs's unstructured-claim heuristic again. It rejected the wp-r20-ledger-closure chain's own artifacts TWICE, neither a waiver claim: once for prose quoting open-items.schema.yaml's `source` enum description (the quotation contains the word 'waived'), and once for the phrase 'none deferred, waived or dropped' - a sentence whose entire content is that there are NO waivers, which is the inverse of what the heuristic looks for. This is the same class already recorded in this ledger, which a prior chain narrowed for 'rather than' constructions and which had previously caused a real GitHub Actions CI failure. Four data points now. Two candidate directions: exempt a quoted span, and treat a leading 'no'/'none' quantifier before the waiver word as a negation the way 'rather than' already is. Note the mutation ratchet - check-waivers is at 3 rules, 0 undefended, so any added error needs its own rejection fixture in the same change."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-99
+    source: follow-up
+    owner: workflow owner
+    next_action: "A bare validator invocation in THIS repo silently validates against the global install rather than the source being edited, and nothing says so. lib.mjs resolves definitions via defsPath() -> definitions_root, which workflow/config/repo-profile.yaml sets to ~/.agentsmyth/workflow. So `node src/workflow/validators/check-open-items.mjs` after a schema edit reports ok against the PRE-EDIT global schema. Hit live in wp-r20-ledger-closure-v1 Phase 1: the phase gate passed and proved nothing, and was only caught by deliberately probing whether the new assertion could fail. AGENTSMYTH_HOME=src/workflow is the correct override (moves definitions, leaves the data root on workflow/); AGENTSMYTH_WF=src/workflow moves BOTH roots and produces a different false pass, 'no open-items.yaml - no follow-ups persisted yet'. Two plausible invocations, two green results, neither about the edit. src/workflow/validators/README.md documents the bare form. Fix by either correcting the README's examples for this repo, or having lib.mjs report which definitions root it resolved when that root is not the repo-local one."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-100
+    source: follow-up
+    owner: workflow owner
+    next_action: "agent-behavior.yaml's skill_scoring.path_glob_categories.schema_globs is ['**/migrations/**', '**/schema/**', '**/*.sql', '**/models/**'] and does not match this repo's own src/workflow/schemas/ directory - 'schemas' is not 'schema'. The consequence is that the `path~schema_globs` trigger, and therefore data-schema-designer, is mechanically FALSE for every schema change agentsmyth makes to itself, including the one in wp-r20-ledger-closure-v1 that added two fields to a schema shipped to consumer repos. That chain ran the skill anyway and recorded the near-miss in its Plan skill_trigger_log rather than letting a typo decide. Decide whether to add '**/schemas/**' to the category. Note this is a behavior change to a shipped file with its own conformance surface: check-trigger-predicates.mjs validates the predicates against examples/power-skill-sandbox/expected-triggers.yaml, so the fixture's expectations move with it."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-101
+    source: requirement
+    owner: workflow owner
+    next_action: "Reassess whether `closed_in_run` earns its place once entries closed under the new contract accumulate. wp-r20-ledger-closure-v1 added the field and backfilled 70 archived items: 5 carry a real slug-vN, derived only where the closure prose named exactly one chain other than first_seen_run (OI-29, OI-35, OI-37, OI-38, OI-52), and 65 carry the literal `unrecorded`. One item (OI-40) named two candidate chains and was marked unrecorded rather than guessed at. So the field is real but currently 93% empty of signal, and its migration value - telling which chain closed an item - is unproven until chains close items under the new rule. Revisit after several chains have done so; if it is still mostly unrecorded then, the field is not being written and the fix is in the skill rather than the schema."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+    manifest_ids: [R3]
+  - id: OI-102
+    source: requirement
+    owner: user
+    next_action: "Watch for a consumer repo hitting the one upgrade tightening in the open-items ledger change. wp-r20-ledger-closure-v1 set `additionalProperties: false` on the item object, so a ledger carrying an agent-invented key other than `resolution` now fails where it previously passed. RI5's acceptance was that upgrade is a no-op, and it is a no-op in every other respect, so that requirement is recorded as `partial` rather than shipped across the review, verify, ship and reflect artifacts. Deferral was DECLINED, not unavailable - an earlier wording of this item said it could not be deferred, and that was wrong. lib.mjs honours `x_enforcement: warn-until-<version>` on the schema-valued form (lib.mjs:825), and `additionalProperties: {x_enforcement: warn-until-1.2.0, enum: []}` is unsatisfiable for every value (lib.mjs:671), so each undeclared key would route through deferredWarnings rather than errors. It was rejected on design grounds: a warn window reopens the exact hole this change closes, because `resolution` reached 39 of 92 entries precisely by validating silently, and a key that warns for a release is a key that validates silently for a release. It should not be removed: an open object is the CAUSE of the defect the change fixes - `resolution` reached 39 of 92 entries by validating silently. Expected impact nil, since `resolution` is the only invented key ever observed and is now declared, and a failure names the offending key exactly. Named in CHANGELOG.md so a consumer meets it as documentation. No action unless a report arrives."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+    manifest_ids: [RI5]
+  - id: OI-103
+    source: follow-up
+    owner: workflow owner
+    next_action: "R4's rotation path is shipped but not yet exercised against a real closure. wp-r20-ledger-closure-v1 amended follow-up-owner-assigner to sweep closed items into the archive at the Reflect exit gate, and its own Reflect was the first run under that contract - but the live ledger held no `done` item at that point, so the sweep correctly moved nothing and reported items_swept: 0. The one-time bulk sweep of the 70 historical items was performed by the chain itself (R6), not by the skill. So the skill's rotation step has never actually moved an item. The first chain that closes an open item is the real test: confirm the item leaves open-items.yaml, arrives in open-items-archive.yaml with closed_in_run set to that chain's slug-vN, and that check-open-items reports the counts across both files. Report back rather than assuming it worked."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-104
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-scope-fence cannot resolve a Touches entry written as prose, and the failure is one-directional in a way worth closing. The existing rule checks that each DECLARED path is a real repo-relative path. wp-r20-ledger-closure-v1's plan wrote Phase 6's Touches as '`SKILL.md` + both references', which names two real files in prose; the fence reported both as outside the declared Touches when they were changed. That is the inverse hole - a real changed file that no declared path names - and the diagnosis pointed at the changed file rather than at the unparseable Touches line, which is where the defect was. Consider having check-scope-fence reject a Touches line containing a non-path token, so the plan fails at the phase that wrote it rather than at the phase that acts on it. Mutation ratchet: check-scope-fence is at 5 rules, 0 undefended; an added error needs its own fixture."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-106
+    source: follow-up
+    owner: workflow owner
+    next_action: "Record how lifecycle-ship step 4b performed on its first real exercise, which was this chain's own merge. The step was AMENDED BY THIS PR (wp-r20-ledger-closure-v1) to say that the open-items ledger is two files and that both must be grepped together, and the collision class it describes then occurred immediately: release/1.1.0 advanced to c54d719 when PR #68 merged, and both sides had independently allocated OI-93 to different things, each with first_seen_run wp-r23-agents-md-fallback-v1. Resolved by keeping this branch's OI-93 (the OI-87 scope reconciliation) and renumbering the base's OI-93 (the check-setup-complete marker-stamp item) to OI-105. One qualification the step itself should absorb: it predicts that such a collision 'merges clean and silently', and here git DID raise a content conflict, because both sides appended at the same position in the same file. That is luck of placement, not detection - a base that had appended elsewhere, or an id allocated into the archive half, would have merged clean exactly as the step warns. Decide whether step 4b should distinguish the two cases, so a reader does not conclude from this instance that git catches the class."
+    status: open
+    first_seen_run: wp-r20-ledger-closure-v1
+  - id: OI-107
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-scope-fence reads the ACTIVE PHASE NUMBER out of a task artifact's '## Active Phase' section, and a line written as prose fails the gate with 'no parseable phase number'. Three consecutive chains have now hit this at exactly the same moment - the handoff edit at the end of Build, when the line is rewritten to say the phase is complete: wp-r22-review-council-v1, wp-r23-agents-md-fallback-v1 and wp-r24-enforcement-proof-v1. Each rediscovered it from the same error message, and wp-r23 wrote a warning into its own artifact, which did not reach the next author because nothing carries an artifact comment forward. Fix where the next author will actually meet it: state the constraint in the lifecycle-build starter block next to the Active Phase field, or make the validator's message name the required shape ('expected: Phase <N> - <name>'). An artifact comment is not a fix for a recurring authoring trap."
+    status: open
+    first_seen_run: wp-r24-enforcement-proof-v1
+  - id: OI-108
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-artifacts.mjs extracts a brief's Requirement Manifest with /## Requirement Manifest[\\s\\S]*?(?=\\n## |\\n---|\\s*$)/, which is not anchored to a line start. A brief that MENTIONS the heading inline - e.g. the sentence 'See `## Requirement Manifest`' in a Requirements section - matches first, captures a 26-character section containing no IDs, and every manifest_id in the downstream task artifact is then reported as 'not declared in the upstream brief'. The error names the task artifact, so the diagnosis points away from the actual cause, which is in the brief. Hit by wp-r24-enforcement-proof-v1 and worked around by rewording the brief, which leaves the trap set. Anchor the pattern to a line start (/^## Requirement Manifest/m) and add a violation fixture for a brief that references the heading inline. Note the mutation ratchet is at 0 undefended, so a new rule needs its own rejection fixture in the same change."
+    status: open
+    first_seen_run: wp-r24-enforcement-proof-v1
+  - id: OI-109
+    source: follow-up
+    owner: workflow owner
+    next_action: "check-scope-fence has no way for a plan phase to declare that it deliberately touches NO shipped repo file, and resolves every Touches entry as repo-relative. wp-r24-enforcement-proof-v1's Phase 1 did its work in a disposable repo under tuning.council.sandbox_root - outside every repository by construction - and its first Touches entry, the sandbox path, was rejected with 'does not resolve ... check it is repo-relative and not abbreviated'. The honest fix used was to declare the task artifact, since the recorded transcript is the phase's only repo-visible output, and that is arguably the right answer. But it is a workaround discovered under a failing gate rather than a contract the plan author can read in advance, and the next chain with out-of-repo work (a sandbox trial, an external API probe, a scratch-repo rehearsal) will rediscover it the same way. Decide whether Touches should accept an explicit 'none (out-of-repo work; evidence recorded in <artifact>)' form. Adjacent to OI-104 (prose Touches entries) and distinct from it."
+    status: open
+    first_seen_run: wp-r24-enforcement-proof-v1
+  - id: OI-110
+    source: follow-up
+    owner: user
+    next_action: "Notion '04 - Reference' declares itself canonical for counts ('If a number here disagrees with a number on another page, this page is correct') and is maintained entirely by hand, with nothing deriving it from the repository. It was stale by two skills when wp-r24-enforcement-proof-v1 read it: 34 total, written 2026-07-31, against 36 under its own counting rule once think-council and review-council landed. That chain updated it from a Build-evidenced derivation and added the re-derivation command, but the structural problem is untouched - it will be stale again after the next skill is added, and the page's authority claim makes a stale figure actively misleading rather than merely old. Decide between deriving the counts (a script that emits them, or a validator that fails when the page disagrees) and demoting the authority claim to 'last derived on <date>, re-derive before citing'. Related: the '22 vs 34' discrepancy that WP-R24 was chartered to fix turned out not to be an error at all - two different counting conventions - which is itself an argument for stating the rule wherever a number appears."
+    status: open
+    first_seen_run: wp-r24-enforcement-proof-v1
+  - id: OI-111
+    source: follow-up
+    owner: user
+    next_action: "Decide whether Review councils should be reachable below Complex class. agent-behavior.yaml resolves councils in a fixed order and step 3 ends it: 'the council fires for complex only. Trivial and Standard keep the single-agent path with no behavioral change.' wp-r24-enforcement-proof-v1 is Standard, so its Review was performed by the same agent that wrote its Build - which found four real findings (a missing v-pre on generated content in a Vue template, an unguarded recursive delete aimed by a config value, undiscoverable documented steps, unchecked git exit codes) and also recorded that a reviewer without an authorship stake would plausibly find more. The user asked directly whether a council was required, which suggests the gap is visible from outside the chain too. This is a cost decision, not a correctness one: WP-R21 measured the Think council at roughly 6x invocations for less coverage than a single-agent baseline, and OI-76 already asks for that measurement to be repeated across several Complex chains before 1.2.0. Options: leave as is; allow a repo to opt in via tuning (stricter-or-unchanged permits it); or make Review councils available on request for any class without changing the default. Related: OI-85 (nobody reviewed the review council's own remediation), OI-76 (council cost re-measurement)."
+    status: open
+    first_seen_run: wp-r24-enforcement-proof-v1
+
+  - id: OI-115
+    source: follow-up
+    owner: workflow owner
+    next_action: "Close the gate DELIVERY gap, or decide deliberately not to. CLAUDE.md golden rule 3 requires all five adapters to carry the same mandatory-gate content, and they do - but delivery is not parity, and WP-R25 documented the difference rather than fixing it (RI10). Concretely: both Copilot writes in bin/agentsmyth.mjs are wrapped in a darwin platform check, because the target path is a macOS Application Support location, so on Linux and Windows Copilot receives neither a global gate nor an invocation command; and Cursor receives no global gate file on any platform, because it has no global config file to write - its gate is text printed for the user to paste into Settings, which means the gate is live only if a human completed a manual step. So at most four of five gates install automatically on macOS and three of five elsewhere. site/updating.md previously claimed prepare refreshes the gate in every supported tool's config and was corrected on 2026-10-04 to say what actually happens; this item is the fix rather than the disclosure. Options: find a non-macOS Copilot config path and write it; detect whether Cursor's paste was completed and report honestly when it was not; or declare the two exceptions permanent and state them wherever five-tool support is claimed. Note that a paste nobody completed is indistinguishable today from one that was, which is the part that makes the current state a silent gap rather than a documented limitation."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-116
+    source: follow-up
+    owner: workflow owner
+    next_action: "Implement `agentsmyth doctor`. The verb and its help entry exist and print "not yet implemented". It is the natural home for diagnosing a global definitions install — absent, unstamped, stale, or half-expanded — which currently has to be done by hand against installed-version.txt. WP-R25 gave it a second customer: when `check-config` fails because the global schemas predate the keys this CLI writes, the errors read as config faults the user cannot fix by editing config, and the CLI now prints a hint rather than a diagnosis. Worth its own brief."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-117
+    source: follow-up
+    owner: workflow owner
+    next_action: "Guard `mutation:audit` against concurrent work. It mutates src/workflow/validators/*.mjs in place and restores them afterward, so any edit or commit alongside it can clobber a fix, and the result is invalid either way because the thing being measured is whether tests notice changes to those files. WP-R25 hit this twice in one phase and discarded two ~20-minute runs. A refusal on a dirty working tree, or a lock file, would cost less than one discarded run."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-118
+    source: follow-up
+    owner: workflow owner
+    next_action: "Decide whether clause-level Fix-line verification belongs in the Review or Test contract. WP-R25 reported 22 of 22 findings closed while two (F8, F13) had two-obligation Fix lines with one obligation landed each; a finding-level check passed both. Decomposing every Fix line into clauses afterward found four more obligations never tested. The chain's answer was test/run-finding-closure-probes.mjs, which lives in one repo's test directory rather than in the lifecycle contract — so the next chain in any repo re-derives it or does not. Worth its own brief."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-119
+    source: follow-up
+    owner: workflow owner
+    next_action: "Investigate why 154 finding-quality rows have settled `proved-real` with ZERO `noise`, across the entire history of both ledger files. Either the councils are extraordinarily accurate, or `noise` is a verdict nobody reaches for — and the second is more likely. If `noise` is effectively unreachable then the ledger measures council VOLUME rather than council QUALITY, which is the opposite of its stated purpose. Check whether any phase skill makes `noise` a realistic outcome, and whether the parent's consolidation step can even produce one."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-120
+    source: follow-up
+    owner: workflow owner
+    next_action: "`workflow/config/release.yaml` declares `gates.ci.provider: none` and `checks: []` while `.github/workflows/ci.yml` runs on every push and exercises seventeen suites. The config understates the real CI, which made WP-R25's ship artifact record its PR/CI readiness as thinner than the truth. Either declare the actual provider and checks, or record why the gate is deliberately not config-driven."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1
+  - id: OI-121
+    source: follow-up
+    owner: workflow owner
+    next_action: "Two lifecycle enum gaps carried from WP-R18 and still open. `council.cap_source` has no value for a cap the USER raised mid-session — only `configured` and `council-default` exist. `finding-quality.closed_in_phase` has no member for work that returns to Build: WP-R25's Phase 8 was exactly that shape (a Build-phase remediation pass after Review) and had to record `review`, which the schema's own description permits but describes as the exception."
+    status: open
+    first_seen_run: wp-r25-prerelease-hardening-v1

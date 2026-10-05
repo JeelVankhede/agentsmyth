@@ -1,28 +1,21 @@
-# Agentsmyth Workflow Gate (MANDATORY)
+# agentsmyth
 
-Before any implementation work — no exceptions:
+This repository runs a gated engineering lifecycle. Read this before any implementation work.
 
-1. **Check for `.agentsmyth/`** — if it exists, read `.agentsmyth/setup-bundle.md` and run the setup skill. Do not proceed to step 2 until setup is complete and `.agentsmyth/` is removed.
+**If `.agentsmyth/` exists, setup has not finished.** Read `.agentsmyth/setup-bundle.md` and run the
+setup skill before anything else. It resolves the open items in `workflow/config/pending-setup.yaml`
+and removes `.agentsmyth/` when done. Do not start lifecycle work while that directory is present.
 
-2. **Read `workflow/router.md`** — this is the canonical entry point for all lifecycle work.
-   If this file does not exist, read `definitions_root` from
-   `workflow/config/repo-profile.yaml` and load `<definitions_root>/router.md` instead — this
-   repo is linked to a global install rather than holding a local copy. Every other
-   `workflow/...` path referenced below (`agent-behavior.yaml`, `lifecycle.md`,
-   `skills/...`) resolves the same way: local if present, otherwise under
-   `<definitions_root>/`.
+**Find the definitions.** Start at `workflow/router.md`. If that file is absent, read
+`definitions_root` from `workflow/config/repo-profile.yaml` and load `<definitions_root>/router.md`
+instead — this repo links to a global install rather than keeping a local copy. Every other
+`workflow/...` path below resolves the same way: local if present, otherwise under
+`<definitions_root>/`. `workflow/artifacts/` is always repo-local.
 
-3. **Load `workflow/agent-behavior.yaml`** — classify the request:
-   - `trivial` → handle inline, no artifact required
-   - `standard` → full lifecycle required: think → plan → build → review → ship → reflect. Test is skippable **only with a waiver**, and a waived Test still writes a verify artifact recording that waiver (it is not simply omitted).
-   - `complex` → all phases required including test; no phases may be skipped
+**Route the work.** `workflow/router.md` classifies the request and selects the phase.
+`workflow/lifecycle.md` defines the phase order and the artifact each phase must write before the
+next one may start.
 
-4. **Route using `workflow/lifecycle.md`** — select the current phase. If resuming, use the `restore-context` skill first. Never resume from chat memory alone.
+{{GATE_PARAGRAPH}}
 
-5. **Write a brief artifact before any implementation** — for Standard or Complex work, create `workflow/artifacts/briefs/<slug>-v1.md` using the Starter Block in `workflow/skills/lifecycle-think/references/output-schema.md`. Do not write code before the brief is complete and the user has approved it. (`workflow/artifacts/` is always repo-local, unlike the skill/schema paths above.)
-
-6. **Gate every phase transition on artifact status** — do not proceed to the next phase unless the current artifact has `status: ready-for-next-phase`. Missing artifacts or wrong status are blockers, not warnings.
-
-7. **Require evidence for every claim** — command results, test output, and source references must appear in the artifact. Do not claim a check passed without showing output.
-
-**Bypass is not permitted.** If you cannot follow a phase (missing info, blocker, uncertainty), pause and surface the blocker. Do not skip ahead or work inline on Standard/Complex tasks.
+This block is a pointer to the contract, not the contract itself.

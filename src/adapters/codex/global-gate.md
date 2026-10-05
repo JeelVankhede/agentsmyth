@@ -13,6 +13,6 @@ When working in any repository that has a `workflow/` directory or `workflow/con
 Never skip the gate. Never mark a phase complete without evidence.
 
 Global definitions: `~/.agentsmyth/workflow/`
-Per-repo data: `workflow/config/`, `workflow/artifacts/`, `workflow/learnings/`
+Per-repo data: `workflow/config/`, `workflow/artifacts/`, `workflow/learnings/`, `workflow/provenance.yaml`, `workflow/backups/`
 
 # agentsmyth global gate END

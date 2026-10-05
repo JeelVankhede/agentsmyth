@@ -19,6 +19,19 @@ branch_policy:
 
 paths:
   protected:
+    # These patterns bind the AGENT, not the agentsmyth CLI. The distinction is written here
+    # because it was previously implicit, and an agent that read this list as a description of
+    # everything that will ever touch these paths would have been wrong about one file.
+    #
+    # The one CLI exception, stated rather than left to be discovered: `agentsmyth init` and
+    # `agentsmyth upgrade` write the mandatory pre-commit hook, which in a default repo lives at
+    # `.git/hooks/pre-commit` — inside the first pattern below. That is the gate's whole design:
+    # git must run it whether or not an agent cooperates, so it has to sit where git looks. The
+    # protection this list provides still holds in the direction that matters — a hook under
+    # `.git/` is never hashed into `workflow/provenance.yaml` and never copied into the committed
+    # `workflow/backups/` tree, precisely because doing so would move protected content into
+    # version control. Set `core.hooksPath` to a tracked directory to move the hook out of `.git/`
+    # entirely; agentsmyth honours it and will then govern the hook like any other file.
     - pattern: .git/**
       reason: repository metadata
     - pattern: .env*

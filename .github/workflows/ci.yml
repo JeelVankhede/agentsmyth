@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    # Release branches are integration targets — every WP for a minor release merges into one
+    # before main sees a single commit. Filtering to main meant those PRs ran zero checks and every
+    # number in their description came from one developer's machine.
+    branches: [main, 'release/**']
 
 jobs:
   validate:
@@ -46,11 +49,40 @@ jobs:
       - name: Run init/prepare interoperability tests
         run: npm run init-prepare-interop:test
 
+      - name: Run upgrade-path tests
+        run: npm run upgrade-path:test
+
+      # Path-containment regressions are silent by nature: every finding this suite covers exited
+      # ZERO with the defect present, three of them while printing a success line. CI is the only
+      # place that notices.
+      - name: Run path-containment tests
+        run: npm run path-containment:test
+
+      # Asserts each WP-R25 Review finding's own symptom is gone, rather than that a test for it
+      # exists. Two findings were asserted closed while half their Fix line was still open.
+      - name: Run finding-closure probes
+        run: npm run finding-closure:test
+
       - name: Run checkpoint-approval gate tests
         run: npm run checkpoint-approval:test
 
+      # Added after a Review-council finding: both suites existed in package.json and ran in no
+      # workflow, so they were counted as coverage while never being invoked. tuning-merge in
+      # particular carries the only automated evidence for per-repo council tuning.
+      - name: Run tuning-merge tests
+        run: npm run tuning-merge:test
+
+      - name: Run commit-coverage tests
+        run: npm run commit-coverage:test
+
+      - name: Run domain-placeholder tests
+        run: npm run domain-placeholders:test
+
       - name: Run setup-validator definitions_root tests
         run: npm run setup-validator-definitions-root:test
+
+      - name: Run AGENTS.md fallback tests
+        run: npm run agents-md:test
 
       - name: Build docs site
         run: npm run site:build

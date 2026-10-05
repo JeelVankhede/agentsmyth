@@ -17,15 +17,13 @@ manifest_ids:
   - RI4
   - RI5
 upstream:
-  - artifact: review
-    slug: wp-r5-repo-shape-taxonomy
-    version: 1
+  - workflow/artifacts/reviews/wp-r5-repo-shape-taxonomy-v1.md
 orchestration:
   phase: test
-  status: complete
+  status: done
   next_phase: ship
   blockers: []
-  user_checkpoint: false
+  user_checkpoint: none
 ---
 
 ## Inputs

@@ -2,7 +2,7 @@
 slug: deepen-setup-interview
 version: 1
 artifact: reflect
-status: complete
+status: done
 created: 2026-07-22
 updated: 2026-07-22
 manifest_ids: [R1, R2, R3, R4, R5, R6, RI1, RI2]
@@ -15,7 +15,7 @@ upstream:
   - workflow/artifacts/ship/deepen-setup-interview-v1.md
 orchestration:
   phase: reflect
-  status: complete
+  status: done
   next_phase: done
   blockers: []
   user_checkpoint: none

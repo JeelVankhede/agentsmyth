@@ -1,0 +1,345 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: agent-behavior.schema.yaml
+title: Agent Behavior Config
+type: object
+additionalProperties: false
+required:
+  - version
+  - kind
+  - canonical_source
+  - lifecycle
+  - pause_resume
+  - evidence_policy
+  - change_policy
+  - waivers
+  - dispatch
+properties:
+  version:
+    const: 1
+  kind:
+    const: agent-behavior
+  canonical_source:
+    type: object
+    additionalProperties: false
+    required:
+      - workflow_root
+      - instructions_root
+      - rule
+    properties:
+      workflow_root:
+        type: string
+      instructions_root:
+        type: string
+      rule:
+        type: string
+  task_classes:
+    type: object
+    additionalProperties: false
+    properties:
+      trivial:
+        $ref: '#/$defs/task_class'
+      standard:
+        $ref: '#/$defs/task_class'
+      complex:
+        $ref: '#/$defs/task_class'
+  lifecycle:
+    type: object
+    additionalProperties: false
+    required:
+      - default_mode
+      - require_artifacts_for_standard_and_complex_work
+      - allow_skipped_phase_with_waiver
+      - artifact_chain
+    properties:
+      default_mode:
+        type: string
+        enum:
+          - lightweight
+          - standard
+          - complex
+      require_artifacts_for_standard_and_complex_work:
+        type: boolean
+      allow_skipped_phase_with_waiver:
+        type: boolean
+      artifact_chain:
+        type: array
+        minItems: 7
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - artifact
+            - phase
+            - path
+            - next_phase
+          properties:
+            artifact:
+              type: string
+              enum:
+                - brief
+                - plan
+                - task
+                - review
+                - verify
+                - ship
+                - reflect
+            phase:
+              type: string
+              enum:
+                - think
+                - plan
+                - build
+                - review
+                - test
+                - ship
+                - reflect
+            path:
+              type: string
+            next_phase:
+              type: string
+              enum:
+                - plan
+                - build
+                - review
+                - test
+                - ship
+                - reflect
+                - done
+  pause_resume:
+    $ref: '#/$defs/boolean_policy_object'
+  evidence_policy:
+    $ref: '#/$defs/boolean_policy_object'
+  change_policy:
+    $ref: '#/$defs/boolean_policy_object'
+  waivers:
+    type: object
+    additionalProperties: false
+    required:
+      - approvers
+      - required_fields
+      - cannot_waive_false_evidence
+    properties:
+      approvers:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      required_fields:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      cannot_waive_false_evidence:
+        type: boolean
+  dispatch:
+    type: object
+    additionalProperties: false
+    required:
+      - enabled
+      - max_parallel_workstreams
+      - require_independent_file_ownership
+      - require_dispatch_log
+      - merge_owner
+    properties:
+      enabled:
+        type: string
+        enum:
+          - optional
+          - disabled
+          - required
+      max_parallel_workstreams:
+        type: integer
+        minimum: 0
+      require_independent_file_ownership:
+        type: boolean
+      require_dispatch_log:
+        type: boolean
+      merge_owner:
+        type: string
+  council:
+    type: object
+    additionalProperties: false
+    description: >-
+      Council-mode dispatch settings. Firing is decided in a fixed order and the first
+      answer wins - resolved dispatch.enabled, then council.enabled, then task class. A repo that
+      set dispatch.enabled to disabled gets no council regardless of anything in this block; a kill
+      switch a later feature can route around is not a kill switch.
+    required:
+      - enabled
+      - max_rounds
+      - depth
+      - per_phase
+      - sandbox_root
+    properties:
+      enabled:
+        type: string
+        enum:
+          - on-for-complex
+          - disabled
+        description: Councils fire for task_class complex only. Trivial and Standard keep the single-agent Think path unchanged, so there is no on-for-all value to set.
+      max_rounds:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Backstop bound on the round loop. The tapering, non-increasing fan-out supplies the actual cost guarantee; this only stops a pathological loop. A run that hits this bound with anything still open terminates user-decision-required; there is no termination reason naming the bound itself, because a run that stopped at the bound either closed everything or has survivors to escalate.
+      depth:
+        type: string
+        enum:
+          - shallow
+          - standard
+          - deep
+        description: Bounds per-member research effort, not member count. Separate from fan-out so cost can be reduced without shrinking the council.
+      per_phase:
+        type: object
+        additionalProperties: false
+        description: >-
+          Council fan-out per phase. There is no phase-agnostic default: a phase absent from this
+          map gets NO council departure and falls back to the global default-to-1 rule. The
+          asymmetry that used to live here - one phase's value at the top level, everyone else's
+          nested - read as a special case and invited the next phase to be bolted on the same ad-hoc
+          way. It also risked the failure this rule exists to prevent, where extending councils to a
+          new phase silently bills every unconfigured consumer there too.
+        required:
+          - think
+        properties:
+          think:
+            type: object
+            additionalProperties: false
+            required:
+              - default_fan_out
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Think council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from default-to-1, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+          review:
+            type: object
+            additionalProperties: false
+            required:
+              - default_fan_out
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
+      sandbox_root:
+        type: string
+        minLength: 1
+        description: Where trial members write. Resolves global-then-repo-local like definitions_root. Must lie outside the repository - that is what makes the no-repo-mutation guarantee structural rather than asserted per run.
+  skill_scoring:
+    type: object
+    additionalProperties: false
+    required:
+      - version
+      - signals
+      - complexity_score
+      - triggers
+    properties:
+      version:
+        const: 1
+      signals:
+        type: object
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: object
+          additionalProperties: false
+          required:
+            - source
+            - type
+          properties:
+            source:
+              type: string
+            type:
+              type: string
+              enum:
+                - int
+                - bool
+                - string
+      complexity_score:
+        type: object
+        additionalProperties: false
+        required:
+          - weights
+        properties:
+          weights:
+            type: object
+            additionalProperties: true
+      thresholds:
+        type: object
+        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: integer
+      triggers:
+        type: object
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: string
+      path_glob_categories:
+        type: object
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: array
+          items:
+            type: string
+  extensions:
+    type: object
+    additionalProperties: true
+$defs:
+  task_class:
+    type: object
+    additionalProperties: false
+    required:
+      - description
+      - required_phases
+      - skippable_phases
+      - artifact_required
+    properties:
+      description:
+        type: string
+      classification_signals:
+        type: array
+        items:
+          type: string
+      required_phases:
+        type: array
+        items:
+          type: string
+          enum:
+            - think
+            - plan
+            - build
+            - review
+            - test
+            - ship
+            - reflect
+      skippable_phases:
+        type: array
+        items:
+          type: string
+          enum:
+            - think
+            - plan
+            - build
+            - review
+            - test
+            - ship
+            - reflect
+      skip_requires_waiver:
+        type: boolean
+      artifact_required:
+        type: boolean
+      note:
+        type: string
+  boolean_policy_object:
+    type: object
+    additionalProperties:
+      x_enforcement: warn-until-1.2.0
+      oneOf:
+        - type: boolean
+        - type: array
+          items:
+            type: string
+        - type: string

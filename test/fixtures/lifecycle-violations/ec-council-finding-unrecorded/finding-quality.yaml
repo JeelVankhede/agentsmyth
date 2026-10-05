@@ -1,0 +1,15 @@
+version: 1
+kind: finding-quality
+items:
+  - id: FQ-1
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/probe-v1.md
+    first_seen_run: probe-v1
+    disposition: accepted
+    outcome: pending
+  - id: FQ-2
+    finding_id: F2
+    source_artifact: workflow/artifacts/reviews/probe-v1.md
+    first_seen_run: probe-v1
+    disposition: accepted
+    outcome: pending

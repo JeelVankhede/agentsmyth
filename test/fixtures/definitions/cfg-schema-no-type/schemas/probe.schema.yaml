@@ -1,0 +1,8 @@
+$schema: http://json-schema.org/draft-07/schema#
+$id: probe
+title: Probe
+type: object
+required: [version, kind]
+properties:
+  version: {type: integer}
+  kind: {type: string, enum: [probe]}

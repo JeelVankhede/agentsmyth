@@ -2,7 +2,7 @@
 slug: fix-check-config-defs-root
 version: 1
 artifact: verify
-status: complete
+status: done
 created: 2026-07-22
 updated: 2026-07-22
 manifest_ids: [R1]
@@ -13,7 +13,7 @@ upstream:
   - workflow/artifacts/reviews/fix-check-config-defs-root-v1.md
 orchestration:
   phase: test
-  status: complete
+  status: done
   next_phase: ship
   blockers: []
   user_checkpoint: none

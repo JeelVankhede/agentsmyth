@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   artifactContracts,
@@ -11,7 +12,9 @@ import {
   parseFrontmatter,
   readText,
   repoRoot,
+  schemaRegistry,
   trackedFiles,
+  validateSchema,
   wf,
 } from './lib.mjs';
 
@@ -59,7 +62,13 @@ function checkpointApprovalSection(body) {
   const section = match[1];
   const checkpoint = section.match(/^-\s*Checkpoint:\s*(.+)$/im)?.[1]?.trim();
   const status = section.match(/^-\s*Status:\s*(.+)$/im)?.[1]?.trim();
-  const evidenceMatch = section.match(/^-\s*User'?s? own words[^:]*:\s*([\s\S]*?)(?=\n-\s|\n*$)/im);
+  // The terminator used to be `(?=\n-\s|\n*$)`, and under /m the `$` matched at the FIRST
+  // line end — so a multi-line verbatim quote truncated to its opening line, which then usually
+  // tripped the length<10 placeholder guard below. Users approve in multi-line messages routinely,
+  // which put "quote the user verbatim" in direct tension with what could be stored.
+  // Now terminates only on the next bullet at column 0, or at true end-of-string, so indented
+  // continuation lines and blank lines inside a quote are preserved.
+  const evidenceMatch = section.match(/^-[ \t]*User'?s? own words[^:]*:[ \t]*([\s\S]*?)(?=\n-[ \t]|$(?![\s\S]))/im);
   const evidence = evidenceMatch?.[1]?.trim().replace(/^"|"$/g, '');
   if (!checkpoint || !status) return null;
   return { checkpoint, status, evidence };
@@ -108,10 +117,127 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
     process.exit(1);
   }
 
-  // think has no upstream — always passes
+  // think has no upstream. It does have one precondition, and this is the only place that can hold
+  // it: the Think gate runs BEFORE stage 1, which is before any research and before any fan-out, so
+  // a cost decision refused here is refused ahead of the spend rather than reported after it.
+  //
+  // Every other pending-setup item is non-blocking by contract — until it resolves the value falls
+  // back to the global install and behaviour is unchanged. `tuning.council.model_tier` is the one
+  // item with nothing safe to fall back TO. A fan-out has a defensible default; a capability tier
+  // does not, because any default the package picks is the package choosing how much the user
+  // spends, which is the exact complaint this key exists to answer.
+  //
+  // Scoped so it cannot fire where it would be noise: only while councils can actually dispatch. A
+  // repo that set dispatch.enabled or council.enabled to disabled has already decided it will not
+  // spend on councils, so there is nothing left to ask it. And a repo with no such item — which is
+  // every repo written before this key existed — is unaffected, which is what keeps the change
+  // additive.
+  // ── The council capability precondition ──────────────────────────────────────────────────
+  //
+  // Applies to EVERY phase that can dispatch a council, derived from the resolved per-phase map
+  // rather than from a phase literal. It was keyed on `targetPhase === 'think'`, which left the one
+  // phase gate the commit hook actually invokes — `review`, via the hook's `tasks` mapping — with no
+  // tier check at all, while the Review council's own skill pointed at the Think gate to hold it.
+  // Review is the costlier council and its verdict blocks a commit, so that was the worse half of
+  // the gap. Deriving the phase set from `per_phase` also means a future phase that gains a council
+  // is covered without anyone remembering to extend this.
+  //
+  // Gates on the resolved VALUE, not on an item's status flag. Flipping the item to `resolved` or
+  // `waived` used to clear the block permanently without `tuning.council.model_tier` ever being
+  // written, so the remedy the message advertised was never the thing being checked.
+  const dirIdx = args.indexOf('--dir');
+  const configDir = dirIdx !== -1 ? join(args[dirIdx + 1], 'config') : join(repoRoot, wf, 'config');
+
+  function councilTierPrecondition() {
+    let behaviorCfg = null;
+    try {
+      behaviorCfg = loadYaml(defsPath('agent-behavior.yaml'));
+    } catch {
+      return null; // unreadable definitions is another validator's finding, not this rule's to guess
+    }
+
+    const councilPhases = Object.keys(behaviorCfg?.council?.per_phase ?? {});
+    if (!councilPhases.includes(targetPhase)) return null;
+
+    const profilePath = join(configDir, 'repo-profile.yaml');
+    let tuned = {};
+    let profileReadable = true;
+    try {
+      tuned = existsSync(profilePath) ? (loadYaml(profilePath)?.tuning ?? {}) : {};
+    } catch {
+      profileReadable = false;
+    }
+
+    const dispatchEnabled = tuned?.dispatch?.enabled ?? behaviorCfg?.dispatch?.enabled;
+    const councilEnabled = tuned?.council?.enabled ?? behaviorCfg?.council?.enabled;
+    if (dispatchEnabled === 'disabled' || councilEnabled === 'disabled') {
+      return { gated: false, detail: `${targetPhase}: councils disabled for this repo — capability tier not gated` };
+    }
+
+    const resolvedTier = tuned?.council?.model_tier ?? behaviorCfg?.council?.model_tier ?? null;
+
+    // A tier this gate cannot MAP is not a resolved tier.
+    //
+    // Keying on presence alone left the other half of the hole open: `model_tier: supreme` passed
+    // here, because something was written, and was then handed to five adapter mappings that have
+    // no row for it. The value is enum-checked by check-config.mjs, which no consumer path ran —
+    // so an invented tier cleared the one gate whose entire job is to confirm the capability
+    // question was answered. "Answered" has to mean answered with one of the three values the
+    // adapters can express, or the gate is checking that a key exists rather than that a decision
+    // was made. check-config is now wired into `agentsmyth check` as well; this is the same rule at
+    // the point of use, because the gate is what hands the value onward.
+    const TIERS = ['cheap', 'standard', 'deep'];
+    if (resolvedTier && !TIERS.includes(String(resolvedTier).trim())) {
+      return {
+        gated: true,
+        message:
+          `${targetPhase}: tuning.council.model_tier is "${resolvedTier}", which is not one of `
+          + `${TIERS.join(' | ')}, and a council must not dispatch on a tier no adapter can map. `
+          + `Correct it in ${wf}/config/repo-profile.yaml.`,
+      };
+    }
+    if (resolvedTier) return null;
+
+    let itemId = null;
+    let pendingUnreadable = false;
+    const pendingPath = join(configDir, 'pending-setup.yaml');
+    if (existsSync(pendingPath)) {
+      try {
+        const pending = loadYaml(pendingPath);
+        itemId = (pending?.items ?? []).find((i) => i?.field === 'tuning.council.model_tier')?.id ?? null;
+      } catch {
+        // Fail CLOSED on an unreadable pending-setup file. This used to swallow the parse error and
+        // pass, delegating the report to a validator `agentsmyth check` never invokes — so a corrupt
+        // or deleted file was both an undetected fault and a silent clearance of the only blocking
+        // item in the package. The sibling repo-profile branch already failed closed.
+        pendingUnreadable = true;
+      }
+    }
+
+    const where = pendingUnreadable
+      ? `${wf}/config/pending-setup.yaml could not be parsed, so no capability tier can be confirmed`
+      : `no council capability tier is resolved${itemId ? ` (${itemId} names it)` : ''}`;
+
+    return {
+      gated: true,
+      message:
+        `${targetPhase}: ${where}, and a council must not dispatch. This is the one setup answer that `
+        + 'blocks, because there is no default the package can pick without choosing how much you spend. '
+        + 'Two ways forward: write tuning.council.model_tier (cheap | standard | deep) into '
+        + `${wf}/config/repo-profile.yaml; or set tuning.council.enabled to disabled if this repo should `
+        + 'never run councils.'
+        + (profileReadable ? '' : ' Note: repo-profile.yaml could not be parsed either.'),
+    };
+  }
+
+  const tierPrecondition = councilTierPrecondition();
+  if (tierPrecondition?.gated) errors.push(tierPrecondition.message);
+
   if (targetPhase === 'think') {
-    finish('check-lifecycle --phase think', [], ['think: no upstream required']);
-    process.exit(0);
+    const thinkDetails = ['think: no upstream required'];
+    if (tierPrecondition && !tierPrecondition.gated) thinkDetails.push(tierPrecondition.detail);
+    finish('check-lifecycle --phase think', errors, thinkDetails);
+    process.exit(errors.length > 0 ? 1 : 0);
   }
 
   const upstream = UPSTREAM[targetPhase];
@@ -215,7 +341,19 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
 const errors = [];
 const details = [];
 
-const behavior = loadYaml(defsPath('agent-behavior.yaml'));
+// Loaded at module scope, so an unreadable definitions tree here is a crash rather than a finding.
+// Catching the flagged case keeps the output a readable sentence naming the file and the remedy; an
+// ENOENT stack trace naming an internal frame told the user nothing about the repo they were in.
+let behavior;
+try {
+  behavior = loadYaml(defsPath('agent-behavior.yaml'));
+} catch (err) {
+  if (!err?.isMissingDefinitions) throw err;
+  console.error('');
+  console.error(err.message);
+  console.error('');
+  process.exit(1);
+}
 const chain = behavior.lifecycle?.artifact_chain ?? [];
 
 if (chain.length !== artifactContracts.length) {
@@ -294,6 +432,140 @@ for (const f of strayFiles) {
 
 if (strayFiles.length === 0) {
   details.push('RI1: no stray artifact files found outside artifacts tree');
+}
+
+// ── Provenance manifest ───────────────────────────────────────────────────
+// Shape, containment, AND content. The first version of this block checked shape only, on the
+// reasoning that "only `agentsmyth upgrade` can compare a digest against the file it describes".
+// That was wrong twice over, and the second way is what made RI14 unenforceable.
+//
+// It is not true that only `upgrade` can compare: the comparison is sha256 over a normalised read,
+// which needs node:crypto and nothing else. And deferring it to `upgrade` put the check on the one
+// code path where a mismatch is no longer actionable — by then the file is already being backed up
+// and rewritten. RI14 says a baseline stamping step runs after the agent finishes filling configs
+// (`src/setup/SKILL.md` step 5f), and NOTHING enforced it: a skipped 5f was invisible until the
+// first real upgrade fired spurious reconcile items across all five configs, for every fresh
+// consumer — RK2 shipping inverted, mitigated only by a sentence of prose.
+//
+// So the digest comparison lives here, where it runs on every `agentsmyth check`, and it reports a
+// DETAIL rather than an error. A recorded digest that no longer matches is the normal, expected
+// state of a repo whose user has edited a governed file — that is drift, which is the feature
+// working. What the reader needs is to be told it exists before the upgrade acts on it, and to be
+// told when EVERY governed file reads as drifted, which is the specific signature of a baseline
+// that was never taken.
+//
+// Hosted in this validator specifically. `check-config.mjs` would have been the obvious home and is
+// the wrong one: `agentsmyth check` hardcodes exactly two validator filenames and that is not one
+// of them, `scripts/` never ships, and the one documented manual invocation is broken for a linked
+// install — so a rule placed there would never run in a single consumer repo. This file is invoked
+// by name on every full `check`, and it imports lib.mjs, so it can actually schema-validate. Those
+// two properties together are why it is here and not in the validator that reads configs.
+// join(repoRoot, ...) deliberately: `wf` is a repo-root-relative NAME, and bare existsSync resolves
+// against process.cwd(). The body below reads through lib.mjs helpers that DO join repoRoot, so a
+// cwd-relative guard made the check silently pass from any subdirectory while claiming in its own
+// details line that no manifest was present.
+const provenancePath = `${wf}/provenance.yaml`;
+if (existsSync(join(repoRoot, provenancePath))) {
+  let manifest = null;
+  try {
+    manifest = loadYaml(provenancePath);
+  } catch (e) {
+    errors.push(`${provenancePath} is not parseable: ${e.message} — an unreadable manifest must be repaired or deleted, never left in place, because an upgrade cannot tell your edits from staleness without it`);
+  }
+
+  if (manifest) {
+    if (manifest.kind !== 'provenance') {
+      errors.push(`${provenancePath} has kind "${manifest.kind ?? '(none)'}", expected "provenance"`);
+    } else {
+      const schemaPath = defsPath('schemas', 'provenance.schema.yaml');
+      if (existsSync(schemaPath)) {
+        const schema = loadYaml(schemaPath);
+        validateSchema(manifest, schema, provenancePath, errors, schemaRegistry(), schema);
+        details.push(`checked ${provenancePath} against ${schemaPath}`);
+      }
+      let compared = 0;
+      let drifted = 0;
+      let absent = 0;
+      // Counted separately from the governed set as a whole, because the two answer different
+      // questions and conflating them is what made the first version of this rule unfireable.
+      let configsCompared = 0;
+      let configsDrifted = 0;
+      for (const entry of manifest.entries ?? []) {
+        // A manifest entry names a file an upgrade will read, back up, and overwrite. A path that
+        // escapes the repository, or is absolute, would point that machinery outside the tree it
+        // is scoped to — so the shape check is a containment check, not a cosmetic one.
+        if (typeof entry?.path === 'string' && (entry.path.startsWith('/') || entry.path.split('/').includes('..'))) {
+          errors.push(`${provenancePath} entry path "${entry.path}" escapes the repository — governed paths must be repo-relative and must not traverse upward`);
+          continue;
+        }
+        // `written_by_version` reaches `writeBackup()` as a PATH SEGMENT on the upgrade path, and
+        // join() collapses "../". The CLI's own reader rejects a malformed value now, but this is
+        // the surface a user runs BEFORE upgrading, so it says so here too rather than leaving the
+        // first report to the command that would have acted on it.
+        if (typeof entry?.written_by_version === 'string' && !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z][0-9A-Za-z.-]*)?$/.test(entry.written_by_version)) {
+          errors.push(`${provenancePath} entry "${entry.path}" has written_by_version "${entry.written_by_version}", which is not a version string — this value becomes a directory name under ${wf}/backups/, so a path fragment there writes backups outside the repository`);
+          continue;
+        }
+        if (typeof entry?.path !== 'string' || typeof entry?.sha256 !== 'string') continue;
+
+        const abs = join(repoRoot, entry.path);
+        if (!existsSync(abs)) { absent += 1; continue; }
+        try {
+          // Normalisation must match what the manifest DECLARES, not what this file assumes. A
+          // reader that hardcoded the rule would silently disagree with a manifest written under a
+          // different one, and report every file as drifted.
+          if (manifest.normalization !== 'lf-single-trailing-newline') continue;
+          const normalized = `${readFileSync(abs, 'utf8').replace(/\r\n/g, '\n').replace(/\n*$/, '')}\n`;
+          compared += 1;
+          // Matched on the manifest's OWN path shape, not on `wf`. Entry paths are written by the
+          // CLI, which always emits `workflow/config/<name>` relative to the repo root; `wf` is the
+          // validator's notion of the workflow directory and is overridable per invocation. Keying
+          // on `wf` coupled two things that are not the same and made this rule silently unfireable
+          // under any fixture that redirects it — which is how its own rejection fixture stopped
+          // rejecting.
+          const isConfig = /^[^/]+\/config\//.test(entry.path);
+          if (isConfig) configsCompared += 1;
+          if (createHash('sha256').update(normalized, 'utf8').digest('hex') !== entry.sha256) {
+            drifted += 1;
+            if (isConfig) configsDrifted += 1;
+          }
+        } catch { /* unreadable — not this check's business, and check-config reports it */ }
+      }
+
+      if (compared > 0) {
+        details.push(`${provenancePath}: ${compared} digest(s) compared against disk — ${drifted} drifted, ${compared - drifted} unchanged${absent > 0 ? `, ${absent} recorded file(s) no longer present` : ''}`);
+        // Every CONFIG file reading as edited is not drift, it is a baseline that was never
+        // re-taken: `init` hashes the config TEMPLATES and setup then rewrites all five, so RI14's
+        // step 5f is what re-stamps them.
+        //
+        // Scoped to `config/`, and that scoping is the whole rule. The first version required
+        // EVERY governed file to differ, which cannot happen in the case it targets: setup rewrites
+        // the five configs and never touches the pre-commit hook or the Cursor adapter, so the real
+        // signature is five drifted of seven governed — never all of them. The condition was
+        // therefore dead, and the artifact that added it claimed the gap was closed. Found by Test
+        // running a faithful setup simulation rather than by any assertion, because no fixture
+        // modelled the post-setup state.
+        //
+        // An error rather than a warning, per the requirement's own terms. The blast radius is
+        // genuinely small: every repo predating this release has no manifest at all, so this whole
+        // block is skipped for them, and a repo that did run 1.1.0 setup ran step 5f as its
+        // mandatory final action. The message names the other honest reading too — a user who
+        // really did hand-edit every config gets told exactly how to re-baseline.
+        if (configsCompared >= 3 && configsDrifted === configsCompared) {
+          errors.push(
+            `${provenancePath} records ${configsCompared} config file(s) and EVERY one differs from what is on disk. ` +
+            'That is the signature of a baseline never re-taken after setup filled them, not of ordinary ' +
+            'editing — init can only hash the templates, and setup rewrites all of them. Run ' +
+            '"agentsmyth upgrade --baseline" to record the current files as the baseline. (If you really ' +
+            'did edit every config by hand since the last baseline, the same command is still the fix.) ' +
+            'Left alone, the first real upgrade raises a reconcile item for every one of them.'
+          );
+        }
+      }
+    }
+  }
+} else {
+  details.push('no provenance manifest present — repo predates delta upgrades, or has not been upgraded yet');
 }
 
 finish('check-lifecycle', errors, details);

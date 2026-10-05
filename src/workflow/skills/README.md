@@ -31,7 +31,7 @@ Skills are phase playbooks. They define what an agent must load, decide, write, 
 | `requirement-phase-mapper` | Map every active R/RI to exactly one build phase with a binary exit gate. |
 | `plan-assumption-verifier` | Cross-verify planning assumptions against repo evidence, raising blocking questions when unresolved. |
 | `verification-matrix-builder` | Build the R/RI to method to evidence to status verification matrix. |
-| `follow-up-owner-assigner` | Ensure every follow-up has an owner and persist it to the durable open-items ledger. |
+| `follow-up-owner-assigner` | Ensure every follow-up has an owner, persist it to the live open-items ledger, and rotate already-closed items into the archive. |
 | `repo-alignment-scan` | Explore the actual repo/stack and surface requirement misalignment before framing. |
 | `architecture-decision-advisor` | Force a recorded whole-repo architecture call on high-complexity requirements. |
 | `constraint-conflict-scan` | Cross-check the request against domain.yaml constraints and protected paths. |

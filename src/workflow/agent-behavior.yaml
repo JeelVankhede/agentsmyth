@@ -138,6 +138,124 @@ dispatch:
   require_dispatch_log: true
   merge_owner: primary_agent
 
+council:
+  enabled: on-for-complex
+  max_rounds: 4
+  depth: standard
+  # model_tier is deliberately ABSENT from the shipped invariant, and that absence is the mechanism.
+  #
+  # It was shipped here as `standard`, which quietly made the blocking setup item pointless: the
+  # gate asks whether a tier is resolved, and a global default resolves one for every repo that
+  # never answered. A default here is this package choosing a spend level on the user's behalf —
+  # exactly what the item exists to prevent — so there is nothing to put.
+  #
+  # Every other council key has a safe default because a safe default exists for it. Fan-out has
+  # 3 and 2; depth has standard, which reproduces prior behaviour; effort has standard for the same
+  # reason. Capability has no such value: cheap, standard and deep differ in what the user pays, not
+  # in whether behaviour is preserved.
+  effort: standard
+  # Fan-out is per phase, and every phase that gets one says so here. There is no phase-agnostic
+  # default: a phase absent from this map gets NO council departure and falls back to the global
+  # default-to-1 rule, so forgetting to decide fails safe instead of billing silently.
+  #
+  # Review is 2, not Think's 3, decided rather than inherited: the Think council was measured at
+  # roughly 6x invocations for less coverage than a single-agent baseline, Review runs on every
+  # Complex chain with the same bill, and Review's output blocks a commit, so a confident wrong
+  # finding costs more here than in Think. Two reviewers over disjoint risk categories keep the
+  # property that matters — fresh context, no overlap — and the challenge pass, which is where the
+  # Think council's distinctive value actually showed, is capped separately per stage.
+  per_phase:
+    think:
+      default_fan_out: 3
+    review:
+      default_fan_out: 2
+  sandbox_root: "~/.agentsmyth/sandbox"
+
+# RESOLUTION: whether a council fires is decided in this exact order, and the first
+# answer wins:
+#   1. resolved `dispatch.enabled` — if `disabled`, NO council, in any phase, for any task class.
+#      A repo that turned delegation off made a standing decision, and a council firing anyway
+#      would be a kill switch a later feature routed around. Log a refusal and run single-agent.
+#   2. resolved `council.enabled` — `disabled` means no council; `on-for-complex` continues.
+#   3. task class — the council fires for `complex` only. Trivial and Standard keep the
+#      single-agent path with no behavioral change.
+#
+# `default_fan_out` applies ONLY when neither the global `dispatch.max_parallel_workstreams` nor
+# `tuning.dispatch.max_parallel_workstreams` is declared. It is a deliberate departure from
+# phase-caps.md's global "default to 1 (no parallelism)" rule, because a one-member council is not
+# a council. The departure costs an unconfigured consumer real tokens without their having chosen
+# it, so the artifact records `cap_source: council-default` vs `configured` and the departure is
+# documented in phase-caps.md rather than left to be discovered on a bill.
+#
+# `depth` bounds per-member research effort, NOT member count. It exists so cost can be reduced
+# without shrinking the council — fan-out is the wrong knob for that, since fewer members means
+# less coverage rather than cheaper coverage.
+#
+# What the three values actually DO, stated here because for one release they did not. `depth`
+# shipped with this description and no operational meaning anywhere: no skill said what a member
+# does differently at `shallow` versus `deep`, and nothing read the value. A knob a repo can set, an
+# artifact records, and no behaviour consults is worse than an absent one, because the record implies
+# a choice took effect.
+#
+#   shallow  — one research stage. The challenge stage does not run. Use when the question is
+#              narrow enough that adversarial review costs more than the error it would catch.
+#   standard — research stage, then the challenge stage over the raw findings. The default, and what
+#              every council run before this definition existed actually did.
+#   deep     — research and challenge, plus a per-round `web` spot-check quota: every round that
+#              produced `web` findings must carry at least one challenger spot-check per member that
+#              filed one, rather than the single sample `standard` requires.
+#
+# `effort` is the REASONING axis, and it is a third distinct question — not a passenger on the tier.
+# It shipped that way for one iteration and was wrong: the adapter mappings folded an effort value
+# into each tier, so `standard` meant one model at one fixed effort and nothing else was reachable.
+# Two consequences. A coherent request like "the standard model, thinking much harder" could not be
+# expressed at all. And the richest host accepts five effort levels while a three-value tier could
+# only ever reach three of them, so the top two were unreachable by construction.
+#
+#   depth      — how many STAGES the council runs
+#   model_tier — what each member RUNS ON
+#   effort     — how hard each member THINKS within a stage
+#
+# Values are `low`, `standard`, `high`, `very-high`, `max`. Deliberately neutral words rather than
+# any one vendor's, for the same reason `model_tier` names a tier and never a model: borrowing one
+# tool's enum into shared config makes the other four wrong by default, which is what
+# `[provider-neutrality-1]` forbids. Each adapter maps these five onto whatever its host actually
+# accepts, and an adapter whose host has no effort control at all records the axis as unavailable
+# rather than pretending.
+#
+# `model_tier` is the CAPABILITY axis, and is not a second name for `depth`. `depth` decides how many
+# passes run and how hard each member looks; `model_tier` decides what each member runs ON. The two
+# are independent: a shallow pass on a deep tier and a deep pass on a cheap tier are both coherent
+# requests. Shared config names a TIER and never a model identifier, because a model id is specific
+# to one agent tool and this package supports five — naming one would make the other four
+# wrong-by-default, which `[provider-neutrality-1]` forbids. Each adapter maps the tier to its own
+# identifier; see the council-member definition each adapter ships.
+#
+# A tier is a REQUEST, not a guarantee. Some hosts replace a declared model by plan or admin policy,
+# so the artifact records the tier requested and, where the host reports it, the model that actually
+# ran. An unreported actual is recorded as unknown rather than assumed to match.
+#
+# `sandbox_root` is where trial members write. It resolves global-then-repo-local exactly like
+# `definitions_root`, and defaults outside every repository by construction so that "no council
+# member modifies the repo" holds structurally rather than by per-run assertion.
+
+# RESOLUTION: three of the seven keys a repo may override in workflow/config/repo-profile.yaml
+# under `tuning:` live in this block — complexity_score.weights, path_glob_categories, and
+# thresholds. (The other three are dispatch.max_parallel_workstreams, dispatch.enabled, and
+# pause_resume.user_checkpoint_required_for.) Before applying this rubric, resolve each PER ENTRY —
+# start from the global value here, then let any entry the repo declares under tuning.skill_scoring
+# replace that entry only. Entries the repo does not name keep the values below.
+#
+# "Per entry" reaches one level INTO a value that is itself a map. A weight like files_touched is
+# `{per_unit, cap}`: a repo tuning only per_unit keeps the global cap. Do not treat a repo's partial
+# map as the whole map at either level — a repo naming one weight, one sub-key of a weight, or one
+# glob category is changing that one thing, not deleting the rest. Getting this wrong is silent:
+# a dropped `cap` makes the score NaN, which makes every `complexity_score >= N` comparison false
+# and stops every score-driven skill firing, with no error anywhere.
+#
+# triggers is NOT tunable and is always read from this file. Only the numeric thresholds it compares
+# against were split out into `thresholds` — a repo moves numbers, never boolean structure.
+#
 # skill_scoring backs passive/scored power skills. There is no runtime that computes
 # these values mechanically: the agent reads a requirement/diff, applies this rubric itself, and
 # records the ran/skipped decision in the artifact's skill_trigger_log (see
@@ -194,17 +312,30 @@ skill_scoring:
         trivial: 0
         standard: 6
         complex: 6
+  # thresholds holds the numeric cut-offs the predicates below compare against, split out of the
+  # predicate strings so a repo can say "review me harder" without rewriting logic. This
+  # is a tunable key (repo-profile.yaml `tuning.skill_scoring.thresholds`, per-entry merge); the
+  # `triggers` predicates themselves stay locked and global. That split is the whole point: a repo
+  # moves numbers, never boolean structure, so it can raise or lower how often a skill fires but
+  # can never make a skill unreachable by editing its logic. The values below are the literals that
+  # were previously inline, so behavior is unchanged.
+  thresholds:
+    repo-alignment-scan: 40
+    architecture-decision-advisor: 60
+    domain.system-design-advisor: 60
+    domain.clean-code-architect: 50
+    domain.performance-optimizer: 60
   triggers:
-    repo-alignment-scan: "complexity_score >= 40 OR new_surface OR task_class != trivial"
-    architecture-decision-advisor: "complexity_score >= 60 OR touches_contract OR new_surface"
+    repo-alignment-scan: "complexity_score >= thresholds.repo-alignment-scan OR new_surface OR task_class != trivial"
+    architecture-decision-advisor: "complexity_score >= thresholds.architecture-decision-advisor OR touches_contract OR new_surface"
     constraint-conflict-scan: "task_class != trivial OR touches_protected"
     domain.interface-contract-designer: "path~contract_globs OR touches_contract"
     domain.data-schema-designer: "path~schema_globs"
-    domain.system-design-advisor: "complexity_score >= 60 OR new_surface"
+    domain.system-design-advisor: "complexity_score >= thresholds.domain.system-design-advisor OR new_surface"
     domain.ui-ux-designer: "path~ui_globs"
-    domain.clean-code-architect: "complexity_score >= 50"
+    domain.clean-code-architect: "complexity_score >= thresholds.domain.clean-code-architect"
     domain.quality-gates-validator: "task_class != trivial"
-    domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= 60"
+    domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= thresholds.domain.performance-optimizer"
   # path_glob_categories gives the `path~<category>_globs` trigger shorthand above a concrete,
   # checkable meaning — a starting, deliberately non-exhaustive set per category, editable without
   # touching the trigger predicates themselves. Used by check-trigger-predicates.mjs against

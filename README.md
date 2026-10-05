@@ -33,6 +33,56 @@ You are not choosing between agentsmyth and nothing. **[GitHub Spec Kit](https:/
 
 They shape the **prompt** — the instructions, personas, and task breakdowns you feed the agent. agentsmyth shapes the **lifecycle**, mechanically. Each phase reads and writes a durable artifact on disk, and a schema validator gates the move to the next phase: no approved brief, no plan; no plan, no build; a missing requirement ID or a claim with no evidence fails the check and the phase does not advance. That structure does not rely on the model remembering to follow it, because it is enforced outside the model — in files you can read and a validator that exits non-zero. Prompted structure degrades the moment the context window turns over or a different agent picks up the work; on-disk, validated structure does not. That is the whole bet.
 
+Here is that validator refusing a commit. The plan artifact declares itself ready for Build; the gate
+checks whether a human ever approved it, disagrees, and stops the commit:
+
+<!-- agentsmyth:capture BEGIN -->
+```console
+$ git commit -m "plan: session handling"
+all staged files are safe (workflow/docs/config or Markdown) — nothing to gate
+check-commit-coverage: ok
+  adapters present: AGENTS.md
+check-setup-complete: ok
+build: workflow/artifacts/plans/add-session-handling-v1.md → ready-for-next-phase ✓
+check-lifecycle --phase build --slug add-session-handling: failed with 1 issue(s)
+- build: upstream workflow/artifacts/plans/add-session-handling-v1.md's checkpoint "plan-review" is not marked approved (status: "pending").
+$ echo $?
+1
+```
+<!-- agentsmyth:capture END -->
+
+That block is generated, not written. `npm run capture:gate` rebuilds a throwaway consumer repo,
+provokes the refusal, and rewrites the text above with whatever actually came back — and it fails
+loudly if the gate ever lets that commit through.
+
+### Compared with Spec Kit, in file paths
+
+Adjectives are cheap, so here are the specifics. Every claim below was checked against
+[`github/spec-kit`](https://github.com/github/spec-kit) at commit
+[`1d5106f`](https://github.com/github/spec-kit/tree/1d5106f59e1b148ee23ab136638932dd790ff1b6) — pinned,
+because `main` moves and a claim that cannot be re-checked is just another assertion.
+
+| What | Spec Kit at `1d5106f` | agentsmyth |
+|---|---|---|
+| Prerequisite checking | [`scripts/bash/check-prerequisites.sh`](https://github.com/github/spec-kit/blob/1d5106f59e1b148ee23ab136638932dd790ff1b6/scripts/bash/check-prerequisites.sh) gates on **existence** — `[[ ! -f "$IMPL_PLAN" ]]`, `[[ ! -d "$FEATURE_DIR" ]]` — and never opens the artifacts it gates on | Validators parse each artifact and check its contents: manifest IDs, acceptance criteria, evidence citations, checkpoint approval |
+| Cross-artifact analysis | [`templates/commands/analyze.md`](https://github.com/github/spec-kit/blob/1d5106f59e1b148ee23ab136638932dd790ff1b6/templates/commands/analyze.md) is **"STRICTLY READ-ONLY"** and offers remediation — "Do NOT apply them automatically" | Review writes a findings artifact with dispositions; unresolved findings block the next phase |
+| The gate before implementation | [`templates/commands/implement.md`](https://github.com/github/spec-kit/blob/1d5106f59e1b148ee23ab136638932dd790ff1b6/templates/commands/implement.md) asks: *"Some checklists have unchecked items. Do you want to proceed with implementation anyway? (yes/no)"* | `git commit` exits non-zero. There is no prompt to answer |
+| Where enforcement lives | Agent-side hooks the model is instructed to honour — `.specify/extensions.yml`, `.cursor/hooks.json` and friends. The template's own words: *"you MUST actually invoke the hook"* | A `.git/hooks/pre-commit` that git runs, whether or not the agent cooperates |
+
+The distinction that matters is the last row, and it is narrower than "hooks versus no hooks" — Spec Kit
+installs plenty of hooks. Theirs are **agent-dispatched**: instructions a cooperating model executes.
+Ours is **git-enforced**: the commit is rejected by a process that never consults the model at all.
+Both are real; they fail differently. An instruction degrades when the context window turns over, the
+model is swapped, or someone is in a hurry. A non-zero exit code does not.
+
+**Where Spec Kit is straightforwardly better:** its requirements engineering is deeper than ours.
+`analyze.md` carries duplication and ambiguity detection, a requirement-to-task coverage map, a
+constitution-alignment pass, and a severity model that separates a CRITICAL constitution violation from
+a LOW wording nit. agentsmyth's Think phase has nothing of that sophistication — it structures the
+questions and records the evidence, then trusts the model. If your problem is *"my specs are vague"*,
+Spec Kit is the more developed tool and you should use it. If your problem is *"my agent skipped the
+plan and shipped anyway"*, that is the one this solves.
+
 ### Why there's no paid tier
 
 agentsmyth is free, and that is a decision, not a placeholder for a paywall arriving later. Every tool named above is free too, and a workflow made of Markdown skills can't meaningfully be content-gated anyway — an agent has to read the plaintext at inference time, so "locking" it buys friction and nothing else. So the whole workflow ships in the open, community-first. If a paid surface ever appears it will be a real service — hosted validation, support — never a wall around the skills you already have.
@@ -88,6 +138,9 @@ Then install in a target repo as in Option C.
 - Places an adapter file mechanically for the two tools no global gate can ever reach — Cursor
   (`.cursor/rules/agentsmyth.mdc`, always) and Copilot on a non-macOS platform
   (`.github/copilot-instructions.md`) — never overwriting an existing file at either path.
+- Writes `workflow/provenance.yaml` — a digest of what agentsmyth just wrote to each governed
+  file. **Commit it.** It is what lets a later `agentsmyth upgrade` tell your edits from
+  staleness; without it, the first upgrade has to adopt whatever is on disk as the baseline.
 - Creates `.agentsmyth/` in the target repo root containing:
   - `setup-bundle.md` — the setup skill the agent reads to finish onboarding
   - `workflow-bundle.md` — the full workflow (router, lifecycle, all skills) the agent expands
@@ -144,6 +197,8 @@ workflow/
   config/          ← init writes stubs; the agent resolves what's left
   artifacts/       ← lifecycle artifact chain lives here
   learnings/
+  provenance.yaml  ← what agentsmyth last wrote to each governed file — commit it
+  backups/         ← appears only when an upgrade preserves a file you edited
 .claude/CLAUDE.md  ← or AGENTS.md / .cursor/rules/ etc. depending on your tool
 docs/knowledge-map/repo-mental-map.md
 
@@ -156,6 +211,38 @@ Router, lifecycle, rules, glossary, skills, validators, and schemas resolve from
 [Under the hood](https://jeelvankhede.github.io/agentsmyth/under-hood) for why. A repo-local copy
 of all of those only appears in the defensive fallback case (no global install could be linked),
 which should not normally happen.
+
+### Keeping a repo current
+
+`agentsmyth upgrade` brings an already-set-up repo up to the installed version. It is the command
+that clears the version-skew warning — `prepare` does not, because `prepare` only refreshes the
+shared definitions tree and writes nothing into your repo.
+
+```bash
+npx agentsmyth upgrade --dry-run   # preview: what would change, and which migrations apply
+npx agentsmyth upgrade             # do it
+```
+
+What it guarantees:
+
+- A file you have **not** edited is brought current in place, key by key. Never a whole-file
+  replace — your configs carry values only you can supply.
+- A file you **have** edited is copied to `workflow/backups/<version>/` byte-identically before
+  anything touches it, and raises an item in `pending-setup.yaml` so your agent offers to merge it
+  at the start of the next session. Nothing is silently overwritten.
+- Content outside an agentsmyth marker block — in your pre-commit hook, in `AGENTS.md` — survives
+  byte-for-byte.
+
+It does not check whether your working tree is clean, and it warns rather than stopping if it is
+not. Commit before upgrading, or use `--dry-run` first.
+
+`agentsmyth upgrade --baseline` re-records the files currently on disk as the baseline, without
+upgrading anything. The setup skill runs it as its final step, once the configs are filled; you
+would run it by hand only after resolving a reconcile item manually.
+
+Re-running `init` on a repo that already has `workflow/provenance.yaml` deliberately leaves it
+alone. Re-baselining there would adopt whatever edits you had made as agentsmyth's own content and
+erase the drift the next upgrade needs to see.
 
 ### Post-setup validation
 

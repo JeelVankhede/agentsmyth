@@ -51,4 +51,104 @@ generated_output_policy:
   require_regeneration_or_waiver_when_source_changes: true
   manual_edits_allowed: only_when_configured
 
+tuning:
+  council:
+    # Answered by the user 2026-10-04, which is how this key is meant to be settled: it is the one
+    # setup item in the package that blocks, precisely because no default the package could pick
+    # would be anything other than the package choosing how much the user spends.
+    #
+    # standard maps to sonnet on this repo's tool. Chosen over cheap and deep on the only evidence
+    # this repo actually has: the WP-R25 Think council ran at the session default across five
+    # members for roughly 653k subagent tokens, and that run refuted one of its own researchers'
+    # load-bearing conclusions and caught a defect created by the fix it was reviewing. Raising the
+    # tier would raise the cost of a measurement agent-behavior.yaml already records as unfavourable
+    # for Think; lowering it puts the adversarial reasoning pass at risk, which is the part that
+    # found the fix-created defect rather than the sourcing errors.
+    model_tier: standard
+    # The reasoning axis, independent of the tier. very-high maps to this host's `xhigh`. The point
+    # of asking for it separately is exactly this combination: the standard model, thinking much
+    # harder — which was inexpressible while effort was folded into the tier.
+    effort: very-high
+    # This repo declares a sandbox_root explicitly rather than inheriting the default, so the
+    # dogfood chain exercises the repo-local branch of the resolver rather than only the global
+    # one. Kept under ~/.agentsmyth/ so it stays outside every repository by construction.
+    sandbox_root: ~/.agentsmyth/sandbox/agentsmyth
+  skill_scoring:
+    # Derived from intent.surface_map by the WP-R25 pending-setup pass, 2026-10-03. Merged PER
+    # ENTRY, so each key below replaces that one global entry and leaves the others alone. The
+    # global defaults for these four are generic web-app paths (**/routes/**, **/api/**,
+    # **/*.proto, **/components/**) and match nothing in this repo.
+    path_glob_categories:
+      # ADDITIVE, not narrowing. "Merged per entry" means each key below REPLACES that one global
+      # entry outright, so the global patterns are restated here and the repo's real paths appended.
+      # Dropping the generic ones broke check-trigger-predicates, which evaluates a repo's merged
+      # vocabulary against the shared examples/power-skill-sandbox fixture — so a repo that narrows
+      # a category fails a check about an example repo rather than its own. Filed as a follow-up.
+      contract_globs:
+        - "**/routes/**"
+        - "**/api/**"
+        - "**/*.proto"
+        - "**/openapi*.yaml"
+        - "**/openapi*.yml"
+        - "**/*.graphql"
+        - "**/cli/**"
+        - "bin/**"
+        - "src/adapters/**"
+      schema_globs:
+        - "**/migrations/**"
+        - "**/schema/**"
+        - "**/*.sql"
+        - "**/models/**"
+        - "**/schemas/**"
+      ui_globs:
+        - "**/components/**"
+        - "**/views/**"
+        - "**/screens/**"
+        - "**/*.css"
+        - "**/*.tsx"
+        - "**/*.jsx"
+        - "**/*.vue"
+        - "site/**"
+      hotpath_globs:
+        - "**/hot/**"
+        - "**/perf/**"
+        - "src/workflow/validators/lib.mjs"
+        - "bin/agentsmyth.mjs"
+
+intent:
+  # Resolved 2026-10-03 by the WP-R25 pending-setup pass: PS-4 and PS-5 by inspection, PS-6 by the
+  # user confirming a derived map. PS-7 (tuning.council.per_phase) is deliberately LEFT OPEN —
+  # WP-R25 is changing the shape of that very block, so settling it now would answer against a
+  # schema that is about to change.
+  repo_character: cli
+  surface_map:
+    ui:
+      - site
+    api:
+      - bin
+      - src/workflow/validators
+    schema:
+      - src/workflow/schemas
+    hotpath:
+      - src/workflow/validators/lib.mjs
+      - bin/agentsmyth.mjs
+  concerns:
+    # strict where this package's own contract lives, because the three findings this chain fixes
+    # were two contract breaks and one safety failure.
+    architecture: strict
+    code_quality: standard
+    api_contracts: strict
+    data_schema: strict
+    ui_ux: light
+    performance: light
+    repo_alignment: strict
+    constraints_safety: strict
+  # Only path_glob_categories was derived. concerns -> skill_scoring.thresholds is deliberately NOT
+  # derived: config-map.md documents the direction but no numeric mapping, `standard` reproduces
+  # current behavior exactly, and a partial thresholds map risks the silent NaN the schema warns
+  # about (a dropped cap makes every score comparison false and stops score-driven skills firing).
+  # Thresholds keep resolving from the global install, which is the unchanged-behavior answer.
+  derived_keys:
+    - skill_scoring.path_glob_categories
+
 extensions: {}

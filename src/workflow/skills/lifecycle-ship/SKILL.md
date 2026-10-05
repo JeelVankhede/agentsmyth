@@ -121,10 +121,23 @@ Stop and write a `hold` ship artifact when any of these apply:
 2. Read upstream artifacts and collect active `R`/`RI` coverage, skipped checks, review findings, waivers, blockers, and residual risk.
 3. Read release config and identify required gates: PR, CI, release, deployment, docs, package, rollback, source handoff, or none.
 4. Inspect repository readiness for configured branch, PR, CI, release, or deployment gates.
-4a. When the repository has a remote and the branch's base may have advanced since work
-    started, fetch and compare the current branch against the remote default branch. Treat
-    meaningful divergence as something to surface explicitly (a merge/rebase decision point),
-    not a silent risk absorbed into the ship recommendation.
+4a. Whenever the repository has a remote, fetch and compare the current branch against the
+    remote default branch — always, before acting on the plan's Branch Strategy, not only when
+    the base "may have advanced". Whether it advanced is the thing being checked, so making the
+    check conditional on the answer left it to be triggered by someone noticing. A plan's Branch
+    Strategy has gone stale mid-Ship and been caught only because a person volunteered the news.
+    Treat meaningful divergence as something to surface explicitly (a merge/rebase decision
+    point), not a silent risk absorbed into the ship recommendation.
+4b. When step 4a finds the base has advanced, reconcile identifiers before reconciling content.
+    Git surfaces overlapping edits as a conflict, but two branches that independently allocated
+    the SAME identifier to DIFFERENT things merge clean and silently: open-items entries claiming
+    one `OI-<n>`, work packages claiming one `WP-R<n>`, artifacts claiming one `-v<N>`. Nothing
+    flags it, and both sides look correct in isolation. Grep the identifier spaces the merge
+    touched, confirm each ID still names one thing, and fix collisions before continuing. This is
+    narrow by design: it is a duplicate-ID check, not general merge-conflict guidance.
+    Note the open-items ledger is TWO files: grep `open-items.yaml` and `open-items-archive.yaml`
+    together, or the half of the `OI-<n>` space that has been rotated out goes unchecked — and the
+    live file being the lean one is exactly why a number gets taken twice.
 5. Verify source-of-truth handoff: updated, not required, blocked with copy-ready handoff, or waived.
 6. Map every active `R` and `RI` to shipped, deferred, blocked, or waived.
 6a. For any Build or Review discovery not already covered by the plan's declared scope, first
@@ -166,6 +179,28 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `ship`, `orchestration.status` is accurate, and `next_phase` is `reflect` only for `ship` or accepted `hold-with-waiver`.
 - The recommendation matches `release-readiness-gate`'s aggregation of verify, review, coverage, and waiver state.
 - Every claim tagged as verified passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
+
+## Finding Quality Closure
+
+A Review council's findings are recorded at Review with `outcome: pending` in
+`workflow/artifacts/finding-quality.yaml`. This phase settles the ones it can.
+
+For each pending row whose finding this phase acted on, set `outcome` to one of:
+
+| Outcome | Means | Also required |
+|---|---|---|
+| `proved-real` | acting on it confirmed the finding | `closed_in_phase`, `resolution` |
+| `noise` | it did not hold up | `closed_in_phase`, `resolution`, `reason` |
+| `waived` | real, and deliberately not acted on | `closed_in_phase`, `resolution`, `waiver_ref` |
+| `unresolved-at-reflect` | the chain ended without the truth being knowable | `closed_in_phase`, `resolution`, `reason` |
+
+**Closing a row moves it.** Delete it from `finding-quality.yaml` and append it to
+`finding-quality-archive.yaml` in the same operation — a row lives in exactly one file, and
+`check-finding-quality` rejects a row present in both or a closed row left in the active ledger.
+
+Leave a row `pending` when this phase genuinely did not settle it; do not guess. A row still pending
+at Ship blocks `ship` unless a `## Waivers` entry **names that row's ID** — a waiver that does not
+name the row does not cover it.
 
 ## Determinism Rules
 

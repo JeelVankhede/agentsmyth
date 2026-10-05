@@ -1,0 +1,9 @@
+version: 1
+kind: open-items-archive
+items:
+  - id: OI-2
+    source: follow-up
+    owner: user
+    next_action: "somebody must still do this"
+    status: open
+    first_seen_run: ledger-rotation-v1

@@ -1,0 +1,20 @@
+version: 1
+kind: artifact-baseline
+recorded: 2026-08-31
+note: >-
+  Emptied 2026-08-31 (OI-65). Captured 2026-08-14 with 96 entries, when check-artifacts.mjs was
+  first wired into npm run validate and this repo's own artifacts turned out never to have been
+  checked. The user directed repair rather than permanent acceptance, and all 96 are now fixed at
+  source: 40 status/orchestration.status values reading "complete" or "ship" against an enum that
+  allows neither, normalised to "done"; 8 upstream entries written as {artifact, slug, version}
+  objects, rewritten as the repo-relative path strings the schema asks for; 8 user_checkpoint
+  booleans, false -> none and true -> approved; 1 brief missing upstream, restored to the spike its
+  own Source Links name; 2 phase-split tasks whose next_phase read "build", set to "review" to
+  match every other -pN task; and 35 manifest IDs reported as undeclared that were in fact declared
+  all along, in a brief body that wrote them as "- R1 (T-D1):" or "**R5 (added mid-chain...)**"
+  rather than the "**R1**" the validator scans for. That last group was the bulk of the list and
+  none of it was missing scope — it was formatting drift, which is worth knowing before anyone
+  reads a baseline count as a measure of debt.
+  The list is empty and must stay empty: any new entry means a real violation was accepted rather
+  than fixed.
+entries: []

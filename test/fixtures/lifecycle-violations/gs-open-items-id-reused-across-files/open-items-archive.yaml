@@ -1,0 +1,11 @@
+version: 1
+kind: open-items-archive
+items:
+  - id: OI-1
+    source: follow-up
+    owner: user
+    next_action: "nothing pending"
+    status: done
+    first_seen_run: earlier-chain-v1
+    resolution: "closed long before the id was reused"
+    closed_in_run: earlier-chain-v1

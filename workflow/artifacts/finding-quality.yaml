@@ -1,0 +1,30 @@
+version: 1
+kind: finding-quality
+
+# Active finding-quality ledger. One row per council finding, written at Review with
+# outcome: pending, settled at Test, Ship or Reflect. A row that closes moves to
+# finding-quality-archive.yaml in the same operation, so a row is present in exactly one file.
+#
+# Any figure computed from this ledger must read BOTH files. A count from this one alone reports
+# the current cycle rather than the accumulated baseline.
+#
+# What remains here is ONE unsettled row from the WP-R18 Review council. Everything else has closed
+# and rotated to the archive in the same operation, which is why this file is short and the archive
+# is not — do not read the length of this file as the size of any council.
+#
+# The WP-R25 Review council's 22 rows closed proved-real on its remediation pass and rotated out.
+# They closed at `review` rather than a later phase for the reason the schema states: a finding
+# fixed on the same cycle that raised it is settled there. Four of them carry a caveat in their
+# resolution line rather than a clean claim — read those, not just the outcome column.
+#
+# Each row below names the phase that owns it. None is an oversight: three are a Ship-owned
+# external handoff, one is a Reflect-owned ledger rotation that must FOLLOW a fix made in this
+# remediation rather than precede it, and one needs a platform no council member had.
+items:
+  - id: FQ-63
+    finding_id: F7
+    source_artifact: workflow/artifacts/reviews/wp-r18-delta-upgrades-v1.md
+    first_seen_run: wp-r18-delta-upgrades-v1
+    disposition: accepted
+    outcome: pending
+    # deferred to reflect: OI-105 ledger closure — Reflect owns rotation, and it must follow the marker-check fix rather than precede it

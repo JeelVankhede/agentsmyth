@@ -156,6 +156,164 @@ properties:
         type: boolean
       merge_owner:
         type: string
+  council:
+    type: object
+    additionalProperties: false
+    description: >-
+      Council-mode dispatch settings. Firing is decided in a fixed order and the first
+      answer wins - resolved dispatch.enabled, then council.enabled, then task class. A repo that
+      set dispatch.enabled to disabled gets no council regardless of anything in this block; a kill
+      switch a later feature can route around is not a kill switch.
+    required:
+      - enabled
+      - max_rounds
+      - depth
+      - per_phase
+      - sandbox_root
+    properties:
+      enabled:
+        type: string
+        enum:
+          - on-for-complex
+          - disabled
+        description: Councils fire for task_class complex only. Trivial and Standard keep the single-agent Think path unchanged, so there is no on-for-all value to set.
+      max_rounds:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Backstop bound on the round loop. The tapering, non-increasing fan-out supplies the actual cost guarantee; this only stops a pathological loop. A run that hits this bound with anything still open terminates user-decision-required; there is no termination reason naming the bound itself, because a run that stopped at the bound either closed everything or has survivors to escalate.
+      depth:
+        type: string
+        enum:
+          - shallow
+          - standard
+          - deep
+        description: >-
+          How many passes run and how hard each member looks, not member count. shallow runs the
+          research stage only; standard adds the challenge stage over the raw findings; deep adds a
+          per-round web spot-check quota. Separate from fan-out, so cost can be reduced without
+          shrinking the council, and separate from model_tier, which decides what members run on
+          rather than how many passes happen.
+      effort:
+        type: string
+        enum:
+          - low
+          - standard
+          - high
+          - very-high
+          - max
+        description: >-
+          How hard each member thinks within a stage, as a portable five-level scale rather than any
+          one host's enum. Independent of model_tier, which decides what members run on, and of
+          depth, which decides how many stages run. Five levels because the richest supported host
+          accepts five; a host with fewer maps down, and a host with no effort control records the
+          axis as unavailable. Optional, so a config written before this key existed stays valid.
+      model_tier:
+        type: string
+        enum:
+          - cheap
+          - standard
+          - deep
+        description: >-
+          The capability a council member runs on, named as a portable tier and never as a model
+          identifier. A model id belongs to one agent tool and this package supports five, so naming
+          one in shared config would leave the other four wrong by default. Each adapter maps the
+          tier to its own identifier in the council-member definition it ships. Optional: a config
+          that omits it resolves to the shipped default, so every file written before this key
+          existed stays valid.
+      per_phase:
+        type: object
+        additionalProperties: false
+        description: >-
+          Council fan-out per phase. There is no phase-agnostic default: a phase absent from this
+          map gets NO council departure and falls back to the global default-to-1 rule. The
+          asymmetry that used to live here - one phase's value at the top level, everyone else's
+          nested - read as a special case and invited the next phase to be bolted on the same ad-hoc
+          way. It also risked the failure this rule exists to prevent, where extending councils to a
+          new phase silently bills every unconfigured consumer there too.
+          Both entries are required HERE, in the shipped invariant, and neither is required in
+          repo-profile's override map. Absence is meaningful for a consumer - a repo tunes the
+          phases it cares about and inherits the rest - but this file is where the fallback comes
+          FROM. A council skill ships for each of these two phases, so a phase missing here has no
+          fallback to inherit and drops to the global default of 1, and a one-member council is not
+          a council. Requiring only `think` was the same asymmetry described above, surviving one
+          level down.
+        required:
+          - think
+          - review
+        properties:
+          think:
+            type: object
+            additionalProperties: false
+            required:
+              - default_fan_out
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Think council's fallback, used only when no max_parallel_workstreams is declared globally or per-repo. Deliberate departure from default-to-1, since a one-member council is not a council. When it applies, the artifact records cap_source council-default.
+              model_tier:
+                type: string
+                enum:
+                  - cheap
+                  - standard
+                  - deep
+                description: >-
+                  Overrides the council-wide model_tier for this phase only. Optional, and merged per
+                  entry, so naming it leaves this phase's other settings and every other phase at
+                  their resolved values. Exists because the phases are not equivalent: a Review
+                  verdict blocks a commit and a Think verdict does not, so capability is worth more
+                  in one than the other.
+              effort:
+                type: string
+                enum:
+                  - low
+                  - standard
+                  - high
+                  - very-high
+                  - max
+                description: >-
+                  Overrides the council-wide effort for this phase only. Optional and merged per
+                  entry, same as model_tier.
+          review:
+            type: object
+            additionalProperties: false
+            required:
+              - default_fan_out
+            properties:
+              default_fan_out:
+                type: integer
+                minimum: 1
+                maximum: 10
+                description: The Review council's fallback fan-out. Lower than Think's because Review runs on every Complex chain at the cost the Think council was measured at, and because Review's output blocks a commit - a confident wrong finding is more expensive here.
+              model_tier:
+                type: string
+                enum:
+                  - cheap
+                  - standard
+                  - deep
+                description: >-
+                  Overrides the council-wide model_tier for this phase only. Optional, and merged per
+                  entry, so naming it leaves this phase's other settings and every other phase at
+                  their resolved values. Exists because the phases are not equivalent: a Review
+                  verdict blocks a commit and a Think verdict does not, so capability is worth more
+                  in one than the other.
+              effort:
+                type: string
+                enum:
+                  - low
+                  - standard
+                  - high
+                  - very-high
+                  - max
+                description: >-
+                  Overrides the council-wide effort for this phase only. Optional and merged per
+                  entry, same as model_tier.
+      sandbox_root:
+        type: string
+        minLength: 1
+        description: Where trial members write. Resolves global-then-repo-local like definitions_root. Must lie outside the repository - that is what makes the no-repo-mutation guarantee structural rather than asserted per run.
   skill_scoring:
     type: object
     additionalProperties: false
@@ -170,6 +328,7 @@ properties:
       signals:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: object
           additionalProperties: false
           required:
@@ -193,13 +352,21 @@ properties:
           weights:
             type: object
             additionalProperties: true
+      thresholds:
+        type: object
+        description: Numeric cut-offs referenced symbolically by triggers as `thresholds.<name>`. Split out of the predicate strings so a repo may tune the numbers (repo-profile.yaml tuning.skill_scoring.thresholds, per-entry merge) while the predicate structure below stays locked and global.
+        additionalProperties:
+          x_enforcement: warn-until-1.2.0
+          type: integer
       triggers:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: string
       path_glob_categories:
         type: object
         additionalProperties:
+          x_enforcement: warn-until-1.2.0
           type: array
           items:
             type: string
@@ -255,6 +422,7 @@ $defs:
   boolean_policy_object:
     type: object
     additionalProperties:
+      x_enforcement: warn-until-1.2.0
       oneOf:
         - type: boolean
         - type: array

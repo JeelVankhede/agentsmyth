@@ -3,6 +3,7 @@ import DefaultTheme from 'vitepress/theme';
 import { useRoute } from 'vitepress';
 import { nextTick, watch } from 'vue';
 import ForgeBackground from './ForgeBackground.vue';
+import GateCapture from './GateCapture.vue';
 
 const { Layout } = DefaultTheme;
 const route = useRoute();
@@ -59,6 +60,12 @@ watch(
   <Layout>
     <template #layout-top>
       <ForgeBackground />
+    </template>
+    <!-- Between the hero actions and the features grid. VitePress renders page markdown AFTER the
+         whole home layout, so a slot is the only way to put content here without moving `features`
+         out of index.md frontmatter. -->
+    <template #home-hero-actions-after>
+      <GateCapture />
     </template>
   </Layout>
 </template>

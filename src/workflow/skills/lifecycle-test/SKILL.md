@@ -161,6 +161,28 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - Every claim tagged as verified in the verify artifact passes `evidence-auditor`; any waiver present passes `waiver-completeness-check`.
 - `verification-matrix-builder` confirms no active R/RI has a method-less or evidence-less Manifest Coverage row.
 
+## Finding Quality Closure
+
+A Review council's findings are recorded at Review with `outcome: pending` in
+`workflow/artifacts/finding-quality.yaml`. This phase settles the ones it can.
+
+For each pending row whose finding this phase acted on, set `outcome` to one of:
+
+| Outcome | Means | Also required |
+|---|---|---|
+| `proved-real` | acting on it confirmed the finding | `closed_in_phase`, `resolution` |
+| `noise` | it did not hold up | `closed_in_phase`, `resolution`, `reason` |
+| `waived` | real, and deliberately not acted on | `closed_in_phase`, `resolution`, `waiver_ref` |
+| `unresolved-at-reflect` | the chain ended without the truth being knowable | `closed_in_phase`, `resolution`, `reason` |
+
+**Closing a row moves it.** Delete it from `finding-quality.yaml` and append it to
+`finding-quality-archive.yaml` in the same operation — a row lives in exactly one file, and
+`check-finding-quality` rejects a row present in both or a closed row left in the active ledger.
+
+Leave a row `pending` when this phase genuinely did not settle it; do not guess. A row still pending
+at Ship blocks `ship` unless a `## Waivers` entry **names that row's ID** — a waiver that does not
+name the row does not cover it.
+
 ## Determinism Rules
 
 - Do not claim a command passed unless it actually ran or exact existing evidence is cited.

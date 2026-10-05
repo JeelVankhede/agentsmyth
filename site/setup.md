@@ -47,7 +47,7 @@ If either fails, the agent reads the error, fixes the root cause, and re-runs. I
 ## Phase 5: Copy and clean up
 
 - Before placing anything per-repo, it checks whether your tool's **global gate** is already active. If it is, the per-repo adapter is skipped — writing one would be pure duplication. Cursor and non-macOS Copilot are the two exceptions, since no global mechanism reaches them; `init` already placed those adapters mechanically before this phase starts.
-- Using Codex? No existing `AGENTS.md`? It writes one. Already have one? It appends the agentsmyth section under its own heading and never overwrites yours.
+- Codex gets no per-repo placement here at all. `init` already wrote the repo's root `AGENTS.md` before this skill started — one marked block that Codex reads natively, along with every other tool that has no first-class adapter. If the repo already carried an agentsmyth block, that block was replaced **in place**, not appended under a heading; if it carried none, the block was added and nothing else in the file was touched. Everything outside the markers stays yours on every run.
 - It writes only your repo-specific files — config, an empty artifacts tree, and learnings — then deletes `.agentsmyth/`.
 
 ::: tip Mandatory lifecycle gate, already installed

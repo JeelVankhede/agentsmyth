@@ -92,6 +92,37 @@ if (_defsRoot !== join(repoRoot, _wf) && !existsSync(_defsRoot)) {
   process.exit(1);
 }
 
+// ── Tuned-map resolution ───────────────────────────────────────────────────
+// Merges a repo-local `tuning:` map over its global counterpart PER ENTRY, one level deeper than a
+// plain spread. Lives here, exported and unit-tested (test/run-tuning-merge-tests.mjs), because
+// getting the depth wrong is silent: the defect this replaces passed both check-config.mjs and
+// check-trigger-predicates.mjs while producing a NaN complexity_score.
+//
+// Why one level deeper matters. `weights` values are not scalars — `files_touched` is
+// `{per_unit, cap}`. A shallow spread replaces that whole object, so a repo tuning only `per_unit`
+// silently loses `cap`, `Math.min(n, undefined)` is NaN, NaN poisons the sum, and every
+// `complexity_score >= N` comparison becomes false. Every score-driven skill stops firing, with no
+// error anywhere. That is the exact class of failure per-entry merge exists to prevent, so the
+// merge has to reach as deep as the data does.
+//
+// Arrays are replaced wholesale, never concatenated: a tuned `ui_globs` means "these are this
+// repo's UI globs", not "add these to the defaults". Scalars replace scalars. Only plain objects
+// recurse, and only one level — deep-merging arbitrarily would make it impossible to ever clear a
+// nested value, and nothing in the tunable set nests deeper than this.
+export function mergeTunedMap(globalMap, tunedMap) {
+  const out = { ...(globalMap ?? {}) };
+  for (const [key, tunedValue] of Object.entries(tunedMap ?? {})) {
+    const globalValue = out[key];
+    const bothPlainObjects =
+      isPlainObject(globalValue) && isPlainObject(tunedValue);
+    out[key] = bothPlainObjects ? { ...globalValue, ...tunedValue } : tunedValue;
+  }
+  return out;
+}
+
+// isPlainObject is defined once, further down with the schema engine that also needs it — reused
+// here rather than duplicated. Hoisted function declaration, so the reference above resolves.
+
 export function defsPath(...parts) { return join(_defsRoot, ...parts); }
 export function dataPath(...parts) { return join(_dataRoot, ...parts); }
 
@@ -228,7 +259,40 @@ export function repoPath(...parts) {
 
 export function readText(pathFromRoot) {
   const abs = isAbsolute(pathFromRoot) ? pathFromRoot : repoPath(pathFromRoot);
-  return readFileSync(abs, 'utf8');
+  try {
+    return readFileSync(abs, 'utf8');
+  } catch (err) {
+    if (err?.code !== 'ENOENT') throw err;
+
+    // A missing DEFINITIONS file is a different failure from a missing artifact, and conflating the
+    // two is what made this unreadable. An absent artifact is content a validator should report on;
+    // an absent definitions file means the global install this repo is LINKED to is gone or
+    // incomplete, which no amount of editing the repo can fix. The raw ENOENT that used to escape
+    // here surfaced as a node stack trace naming an internal frame (`readText` then `loadYaml` then
+    // the calling validator) and said nothing about the install. Reachable today: linking a repo to
+    // an empty global tree succeeds, and the next check dies on it.
+    //
+    // THROWN, never exited. Exiting from here was tried and is wrong: a validator that reads an
+    // optional definitions file and wants to GATE on it being unreadable — rather than die — must be
+    // able to catch this, and one of them does exactly that. So this carries a flag instead, and the
+    // entry points that load definitions unconditionally at module scope catch the flag and print
+    // without a stack.
+    if (_defsRoot && abs.startsWith(_defsRoot)) {
+      const e = new Error(
+        `agentsmyth: required lifecycle definitions file not found: ${abs}\n`
+        + '\n  That path is inside the global definitions install this repo is linked to, so the'
+        + '\n  install is absent or incomplete rather than merely out of date.\n'
+        + '\n  Run "agentsmyth prepare" to reinstall the global definitions.'
+        + '\n  In a repo that is already set up, "agentsmyth upgrade" refreshes them and brings'
+        + '\n  this repo current in one step.',
+      );
+      e.code = 'ENOENT';
+      e.isMissingDefinitions = true;
+      e.missingPath = abs;
+      throw e;
+    }
+    throw err;
+  }
 }
 
 export function pathExists(pathFromRoot) {
@@ -302,13 +366,20 @@ export function resolveGitCwd(frontmatter) {
   return join(_expandTilde(repository.workspace_root), sibling.path);
 }
 
-export function assertCondition(condition, message, errors) {
-  if (!condition) errors.push(message);
-}
+// Deferred-enforcement warnings. A schema declaration carrying
+// `x_enforcement: warn-until-<version>` is validated, but a failure is reported here instead of in
+// `errors`, so it is visible without failing the gate. See the branch in validateSchema.
+export const deferredWarnings = [];
 
 export function finish(name, errors, details = []) {
   for (const detail of details) {
     console.log(detail);
+  }
+  if (deferredWarnings.length > 0) {
+    console.warn(`${name}: ${deferredWarnings.length} deferred-enforcement warning(s) — these become errors in a future release:`);
+    for (const warning of deferredWarnings) {
+      console.warn(`! ${warning}`);
+    }
   }
   if (errors.length > 0) {
     console.error(`${name}: failed with ${errors.length} issue(s)`);
@@ -674,6 +745,14 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     errors.push(`${pathLabel} is below minimum ${schema.minimum}`);
   }
 
+  // `maximum` was absent here until 2026-08-12 — the keyword parsed fine and was then
+  // silently ignored, so a schema declaring `maximum: 10` accepted 99. Found by a build phase
+  // gate, which was the first schema in the repo to use the keyword at all; nothing else was
+  // mis-validating. Mirrors the `minimum` branch above deliberately, including its typeof guard.
+  if (schema.maximum !== undefined && typeof value === 'number' && value > schema.maximum) {
+    errors.push(`${pathLabel} is above maximum ${schema.maximum}`);
+  }
+
   if (schema.minItems !== undefined && Array.isArray(value) && value.length < schema.minItems) {
     errors.push(`${pathLabel} has fewer than ${schema.minItems} item(s)`);
   }
@@ -691,13 +770,29 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     });
   }
 
-  if (schema.properties && isPlainObject(value)) {
-    for (const required of schema.required ?? []) {
+  // `required` is independent of `properties`. Guarding it on properties meant a schema declaring
+  // `required` alone enforced nothing — which is exactly the shape every `then:` branch of an
+  // if/then takes, since the branch names the keys that become mandatory and re-declares no
+  // properties. Conditional requirements were therefore accepted whatever they said, while
+  // `pattern` and `additionalProperties` in the same schema worked, so the schema looked live.
+  // check-schema-keywords cannot catch this: it verifies that a keyword is IMPLEMENTED, not that
+  // it is reachable in the position a schema uses it.
+  //
+  // No `x_enforcement: warn-until-<version>` deferral, and the decision is recorded rather than
+  // silent. That mechanism exists further down for a change that newly enforced EIGHT pre-existing
+  // declarations, including consumer-authored data written before the keyword worked — a genuine
+  // upgrade break. This change newly enforces three `then:` branches that ship in the same release
+  // as the engine fix, so there is no legacy data anywhere for it to break. Walking every shipped
+  // schema confirms those three are the only `required`-without-`properties` positions.
+  if (schema.required && isPlainObject(value)) {
+    for (const required of schema.required) {
       if (!(required in value)) {
         errors.push(`${pathLabel}.${required} is required`);
       }
     }
+  }
 
+  if (schema.properties && isPlainObject(value)) {
     if (schema.additionalProperties === false) {
       for (const key of Object.keys(value)) {
         if (!(key in schema.properties)) {
@@ -709,6 +804,69 @@ export function validateSchema(value, schema, pathLabel, errors, schemaRegistry 
     for (const [key, propSchema] of Object.entries(schema.properties)) {
       if (key in value) {
         validateSchema(value[key], propSchema, `${pathLabel}.${key}`, errors, schemaRegistry, rootSchema);
+      }
+    }
+  }
+
+  // Schema-valued `additionalProperties` — validate every undeclared key against it. Added by
+  // Added 2026-08-14. Until then the engine only understood `additionalProperties: false`
+  // and silently ignored the schema form, so every open map in this repo was unvalidated: the
+  // global agent-behavior.schema.yaml declares path_glob_categories as arrays of strings, triggers
+  // as strings, and thresholds as integers, and none of those were ever checked. A bare string
+  // where an array belonged passed config validation and surfaced later as `globs.some is not a
+  // function` from inside a different validator.
+  //
+  // Deliberately NOT gated on schema.properties existing: a pure map schema (additionalProperties
+  // with no properties at all, which is what path_glob_categories and thresholds are) has no
+  // declared keys, and the properties-gated block above would skip it entirely — which is exactly
+  // how this stayed invisible.
+  // Conditional subschemas. lifecycle-artifact.schema.yaml has used `if`/`then`
+  // since it was written — seven branches declaring which body sections each artifact type
+  // requires — and the engine ignored the keywords entirely, so all seven were decoration. That
+  // left 16 section requirements across brief/task/reflect declared but unenforced.
+  //
+  // Semantics per JSON Schema: `if` is evaluated for validity only, never for errors of its own —
+  // a failing `if` simply means the branch does not apply. Only `then` (or `else`) contributes
+  // errors. The throwaway array below is what keeps a non-matching branch silent.
+  if (schema.if) {
+    const probe = [];
+    validateSchema(value, schema.if, pathLabel, probe, schemaRegistry, rootSchema);
+    const matched = probe.length === 0;
+    const branch = matched ? schema.then : schema.else;
+    if (branch) {
+      validateSchema(value, branch, pathLabel, errors, schemaRegistry, rootSchema);
+    }
+  }
+
+  if (isPlainObject(value) && isPlainObject(schema.additionalProperties)) {
+    const declared = schema.properties ?? {};
+    const subSchema = schema.additionalProperties;
+
+    // Deferred enforcement. Implementing this keyword newly enforced 8
+    // declarations that had been decorative since they were written — 6 of them unrelated to the
+    // change that surfaced them,
+    // including verification.yaml's consumer-authored `commands[].env`. A repo that wrote
+    // `env: {PORT: 8080}` passed before and would fail after, on upgrade: a compatibility break
+    // for a repo that never touched this feature, and the opposite of the non-blocking upgrade
+    // this release promises.
+    //
+    // So a pre-existing declaration is marked `x_enforcement: warn-until-<version>`: it is still
+    // validated, and a failure is still surfaced, but through deferredWarnings rather than errors.
+    // Marking the temporary exception (rather than the permanent rule) means the markers delete
+    // themselves when the window closes — remove the line and enforcement turns on, with no code
+    // change and nothing to remember.
+    const deferUntil = typeof subSchema.x_enforcement === 'string' && subSchema.x_enforcement.startsWith('warn-until-')
+      ? subSchema.x_enforcement.slice('warn-until-'.length)
+      : null;
+
+    for (const [key, entry] of Object.entries(value)) {
+      if (key in declared) continue;
+      const sink = deferUntil ? [] : errors;
+      validateSchema(entry, subSchema, `${pathLabel}.${key}`, sink, schemaRegistry, rootSchema);
+      if (deferUntil) {
+        for (const message of sink) {
+          deferredWarnings.push(`${message} (not enforced until v${deferUntil} — fix now to stay compatible)`);
+        }
       }
     }
   }

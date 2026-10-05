@@ -3,24 +3,57 @@ $id: "open-items"
 title: "Open Items Ledger"
 type: object
 kind: open-items
-description: "Durable, cross-run ledger of follow-ups that need an owner and a next action, written by the follow-up-owner-assigner power skill at the end of each Reflect phase. Not a lifecycle artifact — a single persistent file, same shape as pending-setup.yaml."
+description: >-
+  Durable, cross-run ledger of follow-ups that need an owner and a next action, written by the
+  follow-up-owner-assigner power skill at the end of each Reflect phase. Not a lifecycle artifact —
+  a persistent file, same shape as pending-setup.yaml.
+  Two files carry it. The LIVE ledger holds what is still unresolved — open, blocked and deferred;
+  deferred stays live because it is unresolved, not closed. The ARCHIVE holds items that have closed
+  and been moved out of it. Rotation is a move: an item leaves the live file and is written to the
+  archive in one operation, so it is present in exactly one of them. The split exists for CONTEXT,
+  not disk: the live file is re-read at every Reflect exit gate, and before rotation existed three
+  quarters of what that read loaded was settled business. Any figure counted from this ledger — how
+  many items a repo has ever filed, whether an OI-N is already taken — must be computed over BOTH
+  files.
+  The archive is never read FOR WORK. Nothing scans it looking for something to finish, which is
+  why an unresolved item must never be written there; it would sit forever while reading as
+  accounted for. Validating it is not reading it for work.
 required: [version, kind, items]
+additionalProperties: false
 properties:
   version:
     type: integer
     enum: [1]
   kind:
     type: string
-    enum: [open-items]
+    enum: [open-items, open-items-archive]
+    description: >-
+      open-items for the live ledger, open-items-archive for the archive. Distinct kinds rather than
+      one, so a file cannot be mistaken for the other by a reader or a validator, and so the rules
+      that differ between them have something to attach to. Modelled on
+      finding-quality.schema.yaml, which made the same split for the same reason.
   items:
     type: array
     items:
       type: object
       required: [id, source, owner, next_action, status, first_seen_run]
+      additionalProperties: false
+      description: >-
+        One row per follow-up. additionalProperties is false deliberately, and it is the direct
+        remedy for how this file drifted: `resolution` was written by agents who needed somewhere to
+        record closure, the object was open so it validated silently, and by the time it was declared
+        it was in 39 of 92 entries. It is closed in the same change that declares the fields, because
+        declaring them while leaving the object open would fix 39 instances of a defect whose cause
+        is that the object is open, and let the 40th arrive just as quietly.
       properties:
         id:
           type: string
-          description: "Format: OI-N. Never renumbered."
+          description: >-
+            Format: OI-N. Never renumbered, never reused. Uniqueness holds across the live ledger
+            and the archive COMBINED, not within each: the live file is the working file, so an
+            author appending to a lean one reaches for the next number it shows rather than the next
+            number ever issued. Duplicate OI-N has already occurred twice in practice, before the
+            split made it likelier.
         source:
           type: string
           enum: [requirement, follow-up]
@@ -30,16 +63,49 @@ properties:
           description: "Named person or configured decision owner — never TBD."
         next_action:
           type: string
-          description: "The concrete next step that resolves this item."
+          description: >-
+            The concrete next step that resolves this item, and nothing else. Closure prose belongs
+            in `resolution`. Before that field existed this one carried both, so entries accumulated
+            paragraph-long "Done: ..." strings describing work already finished — which is the
+            opposite of a next action, in the field every reader looks to for one.
         status:
           type: string
           enum: [open, done, blocked, deferred]
+          description: >-
+            open, blocked and deferred belong in the live ledger; done belongs in the archive. A done
+            entry in the live ledger means it has not been rotated yet, which is an error only once
+            the repo has an archive file — a repo that has never swept has a ledger full of them and
+            must keep passing.
         first_seen_run:
           type: string
-          description: "The slug-vN of the lifecycle chain whose Reflect phase created this entry."
+          description: >-
+            The slug-vN of the lifecycle chain whose Reflect phase created this entry — not the
+            current run, if the entry is being carried forward from an earlier one.
         manifest_ids:
           type: array
           items:
             type: string
             pattern: '^R(I)?[0-9]+$'
           description: "Affected requirement IDs, when source is requirement."
+        resolution:
+          type: string
+          minLength: 1
+          description: >-
+            How and why the item closed. Optional, and deliberately NOT conditionally required on
+            `status: done`: at the time this field was declared, 39 of this repo's 70 done items had
+            one and 31 did not, so requiring it would have failed 31 honest historical entries to
+            enforce a rule none of them could retroactively satisfy. Write it for anything closed
+            from here on; the absence on an old entry records that the reasoning was never captured,
+            which is true and better than a backfilled guess.
+        closed_in_run:
+          type: string
+          minLength: 1
+          description: >-
+            The slug-vN of the lifecycle chain that closed the item. Optional for the same reason as
+            `resolution`. The literal value `unrecorded` is valid for items closed BEFORE this field
+            existed and whose closing chain is genuinely not recoverable — it exists so such an item
+            can be marked honestly rather than backfilled with a guess, exactly as
+            pending-setup.schema.yaml's `resolved_by: unrecorded` does. Never use it for a new
+            closure: an agent that closes an item knows which run it was in.
+            Note this is a run identifier, not a date — nothing in this schema records when an item
+            closed, which is why the archive is one file rather than segmented by year.

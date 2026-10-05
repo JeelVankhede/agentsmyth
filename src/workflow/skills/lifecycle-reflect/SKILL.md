@@ -74,7 +74,7 @@ Reflect may proceed when Ship is `ship` or user-accepted `hold-with-waiver`. If 
 - `references/follow-up-policy.md` — when identifying and structuring follow-up actions
 - `workflow/skills/coverage-tracer/SKILL.md` — when building the Manifest Coverage Retrospective
 - `workflow/skills/evidence-auditor/SKILL.md` — when confirming outcome claims cite resolvable evidence
-- `workflow/skills/follow-up-owner-assigner/SKILL.md` — before finalizing Follow-Ups, to confirm every entry has an owner and is persisted to the open-items ledger
+- `workflow/skills/follow-up-owner-assigner/SKILL.md` — before finalizing Follow-Ups, to confirm every entry has an owner, is persisted to the live open-items ledger, and that already-closed items are rotated into the archive
 
 **On demand**:
 - `workflow/agent-behavior.yaml` — when waiver rules or evidence policy affect the retrospective
@@ -146,7 +146,29 @@ Use the frontmatter `architecture_notes` block when the artifact schema supports
 - `orchestration.phase` is `reflect`, `status` is `done`, and `next_phase` is `done` when complete.
 - Manifest Coverage Retrospective is built via `coverage-tracer` with a row and citation per active R/RI.
 - Outcome claims tagged as verified pass `evidence-auditor`.
-- `follow-up-owner-assigner` confirms no follow-up lacks an owner, and every follow-up plus every deferred/waived R/RI is persisted to `workflow/artifacts/open-items.yaml`.
+- `follow-up-owner-assigner` confirms no follow-up lacks an owner, and every follow-up plus every R/RI the chain did not ship is persisted to `workflow/artifacts/open-items.yaml`. Its sweep has also run: the live ledger holds no `status: done` item, and anything already closed sits in `workflow/artifacts/open-items-archive.yaml` instead.
+
+## Finding Quality Closure
+
+A Review council's findings are recorded at Review with `outcome: pending` in
+`workflow/artifacts/finding-quality.yaml`. This phase settles the ones it can.
+
+For each pending row whose finding this phase acted on, set `outcome` to one of:
+
+| Outcome | Means | Also required |
+|---|---|---|
+| `proved-real` | acting on it confirmed the finding | `closed_in_phase`, `resolution` |
+| `noise` | it did not hold up | `closed_in_phase`, `resolution`, `reason` |
+| `waived` | real, and deliberately not acted on | `closed_in_phase`, `resolution`, `waiver_ref` |
+| `unresolved-at-reflect` | the chain ended without the truth being knowable | `closed_in_phase`, `resolution`, `reason` |
+
+**Closing a row moves it.** Delete it from `finding-quality.yaml` and append it to
+`finding-quality-archive.yaml` in the same operation — a row lives in exactly one file, and
+`check-finding-quality` rejects a row present in both or a closed row left in the active ledger.
+
+Leave a row `pending` when this phase genuinely did not settle it; do not guess. A row still pending
+at Ship blocks `ship` unless a `## Waivers` entry **names that row's ID** — a waiver that does not
+name the row does not cover it.
 
 ## Determinism Rules
 

@@ -1,0 +1,11 @@
+version: 1
+kind: finding-quality-archive
+items:
+  - id: FQ-1
+    finding_id: F1
+    source_artifact: workflow/artifacts/reviews/probe-v1.md
+    first_seen_run: probe-v1
+    disposition: accepted
+    outcome: waived
+    closed_in_phase: ship
+    resolution: accepted risk
