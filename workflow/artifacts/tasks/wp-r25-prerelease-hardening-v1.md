@@ -198,6 +198,12 @@ Planned before the first edit; each line gains its "what changed" as work lands.
   definition, `model: sonnet` / `effort: xhigh` from its resolved `standard` / `very-high`; it had
   configured a tier and never expressed it, which is the finding it was requiring of consumers
   — IDs: R5
+- `docs/release-checklist.md` (Test phase) — a "Manual verification the automated suites cannot do"
+  section: the host honouring a resolved tier, the four non-Claude hosts, Windows, a real
+  generator-managed hooks repo, and a genuinely stale global install. Records that this file already
+  described F5's double-edit rehearsal before 1.0.1 shipped and the defect shipped regardless, which
+  is why the section distinguishes entries that can be promoted into suites from the ones that cannot
+  — IDs: R6, R11
 - `test/run-finding-closure-probes.mjs` (Phase 8, new) — 31 probes, one or more per Review finding,
   each asserting the finding's own symptom is gone rather than that a test for it exists; added
   after the completion claim was challenged and found wrong for F8 and F13 — IDs: R3, R4, R5, R9, R10

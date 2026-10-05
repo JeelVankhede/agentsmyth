@@ -419,7 +419,9 @@ asserts survival of a consumer-authored file as well as removal of a retired one
   `.claude/agents/agentsmyth-council-member.md` (F22 — the tier had no mechanical expression on
   either side, and this repo turned out not to have the file it was requiring of consumers), and
   `test/run-finding-closure-probes.mjs` (added after "all findings resolved" was asserted and found
-  wrong in two places — it probes each finding's own symptom rather than the existence of a test)
+  wrong in two places — it probes each finding's own symptom rather than the existence of a test),
+  and `docs/release-checklist.md` (the manual verification this chain proved is needed — the host
+  honouring a tier, the other four tools, Windows, a real husky repo, a genuinely stale global)
 - Work, in severity order. The four criticals first: wire the Think gate to a shipped surface and
   assert that wiring in conformance (F1); make the tier precondition cover every phase that can
   dispatch a council, derived from the resolved per-phase map rather than a phase literal (F2);
