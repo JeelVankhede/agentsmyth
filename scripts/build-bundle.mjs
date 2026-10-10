@@ -72,8 +72,21 @@ write('dist/setup-bundle.md', setupSections.join('\n') + '\n');
 // src/workflow/config/ contains per-consumer config templates (written by setup skill).
 // agent-behavior.yaml is now at src/workflow/agent-behavior.yaml and bundles normally.
 
+// Source-repo-only validators. They live in src/workflow/validators/ so every suite and the
+// mutation audit find them where they find every other validator, but they read paths that exist
+// only in THIS repo (src/setup/references/, examples/power-skill-sandbox/), so installed into a
+// definitions tree they fail in every consumer on every run. scripts/validate-template.mjs is their
+// only runner. test/run-consumer-sweep-tests.mjs is the guard for this list: it runs every bundled
+// validator in an empty consumer repo and fails on any source-repo path, so a new source-only
+// validator nobody adds here is caught rather than shipped. bin/agentsmyth.mjs's
+// retiredDefinitionFiles removes copies an older release already installed.
+const SOURCE_ONLY = new Set([
+  'src/workflow/validators/check-setup-refs.mjs',
+  'src/workflow/validators/check-trigger-predicates.mjs',
+]);
+
 const workflowFiles = walkFiles('src/workflow').filter(rel =>
-  !rel.endsWith('.gitkeep')
+  !rel.endsWith('.gitkeep') && !SOURCE_ONLY.has(rel)
 );
 
 const bundleLines = [

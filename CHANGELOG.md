@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Bug-fix release for two defects reported from a repository upgraded to 1.1.0.
+
+### Fixed
+- **The upgrade never asked for the council capability tier, so every council phase was refused
+  with no open item explaining why.**
+  - **Cause:** the upgrade added setup questions a whole group at a time, keyed on the group's first
+    question. A repository whose `pending-setup.yaml` already held a `tuning.council.per_phase` item
+    (written by an earlier 1.1.0 build) skipped the group entirely. So
+    `tuning.council.model_tier`, the one setting that blocks, was never asked, and
+    `check-lifecycle` refused every council phase, including the commit hook's review gate.
+  - **Fix:** questions are now added one at a time. A question is skipped only when it is already
+    listed or its value is already set in `repo-profile.yaml`, so an answered question that was
+    resolved and removed is not asked again. That check reads block and flow-style YAML, quoted
+    keys, and treats `{}` and `[]` as unset.
+- **Answering the tier now tells the agent to create the council-member definition.** The
+  instruction lived only in the setup skill, which setup deletes, so a repository that answered the
+  tier after an upgrade went straight from the council gate into `check-setup-complete`'s
+  "no council member definition" failure. The `model_tier` question's hint and router step 5 now
+  carry the step.
+- **The council-member instruction named the wrong destination.** Setup step 5a.3 said to write
+  the rendered definition to "the path named in the template's first line". No template has its
+  path there; every one names it on a `Placed at` line. All three copies of the instruction are
+  corrected, and a conformance check now holds them to the templates.
+- **`check-pending-setup` reported "0 open" while the tier gate refused.** It now prints a note when
+  `tuning.council.model_tier` is unset (or not one of `cheap | standard | deep`) while councils are
+  enabled, naming the phases the gate will refuse. This includes the case with no
+  `pending-setup.yaml` at all. The exit code is unchanged, and the note uses the same tier
+  resolution as the gate, now shared in `lib.mjs`.
+- **Two validators that only work inside agentsmyth's own source repository are no longer
+  installed.**
+  - `check-setup-refs` and `check-trigger-predicates` read `src/setup/references/` and
+    `examples/power-skill-sandbox/`, so in every other repository they failed on every run, while
+    `agentsmyth check`, which never ran them, exited 0. This affected every release since 1.0.0.
+  - They still run in this repository's own `npm run validate`.
+  - `prepare` now removes existing copies, including from installs last written by 1.0.x, which
+    have no expanded-files ledger.
+
+### Added
+- `npm run consumer-sweep:test` installs the definitions into a scratch home and runs every
+  installed validator from an empty repository. It fails if any validator fails on a path that
+  exists only in agentsmyth's own source tree. It runs in CI and in the release workflow.
+
 ## [1.1.0] - 2026-10-05
 
 ### Added
