@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   artifactContracts,
+  COUNCIL_TIERS,
   defsPath,
   finish,
   listFiles,
@@ -12,6 +13,7 @@ import {
   parseFrontmatter,
   readText,
   repoRoot,
+  resolveCouncilTier,
   schemaRegistry,
   trackedFiles,
   validateSchema,
@@ -149,32 +151,17 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
   const configDir = dirIdx !== -1 ? join(args[dirIdx + 1], 'config') : join(repoRoot, wf, 'config');
 
   function councilTierPrecondition() {
-    let behaviorCfg = null;
-    try {
-      behaviorCfg = loadYaml(defsPath('agent-behavior.yaml'));
-    } catch {
-      return null; // unreadable definitions is another validator's finding, not this rule's to guess
-    }
+    // Resolution lives in lib.mjs's resolveCouncilTier, shared with check-pending-setup so what is
+    // reported and what is enforced cannot drift. This function keeps only the gating decisions and
+    // their messages.
+    const { state, tier: resolvedTier, councilPhases, profileReadable } = resolveCouncilTier(configDir);
+    if (state === 'no-definitions') return null; // unreadable definitions is another validator's finding, not this rule's to guess
 
-    const councilPhases = Object.keys(behaviorCfg?.council?.per_phase ?? {});
     if (!councilPhases.includes(targetPhase)) return null;
 
-    const profilePath = join(configDir, 'repo-profile.yaml');
-    let tuned = {};
-    let profileReadable = true;
-    try {
-      tuned = existsSync(profilePath) ? (loadYaml(profilePath)?.tuning ?? {}) : {};
-    } catch {
-      profileReadable = false;
-    }
-
-    const dispatchEnabled = tuned?.dispatch?.enabled ?? behaviorCfg?.dispatch?.enabled;
-    const councilEnabled = tuned?.council?.enabled ?? behaviorCfg?.council?.enabled;
-    if (dispatchEnabled === 'disabled' || councilEnabled === 'disabled') {
+    if (state === 'disabled') {
       return { gated: false, detail: `${targetPhase}: councils disabled for this repo — capability tier not gated` };
     }
-
-    const resolvedTier = tuned?.council?.model_tier ?? behaviorCfg?.council?.model_tier ?? null;
 
     // A tier this gate cannot MAP is not a resolved tier.
     //
@@ -186,17 +173,16 @@ function requireCheckpointApproval(parsed, partFile, targetPhase, errors, detail
     // adapters can express, or the gate is checking that a key exists rather than that a decision
     // was made. check-config is now wired into `agentsmyth check` as well; this is the same rule at
     // the point of use, because the gate is what hands the value onward.
-    const TIERS = ['cheap', 'standard', 'deep'];
-    if (resolvedTier && !TIERS.includes(String(resolvedTier).trim())) {
+    if (state === 'invalid') {
       return {
         gated: true,
         message:
           `${targetPhase}: tuning.council.model_tier is "${resolvedTier}", which is not one of `
-          + `${TIERS.join(' | ')}, and a council must not dispatch on a tier no adapter can map. `
+          + `${COUNCIL_TIERS.join(' | ')}, and a council must not dispatch on a tier no adapter can map. `
           + `Correct it in ${wf}/config/repo-profile.yaml.`,
       };
     }
-    if (resolvedTier) return null;
+    if (state === 'resolved') return null;
 
     let itemId = null;
     let pendingUnreadable = false;

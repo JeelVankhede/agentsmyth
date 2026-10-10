@@ -1,0 +1,6 @@
+# Fixture (R7): no tier, but councils are disabled, so nothing can block and no note is printed.
+version: 1
+kind: repo-profile
+tuning:
+  council:
+    enabled: disabled

@@ -84,5 +84,8 @@ jobs:
       - name: Run AGENTS.md fallback tests
         run: npm run agents-md:test
 
+      - name: Run consumer sweep tests
+        run: npm run consumer-sweep:test
+
       - name: Build docs site
         run: npm run site:build

@@ -268,8 +268,9 @@ verifies it, and the parent cannot observe which model answered.
    from the resolved tier. Resolve identifiers against the tool's **current** documentation; the
    templates deliberately do not hard-code model names, because a shipped identifier rots and would
    then be wrong for every consumer.
-3. Write the rendered definition to that tool's native per-repo agent path, named in the template's
-   own first line.
+3. Write the rendered definition to that tool's native per-repo agent path, named on the template's
+   `Placed at` line. (This used to say "the template's own first line", which is true of no
+   template: four open with a heading, and Claude's opens with frontmatter.)
 4. Record what was actually honoured, not what was requested. Two of the five tools cannot express a
    per-member effort at all — one has no effort field, and one keeps it in repository settings rather
    than the agent file. For those, the effort axis is `unavailable`, and saying otherwise would claim

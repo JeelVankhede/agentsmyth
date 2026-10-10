@@ -264,17 +264,24 @@ if (process.getuid?.() === 0) {
     '  definitions_root: ~/.agentsmyth/workflow',
   ].join('\n');
 
-  function runAppend(label, pendingBody) {
+  // `profileExtra` appends to the repo profile (e.g. a `tuning:` block); `runs` repeats `check` so
+  // idempotency is measured on the same repo rather than inferred from a fresh one.
+  function runAppend(label, pendingBody, { profileExtra = '', runs = 1 } = {}) {
     const repo = mkScratchDir(`wpr22-append-${label}-`);
     cleanup.push(repo);
     spawnSync('git', ['init', '-q'], { cwd: repo });
     mkdirSync(join(repo, 'workflow', 'config'), { recursive: true });
-    writeFileSync(join(repo, 'workflow', 'config', 'repo-profile.yaml'), `${profile}\n`);
+    writeFileSync(join(repo, 'workflow', 'config', 'repo-profile.yaml'), `${profile}\n${profileExtra}`);
     const pendingPath = join(repo, 'workflow', 'config', 'pending-setup.yaml');
     writeFileSync(pendingPath, pendingBody);
-    const cli = spawnCli(['check'], { cwd: repo, home });
-    const output = `${cli.stdout ?? ''}${cli.stderr ?? ''}`;
-    const after = readFileSync(pendingPath, 'utf8');
+    let output = '';
+    const snapshots = [];
+    for (let r = 0; r < runs; r += 1) {
+      const cli = spawnCli(['check'], { cwd: repo, home });
+      output += `${cli.stdout ?? ''}${cli.stderr ?? ''}`;
+      snapshots.push(readFileSync(pendingPath, 'utf8'));
+    }
+    const after = snapshots[snapshots.length - 1];
     let parses = true;
     try {
       const r = spawnSync(process.execPath, ['-e',
@@ -283,7 +290,7 @@ if (process.getuid?.() === 0) {
       ], { encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: 'src/workflow' }, cwd: repoRoot });
       parses = r.status === 0;
     } catch { parses = false; }
-    return { after, parses, output };
+    return { after, parses, output, snapshots };
   }
 
   // items: first, then other top-level keys. The old guard said "safe to append" and the appended
@@ -313,6 +320,53 @@ if (process.getuid?.() === 0) {
     emptySeq.parses);
   check('J4-emptyseq-populated', 'items: [] is rewritten into a block rather than silently skipped',
     emptySeq.after.includes('tuning.council.per_phase'));
+
+  // J5–J8: the council family is appended per ITEM. A real 1.1.0 upgrade met a pending-setup.yaml
+  // holding a per_phase item and no model_tier item; the family-level marker matched on per_phase,
+  // so the one item that blocks was never written and the council gate refused every commit while
+  // check-pending-setup reported nothing open.
+  const fieldCount = (text, field) => (text.match(new RegExp(`field: "${field.replace(/\./g, '\\.')}"`, 'g')) ?? []).length;
+  const halfFamily = [
+    'version: 1', 'kind: pending-setup', 'items:',
+    '  - id: PS-12', '    config: repo-profile.yaml',
+    '    field: "tuning.council.per_phase"', '    question: "q"', '    hint: "h"', '    status: open', '',
+  ].join('\n');
+
+  const half = runAppend('halffamily', halfFamily);
+  check('J5-half-family-filled', 'a per_phase item without model_tier gains exactly the model_tier item',
+    half.parses
+    && fieldCount(half.after, 'tuning.council.model_tier') === 1
+    && fieldCount(half.after, 'tuning.council.per_phase') === 1);
+
+  const twice = runAppend('halftwice', halfFamily, { runs: 2 });
+  check('J6-half-family-idempotent', 'a second check on the same repo appends nothing',
+    twice.snapshots.length === 2 && twice.snapshots[0] === twice.snapshots[1]
+    && fieldCount(twice.after, 'tuning.council.model_tier') === 1);
+
+  // per_phase answered and its item pruned: the content guard cannot see it, the value guard must.
+  const perPhaseSet = runAppend('perphaseset', 'version: 1\nkind: pending-setup\nitems: []\n', {
+    profileExtra: 'tuning:\n  council:\n    per_phase:\n      review: 1\n',
+  });
+  check('J7-set-value-not-resurrected', 'a per_phase value set in the profile is not asked again; model_tier is',
+    perPhaseSet.parses
+    && fieldCount(perPhaseSet.after, 'tuning.council.per_phase') === 0
+    && fieldCount(perPhaseSet.after, 'tuning.council.model_tier') === 1);
+
+  const bothSet = runAppend('bothset', 'version: 1\nkind: pending-setup\nitems: []\n', {
+    profileExtra: 'tuning:\n  council:\n    per_phase:\n      review: 1\n    model_tier: standard  # chosen\n',
+  });
+  check('J8-both-set-nothing-added', 'with both council values set, no council item is appended',
+    fieldCount(bothSet.after, 'tuning.council.per_phase') === 0
+    && fieldCount(bothSet.after, 'tuning.council.model_tier') === 0);
+
+  // The same answers written as flow mappings are the same answers. Before the flow reader, this
+  // layout read as "absent" and both questions were asked again.
+  const flowSet = runAppend('flowset', 'version: 1\nkind: pending-setup\nitems: []\n', {
+    profileExtra: 'tuning:\n  council: { per_phase: { review: 1 }, model_tier: "deep" }\n',
+  });
+  check('J9-flow-style-values-honoured', 'council values set as flow mappings are not asked again',
+    fieldCount(flowSet.after, 'tuning.council.per_phase') === 0
+    && fieldCount(flowSet.after, 'tuning.council.model_tier') === 0);
 }
 
 // ── Scenario K: `init` refuses a global install carrying no version stamp (R1) ──────────────

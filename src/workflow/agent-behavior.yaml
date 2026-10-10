@@ -338,9 +338,11 @@ skill_scoring:
     domain.performance-optimizer: "path~hotpath_globs OR complexity_score >= thresholds.domain.performance-optimizer"
   # path_glob_categories gives the `path~<category>_globs` trigger shorthand above a concrete,
   # checkable meaning — a starting, deliberately non-exhaustive set per category, editable without
-  # touching the trigger predicates themselves. Used by check-trigger-predicates.mjs against
-  # examples/power-skill-sandbox/ to catch a predicate or glob-category regression mechanically —
-  # the one part of skill-trigger correctness that doesn't require an LLM to evaluate.
+  # touching the trigger predicates themselves. In agentsmyth's own source repo,
+  # check-trigger-predicates.mjs evaluates them against examples/power-skill-sandbox/ to catch a
+  # predicate or glob-category regression in these defaults. That check is source-repo-only and is
+  # not installed: its expected outcomes are computed from the defaults above, so it cannot judge a
+  # repo that tunes these globs. A tuned set is shape-checked by check-config.mjs.
   path_glob_categories:
     contract_globs:
       - "**/routes/**"

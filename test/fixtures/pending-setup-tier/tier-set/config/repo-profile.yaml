@@ -1,0 +1,6 @@
+# Fixture (R7): a mappable tier is set, so nothing blocks and no note is printed.
+version: 1
+kind: repo-profile
+tuning:
+  council:
+    model_tier: standard

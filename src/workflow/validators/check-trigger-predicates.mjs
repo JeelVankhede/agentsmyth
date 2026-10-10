@@ -9,6 +9,11 @@
 // that specific residual risk (named in workflow/artifacts/plans/power-skills-domain-experts-v1.md's
 // Risk Register).
 //
+// SOURCE-REPO-ONLY. Excluded from the workflow bundle by scripts/build-bundle.mjs's SOURCE_ONLY list,
+// so `prepare` never installs it. The sandbox fixture lives only in this repo, and its `expected`
+// map is computed from the GLOBAL globs, so even with the fixture present it could not judge a
+// consumer that tunes path_glob_categories: it would fail exactly the repos that use the feature.
+//
 // Added 2026-08-12: `weights` and `path_glob_categories` are two of the five keys a repo may
 // override in repo-profile.yaml under `tuning:`, so this validator no longer reads them from the
 // global agent-behavior.yaml alone — it resolves the same merged effective value the agent will
