@@ -10,7 +10,9 @@
 // found (audit-remediation R1/R2/R3) cannot recur silently.
 //
 // It is a source-repo-only, structural check (setup/ is never shipped to a consumer), wired into
-// scripts/validate-template.mjs's sourceCommands with AGENTSMYTH_WF=src/workflow.
+// scripts/validate-template.mjs's sourceCommands with AGENTSMYTH_WF=src/workflow. It is excluded
+// from the workflow bundle by scripts/build-bundle.mjs's SOURCE_ONLY list, so `prepare` never
+// installs it: it used to be, and failed in every consumer on paths only this repo has.
 import { defsPath, finish, loadYaml, pathExists, readText } from './lib.mjs';
 
 const setupRefsDir = process.env.AGENTSMYTH_SETUP_REFS || 'src/setup/references';

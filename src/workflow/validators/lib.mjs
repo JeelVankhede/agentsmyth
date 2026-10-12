@@ -924,3 +924,60 @@ export function schemaRegistry() {
   }
   return registry;
 }
+
+// ── Council capability tier resolution ──────────────────────────────────────────────────────
+//
+// The one resolution of `tuning.council.model_tier`, shared by check-lifecycle (which GATES on it)
+// and check-pending-setup (which REPORTS it). It used to live inline in check-lifecycle alone, so
+// check-pending-setup could say "0 open" while the gate refused every council phase — a consumer saw
+// exactly that after a 1.1.0 upgrade. A second copy would have fixed the message and opened a drift
+// channel between what is reported and what is enforced; one resolver closes both.
+//
+// Precedence is unchanged from the inline version: repo `tuning:` first, then the global
+// agent-behavior.yaml. States:
+//   no-definitions — agent-behavior.yaml unreadable; another validator's finding, not this rule's
+//   disabled       — dispatch.enabled or council.enabled resolves to `disabled`
+//   invalid        — a tier is set but is not one an adapter can map (`tier` carries it)
+//   resolved       — a mappable tier is set
+//   unset          — councils can dispatch and no tier resolves
+// `councilPhases` is derived from the resolved per-phase map, so a phase that gains a council later
+// is covered without anyone extending a literal. `profileReadable` is false when repo-profile.yaml
+// exists but does not parse.
+export const COUNCIL_TIERS = ['cheap', 'standard', 'deep'];
+
+export function resolveCouncilTier(configDir) {
+  let behaviorCfg = null;
+  try {
+    behaviorCfg = loadYaml(defsPath('agent-behavior.yaml'));
+  } catch {
+    return { state: 'no-definitions', tier: null, councilPhases: [], profileReadable: true };
+  }
+
+  const councilPhases = Object.keys(behaviorCfg?.council?.per_phase ?? {});
+
+  const profilePath = join(configDir, 'repo-profile.yaml');
+  let tuned = {};
+  let profileReadable = true;
+  try {
+    // pathExists, not bare existsSync: loadYaml resolves a relative path against the repo root, so
+    // the existence probe must too. The inline original probed relative to the cwd, which disagreed
+    // with the read for a relative `--dir` run from anywhere but the root, and a shared resolver now
+    // has two callers to mislead rather than one.
+    tuned = pathExists(profilePath) ? (loadYaml(profilePath)?.tuning ?? {}) : {};
+  } catch {
+    profileReadable = false;
+  }
+
+  const dispatchEnabled = tuned?.dispatch?.enabled ?? behaviorCfg?.dispatch?.enabled;
+  const councilEnabled = tuned?.council?.enabled ?? behaviorCfg?.council?.enabled;
+  if (dispatchEnabled === 'disabled' || councilEnabled === 'disabled') {
+    return { state: 'disabled', tier: null, councilPhases, profileReadable };
+  }
+
+  const tier = tuned?.council?.model_tier ?? behaviorCfg?.council?.model_tier ?? null;
+  if (tier && !COUNCIL_TIERS.includes(String(tier).trim())) {
+    return { state: 'invalid', tier, councilPhases, profileReadable };
+  }
+  if (tier) return { state: 'resolved', tier, councilPhases, profileReadable };
+  return { state: 'unset', tier: null, councilPhases, profileReadable };
+}

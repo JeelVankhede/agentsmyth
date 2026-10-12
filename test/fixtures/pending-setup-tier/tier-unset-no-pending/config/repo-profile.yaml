@@ -1,0 +1,4 @@
+# Fixture (R7): no pending-setup.yaml at all and no tier. The "all items resolved" message alone
+# would hide the blocking setting.
+version: 1
+kind: repo-profile

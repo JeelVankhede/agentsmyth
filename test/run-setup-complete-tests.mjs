@@ -192,6 +192,36 @@ check('gate-agentsmd-current-stamp', 'a current block passes without an error',
   !setupRepo({ stamp: '1.1.0', agentsMd: '<!-- agentsmyth:1.1.0 BEGIN -->\nbody\n<!-- agentsmyth:1.1.0 END -->\n' })
     .includes('Run "agentsmyth upgrade" to bring the block current'));
 
+// ── check-pending-setup names the blocking tier (R7) ──────────────────────────────────────────
+// A 1.1.0 upgrade left a consumer with every pending item resolved and no council tier: this
+// validator said "0 open" while check-lifecycle refused every council phase. The note reports the
+// setting by its resolved value, through the gate's own resolver, and never changes the exit code.
+{
+  const pendingValidator = join(repoRoot, 'src', 'workflow', 'validators', 'check-pending-setup.mjs');
+  const NOTE = 'tuning.council.model_tier is unset while councils are enabled';
+  const runPending = (fixture) => spawnSync(process.execPath,
+    [pendingValidator, '--dir', join(repoRoot, 'test', 'fixtures', 'pending-setup-tier', fixture)],
+    { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, AGENTSMYTH_HOME: join(repoRoot, 'src', 'workflow') } });
+
+  const unset = runPending('tier-unset');
+  check('tier-note-unset', 'an unset tier with councils enabled is named, even at 0 open items',
+    unset.status === 0 && unset.stdout.includes('0 open') && unset.stdout.includes(NOTE)
+      && unset.stdout.includes('check-lifecycle refuses council phases (think, review)'));
+
+  const noPending = runPending('tier-unset-no-pending');
+  check('tier-note-no-pending-file', 'with no pending-setup.yaml at all, the unset tier is still named',
+    noPending.status === 0 && noPending.stdout.includes('all items resolved at setup time')
+      && noPending.stdout.includes(NOTE));
+
+  const set = runPending('tier-set');
+  check('tier-note-set', 'a set tier prints no note',
+    set.status === 0 && !set.stdout.includes('model_tier'));
+
+  const disabled = runPending('councils-disabled');
+  check('tier-note-councils-disabled', 'councils disabled prints no note, since nothing can block',
+    disabled.status === 0 && !disabled.stdout.includes('model_tier'));
+}
+
 console.log(`\n${passed}/${passed + failed} setup-complete checks passed`);
 
 if (failed > 0) {

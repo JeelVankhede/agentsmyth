@@ -22,6 +22,16 @@ the task.
    batched block before proceeding with the task. One question per item.
    If the user answers: apply the value to the config, set `resolved_by: user`,
    `status: resolved`, record in `resolution`. Update `pending-setup.yaml`.
+   - **`tuning.council.model_tier`** needs one more step after the value is written. Render the council
+     member definition: read `<definitions_root>/adapters/<tool>/council-member.md` for the tool this
+     repo uses (`definitions_root` is in `repo-profile.yaml`; `~/.agentsmyth/workflow` for a global
+     install), substitute `<COUNCIL-MODEL>` and any `<COUNCIL-EFFORT>` from the chosen tier against
+     that tool's current documentation, and write the result to the native path named on the
+     template's `Placed at` line. Councils dispatch members by naming that file, and `check-setup-complete`
+     fails while the tier is set without it. This item usually arrives by upgrade, after the setup
+     skill that first described the step was deleted, so the router is where it has to live. If the
+     item is waived instead, skip the render — councils then run on the host default, which is not a
+     configured tier and must not be recorded as one.
 6. `waived` items: never surface. Never block on them.
 7. Items still open after steps 4–5: proceed with the task. Note them in the session
    summary. Do not hard-stop.

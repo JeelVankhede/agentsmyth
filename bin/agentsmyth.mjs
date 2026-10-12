@@ -436,7 +436,11 @@ function councilTuningItemSpecs() {
       // artifact.
       field: 'tuning.council.model_tier',
       question: 'What capability tier should council members run on — cheap, standard, or deep? This is the one setup answer that blocks: a council will not dispatch until it is set, because there is no default the package can pick for you without choosing how much you spend. cheap favours throughput, standard matches a normal session, deep buys capability per member.',
-      hint: 'Ask the user directly; do not infer this from the repo. Each adapter maps the tier to a real model for its own tool, so the answer stays portable across tools. If this repo should never run councils, setting tuning.council.enabled to disabled is the other way to clear the block.',
+      // The render step is spelled out HERE because this item reaches existing repos on upgrade, and
+      // those repos no longer have the setup skill (src/setup/SKILL.md step 5a.3) that describes it —
+      // setup deletes it. Writing the tier without rendering the definition moved a repo from the
+      // council gate straight into check-setup-complete's "no council member definition" failure.
+      hint: 'Ask the user directly; do not infer this from the repo. Each adapter maps the tier to a real model for its own tool, so the answer stays portable across tools. If this repo should never run councils, setting tuning.council.enabled to disabled is the other way to clear the block. Resolving this item also means rendering the council member definition: read <definitions_root>/adapters/<tool>/council-member.md for the tool this repo uses (definitions_root is in repo-profile.yaml; ~/.agentsmyth/workflow for a global install), substitute <COUNCIL-MODEL> and any <COUNCIL-EFFORT> from the chosen tier against that tool\'s current documentation, and write the result to the native path named on the template\'s "Placed at" line. Skip the render if this item is waived.',
     },
   ];
 }
@@ -527,17 +531,176 @@ function warnOnFirstNextId(alloc, pendingPath) {
   console.warn('   before now, that number may repeat one. From this write on, ids are exact.)');
 }
 
-// Appends one item family to an EXISTING pending-setup.yaml that lacks it — the upgrade path for a
-// repo set up before that family existed. Idempotent per family: a file already mentioning the
-// family's marker is left alone, so re-running `check` never duplicates items or resurrects ones
-// the user resolved or waived. Each family carries its OWN marker, so adding a family later reaches
-// repos that already resolved the earlier ones. Returns the number of items added.
-function appendPendingItems(configDir, specs, marker) {
+// True when `dotted` (e.g. `tuning.council.per_phase`) names a key that is present with a value in
+// the YAML file at `filePath`. A line scan plus a small flow-mapping reader, not a full parse — this
+// entrypoint shells out to validators rather than importing lib.mjs (see the note at the top of this
+// file), so it carries no YAML parser.
+//
+// Understood: block mappings by indentation, flow mappings (`council: { model_tier: deep }`) at any
+// level including the document root, quoted keys, a space before the colon, and trailing comments.
+// "Present" means a non-empty scalar, a non-empty flow collection, or a block with at least one
+// child; `key:`, `null`, `~`, `""`, `''`, `{}` and `[]` are absent, because none of them is a choice.
+// Anything it still cannot read is treated as absent: the cost is one redundant question, never a
+// dropped one.
+function configKeyPresent(filePath, dotted) {
+  if (!existsSync(filePath)) return false;
+  let text;
+  try {
+    text = readFileSync(filePath, 'utf8');
+  } catch {
+    return false;
+  }
+  const segments = dotted.split('.');
+  const EMPTY = ['', 'null', '~', '""', "''", '{}', '[]'];
+  const stripComment = (v) => v.replace(/\s+#.*$/, '').trim();
+
+  // Reads one flow collection starting at text[i] === '{' or '['. Returns { value, end } where
+  // value is an object for a mapping, an array for a sequence; scalars inside are raw strings.
+  function readFlow(src, i) {
+    const open = src[i];
+    const close = open === '{' ? '}' : ']';
+    const out = open === '{' ? {} : [];
+    i += 1;
+    const skipWs = () => { while (i < src.length && /[\s,]/.test(src[i])) i += 1; };
+    const readScalar = (stops) => {
+      skipWs();
+      if (src[i] === '"' || src[i] === "'") {
+        const q = src[i]; let j = i + 1;
+        while (j < src.length && src[j] !== q) j += src[j] === '\\' && q === '"' ? 2 : 1;
+        const raw = src.slice(i + 1, j); i = j + 1; return raw;
+      }
+      let j = i;
+      while (j < src.length && !stops.includes(src[j])) j += 1;
+      const raw = src.slice(i, j).trim(); i = j; return raw;
+    };
+    const readValue = () => {
+      skipWs();
+      if (src[i] === '{' || src[i] === '[') { const r = readFlow(src, i); i = r.end; return r.value; }
+      return readScalar([',', close]);
+    };
+    for (;;) {
+      skipWs();
+      if (i >= src.length) return { value: out, end: i };
+      if (src[i] === close) return { value: out, end: i + 1 };
+      if (open === '{') {
+        const key = readScalar([':', ',', close]);
+        if (src[i] === ':') { i += 1; out[key] = readValue(); } else { out[key] = ''; }
+      } else {
+        out.push(readValue());
+      }
+    }
+  }
+
+  const presentValue = (v) => {
+    if (v === undefined) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    if (v && typeof v === 'object') return Object.keys(v).length > 0;
+    return !EMPTY.includes(String(v).trim());
+  };
+  // Walks the remaining segments through an already-read flow value.
+  const walkFlow = (value, segs) => {
+    let node = value;
+    for (const seg of segs) {
+      if (!node || typeof node !== 'object' || Array.isArray(node) || !(seg in node)) return false;
+      node = node[seg];
+    }
+    return presentValue(node);
+  };
+  // Reads the flow collection that begins `rest` (and may continue on the following lines).
+  const flowFrom = (rest, lines, after) => {
+    const src = [rest, ...lines.slice(after)].join('\n');
+    try { return readFlow(src, src.indexOf(rest.trim()[0])).value; } catch { return undefined; }
+  };
+
+  const lines = text.split('\n');
+  const meaningful = (l) => l.trim() !== '' && !l.trim().startsWith('#') && l.trim() !== '---';
+  const indentOf = (l) => l.length - l.trimStart().length;
+  const escape = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // A document whose root is itself a flow mapping.
+  const firstLine = lines.find(meaningful);
+  if (firstLine && firstLine.trim().startsWith('{')) {
+    return walkFlow(flowFrom(firstLine, lines, lines.indexOf(firstLine) + 1), segments);
+  }
+
+  let from = 0;
+  let to = lines.length;
+  let parentIndent = -1;
+  for (let s = 0; s < segments.length; s += 1) {
+    const keyRe = new RegExp(`^(\\s*)(["']?)${escape(segments[s])}\\2\\s*:(?:\\s(.*))?$`);
+    let found = -1;
+    let rest = '';
+    let childIndent = null;
+    for (let i = from; i < to; i += 1) {
+      const line = lines[i];
+      if (!meaningful(line)) continue;
+      const indent = indentOf(line);
+      if (indent <= parentIndent) break;
+      // Only direct children of the current block: the first meaningful line fixes their indent.
+      if (childIndent === null) childIndent = indent;
+      if (indent !== childIndent) continue;
+      const m = keyRe.exec(line.replace(/\s+$/, ''));
+      if (m) { found = i; rest = stripComment(m[3] ?? ''); break; }
+    }
+    if (found === -1) return false;
+
+    // An inline flow collection answers the rest of the path by itself.
+    if (rest.startsWith('{') || rest.startsWith('[')) {
+      const value = flowFrom(rest, lines, found + 1);
+      return s === segments.length - 1 ? presentValue(value) : walkFlow(value, segments.slice(s + 1));
+    }
+
+    const ownIndent = indentOf(lines[found]);
+    let end = lines.length;
+    for (let i = found + 1; i < lines.length; i += 1) {
+      if (meaningful(lines[i]) && indentOf(lines[i]) <= ownIndent) { end = i; break; }
+    }
+
+    if (s === segments.length - 1) {
+      if (rest !== '') return presentValue(rest);
+      return lines.slice(found + 1, end).some(meaningful);
+    }
+    if (rest !== '') return false; // a scalar where a mapping was expected
+    from = found + 1;
+    to = end;
+    parentIndent = ownIndent;
+  }
+  return false;
+}
+
+// True when pending-setup.yaml content already carries an item for `field`, quoted or not. The CLI
+// always writes the double-quoted form, but a hand-written item is still the same item.
+function pendingHasField(content, field) {
+  const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\s*(?:-\\s+)?field:\\s*["']?${escaped}["']?\\s*$`, 'm').test(content);
+}
+
+// Appends whichever items of a family an EXISTING pending-setup.yaml is missing — the upgrade path
+// for a repo set up before that family, or one of its members, existed. Returns the number added.
+//
+// Per item, not per family. This used to return early when the file mentioned one marker for the
+// whole family, on the assumption that a repo holds all of a family or none of it. A real repo held
+// half: a `tuning.council.per_phase` item written by an earlier build, and no
+// `tuning.council.model_tier` — the one item that blocks — so the upgrade skipped the family and the
+// council gate refused every commit with no open item explaining why.
+//
+// An item is skipped when either guard holds, and both are needed:
+//   - the file already carries an item for its field — no duplicates while an item is still listed;
+//   - its config value is already set — no resurrection once the item was resolved and PRUNED, the
+//     case the content check alone cannot see, because pruning takes the field line with it.
+// An item waived and then pruned with its value still unset IS asked again. For model_tier that is
+// right — the gate blocks regardless — and for anything else it is one non-blocking question.
+//
+// `family` names the group in the refusal warning only; it no longer decides anything.
+function appendPendingItems(configDir, specs, family) {
   const pendingPath = join(configDir, 'pending-setup.yaml');
   if (!existsSync(pendingPath)) return 0;
 
   const content = readFileSync(pendingPath, 'utf8');
-  if (content.includes(marker)) return 0;
+  specs = specs.filter((spec) => !pendingHasField(content, spec.field)
+    && !configKeyPresent(join(configDir, spec.config ?? 'repo-profile.yaml'), spec.field));
+  if (specs.length === 0) return 0;
+  const marker = `${family} (${specs.map((s) => s.field).join(', ')})`;
 
   // Appending a sequence entry is only valid if the document actually ends in an `items:` block
   // that can take one. Proven by a positive line scan rather than by regex subtraction: the previous
@@ -555,13 +718,13 @@ function appendPendingItems(configDir, specs, marker) {
 
   // Refusing is right; refusing SILENTLY is not. The same argument the `items: []` branch below
   // makes for its own case applies here: a repo whose pending-setup.yaml is shaped this way can
-  // never be offered this family, on this upgrade or any later one, because the marker never lands —
+  // never be offered these items, on this upgrade or any later one, because they never land —
   // and nothing ever told anyone. The append is the only part that is unsafe; saying so is not.
   if (itemsIdx === -1 || keyFollowsItems) {
     const reason = itemsIdx === -1
       ? 'it has no top-level "items:" key'
       : 'a top-level key follows the "items:" block, so an appended entry would land in the wrong document position';
-    console.warn(`  (skipped adding the "${marker}" item family to ${pendingPath}: ${reason})`);
+    console.warn(`  (skipped adding the ${marker} item(s) to ${pendingPath}: ${reason})`);
     console.warn('   Nothing was written. Add the items by hand, or reorder the file so "items:" is last, to be offered them.');
     return 0;
   }
@@ -587,16 +750,13 @@ function appendPendingItems(configDir, specs, marker) {
 }
 
 function appendIntentPendingItems(configDir) {
-  return appendPendingItems(configDir, intentItemSpecs(), 'field: "intent.');
+  return appendPendingItems(configDir, intentItemSpecs(), 'intent');
 }
 
-// The idempotency marker is the FAMILY's first field, and the family now has two members. Keying it
-// on the first field alone is what the existing marker already did; the appender writes the whole
-// spec list or none of it, so one marker still describes the whole family and a second run adds
-// nothing. Keying on the newer field instead would re-append the older one into a repo that already
-// has it.
+// Idempotent per ITEM (see appendPendingItems): a repo holding only the per_phase item still gets
+// model_tier, and one that resolved and pruned either keeps it pruned because its value is set.
 function appendCouncilTuningPendingItems(configDir) {
-  return appendPendingItems(configDir, councilTuningItemSpecs(), 'field: "tuning.council.per_phase');
+  return appendPendingItems(configDir, councilTuningItemSpecs(), 'council tuning');
 }
 
 // Writes stub config files + pending-setup.yaml when workflow/config/ is absent.
@@ -1019,6 +1179,34 @@ function expandBundle(bundlePath, destDir) {
         removed.push(rel);
       }
     } catch { /* leave anything that resists deletion; a stale file is better than a broken install */ }
+  }
+
+  // RETIRED definitions: exact paths an older bundle shipped and this one deliberately does not,
+  // removed whether or not a ledger lists them.
+  //
+  // The ledger above only exists from 1.1.0 on. A tree last expanded by 1.0.x has none, so the first
+  // current expansion records a ledger and prunes nothing — and a file 1.0.x shipped and this
+  // release withdrew lives on in it. For the two validators below that is not cosmetic: they read
+  // paths that exist only in agentsmyth's own source repo (src/setup/references/,
+  // examples/power-skill-sandbox/), so in every consumer they fail on every run, and a sweep of the
+  // installed validators/ directory reported two failures no consumer could ever fix.
+  //
+  // Exact files, never a pattern, and the same containment and lstat rules as the ledger prune. A
+  // literal inside the function for the same TDZ reason the ledger filename is one.
+  const retiredDefinitionFiles = [
+    'workflow/validators/check-setup-refs.mjs',
+    'workflow/validators/check-trigger-predicates.mjs',
+  ];
+  for (const rel of retiredDefinitionFiles) {
+    if (declared.has(rel) || removed.includes(rel)) continue;
+    const target = resolveInTree(destDir, rel, 'workflow');
+    if (target === null) continue;
+    try {
+      if (existsSync(target.abs) && lstatSync(target.abs).isFile()) {
+        rmSync(target.abs);
+        removed.push(rel);
+      }
+    } catch { /* same as above: a stale file is better than a broken install */ }
   }
 
   return { written: written.length, removed };
@@ -2079,7 +2267,7 @@ function raiseReconcileItems(repoDir, drifted, backupsByPath, descriptorsByPath,
     // durable channel and the caller must be able to say so.
     const pendingPath = join(configDir, 'pending-setup.yaml');
     const before = existsSync(pendingPath) ? readFileSync(pendingPath, 'utf8') : null;
-    if (appendPendingItems(configDir, [spec], marker) > 0) raised.push(marker);
+    if (appendPendingItems(configDir, [spec], 'reconcile') > 0) raised.push(marker);
     else if (before === null || !before.includes(marker)) refused.push(marker);
   }
 

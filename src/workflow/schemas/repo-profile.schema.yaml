@@ -394,12 +394,13 @@ properties:
             description: >-
               Map of glob arrays giving `path~<category>_globs` trigger shorthand a repo-specific
               meaning - pure repo vocabulary, i.e. what counts as a frontend or migration path in
-              this codebase. Consumed by check-trigger-predicates.mjs, which resolves the merged
-              value. Typed identically to agent-behavior.yaml's own path_glob_categories rather
+              this codebase. Consumed by the agent when evaluating skill triggers, which resolves the
+              merged value (and, in agentsmyth's own source repo only, by check-trigger-predicates.mjs,
+              which is not installed). Typed identically to agent-behavior.yaml's own path_glob_categories rather
               than left open: an open type accepted a bare string like
               `ui_globs: "ui/**"`, which passed config validation and then failed inside
-              check-trigger-predicates.mjs as `globs.some is not a function` - a JavaScript
-              TypeError naming an internal variable, from a validator the author was not editing.
+              trigger evaluation as `globs.some is not a function` - a JavaScript TypeError naming
+              an internal variable, from a validator the author was not editing.
               Catching it here names the file and the key instead.
           thresholds:
             type: object

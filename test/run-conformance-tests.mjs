@@ -313,6 +313,67 @@ check('r22-ship-gate-chain-scoped', "another chain's pending finding does not bl
     `the first council-member reference is "...${firstRef.slice(-70)}"`);
 }
 
+// 1.1.1 — the council-member render instruction lives in THREE places, and all three must agree with
+// the templates they describe. Setup step 5a.3 reaches a fresh init; router step 5 reaches every later
+// session; the model_tier item's own hint reaches an agent that resolves the item without the router.
+// They exist because the upgrade population has no setup skill, and they drift independently.
+//
+// The first version of this check found a defect that shipped in 1.1.0 in every copy: each said to
+// write the definition to "the path named in the template's first line", which is true of NO
+// template — four open with a heading and Claude's with frontmatter; all five name the destination on
+// a `Placed at` line. So the expectations are derived from the templates rather than restated here:
+// a renamed token or a moved path line fails this check instead of shipping.
+{
+  const adapters = ['claude', 'codex', 'copilot', 'cursor', 'windsurf'];
+  const templates = adapters.map((a) => ({
+    adapter: a,
+    text: readFileSync(join(repoRoot, 'src', 'adapters', a, 'council-member.md'), 'utf8'),
+  }));
+  const tokens = [...new Set(templates.flatMap((t) => t.text.match(/<COUNCIL-[A-Z]+>/g) ?? []))].sort();
+  const placed = templates.map((t) => ({ adapter: t.adapter, path: (t.text.match(/^Placed at `([^`]+)`/m) ?? [])[1] }));
+
+  const setupComplete = readFileSync(join(repoRoot, 'src', 'workflow', 'validators', 'check-setup-complete.mjs'), 'utf8');
+  const expectedPaths = [...(setupComplete.match(/memberDefinitionPaths = \[([\s\S]*?)\]/)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const badPlaced = placed.filter((p) => !p.path || !expectedPaths.includes(p.path));
+  check('r26-council-member-placed-at-matches-setup-check',
+    "every template names its destination on a `Placed at` line that check-setup-complete looks for",
+    tokens.length > 0 && badPlaced.length === 0 && expectedPaths.length === adapters.length,
+    `tokens: ${tokens.join(', ') || 'none'} | unmatched: ${badPlaced.map((p) => `${p.adapter}=${p.path ?? 'no Placed at line'}`).join(', ') || 'none'} | setup-check paths: ${expectedPaths.length}`);
+
+  const setupSkill = readFileSync(join(repoRoot, 'src', 'setup', 'SKILL.md'), 'utf8');
+  const stepStart = setupSkill.indexOf('#### Step 5a.3');
+  const stepEnd = setupSkill.indexOf('\n#### ', stepStart + 1);
+  const router = readFileSync(join(repoRoot, 'src', 'workflow', 'router.md'), 'utf8');
+  const tierStart = router.indexOf('**`tuning.council.model_tier`**');
+  const tierEnd = router.indexOf('\n6. ', tierStart);
+  const cli = readFileSync(join(repoRoot, 'bin', 'agentsmyth.mjs'), 'utf8');
+  const tierSpec = cli.indexOf("field: 'tuning.council.model_tier'");
+  const hintStart = cli.indexOf("hint: '", tierSpec);
+  const hintEnd = cli.indexOf("',\n", hintStart);
+
+  const copies = [
+    { name: 'setup step 5a.3', text: stepStart === -1 ? '' : setupSkill.slice(stepStart, stepEnd === -1 ? undefined : stepEnd) },
+    { name: 'router step 5', text: tierStart === -1 ? '' : router.slice(tierStart, tierEnd === -1 ? undefined : tierEnd) },
+    { name: 'model_tier hint', text: tierSpec === -1 || hintStart === -1 ? '' : cli.slice(hintStart, hintEnd) },
+  ];
+  const problems = [];
+  for (const c of copies) {
+    // An empty slice can only ever fail about itself (see r25 above), so it is reported as such.
+    if (c.text.length < 40) { problems.push(`${c.name}: section not found`); continue; }
+    const missing = [
+      ...(c.text.includes('<definitions_root>/adapters/<tool>/council-member.md') ? [] : ['the definitions-tree template path']),
+      ...tokens.filter((t) => !c.text.includes(t)),
+      ...(c.text.includes('Placed at') ? [] : ['the `Placed at` destination']),
+      ...(/first line/.test(c.text) && !/used to say/.test(c.text) ? ['still says "first line"'] : []),
+      ...(/waived/i.test(c.text) ? [] : ['what to do when the item is waived']),
+    ];
+    if (missing.length) problems.push(`${c.name}: ${missing.join(', ')}`);
+  }
+  check('r26-council-member-render-instruction-agrees',
+    'setup step 5a.3, router step 5 and the model_tier hint give the same render instruction the templates support',
+    problems.length === 0, problems.join(' | '));
+}
+
 // WP-R25 F22 — the positive half: a record that DOES name the definition each member was dispatched
 // from must pass. Without this the negative fixture alone would be satisfied by a rule that rejects
 // every record, which is the failure mode a one-sided rule actually has.

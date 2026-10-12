@@ -54,6 +54,7 @@
     "commit-coverage:test": "node test/run-commit-coverage-tests.mjs",
     "domain-placeholders:test": "node test/run-domain-placeholders-tests.mjs",
     "agents-md:test": "node test/run-agents-md-tests.mjs",
+    "consumer-sweep:test": "node test/run-consumer-sweep-tests.mjs",
     "capture:gate": "node scripts/capture-gate-refusal.mjs",
     "site:dev": "vitepress dev site",
     "site:build": "vitepress build site",
