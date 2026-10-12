@@ -4,7 +4,7 @@ version: 1
 artifact: reflect
 status: done
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-10-12
 manifest_ids: [R1, R2, R3, R4, R5, R6, R7, RI1, RI2, RI3, RI4, RI5]
 upstream:
   - workflow/artifacts/briefs/upgrade-hardening-1-1-1-v1.md
@@ -34,7 +34,7 @@ All 12 requirements shipped to the branch:
 - 5 Review findings, all fixed, none accepted;
 - no waivers, no skipped checks, no residual risk, and no new open items.
 
-The version bump and publish are CI's, per the user. The CHANGELOG entry sits under `## [Unreleased]`. Not pushed; no PR.
+The version bump and publish are CI's, per the user. The CHANGELOG entry is `## [1.1.1] - 2026-10-12`. Not pushed; no PR.
 
 ## What Worked
 
@@ -55,6 +55,8 @@ The version bump and publish are CI's, per the user. The CHANGELOG entry sits un
 - **Two denied shell commands.** One staged a temporary file inside `src/` and removed it; one used `rm -rf` on scratch. Both were redone entirely inside the scratchpad without deletes. The lesson: keep comparison copies out of the source tree from the start.
 
 ## Surprises
+
+- After the PR opened (2026-10-12), the user flagged that the CHANGELOG entry was headed `## [Unreleased]`. I had read "the version bump is CI's" as covering the CHANGELOG heading too. But CI's release job only edits `package.json`, and every earlier entry was numbered by hand. It is corrected to `## [1.1.1] - 2026-10-12`. Check what an automated step actually writes before handing it a job.
 
 - F4: the setup skill's "path named in the template's first line" had shipped in 1.1.0 and was true of no template. It surfaced only because the guard took its expectations from the templates.
 - The mutation audit took ~55 minutes for 248 rules, which explains most of the reported ~1h30m release runtime.
@@ -103,7 +105,7 @@ See `workflow/learnings/sessions/2026-10-11-upgrade-hardening-1-1-1.md`.
 - role: Project Manager
 - decision: No follow-ups and no open items, per the user's direction for bug-fix releases. Learning candidates are proposals only and do not enter any ledger.
 - constraint: Push, PR and release are outside this chain. Push and PR need separate confirmation; the version bump and release belong to CI.
-- downstream: The CI release run lifts `## [Unreleased]` into the numbered entry. The new `consumer-sweep:test` now runs on every push and every release.
+- downstream: The CI release run bumps `package.json` to 1.1.1; the CHANGELOG entry is already numbered. The new `consumer-sweep:test` now runs on every push and every release.
 
 ## Exit Gate
 
